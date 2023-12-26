@@ -1,17 +1,38 @@
--- premake5.lua
-workspace "New Project"
-   architecture "x64"
-   configurations { "Debug", "Release", "Dist" }
-   startproject "App"
+workspace "PrismEngine"
+	architecture "x64"
+	configurations { "Debug", "Profile", "Release" }
+	startproject "Prism-Sandbox"
 
-   -- Workspace-wide build options for MSVC
-   filter "system:windows"
-      buildoptions { "/EHsc", "/Zc:preprocessor", "/Zc:__cplusplus" }
+	-- Workspace-wide build options for MSVC
+	filter "system:windows"
+		buildoptions { "/EHsc", "/Zc:preprocessor", "/Zc:__cplusplus" }
+	filter {}
+		
+	outputFolderName = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+	binDirectory = "%{prj.location}/Bin/" .. outputFolderName .. "/"
+	intDirectory = "%{prj.location}/Bin/" .. outputFolderName .. "/Int"
 
-OutputDir = "%{cfg.system}-%{cfg.architecture}/%{cfg.buildcfg}"
+	targetdir (binDirectory)
+	objdir (intDirectory)
 
-group "Core"
-	include "Core/Build-Core.lua"
+	includeDirs = {}
+	includeDirs["Prism-Core"] = "%{wks.location}/Prism-Core/Src"
+	includeDirs["glm"] = "%{wks.location}/Vendor/glm"
+	includeDirs["spdlog"] = "%{wks.location}/Vendor/spdlog/include"
+
+	libDirs = {}
+	libDirs["spdlog"] = "%{wks.location}/Vendor/spdlog/Bin/" .. outputFolderName
+
+group "Dependencies"
+	include "Vendor/glm/Build-glm.lua"
+	include "Vendor/spdlog/Build-spdlog.lua"
 group ""
 
-include "App/Build-App.lua"
+group "Core"
+	include "Prism-Core/Build-Core.lua"
+group "Core/Dependencies"
+	include "Prism-Core/Platform/SDL/Build-PlatformSDL.lua"
+	include "Prism-Core/RendererAPI/D3D12/Build-APID3D12.lua"
+group ""
+
+include "Prism-Sandbox/Build-Sandbox.lua"

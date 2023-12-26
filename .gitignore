@@ -1,14 +1,17 @@
-# Directories
+# Binaries
+**/Bin/
+**/Int/
+!Vendor/Premake/Bin/
+!Vendor/spdlog/Bin/
+!Prism-Core/Platform/SDL/Vender/SDL/Bin
+
+# Visual Studio files and folder
 .vs/
-Binaries/
-
-# Files
-*.vcxproj
-*.vcxproj.user
-*.vcxproj.filters
-*.sln
-*.log
-Makefile
-
-# Exclude
-!Vendor/Binaries
+**.sln
+**.vcxproj
+**.vcxproj.filters
+**.vcxproj.user
+**.csproj
+**.nsight-gfxproj
+**.DotSettings
+**.user
