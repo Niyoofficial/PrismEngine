@@ -29,7 +29,7 @@ void SandboxApplication::Init()
 		.sampleDesc = {
 			.count = 1,
 			.quality = 0
-		}
+		},
 		.bufferCount = 3
 	};
 	m_window.reset(Prism::Core::Window::Create(windowParams, swapchainDesc));
