@@ -7,6 +7,11 @@ project "Prism-Core"
 	pchheader "pcpch.h"
 	pchsource "Src/pcpch.cpp"
 
+	includeDirs["SDL"] = "%{prj.location}/Vendor/SDL/include"
+	libDirs["SDL"] = "%{prj.location}/Vendor/SDL/Bin/" .. outputFolderName
+	includeDirs["xxHash"] = "%{prj.location}/Vendor/xxHash"
+	libDirs["xxHash"] = "%{prj.location}/Vendor/xxHash/Bin/" .. outputFolderName
+
 	files
 	{
 		"Src/Prism-Core/**",
@@ -14,25 +19,25 @@ project "Prism-Core"
 		"Src/pcpch.cpp"
 	}
 
-	includeDirs["Platform-SDL"] = "%{prj.location}/Platform/SDL/Src"
-	libDirs["Platform-SDL"] = "%{prj.location}/Platform/SDL/Bin/" .. outputFolderName
-
 	includedirs
 	{
 		"Src",
 
 		includeDirs["glm"],
-		includeDirs["spdlog"]
+		includeDirs["spdlog"],
+		includeDirs["xxHash"]
 	}
 
 	libdirs
 	{
-		libDirs["spdlog"]
+		libDirs["spdlog"],
+		libDirs["xxHash"]
 	}
 
 	links
 	{
-		"spdlog.lib"
+		"spdlog.lib",
+		"xxHash.lib"
 	}
 
 	filter "system:windows"
@@ -41,23 +46,27 @@ project "Prism-Core"
 
 		files
 		{
-			"Src/Platform/SDL/**"
+			"Src/Platform/SDL/**",
+			"Src/RenderAPI/D3D12/**"
 		}
 
 		includedirs
 		{
-			includeDirs["Platform-SDL"]
+			includeDirs["SDL"]
 		}
 
 		libdirs
 		{
-			libDirs["Platform-SDL"]
+			libDirs["SDL"]
 		}
 
 		links
 		{
-			"Platform-Test",
-			"Platform-SDL"
+			"dxgi.lib",
+			"dxguid.lib",
+			"d3d12.lib",
+			"dxcompiler.lib",
+			"SDL3.lib"
 		}
 
 	filter "configurations:Debug"

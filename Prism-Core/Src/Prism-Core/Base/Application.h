@@ -1,18 +1,38 @@
 #pragma once
 
-#include "Prism-Core/Base/Window.h"
+#include <vector>
+
+namespace Prism::Render
+{
+class Layer;
+}
 
 namespace Prism::Core
 {
 class Application
 {
 public:
+	virtual ~Application() = default;
+
 	void Run();
 
-protected:
-	void Init();
+	void PushLayer(Render::Layer* layer);
+	void PopLayer(Render::Layer* layer);
 
 protected:
-	std::unique_ptr<class Window> m_window;
+	virtual void Init();
+	virtual void Shutdown();
+
+	void InitPlatform();
+	void ShutdownPlatform();
+
+	void InitRenderer();
+	void ShutdownRenderer();
+
+protected:
+	bool m_running = false;
+	uint64_t m_frameCounter = 0;
+
+	std::vector<Render::Layer*> m_layerStack;
 };
 }

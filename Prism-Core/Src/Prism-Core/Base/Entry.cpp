@@ -11,7 +11,7 @@ int32_t main(int32_t argc, char** argv)
 {
 	using namespace Prism::Core;
 
-	InitializeCore();
+	InitCore();
 
 	Application* app = CreateApplication(argc, argv);
 	app->Run();

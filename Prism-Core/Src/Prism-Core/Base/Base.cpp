@@ -3,7 +3,7 @@
 
 namespace Prism::Core
 {
-void InitializeCore()
+void InitCore()
 {
 	Log::InitLog();
 }

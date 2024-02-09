@@ -2,6 +2,7 @@
 
 #include "Prism-Core/Base/Logging.h"
 #include "Prism-Core/Base/Assert.h"
+#include "Prism-Core/Utilities/StringUtils.h"
 
 #include "glm/gtx/compatibility.hpp"
 
@@ -14,6 +15,6 @@ DECLARE_LOG_CATEGORY(PECore, "Prism-Core");
 
 namespace Prism::Core
 {
-void InitializeCore();
+void InitCore();
 void ShutdownCore();
 }

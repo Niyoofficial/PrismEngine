@@ -76,11 +76,11 @@ private:
 	} g_##categoryName##Log;										\
 	} static_assert(true)
 
-#define PE_LOG(logName, verbosity, ...)																			\
-	do																											\
-	{																											\
-		::Prism::Log::Generated::g_##logName##Log.Log(::Prism::Log::LogVerbosity::##verbosity, __VA_ARGS__);	\
-	}																											\
+#define PE_LOG(logName, verbosity, ...)																		\
+	do																										\
+	{																										\
+		::Prism::Log::Generated::g_##logName##Log.Log(::Prism::Log::LogVerbosity::verbosity, __VA_ARGS__);	\
+	}																										\
 	while (false)
 
 // Template implementations

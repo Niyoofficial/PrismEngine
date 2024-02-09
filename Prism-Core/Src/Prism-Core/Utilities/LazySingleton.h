@@ -2,6 +2,10 @@
 
 #include "Prism-Core/Base/Base.h"
 
+namespace Prism
+{
+
+/* Singleton that will be created on its first access and can be destroyed on demand */
 template<class T>
 class LazySingleton final
 {
@@ -63,4 +67,4 @@ private:
 	uint8_t m_data[sizeof(T)] = {};
 	T* m_ptr = nullptr;
 };
-
+}

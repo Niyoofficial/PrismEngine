@@ -31,6 +31,14 @@ project "Prism-Sandbox"
 		systemversion "latest"
 		defines { "PE_PLATFORM_WINDOWS" }
 
+		links
+		{
+			"Winmm.lib",
+			"Version.lib",
+			"Imm32.lib",
+			"Cfgmgr32.lib"
+		}
+
 	filter "configurations:Debug"
 		defines { "PE_BUILD_DEBUG" }
 		runtime "Debug"
