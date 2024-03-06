@@ -56,13 +56,13 @@ public:
 	template<typename Func>
 	void RecordCommandToCurrentCmdList(Func&& function)
 	{
-		m_commandLists[0].RecordCommand(std::forward<Func>(function));
+		//m_commandLists[0].RecordCommand(std::forward<Func>(function));
 	}
 
 	void ExecuteCurrentCmdList();
 
 private:
-	std::array<RenderThread, Constants::RENDER_THREADS_COUNT> m_renderThreads;
-	std::array<RenderThreadCommandList, Constants::RENDER_THREADS_COUNT> m_commandLists;
+	//std::array<RenderThread, Constants::RENDER_THREADS_COUNT> m_renderThreads;
+	//std::array<RenderThreadCommandList, Constants::RENDER_THREADS_COUNT> m_commandLists;
 };
 }

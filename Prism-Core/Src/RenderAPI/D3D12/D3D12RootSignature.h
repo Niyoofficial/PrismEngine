@@ -2,12 +2,12 @@
 #include "Prism-Core/Render/GraphicsPipelineState.h"
 #include "RenderAPI/D3D12/D3D12Base.h"
 
-namespace Prism::D3D12
+namespace Prism::Render::D3D12
 {
 class D3D12RootSignature
 {
 public:
-	explicit D3D12RootSignature(const Render::GraphicsPipelineStateDesc& psoDesc);
+	explicit D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc);
 
 	ID3D12RootSignature* GetD3D12RootSignature() const { return m_rootSignature.Get(); }
 

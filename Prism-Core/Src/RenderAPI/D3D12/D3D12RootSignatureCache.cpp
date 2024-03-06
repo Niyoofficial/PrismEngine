@@ -3,11 +3,11 @@
 
 #include "RenderAPI/D3D12/D3D12RootSignature.h"
 
-namespace Prism::D3D12
+namespace Prism::Render::D3D12
 {
-D3D12RootSignature* D3D12RootSignatureCache::GetOrCreateRootSignature(const Render::GraphicsPipelineStateDesc& psoDesc)
+D3D12RootSignature* D3D12RootSignatureCache::GetOrCreateRootSignature(const GraphicsPipelineStateDesc& psoDesc)
 {
-	Render::PipelineStateHash hash(psoDesc);
+	PipelineStateHash hash(psoDesc);
 
 	auto findIt = m_rootSignatures.find(hash);
 	if (findIt != m_rootSignatures.end())

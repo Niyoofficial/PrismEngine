@@ -7,7 +7,7 @@
 #include "dxcapi.h"
 #include <d3d12shader.h>
 
-namespace Prism::D3D12
+namespace Prism::Render::D3D12
 {
 struct D3D12ShaderCompilerOutput
 {
@@ -20,10 +20,10 @@ class D3D12ShaderCompiler
 public:
 	D3D12ShaderCompiler();
 
-	D3D12ShaderCompilerOutput CompileShader(const Render::ShaderCreateInfo& createInfo);
+	D3D12ShaderCompilerOutput CompileShader(const ShaderCreateInfo& createInfo);
 
 private:
-	std::wstring GetTargetStringForShader(Render::ShaderType shaderType, int32_t major, int32_t minor);
+	std::wstring GetTargetStringForShader(ShaderType shaderType, int32_t major, int32_t minor);
 
 private:
 	ComPtr<IDxcUtils> m_dxcUtils;

@@ -1,111 +1,112 @@
 #pragma once
+#include <variant>
 
 namespace Prism::Render
 {
 enum class TextureFormat
 {
-    Unknown = 0,
-    RGBA32_Typeless,
-    RGBA32_Float,
-    RGBA32_UInt,
-    RGBA32_SInt,
-    RGB32_Typeless,
-    RGB32_Float,
-    RGB32_UInt,
-    RGB32_SInt,
-    RGBA16_Typeless,
-    RGBA16_Float,
-    RGBA16_UNorm,
-    RGBA16_UInt,
-    RGBA16_SNorm,
-    RGBA16_SInt,
-    RG32_Typeless,
-    RG32_Float,
-    RG32_UInt,
-    RG32_SInt,
-    R32G8X24_Typeless,
-    D32_Float_S8X24_UInt,
-    R32_Float_X8X24_Typeless,
-    X32_Typeless_G8X24_UInt,
-    RGB10A2_Typeless,
-    RGB10A2_UNorm,
-    RGB10A2_UInt,
-    R11G11B10_Float,
-    RGBA8_Typeless,
-    RGBA8_UNorm,
-    RGBA8_UNorm_SRGB,
-    RGBA8_UInt,
-    RGBA8_SNorm,
-    RGBA8_SInt,
-    RG16_Typeless,
-    RG16_Float,
-    RG16_UNorm,
-    RG16_UInt,
-    RG16_SNorm,
-    RG16_SInt,
-    R32_Typeless,
-    D32_Float,
-    R32_Float,
-    R32_UInt,
-    R32_SInt,
-    R24G8_Typeless,
-    D24_UNorm_S8_UInt,
-    R24_UNorm_X8_Typeless,
-    X24_Typeless_G8_UInt,
-    RG8_Typeless,
-    RG8_UNorm,
-    RG8_UInt,
-    RG8_SNorm,
-    RG8_SInt,
-    R16_Typeless,
-    R16_Float,
-    D16_UNorm,
-    R16_UNorm,
-    R16_UInt,
-    R16_SNorm,
-    R16_SInt,
-    R8_Typeless,
-    R8_UNorm,
-    R8_UInt,
-    R8_SNorm,
-    R8_SInt,
-    A8_UNorm,
-    R1_UNorm,
-    RGB9E5_SHAREDEXP,
-    RG8_B8G8_UNorm,
-    G8R8_G8B8_UNorm,
-    BC1_Typeless,
-    BC1_UNorm,
-    BC1_UNorm_SRGB,
-    BC2_Typeless,
-    BC2_UNorm,
-    BC2_UNorm_SRGB,
-    BC3_Typeless,
-    BC3_UNorm,
-    BC3_UNorm_SRGB,
-    BC4_Typeless,
-    BC4_UNorm,
-    BC4_SNorm,
-    BC5_Typeless,
-    BC5_UNorm,
-    BC5_SNorm,
-    B5G6R5_UNorm,
-    B5G5R5A1_UNorm,
-    BGRA8_UNorm,
-    BGRX8_UNorm,
-    R10G10B10_XR_BIAS_A2_UNorm,
-    BGRA8_Typeless,
-    BGRA8_UNorm_SRGB,
-    BGRX8_Typeless,
-    BGRX8_UNorm_SRGB,
-    BC6H_Typeless,
-    BC6H_UF16,
-    BC6H_SF16,
-    BC7_Typeless,
-    BC7_UNorm,
-    BC7_UNorm_SRGB,
+	Unknown = 0,
+	RGBA32_Typeless,
+	RGBA32_Float,
+	RGBA32_UInt,
+	RGBA32_SInt,
+	RGB32_Typeless,
+	RGB32_Float,
+	RGB32_UInt,
+	RGB32_SInt,
+	RGBA16_Typeless,
+	RGBA16_Float,
+	RGBA16_UNorm,
+	RGBA16_UInt,
+	RGBA16_SNorm,
+	RGBA16_SInt,
+	RG32_Typeless,
+	RG32_Float,
+	RG32_UInt,
+	RG32_SInt,
+	R32G8X24_Typeless,
+	D32_Float_S8X24_UInt,
+	R32_Float_X8X24_Typeless,
+	X32_Typeless_G8X24_UInt,
+	RGB10A2_Typeless,
+	RGB10A2_UNorm,
+	RGB10A2_UInt,
+	R11G11B10_Float,
+	RGBA8_Typeless,
+	RGBA8_UNorm,
+	RGBA8_UNorm_SRGB,
+	RGBA8_UInt,
+	RGBA8_SNorm,
+	RGBA8_SInt,
+	RG16_Typeless,
+	RG16_Float,
+	RG16_UNorm,
+	RG16_UInt,
+	RG16_SNorm,
+	RG16_SInt,
+	R32_Typeless,
+	D32_Float,
+	R32_Float,
+	R32_UInt,
+	R32_SInt,
+	R24G8_Typeless,
+	D24_UNorm_S8_UInt,
+	R24_UNorm_X8_Typeless,
+	X24_Typeless_G8_UInt,
+	RG8_Typeless,
+	RG8_UNorm,
+	RG8_UInt,
+	RG8_SNorm,
+	RG8_SInt,
+	R16_Typeless,
+	R16_Float,
+	D16_UNorm,
+	R16_UNorm,
+	R16_UInt,
+	R16_SNorm,
+	R16_SInt,
+	R8_Typeless,
+	R8_UNorm,
+	R8_UInt,
+	R8_SNorm,
+	R8_SInt,
+	A8_UNorm,
+	R1_UNorm,
+	RGB9E5_SHAREDEXP,
+	RG8_B8G8_UNorm,
+	G8R8_G8B8_UNorm,
+	BC1_Typeless,
+	BC1_UNorm,
+	BC1_UNorm_SRGB,
+	BC2_Typeless,
+	BC2_UNorm,
+	BC2_UNorm_SRGB,
+	BC3_Typeless,
+	BC3_UNorm,
+	BC3_UNorm_SRGB,
+	BC4_Typeless,
+	BC4_UNorm,
+	BC4_SNorm,
+	BC5_Typeless,
+	BC5_UNorm,
+	BC5_SNorm,
+	B5G6R5_UNorm,
+	B5G5R5A1_UNorm,
+	BGRA8_UNorm,
+	BGRX8_UNorm,
+	R10G10B10_XR_BIAS_A2_UNorm,
+	BGRA8_Typeless,
+	BGRA8_UNorm_SRGB,
+	BGRX8_Typeless,
+	BGRX8_UNorm_SRGB,
+	BC6H_Typeless,
+	BC6H_UF16,
+	BC6H_SF16,
+	BC7_Typeless,
+	BC7_UNorm,
+	BC7_UNorm_SRGB,
 
-    NumFormats
+	NumFormats
 };
 
 enum class BlendFactor
@@ -598,5 +599,212 @@ struct SampleDesc
 {
 	int32_t count = 1;
 	int32_t quality = 0;
+};
+
+enum class BindFlags : uint16_t
+{
+	// Undefined binding.
+	None = 0,
+
+	// A buffer can be bound as a vertex buffer.
+	VertexBuffer = 1u << 0u,
+
+	// A buffer can be bound as an index buffer.
+	IndexBuffer = 1u << 1u,
+
+	// A buffer can be bound as a uniform buffer.
+	//
+	// This flag may NOT be combined with any other bind flag.
+	ConstantBuffer = 1u << 2u,
+
+	// A buffer or a texture can be bound as a shader resource.
+	ShaderResource = 1u << 3u,
+
+	// A buffer can be bound as a target for stream output stage.
+	StreamOutput = 1u << 4u,
+
+	// A texture can be bound as a render target.
+	RenderTarget = 1u << 5u,
+
+	// A texture can be bound as a depth-stencil target.
+	DepthStencil = 1u << 6u,
+
+	// A buffer or a texture can be bound as an unordered access view.
+	UnorderedAccess = 1u << 7u,
+
+	// A buffer can be bound as the source buffer for indirect draw commands.
+	IndirectDrawArgs = 1u << 8u,
+};
+
+enum class ResourceUsage
+{
+	// A resource that requires read and write access by the GPU and can also be occasionally
+	// written by the CPU.
+	// D3D11 Counterpart: D3D11_USAGE_DEFAULT. OpenGL counterpart: GL_DYNAMIC_DRAW.
+	// Default buffers do not allow CPU access and must use CPU_ACCESS_NONE flag.
+	Default = 0,
+
+	// A resource that can only be read by the GPU. It cannot be written by the GPU,
+	// and cannot be accessed at all by the CPU. This type of resource must be initialized
+	// when it is created, since it cannot be changed after creation.
+	// D3D11 Counterpart: D3D11_USAGE_IMMUTABLE. OpenGL counterpart: GL_STATIC_DRAW
+	// Static buffers do not allow CPU access and must use CPU_ACCESS_NONE flag.
+	Immutable,
+
+	// A resource that can be read by the GPU and written at least once per frame by the CPU.
+	// D3D11 Counterpart: D3D11_USAGE_DYNAMIC. OpenGL counterpart: GL_STREAM_DRAW
+	// Dynamic buffers must use CPU_ACCESS_WRITE flag.
+	Dynamic,
+
+	// A resource that facilitates transferring data between GPU and CPU.
+	// D3D11 Counterpart: D3D11_USAGE_STAGING. OpenGL counterpart: GL_STATIC_READ or
+	// GL_STATIC_COPY depending on the CPU access flags.
+	// Staging buffers must use exactly one of CPU_ACCESS_WRITE or CPU_ACCESS_READ flags.
+	Staging,
+};
+
+enum class ResourceStateFlags : uint32_t
+{
+	Unknown = 0,
+
+	// The resource state is known to the engine, but is undefined. A resource is typically in an undefined state right after initialization.
+	Undefined = 1u << 0,
+
+	// The resource is accessed as a vertex buffer
+	// Supported contexts: graphics.
+	VertexBuffer = 1u << 1,
+
+	// The resource is accessed as a constant (uniform) buffer
+	// Supported contexts: graphics, compute.
+	ConstantBuffer = 1u << 2,
+
+	// The resource is accessed as an index buffer
+	// Supported contexts: graphics.
+	IndexBuffer = 1u << 3,
+
+	// The resource is accessed as a render target
+	// Supported contexts: graphics.
+	RenderTarget = 1u << 4,
+
+	// The resource is used for unordered access
+	// Supported contexts: graphics, compute.
+	UnorderedAccess = 1u << 5,
+
+	// The resource is used in a writable depth-stencil view or in clear operation
+	// Supported contexts: graphics.
+	DepthWrite = 1u << 6,
+
+	// The resource is used in a read-only depth-stencil view
+	// Supported contexts: graphics.
+	DepthRead = 1u << 7,
+
+	// The resource is accessed from a shader
+	// Supported contexts: graphics, compute.
+	ShaderResource = 1u << 8,
+
+	// The resource is used as the destination for stream output
+	StreamOut = 1u << 9,
+
+	// The resource is used as an indirect draw/dispatch arguments buffer
+	// Supported contexts: graphics, compute.
+	IndirectArgument = 1u << 10,
+
+	// The resource is used as the destination in a copy operation
+	// Supported contexts: graphics, compute, transfer.
+	CopyDest = 1u << 11,
+
+	// The resource is used as the source in a copy operation
+	// Supported contexts: graphics, compute, transfer.
+	CopySource = 1u << 12,
+
+	// The resource is used as the destination in a resolve operation
+	// Supported contexts: graphics.
+	ResolveDest = 1u << 13,
+
+	// The resource is used as the source in a resolve operation
+	// Supported contexts: graphics.
+	ResolveSource = 1u << 14,
+
+	// The resource is used as an input attachment in a render pass subpass
+	// Supported contexts: graphics.
+	InputAttachment = 1u << 15,
+
+	// The resource is used for present
+	// Supported contexts: graphics.
+	Present = 1u << 16,
+
+	// The resource state is used for read operations, but access to the resource may be slower compared to the specialized state.
+	// A transition to the COMMON state is always a pipeline stall and can often induce a cache flush and render target decompress operation.
+	// In D3D12 backend, a resource must be in COMMON state for transition between graphics/compute queue and copy queue.
+	// Supported contexts: graphics, compute, transfer.
+	Common = 1u << 17,
+
+	NumStates = 18,
+	MaxBit = Common,
+
+	GenericRead = VertexBuffer |
+				  ConstantBuffer |
+				  IndexBuffer |
+				  ShaderResource |
+				  IndirectArgument |
+				  CopySource
+};
+
+enum class ResourceDimension
+{
+	Undefined = 0,	// Texture type undefined
+	Buffer,			// Buffer
+	Tex1D,			// One-dimensional texture
+	Tex2D,			// Two-dimensional texture
+	Tex3D,			// Three-dimensional texture
+	TexCube,		// Cube-map texture
+	NumDimensions
+};
+
+struct RenderTargetClearValue
+{
+	TextureFormat format;
+	glm::float4 color;
+};
+
+struct DepthStencilValue
+{
+	float depth = 0.f;
+	uint8_t stencil = 0;
+};
+
+struct DepthStencilClearValue
+{
+	TextureFormat format;
+	DepthStencilValue depthStencil;
+};
+
+using ClearValue = std::variant<RenderTargetClearValue, DepthStencilClearValue>;
+
+struct Viewport
+{
+	glm::float2 topLeft;
+	glm::float2 size;
+	glm::float2 depthRange;
+};
+
+struct Scissor
+{
+	glm::int2 topLeft;
+	glm::int2 size;
+};
+
+enum class ClearFlags
+{
+	ClearDepth = 1 << 0,
+	ClearStencil = 1 << 1
+};
+
+struct StateTransitionDesc
+{
+	class RenderResource* resource = nullptr;
+
+	Flags<ResourceStateFlags> oldState;
+	Flags<ResourceStateFlags> newState;
 };
 }

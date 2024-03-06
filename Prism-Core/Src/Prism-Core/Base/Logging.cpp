@@ -86,4 +86,9 @@ spdlog::level::level_enum LogCategory::PrismVerbosityToSpdlog(LogVerbosity verbo
 
 	return spdlogVerbosity;
 }
+
+void PrintAssertMessage(const char* filename, int32_t line, const char* function)
+{
+	g_errorLogger.Log(filename, line, function, "Assertion Failed!");
+}
 }

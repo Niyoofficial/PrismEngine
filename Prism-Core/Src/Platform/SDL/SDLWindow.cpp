@@ -9,10 +9,10 @@
 
 namespace Prism::SDL
 {
-SDLWindow::SDLWindow(const Core::WindowParameters& windowParams, const Render::SwapchainDesc& swapchainDesc)
+SDLWindow::SDLWindow(const Core::WindowDesc& windowParams, const Render::SwapchainDesc& swapchainDesc)
 	: Window(windowParams, swapchainDesc), m_windowed(!windowParams.fullscreen)
 {
-	m_nativeWindow = SDL_CreateWindow(windowParams.windowTitle.c_str(),
+	m_nativeWindow = SDL_CreateWindow(WStringToString(windowParams.windowTitle).c_str(),
 									  windowParams.windowSize.x, windowParams.windowSize.y,
 									  SDL_WINDOW_RESIZABLE);
 
@@ -29,7 +29,7 @@ std::any SDLWindow::GetPlatformNativeWindow() const
 	return (HWND)SDL_GetProperty(SDL_GetWindowProperties(m_nativeWindow), "SDL.window.win32.hwnd", nullptr);
 }
 
-Core::WindowParameters SDLWindow::GetWindowParams() const
+Core::WindowDesc SDLWindow::GetWindowParams() const
 {
 	return {
 		.windowTitle = GetTitle(),
@@ -51,8 +51,8 @@ bool SDLWindow::GetIsFullscreen() const
 	return (flags & SDL_WINDOW_FULLSCREEN) == SDL_WINDOW_FULLSCREEN;
 }
 
-std::string SDLWindow::GetTitle() const
+std::wstring SDLWindow::GetTitle() const
 {
-	return SDL_GetWindowTitle(m_nativeWindow);
+	return StringToWString(SDL_GetWindowTitle(m_nativeWindow));
 }
 }

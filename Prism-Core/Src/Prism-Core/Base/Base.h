@@ -3,6 +3,8 @@
 #include "Prism-Core/Base/Logging.h"
 #include "Prism-Core/Base/Assert.h"
 #include "Prism-Core/Utilities/StringUtils.h"
+#include "Prism-Core/Utilities/MathUtils.h"
+#include "Prism-Core/Utilities/Flags.h"
 
 #include "glm/gtx/compatibility.hpp"
 

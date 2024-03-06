@@ -4,9 +4,9 @@
 #include "RenderAPI/D3D12/D3D12RenderAPI.h"
 #include "RenderAPI/D3D12/D3D12ShaderImpl.h"
 
-namespace Prism::D3D12
+namespace Prism::Render::D3D12
 {
-D3D12RootSignature::D3D12RootSignature(const Render::GraphicsPipelineStateDesc& psoDesc)
+D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 {
 	ID3D12ShaderReflection* vsReflection = static_cast<D3D12Shader*>(psoDesc.vs)->GetCompilerOutput().reflection.Get();
 

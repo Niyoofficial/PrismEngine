@@ -1,6 +1,8 @@
 ﻿#include "pcpch.h"
 #include "ShaderCache.h"
 
+#include "Prism-Core/Render/RenderResourceCreation.h"
+
 namespace Prism::Render
 {
 Shader* ShaderCache::GetOrCreateShader(const ShaderCreateInfo& createInfo)
@@ -11,7 +13,7 @@ Shader* ShaderCache::GetOrCreateShader(const ShaderCreateInfo& createInfo)
 	if (findIt != m_shaders.end())
 		return findIt->second.get();
 
-	auto [it, success] = m_shaders.emplace(hash, CreateShader(createInfo));
+	auto [it, success] = m_shaders.emplace(hash, Private::CreateShader(createInfo));
 	return it->second.get();
 }
 }

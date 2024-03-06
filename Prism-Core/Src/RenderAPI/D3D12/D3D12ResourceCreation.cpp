@@ -1,35 +1,42 @@
 #include "pcpch.h"
 
-#include "Prism-Core/Render/PipelineStateCache.h"
-#include "Prism-Core/Render/Swapchain.h"
-#include "RenderAPI/D3D12/D3D12Swapchain.h"
-
-#include "Prism-Core/Render/RenderAPI.h"
-#include "Prism-Core/Render/Shader.h"
-#include "Prism-Core/Render/ShaderCache.h"
 #include "RenderAPI/D3D12/D3D12GraphicsPipelineState.h"
 #include "RenderAPI/D3D12/D3D12RenderAPI.h"
 #include "RenderAPI/D3D12/D3D12ShaderImpl.h"
+#include "RenderAPI/D3D12/D3D12Swapchain.h"
+#include "RenderAPI/D3D12/D3D12Texture.h"
+#include "RenderAPI/D3D12/D3D12TextureView.h"
 
-namespace Prism::Render
+
+namespace Prism::Render::Private
 {
-Swapchain* Swapchain::Create(Core::Window* window, SwapchainDesc swapchainDesc)
+Swapchain* CreateSwapchain(Core::Window* window, SwapchainDesc swapchainDesc)
 {
 	return new D3D12::D3D12Swapchain(window, swapchainDesc);
 }
 
-RenderAPI* RenderAPI::Create()
+RenderAPI* CreateRenderAPI()
 {
 	return new D3D12::D3D12RenderAPI;
 }
 
-Shader* ShaderCache::CreateShader(const ShaderCreateInfo& createInfo)
+Shader* CreateShader(const ShaderCreateInfo& createInfo)
 {
 	return new D3D12::D3D12Shader(createInfo);
 }
 
-GraphicsPipelineState* PipelineStateCache::CreatePipelineState(const GraphicsPipelineStateDesc& desc)
+GraphicsPipelineState* CreatePipelineState(const GraphicsPipelineStateDesc& desc)
 {
 	return new D3D12::D3D12GraphicsPipelineState(desc);
+}
+
+Texture* CreateTexture(const TextureDesc& desc, const std::vector<TextureInitData>& initData)
+{
+	return new D3D12::D3D12Texture(desc, initData);
+}
+
+TextureView* CreateTextureView(const TextureViewDesc& desc, Texture* texture)
+{
+	return new D3D12::D3D12TextureView(desc, texture);
 }
 }

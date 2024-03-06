@@ -11,9 +11,6 @@ public:
 	GraphicsPipelineState* GetOrCreatePipelineState(const GraphicsPipelineStateDesc& desc);
 
 private:
-	GraphicsPipelineState* CreatePipelineState(const GraphicsPipelineStateDesc& desc);
-
-private:
 	std::unordered_map<PipelineStateHash, std::unique_ptr<GraphicsPipelineState>> m_pipelineStates;
 };
 }

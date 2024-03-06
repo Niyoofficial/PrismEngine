@@ -3,5 +3,15 @@
 
 namespace Prism::Render
 {
+void Layer::Attach()
+{
+}
 
+void Layer::Detach()
+{
+}
+
+void Layer::Update(Duration delta)
+{
+}
 }

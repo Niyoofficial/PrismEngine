@@ -1,11 +1,18 @@
 ﻿#include "pcpch.h"
 #include "Platform.h"
 
+#include "Prism-Core/Base/PlatformResourceCreation.h"
+
 namespace Prism::Core
 {
 Platform& Platform::Get()
 {
 	return StaticPointerSingleton<Platform>::Get();
+}
+
+void Platform::Create()
+{
+	StaticPointerSingleton<Platform>::Create(Private::CreatePlatform());
 }
 
 void Platform::Destroy()

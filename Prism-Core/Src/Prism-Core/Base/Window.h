@@ -11,10 +11,10 @@ class Swapchain;
 
 namespace Prism::Core
 {
-struct WindowParameters
+struct WindowDesc
 {
 public:
-	std::string windowTitle;
+	std::wstring windowTitle;
 	glm::int2 windowSize;
 	bool fullscreen = false;
 };
@@ -22,10 +22,9 @@ public:
 class Window
 {
 public:
-	static Window* Create(const WindowParameters& params, const Render::SwapchainDesc& swapchainDesc);
+	virtual ~Window();
 
-	explicit Window(const WindowParameters& windowParams, const Render::SwapchainDesc& swapchainDesc) {}
-	virtual ~Window() = default;
+	static Window* Create(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc);
 
 	// Returns native window for the platform abstraction
 	// if we are using any (like SDL) or native platform window if we don't
@@ -33,11 +32,14 @@ public:
 	// Returns native window for the current platform (HWND on Windows)
 	virtual std::any GetPlatformNativeWindow() const = 0;
 
-	virtual WindowParameters GetWindowParams() const = 0;
+	virtual WindowDesc GetWindowParams() const = 0;
 	virtual glm::int2 GetSize() const = 0;
 	virtual bool GetIsFullscreen() const = 0;
-	virtual std::string GetTitle() const = 0;
+	virtual std::wstring GetTitle() const = 0;
 
 	virtual Render::Swapchain* GetSwapchain() = 0;
+
+protected:
+	Window(const WindowDesc& windowParams, const Render::SwapchainDesc& swapchainDesc) {}
 };
 }

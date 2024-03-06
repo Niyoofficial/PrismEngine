@@ -21,15 +21,22 @@ template<typename T>
 class StaticPointerSingleton
 {
 public:
+	template<typename CreateType = T>
 	static void Create()
 	{
-		s_singleton = (T*)malloc(sizeof(T));
-		new (&s_singleton) T;
+		static_assert(std::is_base_of_v<T, CreateType>);
+
+		PE_ASSERT(s_singleton == nullptr, "Singleton already created!");
+
+		s_singleton = (CreateType*)malloc(sizeof(CreateType));
+		new (s_singleton) CreateType;
 	}
 
 	/* Don't hold any reference to the singleton yourself after passing it to this function! */
 	static void Create(T* singleton)
 	{
+		PE_ASSERT(s_singleton == nullptr, "Singleton already created!");
+
 		s_singleton = singleton;
 	}
 

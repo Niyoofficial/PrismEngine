@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Prism-Core/Render/RenderTypes.h"
+#include "Prism-Core/Utilities/Duration.h"
 
 namespace Prism::Core
 {
@@ -25,6 +26,11 @@ class Swapchain
 public:
 	static Swapchain* Create(Core::Window* window, SwapchainDesc swapchainDesc);
 
+	virtual void Present() = 0;
 	virtual void Resize() = 0;
+
+	virtual class TextureView* GetBackBufferRTV(int32_t index) const = 0;
+	virtual TextureView* GetCurrentBackBufferRTV() const = 0;
+	virtual int32_t GetCurrentBackBufferIndex() const = 0;
 };
 }

@@ -13,10 +13,11 @@ int32_t main(int32_t argc, char** argv)
 
 	InitCore();
 
-	Application* app = CreateApplication(argc, argv);
-	app->Run();
+	Application::Create(CreateApplication(argc, argv));
 
-	delete app;
+	Application::Get().Run();
+
+	Application::Destroy();
 
 	ShutdownCore();
 

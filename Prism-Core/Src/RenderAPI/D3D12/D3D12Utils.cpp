@@ -6,7 +6,7 @@
 #include "Prism-Core/Render/RenderTypes.h"
 #include "Prism-Core/Render/Shader.h"
 
-namespace Prism::D3D12
+namespace Prism::Render::D3D12
 {
 bool VerifyHResult(HRESULT hr)
 {

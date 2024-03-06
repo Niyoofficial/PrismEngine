@@ -9,9 +9,6 @@ public:
 	Shader* GetOrCreateShader(const ShaderCreateInfo& createInfo);
 
 private:
-	Shader* CreateShader(const ShaderCreateInfo& createInfo);
-
-private:
 	std::unordered_map<ShaderHash, std::unique_ptr<Shader>> m_shaders;
 };
 }

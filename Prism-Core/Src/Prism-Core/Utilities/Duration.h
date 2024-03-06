@@ -2,18 +2,45 @@
 
 namespace Prism
 {
-class Duration
+struct Duration
 {
 public:
-	explicit Duration(uint64_t ticks);
+	constexpr Duration() = default;
+	constexpr explicit Duration(uint64_t inTicks)
+		: ticks(inTicks)
+	{
+		
+	}
 
 	static Duration SecondsToDuration(double seconds);
 	static Duration MillisecondsToDuration(double milliseconds);
 
-	double GetSeconds();
-	double GetMilliseconds();
+	double GetSeconds() const;
+	double GetMilliseconds() const;
 
-private:
-	uint64_t m_ticks = 0;
+	constexpr Duration operator+(Duration other) const
+	{
+		return Duration(ticks + other.ticks);
+	}
+
+	constexpr Duration operator-(Duration other) const
+	{
+		return Duration(ticks - other.ticks);
+	}
+
+	constexpr Duration operator*(Duration other) const
+	{
+		return Duration(ticks * other.ticks);
+	}
+
+	constexpr Duration operator/(Duration other) const
+	{
+		return Duration(ticks / other.ticks);
+	}
+
+	constexpr auto operator<=>(const Duration& other) const = default;
+
+public:
+	uint64_t ticks = 0;
 };
 }

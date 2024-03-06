@@ -2,11 +2,12 @@
 
 #include "RenderAPI/D3D12/D3D12Base.h"
 
-namespace Prism::D3D12
+namespace Prism::Render::D3D12
 {
 class DescriptorHeapAllocation
 {
 public:
+	DescriptorHeapAllocation() = default;
 	DescriptorHeapAllocation(class DescriptorHeap* heap,
 							 D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
 							 D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle,
@@ -66,6 +67,7 @@ public:
 
 private:
 	DescriptorHeapAllocation AllocateFromFreeBlock(const SizesMapType::iterator& freeBlock, int32_t count);
+	void AddNewBlock(int32_t offset, int32_t size);
 
 private:
 	ComPtr<ID3D12DescriptorHeap> m_descriptorHeap;
@@ -80,7 +82,7 @@ class CPUDescriptorHeapManager
 public:
 	explicit CPUDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type);
 
-	DescriptorHeapAllocation Allocate(int32_t count);
+	DescriptorHeapAllocation Allocate(int32_t count = 1);
 
 private:
 	D3D12_DESCRIPTOR_HEAP_TYPE m_heapType;
@@ -94,7 +96,7 @@ class GPUDescriptorHeapManager
 public:
 	explicit GPUDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type);
 
-	DescriptorHeapAllocation Allocate(int32_t count);
+	DescriptorHeapAllocation Allocate(int32_t count = 1);
 
 private:
 	D3D12_DESCRIPTOR_HEAP_TYPE m_heapType;

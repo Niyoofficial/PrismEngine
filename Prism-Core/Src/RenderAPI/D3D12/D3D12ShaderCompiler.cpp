@@ -5,7 +5,7 @@
 #include "Prism-Core/Render/RenderAPI.h"
 
 
-namespace Prism::D3D12
+namespace Prism::Render::D3D12
 {
 D3D12ShaderCompiler::D3D12ShaderCompiler()
 {
@@ -15,7 +15,7 @@ D3D12ShaderCompiler::D3D12ShaderCompiler()
 	PE_ASSERT_HR(m_dxcUtils->CreateDefaultIncludeHandler(&m_dxcIncludeHandler));
 }
 
-D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const Render::ShaderCreateInfo& createInfo)
+D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateInfo& createInfo)
 {
 	// dxc <shaderName>.hlsl -E <entryPoint> -T <shaderType>_6_0 -Zi -Od -Fo <shaderName>.bin -Fd <shaderName>.pdb -Qstrip_reflect
 
@@ -91,27 +91,27 @@ D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const Render::Shade
 	return output;
 }
 
-std::wstring D3D12ShaderCompiler::GetTargetStringForShader(Render::ShaderType shaderType, int32_t major, int32_t minor)
+std::wstring D3D12ShaderCompiler::GetTargetStringForShader(ShaderType shaderType, int32_t major, int32_t minor)
 {
 	std::wstring shader;
 	switch (shaderType)
 	{
-	case Render::ShaderType::VS:
+	case ShaderType::VS:
 		shader = L"vs";
 		break;
-	case Render::ShaderType::PS:
+	case ShaderType::PS:
 		shader = L"ps";
 		break;
-	case Render::ShaderType::CS:
+	case ShaderType::CS:
 		shader = L"cs";
 		break;
-	case Render::ShaderType::GS:
+	case ShaderType::GS:
 		shader = L"gs";
 		break;
-	case Render::ShaderType::HS:
+	case ShaderType::HS:
 		shader = L"hs";
 		break;
-	case Render::ShaderType::DS:
+	case ShaderType::DS:
 		shader = L"ds";
 		break;
 	default:

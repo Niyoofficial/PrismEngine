@@ -2,18 +2,19 @@
 
 #include "Platform/SDL/SDLPlatform.h"
 #include "Platform/SDL/SDLWindow.h"
+#include "Prism-Core/Base/Application.h"
 #include "Prism-Core/Base/Platform.h"
 #include "Prism-Core/Base/Window.h"
 
-namespace Prism::Core
+namespace Prism::Core::Private
 {
-Window* Window::Create(const WindowParameters& params, const Render::SwapchainDesc& swapchainDesc)
+Window* CreateWindow(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc)
 {
-	return new SDL::SDLWindow(params, swapchainDesc);
+	return new SDL::SDLWindow(windowDesc, swapchainDesc);
 }
 
-void Platform::Create()
+Platform* CreatePlatform()
 {
-	StaticPointerSingleton<Platform>::Create(new SDL::SDLPlatform);
+	return new SDL::SDLPlatform;
 }
 }

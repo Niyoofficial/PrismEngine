@@ -5,11 +5,6 @@
 
 namespace Prism
 {
-Duration::Duration(uint64_t ticks)
-	: m_ticks(ticks)
-{
-}
-
 Duration Duration::SecondsToDuration(double seconds)
 {
 	return Duration((uint64_t)(seconds * (double)Core::Platform::Get().GetPerformanceTicksPerSecond()));
@@ -20,12 +15,12 @@ Duration Duration::MillisecondsToDuration(double milliseconds)
 	return Duration(SecondsToDuration(milliseconds / 1000.0));
 }
 
-double Duration::GetSeconds()
+double Duration::GetSeconds() const
 {
-	return (double)m_ticks / (double)Core::Platform::Get().GetPerformanceTicksPerSecond();
+	return (double)ticks / (double)Core::Platform::Get().GetPerformanceTicksPerSecond();
 }
 
-double Duration::GetMilliseconds()
+double Duration::GetMilliseconds() const
 {
 	return GetSeconds() * 1000.0;
 }

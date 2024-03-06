@@ -40,10 +40,6 @@ void RenderThreadCommandList::AppendToCmdBuffer(const void* data, uint32_t size)
 
 RenderThreadCommandQueue::RenderThreadCommandQueue()
 {
-	for (RenderThread thread : m_renderThreads)
-	{
-
-	}
 }
 
 void RenderThreadCommandQueue::ExecuteCurrentCmdList()

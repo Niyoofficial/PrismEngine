@@ -102,11 +102,7 @@ void ErrorLogger::Log(const char* filename, int32_t line, const char* function,
 
 extern ErrorLogger g_errorLogger;
 
-template<typename... Args>
-void PrintAssertMessage(const char* filename, int32_t line, const char* function)
-{
-	g_errorLogger.Log(filename, line, function, "Assertion Failed!");
-}
+void PrintAssertMessage(const char* filename, int32_t line, const char* function);
 
 template<typename... Args>
 void PrintAssertMessage(const char* filename, int32_t line, const char* function,
