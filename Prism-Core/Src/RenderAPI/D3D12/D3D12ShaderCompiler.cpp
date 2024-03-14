@@ -2,7 +2,7 @@
 #include "D3D12ShaderCompiler.h"
 
 #include "Prism-Core/Base/Base.h"
-#include "Prism-Core/Render/RenderAPI.h"
+#include "Prism-Core/Render/RenderDevice.h"
 
 
 namespace Prism::Render::D3D12
@@ -28,7 +28,7 @@ D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateI
 	sourceBuffer.Size = source->GetBufferSize();
 	sourceBuffer.Encoding = DXC_CP_ACP;
 
-	std::wstring filename = createInfo.filepath.substr(createInfo.filepath.find_last_of('/', 1));
+	std::wstring filename = createInfo.filepath.substr(createInfo.filepath.find_last_of('/', std::wstring::npos) + 1);
 	std::wstring filenameNoExt = filename.substr(0, filename.find_first_of('.'));
 	std::wstring target = GetTargetStringForShader(createInfo.shaderType, 6, 0);
 	std::wstring outputFilename = filenameNoExt + L".bin";
@@ -55,6 +55,7 @@ D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateI
 		if (errors != nullptr && errors->GetStringLength() != 0)
 		{
 			PE_RENDER_LOG(Error, "{}", errors->GetStringPointer());
+			PE_ASSERT(false, "Shader compilation failed!");
 			return {};
 		}
 	}

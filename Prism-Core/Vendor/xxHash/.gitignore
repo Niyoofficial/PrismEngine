@@ -52,3 +52,6 @@ tests/unicode_test*
 
 # Doxygen
 doxygen/
+
+# Except binaries
+!Bin/

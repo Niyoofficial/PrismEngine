@@ -1,7 +1,8 @@
 #include "pcpch.h"
 
 #include "RenderAPI/D3D12/D3D12GraphicsPipelineState.h"
-#include "RenderAPI/D3D12/D3D12RenderAPI.h"
+#include "RenderAPI/D3D12/D3D12RenderContext.h"
+#include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12ShaderImpl.h"
 #include "RenderAPI/D3D12/D3D12Swapchain.h"
 #include "RenderAPI/D3D12/D3D12Texture.h"
@@ -10,14 +11,19 @@
 
 namespace Prism::Render::Private
 {
+void CreateRenderDevice()
+{
+	StaticPointerSingleton<RenderDevice>::Create<D3D12::D3D12RenderDevice>();
+}
+
+RenderContext* CreateRenderContext()
+{
+	return new D3D12::D3D12RenderContext;
+}
+
 Swapchain* CreateSwapchain(Core::Window* window, SwapchainDesc swapchainDesc)
 {
 	return new D3D12::D3D12Swapchain(window, swapchainDesc);
-}
-
-RenderAPI* CreateRenderAPI()
-{
-	return new D3D12::D3D12RenderAPI;
 }
 
 Shader* CreateShader(const ShaderCreateInfo& createInfo)

@@ -2,8 +2,8 @@
 
 #include "Prism-Core/Base/Base.h"
 #include "Prism-Core/Base/Window.h"
-#include "Prism-Core/Render/RenderAPI.h"
-#include "Prism-Core/Render/Renderer.h"
+#include "Prism-Core/Render/RenderContext.h"
+#include "Prism-Core/Render/RenderDevice.h"
 #include "Prism-Core/Render/Texture.h"
 #include "Prism-Core/Render/TextureView.h"
 
@@ -14,38 +14,59 @@ Prism::Core::Application* CreateApplication(int32_t argc, char** argv)
 
 void SandboxLayer::Update(Prism::Duration delta)
 {
+	using namespace Prism::Render;
 	Layer::Update(delta);
 
-	auto* renderAPI = Prism::Render::Renderer::Get().GetRenderAPI();
+	std::unique_ptr<RenderContext> renderContext;
+	renderContext.reset(RenderDevice::Get().AllocateContext());
 
-	renderAPI->Begin();
+	auto* vs = Shader::Create({
+		.filepath = L"Shaders/Basic.hlsl",
+		.entryName = L"vsmain",
+		.shaderType = ShaderType::VS
+	});
+	auto* ps = Shader::Create({
+		.filepath = L"Shaders/Basic.hlsl",
+		.entryName = L"psmain",
+		.shaderType = ShaderType::PS
+	});
+	auto pso = GraphicsPipelineState::Create({
+		.vs = vs,
+		.ps = ps,
+		.inputLayout = {},
+		.primitiveTopologyType = TopologyType::TriangleList,
+		.numRenderTargets = 1,
+		.renderTargetFormats = {TextureFormat::RGBA8_UNorm}
+	});
+
+	renderContext->SetPSO(pso);
 
 	auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
-	renderAPI->Transition({
+	renderContext->Transition({
 		.resource = currentBackBuffer->GetTexture(),
-		.oldState = Prism::Render::ResourceStateFlags::Present,
-		.newState = Prism::Render::ResourceStateFlags::RenderTarget
+		.oldState = ResourceStateFlags::Present,
+		.newState = ResourceStateFlags::RenderTarget
 	});
 
 	glm::float4 clearColor = {0.8f, 0.2f, 0.3f, 1.f};
-	renderAPI->ClearRenderTargetView(currentBackBuffer, &clearColor);
+	renderContext->ClearRenderTargetView(currentBackBuffer, &clearColor);
 
 	auto windowSize = SandboxApplication::Get().GetWindow()->GetSize();
-	renderAPI->SetViewport({{0.f, 0.f}, windowSize, {0.f, 1.f}});
-	renderAPI->SetScissor({{0.f, 0.f}, windowSize});
-	renderAPI->SetRenderTarget(currentBackBuffer, nullptr);
+	renderContext->SetViewport({{0.f, 0.f}, windowSize, {0.f, 1.f}});
+	renderContext->SetScissor({{0.f, 0.f}, windowSize});
+	renderContext->SetRenderTarget(currentBackBuffer, nullptr);
 
-	renderAPI->Transition({
+	renderContext->Transition({
 		.resource = currentBackBuffer->GetTexture(),
-		.oldState = Prism::Render::ResourceStateFlags::RenderTarget,
-		.newState = Prism::Render::ResourceStateFlags::Present
+		.oldState = ResourceStateFlags::RenderTarget,
+		.newState = ResourceStateFlags::Present
 	});
 
-	renderAPI->End();
+	RenderDevice::Get().SubmitContext(renderContext.get());
 
 	SandboxApplication::Get().GetWindow()->GetSwapchain()->Present();
 
-	renderAPI->FlushCommandQueue();
+	RenderDevice::Get().FlushCommandQueue();
 }
 
 SandboxApplication& SandboxApplication::Get()

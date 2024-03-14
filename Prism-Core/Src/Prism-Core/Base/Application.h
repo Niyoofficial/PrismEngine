@@ -8,6 +8,7 @@
 
 namespace Prism::Render
 {
+class RenderDevice;
 class Layer;
 }
 
@@ -35,8 +36,7 @@ public:
 	void PushLayer(Render::Layer* layer);
 	void PopLayer(Render::Layer* layer);
 
-	Window* CreateWindow(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc);
-
+	void RegisterWindow(Window* window);
 	void UnregisterWindow(Window* window);
 
 protected:

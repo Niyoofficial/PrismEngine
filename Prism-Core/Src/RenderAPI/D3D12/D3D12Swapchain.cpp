@@ -4,7 +4,8 @@
 #include "Prism-Core/Base/Window.h"
 #include "RenderAPI/D3D12/D3D12Base.h"
 
-#include "RenderAPI/D3D12/D3D12RenderAPI.h"
+#include "RenderAPI/D3D12/D3D12RenderContext.h"
+#include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12Texture.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 
@@ -38,8 +39,8 @@ D3D12Swapchain::D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc
 
 	HWND hwnd = std::any_cast<HWND>(m_owningWindow->GetPlatformNativeWindow());
 
-	IDXGIFactory2* factory = D3D12RenderAPI::Get()->GetDXGIFactory();
-	ID3D12CommandQueue* commandQueue = D3D12RenderAPI::Get()->GetCommandQueue();
+	IDXGIFactory2* factory = D3D12RenderDevice::Get().GetDXGIFactory();
+	ID3D12CommandQueue* commandQueue = D3D12RenderDevice::Get().GetD3D12CommandQueue();
 	ComPtr<IDXGISwapChain1> swapchain1;
 	PE_ASSERT_HR(factory->CreateSwapChainForHwnd(commandQueue, hwnd, &dxgiSwapchainDesc, &fullscreenDesc, nullptr, &swapchain1));
 	PE_ASSERT_HR(swapchain1->QueryInterface(IID_PPV_ARGS(&m_swapchain)));

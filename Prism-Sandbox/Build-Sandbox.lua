@@ -39,6 +39,11 @@ project "Prism-Sandbox"
 			"Cfgmgr32.lib"
 		}
 
+		postbuildcommands
+		{
+			"{COPYFILE} %[%{prj.location}Vendor/DXIL/dxil.dll] %[%{binDirectory}dxil.dll]"
+		}
+
 	filter "configurations:Debug"
 		defines { "PE_BUILD_DEBUG" }
 		runtime "Debug"

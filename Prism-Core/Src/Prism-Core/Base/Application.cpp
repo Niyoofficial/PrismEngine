@@ -3,8 +3,7 @@
 
 #include "Prism-Core/Base/Platform.h"
 #include "Prism-Core/Render/Layer.h"
-#include "Prism-Core/Render/Renderer.h"
-#include "Prism-Core/Base/PlatformResourceCreation.h"
+#include "Prism-Core/Render/RenderDevice.h"
 
 namespace Prism::Core
 {
@@ -55,11 +54,9 @@ void Application::PopLayer(Render::Layer* layer)
 	}
 }
 
-Window* Application::CreateWindow(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc)
+void Application::RegisterWindow(Window* window)
 {
-	Window* window = Private::CreateWindow(windowDesc, swapchainDesc);
 	m_windows.push_back(window);
-	return window;
 }
 
 void Application::UnregisterWindow(Window* window)
@@ -91,18 +88,11 @@ void Application::ShutdownPlatform()
 
 void Application::InitRenderer()
 {
-	Render::Renderer::Create();
-
-	/*int64_t test = 2;
-	Render::Renderer::Get().Submit(
-		[test]()
-		{
-			PE_CORE_LOG(Warn, "Test Yeah! {}", test);
-		});*/
+	Render::RenderDevice::Create();
 }
 
 void Application::ShutdownRenderer()
 {
-	Render::Renderer::TryDestroy();
+	Render::RenderDevice::TryDestroy();
 }
 }

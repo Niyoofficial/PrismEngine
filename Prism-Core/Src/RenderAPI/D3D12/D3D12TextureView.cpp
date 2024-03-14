@@ -1,7 +1,8 @@
 ﻿#include "pcpch.h"
 #include "D3D12TextureView.h"
 
-#include "RenderAPI/D3D12/D3D12RenderAPI.h"
+#include "RenderAPI/D3D12/D3D12RenderContext.h"
+#include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12Texture.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 
@@ -36,9 +37,9 @@ D3D12TextureView::D3D12TextureView(const TextureViewDesc& desc, Texture* texture
 		{
 			D3D12_RENDER_TARGET_VIEW_DESC d3d12ViewDesc = GetD3D12RenderTargetViewDesc(desc);
 
-			m_descriptor = D3D12RenderAPI::Get()->AllocateCPUDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-			D3D12RenderAPI::Get()->GetD3DDevice()->CreateRenderTargetView(static_cast<D3D12Texture*>(texture)->GetD3D12Resource(),
-																		  &d3d12ViewDesc, m_descriptor.GetCPUHandle());
+			m_descriptor = D3D12RenderDevice::Get().AllocateCPUDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+			D3D12RenderDevice::Get().GetD3D12Device()->CreateRenderTargetView(static_cast<D3D12Texture*>(texture)->GetD3D12Resource(),
+																			   &d3d12ViewDesc, m_descriptor.GetCPUHandle());
 		}
 		break;
 	case TextureViewType::DSV:

@@ -1,7 +1,8 @@
 ﻿#include "pcpch.h"
 #include "D3D12Texture.h"
 
-#include "RenderAPI/D3D12/D3D12RenderAPI.h"
+#include "RenderAPI/D3D12/D3D12RenderContext.h"
+#include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 
 namespace Prism::Render::D3D12
@@ -22,7 +23,7 @@ D3D12Texture::D3D12Texture(TextureDesc desc, const std::vector<TextureInitData>&
 	auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 	D3D12_RESOURCE_DESC d3d12Desc = GetD3D12ResourceDesc(m_originalDesc);
 	D3D12_CLEAR_VALUE d3d12ClearValue = GetD3D12ClearValue(m_originalDesc.optimizedClearValue);
-	PE_ASSERT_HR(D3D12RenderAPI::Get()->GetD3DDevice()->CreateCommittedResource(
+	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource(
 		&heapProps, D3D12_HEAP_FLAG_NONE,
 		&d3d12Desc, initState,
 		&d3d12ClearValue,

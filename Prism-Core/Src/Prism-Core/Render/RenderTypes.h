@@ -504,7 +504,7 @@ constexpr int32_t LAYOUT_ELEMENT_AUTO_BYTE_OFFSET = -1;
 
 struct LayoutElement
 {
-	const char* semanticName = nullptr;
+	const wchar_t* semanticName = nullptr;
 	int32_t semanticIndex = -1;
 	int32_t bufferSlot = -1;
 	LayoutValueType valueType;
@@ -512,7 +512,7 @@ struct LayoutElement
 	bool isNormalized = false;
 	// Use LAYOUT_ELEMENT_AUTO_BYTE_OFFSET for automatic byte offset
 	int32_t relativeByteOffset = LAYOUT_ELEMENT_AUTO_BYTE_OFFSET;
-	LayoutElementFrequency frequency;
+	LayoutElementFrequency frequency = LayoutElementFrequency::PerVertex;
 	int32_t instanceDataStepRate = -1;
 };
 

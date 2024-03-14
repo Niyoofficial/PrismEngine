@@ -1,7 +1,7 @@
 ﻿#include "pcpch.h"
 #include "D3D12RootSignature.h"
 
-#include "RenderAPI/D3D12/D3D12RenderAPI.h"
+#include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12ShaderImpl.h"
 
 namespace Prism::Render::D3D12
@@ -65,7 +65,7 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 		PE_ASSERT(false);
 	}
 
-	PE_ASSERT_HR(D3D12RenderAPI::Get()->GetD3DDevice()->CreateRootSignature(
+	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateRootSignature(
 		0,
 		serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(),
 		IID_PPV_ARGS(&m_rootSignature)));

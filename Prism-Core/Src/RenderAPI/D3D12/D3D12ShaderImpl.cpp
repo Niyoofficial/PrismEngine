@@ -1,9 +1,9 @@
 ﻿#include "pcpch.h"
 #include "D3D12ShaderImpl.h"
 
-#include "RenderAPI/D3D12/D3D12RenderAPI.h"
+#include "RenderAPI/D3D12/D3D12RenderDevice.h"
 
 Prism::Render::D3D12::D3D12Shader::D3D12Shader(const ShaderCreateInfo& createInfo)
 {
-	m_compilerOutput = D3D12RenderAPI::Get()->GetShaderCompiler().CompileShader(createInfo);
+	m_compilerOutput = D3D12RenderDevice::Get().GetShaderCompiler().CompileShader(createInfo);
 }

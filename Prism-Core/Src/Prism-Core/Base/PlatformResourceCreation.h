@@ -4,5 +4,5 @@
 namespace Prism::Core::Private
 {
 Window* CreateWindow(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc);
-Platform* CreatePlatform();
+class Platform* CreatePlatform();
 }

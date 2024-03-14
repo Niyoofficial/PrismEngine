@@ -1,15 +1,14 @@
 ﻿#include "pcpch.h"
 #include "GraphicsPipelineState.h"
 
-#include "Prism-Core/Render/RenderAPI.h"
-#include "Prism-Core/Render/Renderer.h"
+#include "Prism-Core/Render/RenderDevice.h"
 #include "Prism-Core/Render/PipelineStateCache.h"
 
 namespace Prism::Render
 {
 GraphicsPipelineState* GraphicsPipelineState::Create(const GraphicsPipelineStateDesc& desc)
 {
-	return Renderer::Get().GetRenderAPI()->GetPipelineStateCache().GetOrCreatePipelineState(desc);
+	return RenderDevice::Get().GetPipelineStateCache().GetOrCreatePipelineState(desc);
 }
 
 GraphicsPipelineState::GraphicsPipelineState(const GraphicsPipelineStateDesc& desc)

@@ -1,7 +1,8 @@
 ﻿#include "pcpch.h"
-#include "RenderAPI/D3D12/D3D12RenderAPI.h"
+#include "RenderAPI/D3D12/D3D12RenderContext.h"
 #include "D3D12DescriptorHeapManager.h"
 #include "Prism-Core/Render/RenderConstants.h"
+#include "RenderAPI/D3D12/D3D12RenderDevice.h"
 
 
 namespace Prism::Render::D3D12
@@ -38,7 +39,7 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeapAllocation::GetCPUHandle(int32_t ind
 
 	return {
 		m_firstCPUHandle, index,
-		D3D12RenderAPI::Get()->GetDescriptorHandleSize(m_heap->GetHeapType())
+		D3D12RenderDevice::Get().GetDescriptorHandleSize(m_heap->GetHeapType())
 	};
 }
 
@@ -50,7 +51,7 @@ CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorHeapAllocation::GetGPUHandle(int32_t ind
 
 	return {
 		m_firstGPUHandle, index,
-		D3D12RenderAPI::Get()->GetDescriptorHandleSize(m_heap->GetHeapType())
+		D3D12RenderDevice::Get().GetDescriptorHandleSize(m_heap->GetHeapType())
 	};
 }
 
@@ -69,7 +70,7 @@ DescriptorHeap::DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t descript
 		.Flags = shaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
 		.NodeMask = 0
 	};
-	PE_ASSERT_HR(D3D12RenderAPI::Get()->GetD3DDevice()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_descriptorHeap)));
+	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_descriptorHeap)));
 
 	AddNewBlock(0, descriptorsCount);
 }
@@ -110,7 +111,7 @@ DescriptorHeapAllocation DescriptorHeap::AllocateFromFreeBlock(const SizesMapTyp
 	CD3DX12_CPU_DESCRIPTOR_HANDLE cpuHandle(
 		m_descriptorHeap->GetCPUDescriptorHandleForHeapStart(),
 		allocationOffset,
-		D3D12RenderAPI::Get()->GetDescriptorHandleSize(GetHeapType()));
+		D3D12RenderDevice::Get().GetDescriptorHandleSize(GetHeapType()));
 
 	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle = {};
 	if (m_descriptorHeap->GetDesc().Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)
@@ -118,7 +119,7 @@ DescriptorHeapAllocation DescriptorHeap::AllocateFromFreeBlock(const SizesMapTyp
 		gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
 			m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(),
 			allocationOffset,
-			D3D12RenderAPI::Get()->GetDescriptorHandleSize(m_descriptorHeap->GetDesc().Type)
+			D3D12RenderDevice::Get().GetDescriptorHandleSize(m_descriptorHeap->GetDesc().Type)
 		);
 	}
 	return {this, cpuHandle, gpuHandle, count};

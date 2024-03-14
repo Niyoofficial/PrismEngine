@@ -9,19 +9,19 @@ workspace "PrismEngine"
 	filter {}
 		
 	outputFolderName = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
-	binDirectory = "%{prj.location}/Bin/" .. outputFolderName .. "/"
-	intDirectory = "%{prj.location}/Bin/" .. outputFolderName .. "/Int"
+	binDirectory = path.normalize("%{prj.location}/Bin/" .. outputFolderName .. "/")
+	intDirectory = path.normalize("%{prj.location}/Bin/" .. outputFolderName .. "/Int/")
 
 	targetdir (binDirectory)
 	objdir (intDirectory)
 
 	includeDirs = {}
-	includeDirs["Prism-Core"] = "%{wks.location}/Prism-Core/Src"
-	includeDirs["glm"] = "%{wks.location}/Vendor/glm"
-	includeDirs["spdlog"] = "%{wks.location}/Vendor/spdlog/include"
+	includeDirs["Prism-Core"] = path.normalize("%{wks.location}/Prism-Core/Src")
+	includeDirs["glm"] = path.normalize("%{wks.location}/Vendor/glm")
+	includeDirs["spdlog"] = path.normalize("%{wks.location}/Vendor/spdlog/include")
 
 	libDirs = {}
-	libDirs["spdlog"] = "%{wks.location}/Vendor/spdlog/Bin/" .. outputFolderName
+	libDirs["spdlog"] = path.normalize("%{wks.location}/Vendor/spdlog/Bin/" .. outputFolderName)
 
 group "Dependencies"
 	include "Vendor/glm/Build-glm.lua"

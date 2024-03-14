@@ -2,7 +2,8 @@
 #include "D3D12TypeConversions.h"
 
 #include "glm/ext/scalar_integer.hpp"
-#include "RenderAPI/D3D12/D3D12RenderAPI.h"
+#include "RenderAPI/D3D12/D3D12RenderContext.h"
+#include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12RootSignature.h"
 #include "RenderAPI/D3D12/D3D12ShaderImpl.h"
 #include "RenderAPI/D3D12/D3D12Texture.h"
@@ -166,8 +167,8 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const GraphicsPipel
 	PE_ASSERT(
 		desc.primitiveTopologyType != Render::TopologyType::LineStrip &&
 		desc.primitiveTopologyType != Render::TopologyType::LineStripAdj &&
-		desc.primitiveTopologyType != Render::TopologyType::TriangleList &&
-		desc.primitiveTopologyType != Render::TopologyType::TriangleListAdj,
+		desc.primitiveTopologyType != Render::TopologyType::TriangleStrip &&
+		desc.primitiveTopologyType != Render::TopologyType::TriangleStripAdj,
 		"We don't support strips for now, check IBStripCutValue below");
 
 	DXGI_FORMAT rtvFormats[8];
@@ -181,7 +182,7 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const GraphicsPipel
 	std::vector<D3D12_INPUT_ELEMENT_DESC> d3d12InputElements = GetD3D12InputLayoutElements(desc.inputLayout);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC d3d12Desc = {
-		.pRootSignature = D3D12RenderAPI::Get()->GetRootSignatureCache().GetOrCreateRootSignature(desc)->GetD3D12RootSignature(),
+		.pRootSignature = D3D12RenderDevice::Get().GetRootSignatureCache().GetOrCreateRootSignature(desc)->GetD3D12RootSignature(),
 		.VS = GetD3D12ShaderBytecode(desc.vs),
 		.PS = GetD3D12ShaderBytecode(desc.ps),
 		.DS = {}, // We don't support this shader for now
@@ -378,6 +379,8 @@ D3D12_BLEND GetD3D12Blend(BlendFactor blendFactor)
 {
 	switch (blendFactor)
 	{
+	case BlendFactor::Undefined:
+		return {};
 	case BlendFactor::Zero:
 		return D3D12_BLEND_ZERO;
 	case BlendFactor::One:
@@ -422,6 +425,8 @@ D3D12_BLEND_OP GetD3D12BlendOp(BlendOperation blendOperation)
 {
 	switch (blendOperation)
 	{
+	case BlendOperation::Undefined:
+		return {};
 	case BlendOperation::Add:
 		return D3D12_BLEND_OP_ADD;
 	case BlendOperation::Subtract:
@@ -487,7 +492,7 @@ std::vector<D3D12_INPUT_ELEMENT_DESC> GetD3D12InputLayoutElements(const std::vec
 	for (auto& element : layoutElements)
 	{
 		D3D12_INPUT_ELEMENT_DESC inputElement = {
-			.SemanticName = element.semanticName,
+			.SemanticName = WStringToString(element.semanticName).c_str(),
 			.SemanticIndex = (UINT)element.semanticIndex,
 			.Format = GetD3D12InputElementDescFormat(element.valueType, element.componentsNum, element.isNormalized),
 			.InputSlot = (UINT)element.bufferSlot,
