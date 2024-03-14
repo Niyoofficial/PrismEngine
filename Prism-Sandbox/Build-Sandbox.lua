@@ -41,7 +41,8 @@ project "Prism-Sandbox"
 
 		postbuildcommands
 		{
-			"{COPYFILE} %[%{prj.location}Vendor/DXIL/dxil.dll] %[%{binDirectory}dxil.dll]"
+			"{COPYFILE} %[%{prj.location}Vendor/dxc/dxcompiler.dll] %[%{binDirectory}dxcompiler.dll]",
+			"{COPYFILE} %[%{prj.location}Vendor/dxc/dxil.dll] %[%{binDirectory}dxil.dll]"
 		}
 
 	filter "configurations:Debug"

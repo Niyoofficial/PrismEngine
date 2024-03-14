@@ -243,6 +243,8 @@ D3D12_FILL_MODE GetD3D12FillMode(FillMode fillMode)
 {
 	switch (fillMode)
 	{
+	case FillMode::Undefined:
+		return {};
 	case FillMode::Wireframe:
 		return D3D12_FILL_MODE_WIREFRAME;
 	case FillMode::Solid:
@@ -257,6 +259,8 @@ D3D12_CULL_MODE GetD3D12CullMode(CullMode cullMode)
 {
 	switch (cullMode)
 	{
+	case CullMode::Undefined:
+		return {};
 	case CullMode::None:
 		return D3D12_CULL_MODE_NONE;
 	case CullMode::Front:
@@ -273,6 +277,8 @@ D3D12_COMPARISON_FUNC GetD3D12ComparisionFunc(ComparisionFunction comparisionFun
 {
 	switch (comparisionFunction)
 	{
+	case ComparisionFunction::Unknown:
+		return {};
 	case ComparisionFunction::Never:
 		return D3D12_COMPARISON_FUNC_NEVER;
 	case ComparisionFunction::Less:
@@ -309,6 +315,8 @@ D3D12_STENCIL_OP GetD3D12StencilOp(StencilOperation stencilOperation)
 {
 	switch (stencilOperation)
 	{
+	case StencilOperation::Undefined:
+		return {};
 	case StencilOperation::Keep:
 		return D3D12_STENCIL_OP_KEEP;
 	case StencilOperation::Zero:
