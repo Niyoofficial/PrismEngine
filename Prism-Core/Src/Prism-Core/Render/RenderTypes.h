@@ -1,5 +1,6 @@
 #pragma once
 #include <variant>
+#include <array>
 
 namespace Prism::Render
 {
@@ -314,13 +315,13 @@ struct RenderTargetBlendDesc
 {
 	bool blendEnable = false;
 	bool logicOperationEnable = false;
-	BlendFactor srcBlend;
-	BlendFactor destBlend;
-	BlendOperation blendOperation;
-	BlendFactor srcBlendAlpha;
-	BlendFactor destBlendAlpha;
-	BlendOperation blendOperationAlpha;
-	LogicOperation logicOperation;
+	BlendFactor srcBlend = BlendFactor::One;
+	BlendFactor destBlend = BlendFactor::Zero;
+	BlendOperation blendOperation = BlendOperation::Add;
+	BlendFactor srcBlendAlpha = BlendFactor::One;
+	BlendFactor destBlendAlpha = BlendFactor::Zero;
+	BlendOperation blendOperationAlpha = BlendOperation::Add;
+	LogicOperation logicOperation = LogicOperation::Noop;
 	ColorMask renderTargetWriteMask = ColorMask::All;
 };
 
@@ -328,7 +329,7 @@ struct BlendStateDesc
 {
 	bool alphaToCoverageEnable = false;
 	bool independentBlendEnable = false;
-	RenderTargetBlendDesc renderTargetBlendDescs[8] = {};
+	std::array<RenderTargetBlendDesc, 8> renderTargetBlendDescs = {};
 };
 
 enum class FillMode
@@ -350,8 +351,8 @@ enum class CullMode
 
 struct RasterizerStateDesc
 {
-	FillMode fillMode;
-	CullMode cullMode;
+	FillMode fillMode = FillMode::Solid;
+	CullMode cullMode = CullMode::None;
 	bool frontCounterClockwise = false;
 	int32_t depthBias = 0;
 	float depthBiasClamp = 0.f;
@@ -447,73 +448,23 @@ enum class StencilOperation
 
 struct DepthStencilOperationDesc
 {
-	StencilOperation stencilFail;
-	StencilOperation stencilDepthFail;
-	StencilOperation stencilPass;
-	ComparisionFunction stencilFunction;
+	StencilOperation stencilFail = StencilOperation::Keep;
+	StencilOperation stencilDepthFail = StencilOperation::Keep;
+	StencilOperation stencilPass = StencilOperation::Keep;
+	ComparisionFunction stencilFunction = ComparisionFunction::Always;
 };
 
 struct DepthStencilStateDesc
 {
 	bool depthEnable = true;
 	bool depthWriteEnable = true;
-	ComparisionFunction depthFunc;
+	ComparisionFunction depthFunc = ComparisionFunction::Less;
 
 	bool stencilEnable = false;
 	uint8_t stencilReadMask = 0;
 	uint8_t stencilWriteMask = 0;
 	DepthStencilOperationDesc frontFace;
 	DepthStencilOperationDesc backFace;
-};
-
-enum class LayoutValueType
-{
-	// Undefined type
-	Undefined = 0,
-	// Signed 8-bit integer
-	Int8,
-	// Signed 16-bit integer
-	Int16,
-	// Signed 32-bit integer
-	Int32,
-	// Unsigned 8-bit integer
-	UInt8,
-	// Unsigned 16-bit integer
-	UInt16,
-	// Unsigned 32-bit integer
-	UInt32,
-	// Half-precision 16-bit floating point
-	Float16,
-	// Full-precision 32-bit floating point
-	Float32,
-	// Double-precision 64-bit floating point
-	Float64,
-	// Helper value storing total number of types in the enumeration
-	NumValueTypes
-};
-
-enum class LayoutElementFrequency
-{
-	Undefined,
-	PerVertex,
-	PerInstance,
-	NumFrequencies
-};
-
-constexpr int32_t LAYOUT_ELEMENT_AUTO_BYTE_OFFSET = -1;
-
-struct LayoutElement
-{
-	const wchar_t* semanticName = nullptr;
-	int32_t semanticIndex = -1;
-	int32_t bufferSlot = -1;
-	LayoutValueType valueType;
-	int32_t componentsNum = -1;
-	bool isNormalized = false;
-	// Use LAYOUT_ELEMENT_AUTO_BYTE_OFFSET for automatic byte offset
-	int32_t relativeByteOffset = LAYOUT_ELEMENT_AUTO_BYTE_OFFSET;
-	LayoutElementFrequency frequency = LayoutElementFrequency::PerVertex;
-	int32_t instanceDataStepRate = -1;
 };
 
 enum class TopologyType
@@ -612,7 +563,7 @@ enum class BindFlags : uint16_t
 	// A buffer can be bound as an index buffer.
 	IndexBuffer = 1u << 1u,
 
-	// A buffer can be bound as a uniform buffer.
+	// A buffer can be bound as a constant (uniform) buffer.
 	//
 	// This flag may NOT be combined with any other bind flag.
 	ConstantBuffer = 1u << 2u,

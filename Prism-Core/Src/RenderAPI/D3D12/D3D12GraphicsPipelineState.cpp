@@ -13,6 +13,6 @@ D3D12GraphicsPipelineState::D3D12GraphicsPipelineState(const GraphicsPipelineSta
 {
 	auto d3d12PipelineStateDesc = GetD3D12PipelineStateDesc(desc);
 	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateGraphicsPipelineState(
-		&d3d12PipelineStateDesc, IID_PPV_ARGS(&m_d3d12PipelineState)));
+		&d3d12PipelineStateDesc.psoDesc, IID_PPV_ARGS(&m_d3d12PipelineState)));
 }
 }

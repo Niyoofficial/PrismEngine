@@ -11,10 +11,9 @@ struct GraphicsPipelineStateDesc
 	BlendStateDesc blendState;
 	RasterizerStateDesc rasterizerState;
 	DepthStencilStateDesc depthStencilState;
-	std::vector<LayoutElement> inputLayout;
-	TopologyType primitiveTopologyType;
-	int32_t numRenderTargets = 0;
-	TextureFormat renderTargetFormats[8] = {};
+	TopologyType primitiveTopologyType = TopologyType::TriangleList;
+	int32_t numRenderTargets = 1;
+	std::array<TextureFormat, 8> renderTargetFormats = {TextureFormat::Unknown};
 	TextureFormat depthStencilFormat;
 	/// 32-bit sample mask that determines which samples get updated
 	/// in all the active render targets. A sample mask is always applied;

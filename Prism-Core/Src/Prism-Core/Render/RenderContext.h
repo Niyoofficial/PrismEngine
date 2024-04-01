@@ -4,6 +4,10 @@
 
 namespace Prism::Render
 {
+class Buffer;
+class Texture;
+class TextureView;
+
 struct DrawCommandDesc
 {
 	int32_t numVertices = 0;
@@ -19,7 +23,11 @@ struct DrawIndexedCommandDesc
 	int32_t baseVertexLocation = 0;
 };
 
-class TextureView;
+enum class IndexBufferFormat
+{
+	Uint16,
+	Uint32
+};
 
 class RenderContext
 {
@@ -41,9 +49,14 @@ public:
 	void SetScissor(Scissor scissor);
 	virtual void SetScissors(std::vector<Scissor> scissors) = 0;
 
+	virtual void SetVertexBuffer(Buffer* buffer, int32_t vertexSizeInBytes) = 0;
+	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) = 0;
+
 	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr) = 0;
 	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr) = 0;
 
 	virtual void Transition(StateTransitionDesc desc) = 0;
+
+	virtual void CopyBufferRegion(Buffer* dest, int32_t destOffset, Buffer* src, int32_t srcOffset, int32_t numBytes) = 0;
 };
 }

@@ -11,15 +11,22 @@ DECLARE_LOG_CATEGORY(PERender, "Prism-Render");
 
 namespace Prism::Render
 {
+struct RenderDeviceParams
+{
+	bool initPixLibrary = false;
+};
+
 class RenderDevice : public StaticPointerSingleton<RenderDevice>
 {
 public:
-	static void Create();
+	static void Create(RenderDeviceParams params = {});
 	static void Destroy();
 	static void TryDestroy();
 	static RenderDevice& Get();
 	static RenderDevice* TryGet();
 
+
+	explicit RenderDevice(RenderDeviceParams params) {}
 
 	RenderContext* AllocateContext();
 	virtual void SubmitContext(RenderContext* context) = 0;

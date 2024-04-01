@@ -3,6 +3,7 @@
 
 #include "Prism-Core/Base/Application.h"
 #include "RenderAPI/D3D12/D3D12RenderContext.h"
+#include "WinPixEventRuntime/pix3.h"
 
 namespace Prism::Render::D3D12
 {
@@ -16,8 +17,16 @@ D3D12RenderDevice* D3D12RenderDevice::TryGet()
 	return static_cast<D3D12RenderDevice*>(RenderDevice::TryGet());
 }
 
-D3D12RenderDevice::D3D12RenderDevice()
+D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
+	: RenderDevice(params)
 {
+	if (params.initPixLibrary)
+	{
+		// In order to use pix library include wrl/client.h and WinPixEventRuntime/pix3.h after it
+		m_pixGpuCaptureModule = PIXLoadLatestWinPixGpuCapturerLibrary();
+		m_pixTimingCaptureModule = PIXLoadLatestWinPixTimingCapturerLibrary();
+	}
+
 #ifdef PE_BUILD_DEBUG
 	{
 		ComPtr<ID3D12Debug> debugController;

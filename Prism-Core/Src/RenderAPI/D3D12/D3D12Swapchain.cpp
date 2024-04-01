@@ -4,7 +4,6 @@
 #include "Prism-Core/Base/Window.h"
 #include "RenderAPI/D3D12/D3D12Base.h"
 
-#include "RenderAPI/D3D12/D3D12RenderContext.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12Texture.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
@@ -50,17 +49,14 @@ D3D12Swapchain::D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc
 	m_backBuffers.reserve(swapchainDesc.bufferCount);
 	for (int32_t i = 0; i < swapchainDesc.bufferCount; ++i)
 	{
-		ID3D12Resource* buffer = nullptr;
-		PE_ASSERT_HR(m_swapchain->GetBuffer(i, IID_PPV_ARGS(&buffer)));
+		ID3D12Resource* swapchainTexture = nullptr;
+		PE_ASSERT_HR(m_swapchain->GetBuffer(i, IID_PPV_ARGS(&swapchainTexture)));
 
-		TextureDesc desc = {
-			.textureName = std::wstring(L"Backbuffer_").append(std::to_wstring(i)),
-			.optimizedClearValue = RenderTargetClearValue{
-				.format = swapchainDesc.format,
-				.color = {0.f, 0.f, 0.f, 1.f}
-			}
-		};
-		m_backBuffers.push_back(std::make_unique<D3D12Texture>(buffer, desc));
+		m_backBuffers.push_back(std::make_unique<D3D12Texture>(
+			swapchainTexture,
+			L"",
+			ResourceUsage::Default,
+			RenderTargetClearValue{swapchainDesc.format, {0.f, 0.f, 0.f, 0.f}}));
 
 		TextureViewDesc viewDesc = {
 			.type = TextureViewType::RTV,

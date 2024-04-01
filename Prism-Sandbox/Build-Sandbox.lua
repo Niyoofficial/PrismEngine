@@ -31,18 +31,30 @@ project "Prism-Sandbox"
 		systemversion "latest"
 		defines { "PE_PLATFORM_WINDOWS" }
 
+		includedirs
+		{
+			includeDirs["WinPixEventRuntime"]
+		}
+
+		libdirs
+		{
+			libDirs["WinPixEventRuntime"]
+		}
+
 		links
 		{
 			"Winmm.lib",
 			"Version.lib",
 			"Imm32.lib",
-			"Cfgmgr32.lib"
+			"Cfgmgr32.lib",
+			"WinPixEventRuntime.lib"
 		}
 
 		postbuildcommands
 		{
-			"{COPYFILE} %[%{prj.location}Vendor/dxc/dxcompiler.dll] %[%{binDirectory}dxcompiler.dll]",
-			"{COPYFILE} %[%{prj.location}Vendor/dxc/dxil.dll] %[%{binDirectory}dxil.dll]"
+			"{COPYFILE} %[%{libDirs.dxc}/dxcompiler.dll] %[%{binDirectory}dxcompiler.dll]",
+			"{COPYFILE} %[%{libDirs.dxc}/dxil.dll] %[%{binDirectory}dxil.dll]",
+			"{COPYFILE} %[%{libDirs.WinPixEventRuntime}/WinPixEventRuntime.dll] %[%{binDirectory}WinPixEventRuntime.dll]"
 		}
 
 	filter "configurations:Debug"

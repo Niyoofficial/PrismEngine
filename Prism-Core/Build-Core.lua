@@ -7,10 +7,10 @@ project "Prism-Core"
 	pchheader "pcpch.h"
 	pchsource "Src/pcpch.cpp"
 
-	includeDirs["SDL"] = "%{prj.location}/Vendor/SDL/include"
-	libDirs["SDL"] = "%{prj.location}/Vendor/SDL/Bin/" .. outputFolderName
-	includeDirs["xxHash"] = "%{prj.location}/Vendor/xxHash"
-	libDirs["xxHash"] = "%{prj.location}/Vendor/xxHash/Bin/" .. outputFolderName
+	includeDirs["SDL"] = path.normalize("%{prj.location}/Vendor/SDL/include")
+	libDirs["SDL"] = path.normalize("%{prj.location}/Vendor/SDL/Bin/" .. outputFolderName)
+	includeDirs["xxHash"] = path.normalize("%{prj.location}/Vendor/xxHash")
+	libDirs["xxHash"] = path.normalize("%{prj.location}/Vendor/xxHash/Bin/" .. outputFolderName)
 
 	files
 	{
@@ -52,12 +52,14 @@ project "Prism-Core"
 
 		includedirs
 		{
-			includeDirs["SDL"]
+			includeDirs["SDL"],
+			includeDirs["WinPixEventRuntime"]
 		}
 
 		libdirs
 		{
-			libDirs["SDL"]
+			libDirs["SDL"],
+			libDirs["WinPixEventRuntime"]
 		}
 
 		links
@@ -66,7 +68,8 @@ project "Prism-Core"
 			"dxguid.lib",
 			"d3d12.lib",
 			"dxcompiler.lib",
-			"SDL3.lib"
+			"SDL3.lib",
+			"WinPixEventRuntime.lib"
 		}
 
 	filter "configurations:Debug"

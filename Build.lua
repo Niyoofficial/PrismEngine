@@ -23,6 +23,14 @@ workspace "PrismEngine"
 	libDirs = {}
 	libDirs["spdlog"] = path.normalize("%{wks.location}/Vendor/spdlog/Bin/" .. outputFolderName)
 
+	filter "system:windows"
+		libDirs["dxc"] = path.normalize("%{wks.location}/Vendor/dxc/")
+		includeDirs["WinPixEventRuntime"] = path.normalize("%{wks.location}/Vendor/WinPixEventRuntime/Include/")
+		libDirs["WinPixEventRuntime"] = path.normalize("%{wks.location}/Vendor/WinPixEventRuntime/bin/x64/")
+
+		defines { "USE_PIX" }
+	filter {}
+
 group "Dependencies"
 	include "Vendor/glm/Build-glm.lua"
 	include "Vendor/spdlog/Build-spdlog.lua"

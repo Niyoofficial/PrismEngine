@@ -50,7 +50,7 @@ public:
 	int32_t mipLevels = 1;
 	SampleDesc sampleDesc;
 
-	Flags<BindFlags> bindFlags = Flags(BindFlags::None);
+	Flags<BindFlags> bindFlags = BindFlags::None;
 	ResourceUsage usage = ResourceUsage::Default;
 
 	ClearValue optimizedClearValue;

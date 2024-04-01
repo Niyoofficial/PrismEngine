@@ -11,7 +11,7 @@ namespace Prism::Render::D3D12
 {
 struct D3D12ShaderCompilerOutput
 {
-	std::vector<std::byte> bytecode;
+	ComPtr<IDxcBlob> bytecode;
 	ComPtr<ID3D12ShaderReflection> reflection;
 };
 
@@ -23,6 +23,7 @@ public:
 	D3D12ShaderCompilerOutput CompileShader(const ShaderCreateInfo& createInfo);
 
 private:
+	std::wstring GetStringForShader(ShaderType shaderType);
 	std::wstring GetTargetStringForShader(ShaderType shaderType, int32_t major, int32_t minor);
 
 private:

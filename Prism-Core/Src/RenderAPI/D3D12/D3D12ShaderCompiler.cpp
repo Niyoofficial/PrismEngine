@@ -3,6 +3,8 @@
 
 #include "Prism-Core/Base/Base.h"
 #include "Prism-Core/Render/RenderDevice.h"
+#include <fstream>
+#include <filesystem>
 
 
 namespace Prism::Render::D3D12
@@ -17,7 +19,7 @@ D3D12ShaderCompiler::D3D12ShaderCompiler()
 
 D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateInfo& createInfo)
 {
-	// dxc <shaderName>.hlsl -E <entryPoint> -T <shaderType>_6_0 -Zi -Od -Fo <shaderName>.bin -Fd <shaderName>.pdb -Qstrip_reflect
+	// dxc <shaderName>.hlsl -E <entryPoint> -T <shaderType>_6_0 -Zi -Od -Fo <outputName>.bin -Fd <outputName>.pdb -Qstrip_debug -Qstrip_reflect
 
 	ComPtr<IDxcBlobEncoding> source = nullptr;
 	PE_ASSERT_HR(m_dxcUtils->LoadFile(createInfo.filepath.c_str(), nullptr, &source));
@@ -28,19 +30,21 @@ D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateI
 	sourceBuffer.Size = source->GetBufferSize();
 	sourceBuffer.Encoding = DXC_CP_ACP;
 
-	std::wstring filename = createInfo.filepath.substr(createInfo.filepath.find_last_of('/', std::wstring::npos) + 1);
-	std::wstring filenameNoExt = filename.substr(0, filename.find_first_of('.'));
+	std::wstring inputFilename = createInfo.filepath.substr(createInfo.filepath.find_last_of('/', std::wstring::npos) + 1);
+	std::wstring inputFilenameNoExt = inputFilename.substr(0, inputFilename.find_first_of('.'));
 	std::wstring target = GetTargetStringForShader(createInfo.shaderType, 6, 0);
-	std::wstring outputFilename = filenameNoExt + L".bin";
-	std::wstring pdbFilename = filenameNoExt + L".pdb";
+	std::wstring outputFilenameNoExt = inputFilenameNoExt + L"_" + target;
+	std::wstring binFilename = outputFilenameNoExt + L".bin";
+	std::wstring pdbFilename = outputFilenameNoExt + L".pdb";
 
 	const wchar_t* arguments[] = {
-		filename.c_str(),						// Shader filename
+		inputFilename.c_str(),					// Shader filename
 		L"-E", createInfo.entryName.c_str(),	// Entry point
 		L"-T", target.c_str(),					// Target
 		L"-Zi", L"-Od",							// Enable debug information, Disable optimization
-		L"-Fo", outputFilename.c_str(),			// Bin output file
+		L"-Fo", binFilename.c_str(),			// Bin output file
 		L"-Fd", pdbFilename.c_str(),			// PDB output file
+		L"-Qstrip_debug",						// Strip debug into a separate blob
 		L"-Qstrip_reflect"						// Strip reflection into a separate blob
 	};
 
@@ -62,16 +66,33 @@ D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateI
 
 	D3D12ShaderCompilerOutput output;
 
-	// Get shader bytecode
+	// Get shader bytecode and save binary
 	{
-		ComPtr<IDxcBlob> shader;
 		ComPtr<IDxcBlobUtf16> shaderName;
-		PE_ASSERT_HR(results->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&shader), &shaderName));
-		if (shader != nullptr)
-		{
-			output.bytecode.resize(shader->GetBufferSize());
-			memcpy_s(output.bytecode.data(), output.bytecode.size(), shader->GetBufferPointer(), shader->GetBufferSize());
-		}
+		PE_ASSERT_HR(results->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&output.bytecode), &shaderName));
+
+		std::filesystem::create_directory("Int/");
+
+		std::wstring outputFilepath = L"Int/";
+		outputFilepath.append(shaderName->GetStringPointer());
+		std::ofstream file(outputFilepath, std::ios::out | std::ios::binary);
+		file.write((char*)output.bytecode->GetBufferPointer(), (int64_t)output.bytecode->GetBufferSize());
+		file.close();
+	}
+
+	// Get and save pdb
+	{
+		ComPtr<IDxcBlob> pdb;
+		ComPtr<IDxcBlobUtf16> pdbName;
+		PE_ASSERT_HR(results->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pdb), &pdbName));
+
+		std::filesystem::create_directory("Int/");
+
+		std::wstring outputFilepath = L"Int/";
+		outputFilepath.append(pdbName->GetStringPointer());
+		std::ofstream file(outputFilepath, std::ios::out | std::ios::binary);
+		file.write((char*)pdb->GetBufferPointer(), (int64_t)pdb->GetBufferSize());
+		file.close();
 	}
 
 	// Get shader reflection
@@ -92,34 +113,30 @@ D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateI
 	return output;
 }
 
-std::wstring D3D12ShaderCompiler::GetTargetStringForShader(ShaderType shaderType, int32_t major, int32_t minor)
+std::wstring D3D12ShaderCompiler::GetStringForShader(ShaderType shaderType)
 {
-	std::wstring shader;
 	switch (shaderType)
 	{
 	case ShaderType::VS:
-		shader = L"vs";
-		break;
+		return L"vs";
 	case ShaderType::PS:
-		shader = L"ps";
-		break;
+		return L"ps";
 	case ShaderType::CS:
-		shader = L"cs";
-		break;
+		return L"cs";
 	case ShaderType::GS:
-		shader = L"gs";
-		break;
+		return L"gs";
 	case ShaderType::HS:
-		shader = L"hs";
-		break;
+		return L"hs";
 	case ShaderType::DS:
-		shader = L"ds";
-		break;
+		return L"ds";
 	default:
 		PE_ASSERT_NO_ENTRY();
 		return {};
 	}
+}
 
-	return std::format(L"{}_{}_{}", shader, major, minor);
+std::wstring D3D12ShaderCompiler::GetTargetStringForShader(ShaderType shaderType, int32_t major, int32_t minor)
+{
+	return std::format(L"{}_{}_{}", GetStringForShader(shaderType), major, minor);
 }
 }

@@ -5,15 +5,17 @@
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12ShaderImpl.h"
 #include "RenderAPI/D3D12/D3D12Swapchain.h"
+#include "Prism-Core/Render/Buffer.h"
+#include "RenderAPI/D3D12/D3D12Buffer.h"
 #include "RenderAPI/D3D12/D3D12Texture.h"
 #include "RenderAPI/D3D12/D3D12TextureView.h"
 
 
 namespace Prism::Render::Private
 {
-void CreateRenderDevice()
+void CreateRenderDevice(RenderDeviceParams params)
 {
-	StaticPointerSingleton<RenderDevice>::Create<D3D12::D3D12RenderDevice>();
+	StaticPointerSingleton<RenderDevice>::Create<D3D12::D3D12RenderDevice>(params);
 }
 
 RenderContext* CreateRenderContext()
@@ -34,6 +36,11 @@ Shader* CreateShader(const ShaderCreateInfo& createInfo)
 GraphicsPipelineState* CreatePipelineState(const GraphicsPipelineStateDesc& desc)
 {
 	return new D3D12::D3D12GraphicsPipelineState(desc);
+}
+
+Buffer* CreateBuffer(const BufferDesc& desc, const std::vector<BufferInitData>& initData)
+{
+	return new D3D12::D3D12Buffer(desc, initData);
 }
 
 Texture* CreateTexture(const TextureDesc& desc, const std::vector<TextureInitData>& initData)

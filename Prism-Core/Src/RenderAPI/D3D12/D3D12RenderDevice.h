@@ -16,7 +16,7 @@ public:
 	static D3D12RenderDevice* TryGet();
 
 
-	D3D12RenderDevice();
+	explicit D3D12RenderDevice(RenderDeviceParams params);
 
 	virtual void SubmitContext(RenderContext* context) override;
 
@@ -37,6 +37,9 @@ public:
 	D3D12RootSignatureCache& GetRootSignatureCache() { return m_rootSignatureCache; }
 
 private:
+	HMODULE m_pixGpuCaptureModule = {};
+	HMODULE m_pixTimingCaptureModule = {};
+
 	ComPtr<ID3D12CommandQueue> m_commandQueue;
 
 	ComPtr<IDXGIFactory2> m_dxgiFactory;

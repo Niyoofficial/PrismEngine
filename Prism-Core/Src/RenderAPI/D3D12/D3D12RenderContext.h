@@ -17,14 +17,20 @@ public:
 	virtual void DrawIndexed(DrawIndexedCommandDesc desc) override;
 
 	virtual void SetPSO(GraphicsPipelineState* pso) override;
+
 	virtual void SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv) override;
 	virtual void SetViewports(std::vector<Viewport> viewports) override;
 	virtual void SetScissors(std::vector<Scissor> scissors) override;
+
+	virtual void SetVertexBuffer(Buffer* buffer, int32_t vertexSizeInBytes) override;
+	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) override;
 
 	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr) override;
 	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr) override;
 
 	virtual void Transition(StateTransitionDesc desc) override;
+
+	virtual void CopyBufferRegion(Buffer* dest, int32_t destOffset, Buffer* src, int32_t srcOffset, int32_t numBytes) override;
 
 private:
 	ComPtr<ID3D12CommandAllocator> m_commandAllocator;

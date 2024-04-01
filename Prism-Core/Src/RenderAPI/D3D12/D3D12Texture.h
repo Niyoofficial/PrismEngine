@@ -7,15 +7,16 @@ namespace Prism::Render::D3D12
 class D3D12Texture : public Texture
 {
 public:
-	explicit D3D12Texture(TextureDesc desc, const std::vector<TextureInitData>& initData = {});
-	D3D12Texture(ID3D12Resource* resource, TextureDesc desc);
-
-	ID3D12Resource* GetD3D12Resource() const { return m_resource.Get(); }
+	D3D12Texture(const TextureDesc& desc, const std::vector<TextureInitData>& initData);
+	D3D12Texture(ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage, ClearValue optimizedClearValue,
+				 bool isCubeTexture = false);
 
 	virtual TextureDesc GetTextureDesc() const override;
 
+	ID3D12Resource* GetD3D12Resource() const { return m_resource.Get(); }
+
 private:
-	TextureDesc m_originalDesc = {};
+	TextureDesc m_originalDesc;
 	ComPtr<ID3D12Resource> m_resource;
 };
 }

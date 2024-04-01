@@ -1,9 +1,25 @@
-float4 vsmain() : SV_POSITION
+struct VertexInput
 {
-    return float4(0.f, 0.f, 0.f, 1.f);
+	float3 positionLocal : POSITION;
+	float3 color : COLOR;
+};
+
+struct PixelInput
+{
+	float4 positionClip : SV_POSITION;
+	float3 color : COLOR;
+};
+
+PixelInput vsmain(VertexInput vin)
+{
+	PixelInput vout;
+    vout.positionClip = float4(vin.positionLocal, 1.f);
+    vout.color = vin.color;
+
+	return vout;
 }
 
-float4 psmain(float4 input : SV_POSITION) : SV_TARGET
+float4 psmain(PixelInput pin) : SV_TARGET
 {
-    return float4(0.f, 0.f, 0.f, 1.f);
+    return float4(pin.color, 1.f);
 }

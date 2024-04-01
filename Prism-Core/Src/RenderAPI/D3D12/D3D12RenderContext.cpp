@@ -2,6 +2,7 @@
 #include "D3D12RenderContext.h"
 
 #include "Prism-Core/Render/RenderDevice.h"
+#include "RenderAPI/D3D12/D3D12Buffer.h"
 #include "RenderAPI/D3D12/D3D12GraphicsPipelineState.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12TextureView.h"
@@ -35,6 +36,8 @@ void D3D12RenderContext::DrawIndexed(DrawIndexedCommandDesc desc)
 void D3D12RenderContext::SetPSO(GraphicsPipelineState* pso)
 {
 	m_commandList->SetPipelineState(static_cast<D3D12GraphicsPipelineState*>(pso)->GetD3D12PipelineState());
+	m_commandList->SetGraphicsRootSignature(D3D12RenderDevice::Get().GetRootSignatureCache().GetOrCreateRootSignature(pso->GetDesc())->GetD3D12RootSignature());
+	m_commandList->IASetPrimitiveTopology(GetD3D12PrimitiveTopology(pso->GetDesc().primitiveTopologyType));
 }
 
 void D3D12RenderContext::SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv)
@@ -74,6 +77,26 @@ void D3D12RenderContext::SetScissors(std::vector<Scissor> scissors)
 		d3d12Rects.push_back(GetD3D12Rect(scissor));
 
 	m_commandList->RSSetScissorRects((UINT)d3d12Rects.size(), d3d12Rects.data());
+}
+
+void D3D12RenderContext::SetVertexBuffer(Buffer* buffer, int32_t vertexSizeInBytes)
+{
+	D3D12_VERTEX_BUFFER_VIEW view = {
+		.BufferLocation = static_cast<D3D12Buffer*>(buffer)->GetD3D12Resource()->GetGPUVirtualAddress(),
+		.SizeInBytes = (UINT)buffer->GetBufferDesc().size,
+		.StrideInBytes = (UINT)vertexSizeInBytes
+	};
+	m_commandList->IASetVertexBuffers(0, 1, &view);
+}
+
+void D3D12RenderContext::SetIndexBuffer(Buffer* buffer, IndexBufferFormat format)
+{
+	D3D12_INDEX_BUFFER_VIEW view = {
+		.BufferLocation = static_cast<D3D12Buffer*>(buffer)->GetD3D12Resource()->GetGPUVirtualAddress(),
+		.SizeInBytes = (UINT)buffer->GetBufferDesc().size,
+		.Format = GetIndexBufferDXGIFormat(format)
+	};
+	m_commandList->IASetIndexBuffer(&view);
 }
 
 void D3D12RenderContext::ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor)
@@ -123,5 +146,15 @@ void D3D12RenderContext::Transition(StateTransitionDesc desc)
 {
 	CD3DX12_RESOURCE_BARRIER barrier = GetD3D12ResourceBarrier(desc);
 	m_commandList->ResourceBarrier(1, &barrier);
+}
+
+void D3D12RenderContext::CopyBufferRegion(Buffer* dest, int32_t destOffset, Buffer* src, int32_t srcOffset, int32_t numBytes)
+{
+	PE_ASSERT(dest && src);
+	PE_ASSERT(dest->GetResourceType() == ResourceType::Buffer);
+	PE_ASSERT(src->GetResourceType() == ResourceType::Buffer);
+
+	m_commandList->CopyBufferRegion(static_cast<D3D12Buffer*>(dest)->GetD3D12Resource(), destOffset,
+									static_cast<D3D12Buffer*>(src)->GetD3D12Resource(), srcOffset, numBytes);
 }
 }

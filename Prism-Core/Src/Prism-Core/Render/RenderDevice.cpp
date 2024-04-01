@@ -6,9 +6,9 @@
 
 namespace Prism::Render
 {
-void RenderDevice::Create()
+void RenderDevice::Create(RenderDeviceParams params)
 {
-	Private::CreateRenderDevice();
+	Private::CreateRenderDevice(params);
 }
 
 void RenderDevice::Destroy()

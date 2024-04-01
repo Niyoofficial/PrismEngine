@@ -1,7 +1,6 @@
 ﻿#include "pcpch.h"
 #include "D3D12Texture.h"
 
-#include "RenderAPI/D3D12/D3D12RenderContext.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 
@@ -9,8 +8,8 @@ namespace Prism::Render::D3D12
 {
 using namespace Render;
 
-D3D12Texture::D3D12Texture(TextureDesc desc, const std::vector<TextureInitData>& initData)
-	: m_originalDesc(std::move(desc))
+D3D12Texture::D3D12Texture(const TextureDesc& desc, const std::vector<TextureInitData>& initData)
+	: m_originalDesc(desc)
 {
 	D3D12_RESOURCE_STATES initState = D3D12_RESOURCE_STATE_COMMON;
 	if (!initData.empty())
@@ -32,8 +31,10 @@ D3D12Texture::D3D12Texture(TextureDesc desc, const std::vector<TextureInitData>&
 	PE_ASSERT_HR(m_resource->SetName(m_originalDesc.textureName.c_str()));
 }
 
-D3D12Texture::D3D12Texture(ID3D12Resource* resource, TextureDesc desc)
-	: m_originalDesc(std::move(desc)), m_resource(resource)
+D3D12Texture::D3D12Texture(ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage,
+						   ClearValue optimizedClearValue, bool isCubeTexture)
+	: m_originalDesc(D3D12::GetTextureDesc(resource->GetDesc(), name, usage, optimizedClearValue, isCubeTexture)),
+	  m_resource(resource)
 {
 	PE_ASSERT_HR(m_resource->SetName(m_originalDesc.textureName.c_str()));
 }

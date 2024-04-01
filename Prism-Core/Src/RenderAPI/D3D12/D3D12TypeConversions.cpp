@@ -2,6 +2,7 @@
 #include "D3D12TypeConversions.h"
 
 #include "glm/ext/scalar_integer.hpp"
+#include "RenderAPI/D3D12/D3D12Buffer.h"
 #include "RenderAPI/D3D12/D3D12RenderContext.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12RootSignature.h"
@@ -162,7 +163,7 @@ DXGI_RATIONAL GetDXGIRational(int32_t numerator, int32_t denominator)
 	};
 }
 
-D3D12_GRAPHICS_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc)
+D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc)
 {
 	PE_ASSERT(
 		desc.primitiveTopologyType != Render::TopologyType::LineStrip &&
@@ -171,15 +172,15 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const GraphicsPipel
 		desc.primitiveTopologyType != Render::TopologyType::TriangleStripAdj,
 		"We don't support strips for now, check IBStripCutValue below");
 
-	DXGI_FORMAT rtvFormats[8];
+	std::array<D3D12_RENDER_TARGET_BLEND_DESC, 8> renderTargetBlends;
+	for (int32_t i = 0; i < (int32_t)renderTargetBlends.size(); ++i)
+		renderTargetBlends[i] = GetD3D12RenderTargetBlendDesc(desc.blendState.renderTargetBlendDescs[i]);
+
+	std::array<DXGI_FORMAT, 8> rtvFormats;
 	for (int32_t i = 0; i < desc.numRenderTargets; ++i)
 		rtvFormats[i] = GetDXGIFormat(desc.renderTargetFormats[i]);
 
-	D3D12_RENDER_TARGET_BLEND_DESC renderTargetBlends[8] = {};
-	for (int32_t i = 0; i < _countof(renderTargetBlends); ++i)
-		renderTargetBlends[i] = GetD3D12RenderTargetBlendDesc(desc.blendState.renderTargetBlendDescs[i]);
-
-	std::vector<D3D12_INPUT_ELEMENT_DESC> d3d12InputElements = GetD3D12InputLayoutElements(desc.inputLayout);
+	D3D12InputLayout inputLayout = GetD3D12InputLayoutFromVertexShader(desc.vs);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC d3d12Desc = {
 		.pRootSignature = D3D12RenderDevice::Get().GetRootSignatureCache().GetOrCreateRootSignature(desc)->GetD3D12RootSignature(),
@@ -191,7 +192,7 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const GraphicsPipel
 		.BlendState = {
 			.AlphaToCoverageEnable = desc.blendState.alphaToCoverageEnable,
 			.IndependentBlendEnable = desc.blendState.independentBlendEnable,
-			.RenderTarget = {*renderTargetBlends}
+			.RenderTarget = {}
 		},
 		.SampleMask = desc.sampleMask,
 		.RasterizerState = {
@@ -218,33 +219,39 @@ D3D12_GRAPHICS_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const GraphicsPipel
 			.BackFace = GetD3D12DepthStencilOpDesc(desc.depthStencilState.backFace)
 		},
 		.InputLayout = {
-			.pInputElementDescs = d3d12InputElements.data(),
-			.NumElements = (UINT)d3d12InputElements.size()
+			.pInputElementDescs = inputLayout.inputLayout.data(),
+			.NumElements = (UINT)inputLayout.inputLayout.size()
 		},
 		.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED, // TODO: When using strips you have to pass index buffer format to PSO 0xFFFF for 16 bit and 0xFFFFFFFF for 32 bit indices, we don't support strips for now
 		.PrimitiveTopologyType = GetD3D12PrimitiveTopologyType(desc.primitiveTopologyType),
 		.NumRenderTargets = (UINT)desc.numRenderTargets,
-		.RTVFormats = {*rtvFormats},
+		.RTVFormats = {DXGI_FORMAT_UNKNOWN},
 		.DSVFormat = GetDXGIFormat(desc.depthStencilFormat),
 		.SampleDesc = GetDXGISampleDesc(desc.sampleDesc)
 	};
 
-	return d3d12Desc;
+	for (int32_t i = 0; i < (int32_t)_countof(d3d12Desc.BlendState.RenderTarget); ++i)
+		d3d12Desc.BlendState.RenderTarget[i] = GetD3D12RenderTargetBlendDesc(desc.blendState.renderTargetBlendDescs[i]);
+	for (int32_t i = 0; i < desc.numRenderTargets; ++i)
+		d3d12Desc.RTVFormats[i] = GetDXGIFormat(desc.renderTargetFormats[i]);
+
+	return {
+		.psoDesc = d3d12Desc,
+		.inputLayout = std::move(inputLayout)
+	};
 }
 
 CD3DX12_SHADER_BYTECODE GetD3D12ShaderBytecode(Shader* shader)
 {
 	PE_ASSERT(shader);
-	auto compilerOutput = static_cast<D3D12Shader*>(shader)->GetCompilerOutput();
-	return {compilerOutput.bytecode.data(), compilerOutput.bytecode.size()};
+	auto& compilerOutput = static_cast<D3D12Shader*>(shader)->GetCompilerOutput();
+	return {compilerOutput.bytecode->GetBufferPointer(), compilerOutput.bytecode->GetBufferSize()};
 }
 
 D3D12_FILL_MODE GetD3D12FillMode(FillMode fillMode)
 {
 	switch (fillMode)
 	{
-	case FillMode::Undefined:
-		return {};
 	case FillMode::Wireframe:
 		return D3D12_FILL_MODE_WIREFRAME;
 	case FillMode::Solid:
@@ -259,8 +266,6 @@ D3D12_CULL_MODE GetD3D12CullMode(CullMode cullMode)
 {
 	switch (cullMode)
 	{
-	case CullMode::Undefined:
-		return {};
 	case CullMode::None:
 		return D3D12_CULL_MODE_NONE;
 	case CullMode::Front:
@@ -277,8 +282,6 @@ D3D12_COMPARISON_FUNC GetD3D12ComparisionFunc(ComparisionFunction comparisionFun
 {
 	switch (comparisionFunction)
 	{
-	case ComparisionFunction::Unknown:
-		return {};
 	case ComparisionFunction::Never:
 		return D3D12_COMPARISON_FUNC_NEVER;
 	case ComparisionFunction::Less:
@@ -315,8 +318,6 @@ D3D12_STENCIL_OP GetD3D12StencilOp(StencilOperation stencilOperation)
 {
 	switch (stencilOperation)
 	{
-	case StencilOperation::Undefined:
-		return {};
 	case StencilOperation::Keep:
 		return D3D12_STENCIL_OP_KEEP;
 	case StencilOperation::Zero:
@@ -337,6 +338,38 @@ D3D12_STENCIL_OP GetD3D12StencilOp(StencilOperation stencilOperation)
 		PE_ASSERT_NO_ENTRY();
 		return {};
 	}
+}
+
+D3D12_PRIMITIVE_TOPOLOGY GetD3D12PrimitiveTopology(TopologyType topologyType)
+{
+	using namespace Render;
+
+	static D3D12_PRIMITIVE_TOPOLOGY s_d3d12TopologyTypes[(int)TopologyType::NumTopologyTypes];
+	static bool s_inited = false;
+	if (!s_inited)
+	{
+		s_d3d12TopologyTypes[(int)TopologyType::Undefined] = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
+		s_d3d12TopologyTypes[(int)TopologyType::TriangleList] = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+		s_d3d12TopologyTypes[(int)TopologyType::TriangleStrip] = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP;
+		s_d3d12TopologyTypes[(int)TopologyType::TriangleListAdj] = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+		s_d3d12TopologyTypes[(int)TopologyType::TriangleStripAdj] = D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ;
+		s_d3d12TopologyTypes[(int)TopologyType::PointList] = D3D_PRIMITIVE_TOPOLOGY_POINTLIST;
+		s_d3d12TopologyTypes[(int)TopologyType::LineList] = D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+		s_d3d12TopologyTypes[(int)TopologyType::LineStrip] = D3D_PRIMITIVE_TOPOLOGY_LINESTRIP;
+		s_d3d12TopologyTypes[(int)TopologyType::LineListAdj] = D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
+		s_d3d12TopologyTypes[(int)TopologyType::LineStripAdj] = D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ;
+
+		D3D_PRIMITIVE_TOPOLOGY patchValue = D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST;
+		for (int32_t i = (int32_t)TopologyType::ControlPointPatchlist1; i <= (int32_t)TopologyType::ControlPointPatchlist32; ++i)
+		{
+			s_d3d12TopologyTypes[i] = patchValue;
+			++(int32_t&)patchValue;
+		}
+
+		s_inited = true;
+	}
+
+	return s_d3d12TopologyTypes[(int)topologyType];
 }
 
 D3D12_PRIMITIVE_TOPOLOGY_TYPE GetD3D12PrimitiveTopologyType(TopologyType topologyType)
@@ -387,8 +420,6 @@ D3D12_BLEND GetD3D12Blend(BlendFactor blendFactor)
 {
 	switch (blendFactor)
 	{
-	case BlendFactor::Undefined:
-		return {};
 	case BlendFactor::Zero:
 		return D3D12_BLEND_ZERO;
 	case BlendFactor::One:
@@ -433,8 +464,6 @@ D3D12_BLEND_OP GetD3D12BlendOp(BlendOperation blendOperation)
 {
 	switch (blendOperation)
 	{
-	case BlendOperation::Undefined:
-		return {};
 	case BlendOperation::Add:
 		return D3D12_BLEND_OP_ADD;
 	case BlendOperation::Subtract:
@@ -493,221 +522,95 @@ D3D12_LOGIC_OP GetD3D12LogicOp(LogicOperation logicOperation)
 	}
 }
 
-std::vector<D3D12_INPUT_ELEMENT_DESC> GetD3D12InputLayoutElements(const std::vector<LayoutElement>& layoutElements)
+DXGI_FORMAT GetD3D12InputElementDescFormat(const D3D12_SIGNATURE_PARAMETER_DESC& paramDesc)
 {
-	std::vector<D3D12_INPUT_ELEMENT_DESC> d3d12InputElements;
+	int32_t compNum = glm::bitCount(paramDesc.Mask);
 
-	for (auto& element : layoutElements)
+	switch (paramDesc.ComponentType)
 	{
-		D3D12_INPUT_ELEMENT_DESC inputElement = {
-			.SemanticName = WStringToString(element.semanticName).c_str(),
-			.SemanticIndex = (UINT)element.semanticIndex,
-			.Format = GetD3D12InputElementDescFormat(element.valueType, element.componentsNum, element.isNormalized),
-			.InputSlot = (UINT)element.bufferSlot,
-			.AlignedByteOffset = (UINT)element.relativeByteOffset,
-			.InputSlotClass = GetD3D12InputClassification(element.frequency),
-			.InstanceDataStepRate = (UINT)element.instanceDataStepRate
-		};
-
-		d3d12InputElements.push_back(inputElement);
-	}
-
-	return d3d12InputElements;
-}
-
-D3D12_INPUT_CLASSIFICATION GetD3D12InputClassification(LayoutElementFrequency frequency)
-{
-	switch (frequency)
-	{
-	case LayoutElementFrequency::PerVertex:
-		return D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
-	case LayoutElementFrequency::PerInstance:
-		return D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+	case D3D_REGISTER_COMPONENT_UINT32:
+		switch (compNum)
+		{
+		case 1:
+			return DXGI_FORMAT_R32_UINT;
+		case 2:
+			return DXGI_FORMAT_R32G32_UINT;
+		case 3:
+			return DXGI_FORMAT_R32G32B32_UINT;
+		case 4:
+			return DXGI_FORMAT_R32G32B32A32_UINT;
+		default:
+			PE_ASSERT_NO_ENTRY();
+		}
+		break;
+	case D3D_REGISTER_COMPONENT_SINT32:
+		switch (compNum)
+		{
+		case 1:
+			return DXGI_FORMAT_R32_SINT;
+		case 2:
+			return DXGI_FORMAT_R32G32_SINT;
+		case 3:
+			return DXGI_FORMAT_R32G32B32_SINT;
+		case 4:
+			return DXGI_FORMAT_R32G32B32A32_SINT;
+		default:
+			PE_ASSERT_NO_ENTRY();
+		}
+		break;
+	case D3D_REGISTER_COMPONENT_FLOAT32:
+		switch (compNum)
+		{
+		case 1:
+			return DXGI_FORMAT_R32_FLOAT;
+		case 2:
+			return DXGI_FORMAT_R32G32_FLOAT;
+		case 3:
+			return DXGI_FORMAT_R32G32B32_FLOAT;
+		case 4:
+			return DXGI_FORMAT_R32G32B32A32_FLOAT;
+		default:
+			PE_ASSERT_NO_ENTRY();
+		}
+		break;
 	default:
 		PE_ASSERT_NO_ENTRY();
-		return {};
 	}
+
+	return {};
 }
 
-DXGI_FORMAT GetD3D12InputElementDescFormat(LayoutValueType valueType, int32_t componentsNum, bool isNormalized)
+D3D12InputLayout GetD3D12InputLayoutFromVertexShader(Shader* vertexShader)
 {
-	switch (valueType)
+	// TODO: Add a check for shader type
+	D3D12InputLayout layout;
+
+	auto* reflection = static_cast<D3D12Shader*>(vertexShader)->GetCompilerOutput().reflection.Get();
+	D3D12_SHADER_DESC shaderDesc;
+	PE_ASSERT_HR(reflection->GetDesc(&shaderDesc));
+
+	layout.inputLayout.reserve(shaderDesc.InputParameters);
+	layout.inputLayoutSemanticNames.reserve(shaderDesc.InputParameters);
+
+	for (int32_t i = 0; i < (int32_t)shaderDesc.InputParameters; ++i)
 	{
-	case LayoutValueType::Float16:
-	{
-		PE_ASSERT(!isNormalized, "Floating point formats cannot be normalized");
-		switch (componentsNum)
-		{
-		case 1: return DXGI_FORMAT_R16_FLOAT;
-		case 2: return DXGI_FORMAT_R16G16_FLOAT;
-		case 4: return DXGI_FORMAT_R16G16B16A16_FLOAT;
-		default:
-			PE_ASSERT_NO_ENTRY();
-			return DXGI_FORMAT_UNKNOWN;
-		}
+		D3D12_SIGNATURE_PARAMETER_DESC paramDesc;
+		PE_ASSERT_HR(reflection->GetInputParameterDesc(i, &paramDesc));
+
+		layout.inputLayoutSemanticNames.emplace_back(paramDesc.SemanticName);
+
+		layout.inputLayout.push_back({
+			.SemanticName = layout.inputLayoutSemanticNames.back().c_str(),
+			.SemanticIndex = paramDesc.SemanticIndex,
+			.Format = GetD3D12InputElementDescFormat(paramDesc),
+			.InputSlot = 0u,
+			.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT,
+			.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
+			.InstanceDataStepRate = 0u
+			});
 	}
 
-	case LayoutValueType::Float32:
-	{
-		PE_ASSERT(!isNormalized, "Floating point formats cannot be normalized");
-		switch (componentsNum)
-		{
-		case 1: return DXGI_FORMAT_R32_FLOAT;
-		case 2: return DXGI_FORMAT_R32G32_FLOAT;
-		case 3: return DXGI_FORMAT_R32G32B32_FLOAT;
-		case 4: return DXGI_FORMAT_R32G32B32A32_FLOAT;
-		default:
-			PE_ASSERT_NO_ENTRY();
-			return DXGI_FORMAT_UNKNOWN;
-		}
-	}
-
-	case LayoutValueType::Int32:
-	{
-		PE_ASSERT(!isNormalized, "32-bit UNORM formats are not supported. Use R32_FLOAT instead");
-		switch (componentsNum)
-		{
-		case 1: return DXGI_FORMAT_R32_SINT;
-		case 2: return DXGI_FORMAT_R32G32_SINT;
-		case 3: return DXGI_FORMAT_R32G32B32_SINT;
-		case 4: return DXGI_FORMAT_R32G32B32A32_SINT;
-		default:
-			PE_ASSERT_NO_ENTRY();
-			return DXGI_FORMAT_UNKNOWN;
-		}
-	}
-
-	case LayoutValueType::UInt32:
-	{
-		PE_ASSERT(!isNormalized, "32-bit UNORM formats are not supported. Use R32_FLOAT instead");
-		switch (componentsNum)
-		{
-		case 1: return DXGI_FORMAT_R32_UINT;
-		case 2: return DXGI_FORMAT_R32G32_UINT;
-		case 3: return DXGI_FORMAT_R32G32B32_UINT;
-		case 4: return DXGI_FORMAT_R32G32B32A32_UINT;
-		default:
-			PE_ASSERT_NO_ENTRY();
-			return DXGI_FORMAT_UNKNOWN;
-		}
-	}
-
-	case LayoutValueType::Int16:
-	{
-		if (isNormalized)
-		{
-			switch (componentsNum)
-			{
-			case 1: return DXGI_FORMAT_R16_SNORM;
-			case 2: return DXGI_FORMAT_R16G16_SNORM;
-			case 4: return DXGI_FORMAT_R16G16B16A16_SNORM;
-			default:
-				PE_ASSERT_NO_ENTRY();
-				return DXGI_FORMAT_UNKNOWN;
-			}
-		}
-		else
-		{
-			switch (componentsNum)
-			{
-			case 1: return DXGI_FORMAT_R16_SINT;
-			case 2: return DXGI_FORMAT_R16G16_SINT;
-			case 4: return DXGI_FORMAT_R16G16B16A16_SINT;
-			default:
-				PE_ASSERT_NO_ENTRY();
-				return DXGI_FORMAT_UNKNOWN;
-			}
-		}
-	}
-
-	case LayoutValueType::UInt16:
-	{
-		if (isNormalized)
-		{
-			switch (componentsNum)
-			{
-			case 1: return DXGI_FORMAT_R16_UNORM;
-			case 2: return DXGI_FORMAT_R16G16_UNORM;
-			case 4: return DXGI_FORMAT_R16G16B16A16_UNORM;
-			default:
-				PE_ASSERT_NO_ENTRY();
-				return DXGI_FORMAT_UNKNOWN;
-			}
-		}
-		else
-		{
-			switch (componentsNum)
-			{
-			case 1: return DXGI_FORMAT_R16_UINT;
-			case 2: return DXGI_FORMAT_R16G16_UINT;
-			case 4: return DXGI_FORMAT_R16G16B16A16_UINT;
-			default:
-				PE_ASSERT_NO_ENTRY();
-				return DXGI_FORMAT_UNKNOWN;
-			}
-		}
-	}
-
-	case LayoutValueType::Int8:
-	{
-		if (isNormalized)
-		{
-			switch (componentsNum)
-			{
-			case 1: return DXGI_FORMAT_R8_SNORM;
-			case 2: return DXGI_FORMAT_R8G8_SNORM;
-			case 4: return DXGI_FORMAT_R8G8B8A8_SNORM;
-			default:
-				PE_ASSERT_NO_ENTRY();
-				return DXGI_FORMAT_UNKNOWN;
-			}
-		}
-		else
-		{
-			switch (componentsNum)
-			{
-			case 1: return DXGI_FORMAT_R8_SINT;
-			case 2: return DXGI_FORMAT_R8G8_SINT;
-			case 4: return DXGI_FORMAT_R8G8B8A8_SINT;
-			default:
-				PE_ASSERT_NO_ENTRY();
-				return DXGI_FORMAT_UNKNOWN;
-			}
-		}
-	}
-
-	case LayoutValueType::UInt8:
-	{
-		if (isNormalized)
-		{
-			switch (componentsNum)
-			{
-			case 1: return DXGI_FORMAT_R8_UNORM;
-			case 2: return DXGI_FORMAT_R8G8_UNORM;
-			case 4: return DXGI_FORMAT_R8G8B8A8_UNORM;
-			default:
-				PE_ASSERT_NO_ENTRY();
-				return DXGI_FORMAT_UNKNOWN;
-			}
-		}
-		else
-		{
-			switch (componentsNum)
-			{
-			case 1: return DXGI_FORMAT_R8_UINT;
-			case 2: return DXGI_FORMAT_R8G8_UINT;
-			case 4: return DXGI_FORMAT_R8G8B8A8_UINT;
-			default:
-				PE_ASSERT_NO_ENTRY();
-				return DXGI_FORMAT_UNKNOWN;
-			}
-		}
-	}
-
-	default:
-		PE_ASSERT_NO_ENTRY();
-		return DXGI_FORMAT_UNKNOWN;
-	}
+	return layout;
 }
 
 D3D12_RESOURCE_DESC GetD3D12ResourceDesc(const TextureDesc& textureDesc)
@@ -822,11 +725,14 @@ D3D12_RESOURCE_FLAGS GetD3D12ResourceFlags(Flags<BindFlags> bindFlags)
 
 CD3DX12_RESOURCE_BARRIER GetD3D12ResourceBarrier(StateTransitionDesc desc)
 {
-	// TODO: implement buffers
-	PE_ASSERT(desc.resource->GetResourceType() == ResourceType::Texture);
+	ID3D12Resource* d3d12Resource = nullptr;
+	if (desc.resource->GetResourceType() == ResourceType::Buffer)
+		d3d12Resource = static_cast<D3D12Buffer*>(desc.resource)->GetD3D12Resource();
+	else
+		d3d12Resource = static_cast<D3D12Texture*>(desc.resource)->GetD3D12Resource();
 
 	return CD3DX12_RESOURCE_BARRIER::Transition(
-		static_cast<D3D12Texture*>(desc.resource)->GetD3D12Resource(),
+		d3d12Resource,
 		GetD3D12ResourceStates(desc.oldState),
 		GetD3D12ResourceStates(desc.newState));
 }
@@ -973,6 +879,21 @@ D3D12_CLEAR_FLAGS GetD3D12ClearFlags(Flags<ClearFlags> clearFlags)
 	return d3d12Flags;
 }
 
+DXGI_FORMAT GetIndexBufferDXGIFormat(IndexBufferFormat format)
+{
+	switch (format)
+	{
+	case IndexBufferFormat::Uint16:
+		return DXGI_FORMAT_R16_UINT;
+	case IndexBufferFormat::Uint32:
+		return DXGI_FORMAT_R32_UINT;
+	default:
+		PE_ASSERT_NO_ENTRY();
+	}
+
+	return {};
+}
+
 TextureFormat GetTextureFormat(DXGI_FORMAT dxgiFormat)
 {
 	static TextureFormat s_textureFormatMap[DXGI_FORMAT_B4G4R4A4_UNORM + 1] = { TextureFormat::Unknown };
@@ -1036,6 +957,16 @@ ResourceDimension GetResourceDimension(D3D12_RESOURCE_DIMENSION d3d12Dimension, 
 		PE_ASSERT_NO_ENTRY();
 		return {};
 	}
+}
+
+BufferDesc GetBufferDesc(const D3D12_RESOURCE_DESC& d3d12ResDesc, const std::wstring& name, ResourceUsage usage)
+{
+	return {
+		.bufferName = name,
+		.size = (int32_t)d3d12ResDesc.Width,
+		.bindFlags = GetBindFlags(d3d12ResDesc.Flags),
+		.usage = usage
+	};
 }
 
 TextureDesc GetTextureDesc(const D3D12_RESOURCE_DESC& d3d12ResDesc,

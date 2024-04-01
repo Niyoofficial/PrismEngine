@@ -8,44 +8,53 @@ namespace Prism::Render::D3D12
 {
 D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 {
-	ID3D12ShaderReflection* vsReflection = static_cast<D3D12Shader*>(psoDesc.vs)->GetCompilerOutput().reflection.Get();
-
-	D3D12_SHADER_DESC vsShaderDesc;
-	PE_ASSERT_HR(vsReflection->GetDesc(&vsShaderDesc));
+	std::array shaders = {
+		static_cast<D3D12Shader*>(psoDesc.vs),
+		static_cast<D3D12Shader*>(psoDesc.ps)
+	};
 
 	std::vector<D3D12_ROOT_PARAMETER> rootParams;
 
-	// Iterate over all the resources bound in the shader like cbuffers, textures and samplers
-	for (UINT resIndex = 0; resIndex < vsShaderDesc.BoundResources; ++resIndex)
+	for (D3D12Shader* shader : shaders)
 	{
-		D3D12_SHADER_INPUT_BIND_DESC bindingDesc = {};
-		PE_ASSERT_HR(vsReflection->GetResourceBindingDesc(resIndex, &bindingDesc));
+		ID3D12ShaderReflection* reflection = shader->GetCompilerOutput().reflection.Get();
 
-		// This allows us to refer to the params by name, not an index
-		m_rootParamsIndexMap[bindingDesc.Name] = (int32_t)rootParams.size();
+		D3D12_SHADER_DESC shaderDesc;
+		PE_ASSERT_HR(reflection->GetDesc(&shaderDesc));
 
-		if (bindingDesc.Type == D3D_SIT_CBUFFER)
+		// Iterate over all the resources bound in the shader like cbuffers, textures and samplers
+		for (UINT resIndex = 0; resIndex < shaderDesc.BoundResources; ++resIndex)
 		{
-			auto* constBufferRef = vsReflection->GetConstantBufferByIndex(resIndex);
-			D3D12_SHADER_BUFFER_DESC constBufferDesc = {};
-			PE_ASSERT_HR(constBufferRef->GetDesc(&constBufferDesc));
+			D3D12_SHADER_INPUT_BIND_DESC bindingDesc = {};
+			PE_ASSERT_HR(reflection->GetResourceBindingDesc(resIndex, &bindingDesc));
 
-			D3D12_ROOT_PARAMETER rootParam = {
-				.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
-				.Descriptor = {
-					.ShaderRegister = bindingDesc.BindPoint,
-					.RegisterSpace = bindingDesc.Space,
-				},
-				//.ShaderVisibility = 
-			};
+			// This allows us to refer to the params by name, not an index
+			m_rootParamsIndexMap[bindingDesc.Name] = (int32_t)rootParams.size();
 
-			rootParams.push_back(rootParam);
+			if (bindingDesc.Type == D3D_SIT_CBUFFER)
+			{
+				auto* constBufferRef = reflection->GetConstantBufferByIndex(resIndex);
+				D3D12_SHADER_BUFFER_DESC constBufferDesc = {};
+				PE_ASSERT_HR(constBufferRef->GetDesc(&constBufferDesc));
+
+				D3D12_ROOT_PARAMETER rootParam = {
+					.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
+					.Descriptor = {
+						.ShaderRegister = bindingDesc.BindPoint,
+						.RegisterSpace = bindingDesc.Space,
+					},
+					//.ShaderVisibility = 
+				};
+
+				rootParams.push_back(rootParam);
+			}
 		}
 	}
 
 
 	// Create the root signature
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc((UINT)rootParams.size(), rootParams.data());
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc((UINT)rootParams.size(), rootParams.data(), 0, nullptr,
+											D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> serializedRootSig;
 	ComPtr<ID3DBlob> errorBlob;
