@@ -35,8 +35,11 @@ void D3D12RenderContext::DrawIndexed(DrawIndexedCommandDesc desc)
 
 void D3D12RenderContext::SetPSO(GraphicsPipelineState* pso)
 {
-	m_commandList->SetPipelineState(static_cast<D3D12GraphicsPipelineState*>(pso)->GetD3D12PipelineState());
-	m_commandList->SetGraphicsRootSignature(D3D12RenderDevice::Get().GetRootSignatureCache().GetOrCreateRootSignature(pso->GetDesc())->GetD3D12RootSignature());
+	m_currentPSO = static_cast<D3D12GraphicsPipelineState*>(pso);
+	m_currentRootSig = D3D12RenderDevice::Get().GetRootSignatureCache().GetOrCreateRootSignature(pso->GetDesc());
+
+	m_commandList->SetPipelineState(m_currentPSO->GetD3D12PipelineState());
+	m_commandList->SetGraphicsRootSignature(m_currentRootSig->GetD3D12RootSignature());
 	m_commandList->IASetPrimitiveTopology(GetD3D12PrimitiveTopology(pso->GetDesc().primitiveTopologyType));
 }
 
@@ -99,6 +102,12 @@ void D3D12RenderContext::SetIndexBuffer(Buffer* buffer, IndexBufferFormat format
 	m_commandList->IASetIndexBuffer(&view);
 }
 
+void D3D12RenderContext::SetUniformBuffer(Buffer* buffer, const std::wstring& paramName)
+{
+	int32_t paramIndex = m_currentRootSig->GetParamIndex(paramName);
+	m_commandList->SetGraphicsRootDescriptorTable(paramIndex, )
+}
+
 void D3D12RenderContext::ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor)
 {
 	float rtClearColor[4] = {0.f};
@@ -156,5 +165,10 @@ void D3D12RenderContext::CopyBufferRegion(Buffer* dest, int32_t destOffset, Buff
 
 	m_commandList->CopyBufferRegion(static_cast<D3D12Buffer*>(dest)->GetD3D12Resource(), destOffset,
 									static_cast<D3D12Buffer*>(src)->GetD3D12Resource(), srcOffset, numBytes);
+}
+
+void D3D12RenderContext::CloseContext()
+{
+	PE_ASSERT_HR(m_commandList->Close());
 }
 }

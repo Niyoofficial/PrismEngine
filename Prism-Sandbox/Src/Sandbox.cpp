@@ -57,8 +57,7 @@ SandboxLayer::SandboxLayer()
 	BufferDesc vertexBufferDesc = {
 		.bufferName = L"Vertex Buffer",
 		.size = vertices.size() * sizeof(Vertex),
-		.bindFlags = BindFlags::VertexBuffer,
-		.usage = ResourceUsage::Staging
+		.bindFlags = BindFlags::VertexBuffer
 	};
 	BufferInitData vertexInitData = {
 		.data = vertices.data(),
@@ -77,8 +76,7 @@ SandboxLayer::SandboxLayer()
 	BufferDesc indexBufferDesc = {
 		.bufferName = L"Index Buffer",
 		.size = indices.size() * sizeof(uint16_t),
-		.bindFlags = BindFlags::IndexBuffer,
-		.usage = ResourceUsage::Staging
+		.bindFlags = BindFlags::IndexBuffer
 	};
 	BufferInitData indexInitData = {
 		.data = indices.data(),
@@ -136,7 +134,6 @@ void SandboxLayer::Update(Prism::Duration delta)
 		.renderTargetFormats = {TextureFormat::RGBA8_UNorm}
 	});
 
-	renderContext->SetPSO(pso);
 
 	renderContext->SetVertexBuffer(m_vertexBuffer, sizeof(Vertex));
 	renderContext->SetIndexBuffer(m_indexBuffer, IndexBufferFormat::Uint16);
@@ -162,6 +159,7 @@ void SandboxLayer::Update(Prism::Duration delta)
 		.startIndexLocation = 0,
 		.baseVertexLocation = 0
 	});
+	renderContext->SetPSO(pso);
 
 	renderContext->Transition({
 		.resource = currentBackBuffer->GetTexture(),

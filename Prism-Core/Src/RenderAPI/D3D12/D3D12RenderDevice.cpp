@@ -20,12 +20,14 @@ D3D12RenderDevice* D3D12RenderDevice::TryGet()
 D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	: RenderDevice(params)
 {
+#if USE_PIX
 	if (params.initPixLibrary)
 	{
 		// In order to use pix library include wrl/client.h and WinPixEventRuntime/pix3.h after it
 		m_pixGpuCaptureModule = PIXLoadLatestWinPixGpuCapturerLibrary();
 		m_pixTimingCaptureModule = PIXLoadLatestWinPixTimingCapturerLibrary();
 	}
+#endif
 
 #ifdef PE_BUILD_DEBUG
 	{
@@ -84,10 +86,18 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	PE_ASSERT_HR(m_d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_mainFence)));
 }
 
+D3D12RenderDevice::~D3D12RenderDevice()
+{
+#if USE_PIX
+	FreeLibrary(m_pixGpuCaptureModule);
+	FreeLibrary(m_pixTimingCaptureModule);
+#endif
+}
+
 void D3D12RenderDevice::SubmitContext(RenderContext* context)
 {
 	auto* d3d12Context = static_cast<D3D12RenderContext*>(context);
-	PE_ASSERT_HR(d3d12Context->GetCommandList()->Close());
+	d3d12Context->CloseContext();
 	std::array<ID3D12CommandList*, 1> commandLists = { d3d12Context->GetCommandList() };
 	m_commandQueue->ExecuteCommandLists(commandLists.size(), commandLists.data());
 }

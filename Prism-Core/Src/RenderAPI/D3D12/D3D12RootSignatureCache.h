@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include "Prism-Core/Render/GraphicsPipelineState.h"
 #include "RenderAPI/D3D12/D3D12RootSignature.h"
-#include "RenderAPI/D3D12/D3D12Base.h"
 
 namespace Prism::Render::D3D12
 {

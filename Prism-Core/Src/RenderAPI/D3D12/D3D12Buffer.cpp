@@ -33,7 +33,7 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc, const std::vector<BufferInitDat
 			D3D12_RESOURCE_STATE_GENERIC_READ,
 			nullptr, IID_PPV_ARGS(&uploadBuffer)));
 
-		D3D12Buffer wrappedUploadBuffer(uploadBuffer, L"UploadBuffer", ResourceUsage::Staging);
+		D3D12Buffer wrappedUploadBuffer(uploadBuffer, L"UploadBuffer", ResourceUsage::Dynamic);
 
 		void* mappedData = nullptr;
 		PE_ASSERT_HR(uploadBuffer->Map(0, nullptr, &mappedData));

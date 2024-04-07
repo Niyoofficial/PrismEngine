@@ -79,4 +79,12 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 		serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(),
 		IID_PPV_ARGS(&m_rootSignature)));
 }
+
+int32_t D3D12RootSignature::GetParamIndex(const std::wstring& paramName)
+{
+	auto it = m_rootParamsIndexMap.find(paramName);
+	if (it == m_rootParamsIndexMap.end())
+		return -1;
+	return it->second;
+}
 }

@@ -595,23 +595,10 @@ enum class ResourceUsage
 	// Default buffers do not allow CPU access and must use CPU_ACCESS_NONE flag.
 	Default = 0,
 
-	// A resource that can only be read by the GPU. It cannot be written by the GPU,
-	// and cannot be accessed at all by the CPU. This type of resource must be initialized
-	// when it is created, since it cannot be changed after creation.
-	// D3D11 Counterpart: D3D11_USAGE_IMMUTABLE. OpenGL counterpart: GL_STATIC_DRAW
-	// Static buffers do not allow CPU access and must use CPU_ACCESS_NONE flag.
-	Immutable,
-
 	// A resource that can be read by the GPU and written at least once per frame by the CPU.
 	// D3D11 Counterpart: D3D11_USAGE_DYNAMIC. OpenGL counterpart: GL_STREAM_DRAW
 	// Dynamic buffers must use CPU_ACCESS_WRITE flag.
-	Dynamic,
-
-	// A resource that facilitates transferring data between GPU and CPU.
-	// D3D11 Counterpart: D3D11_USAGE_STAGING. OpenGL counterpart: GL_STATIC_READ or
-	// GL_STATIC_COPY depending on the CPU access flags.
-	// Staging buffers must use exactly one of CPU_ACCESS_WRITE or CPU_ACCESS_READ flags.
-	Staging,
+	Dynamic
 };
 
 enum class ResourceStateFlags : uint32_t
@@ -625,9 +612,9 @@ enum class ResourceStateFlags : uint32_t
 	// Supported contexts: graphics.
 	VertexBuffer = 1u << 1,
 
-	// The resource is accessed as a constant (uniform) buffer
+	// The resource is accessed as a uniform (constant) buffer
 	// Supported contexts: graphics, compute.
-	ConstantBuffer = 1u << 2,
+	UniformBuffer = 1u << 2,
 
 	// The resource is accessed as an index buffer
 	// Supported contexts: graphics.
@@ -694,7 +681,7 @@ enum class ResourceStateFlags : uint32_t
 	MaxBit = Common,
 
 	GenericRead = VertexBuffer |
-				  ConstantBuffer |
+				  UniformBuffer |
 				  IndexBuffer |
 				  ShaderResource |
 				  IndirectArgument |

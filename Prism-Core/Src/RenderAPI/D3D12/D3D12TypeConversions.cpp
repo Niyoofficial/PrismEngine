@@ -636,7 +636,7 @@ D3D12_RESOURCE_STATES GetD3D12ResourceStatesSingleBit(ResourceStateFlags flag)
 	{
 	case ResourceStateFlags::Undefined:			return D3D12_RESOURCE_STATE_COMMON;
 	case ResourceStateFlags::VertexBuffer:		return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-	case ResourceStateFlags::ConstantBuffer:	return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+	case ResourceStateFlags::UniformBuffer:	return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 	case ResourceStateFlags::IndexBuffer:		return D3D12_RESOURCE_STATE_INDEX_BUFFER;
 	case ResourceStateFlags::RenderTarget:		return D3D12_RESOURCE_STATE_RENDER_TARGET;
 	case ResourceStateFlags::UnorderedAccess:	return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;

@@ -17,6 +17,7 @@ public:
 
 
 	explicit D3D12RenderDevice(RenderDeviceParams params);
+	virtual ~D3D12RenderDevice();
 
 	virtual void SubmitContext(RenderContext* context) override;
 
