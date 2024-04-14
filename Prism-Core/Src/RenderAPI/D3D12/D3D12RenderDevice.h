@@ -33,6 +33,8 @@ public:
 	CPUDescriptorHeapAllocation AllocateCPUDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t count = 1);
 	GPUDescriptorHeapAllocation CopyToGPUHeap(const CPUDescriptorHeapAllocation& cpuAllocation);
 
+	std::array<ID3D12DescriptorHeap*, 2> GetGPUDescriptorHeaps() const;
+
 	uint32_t GetDescriptorHandleSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
 	const D3D12RootSignatureCache& GetRootSignatureCache() const { return m_rootSignatureCache; }

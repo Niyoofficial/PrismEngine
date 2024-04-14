@@ -134,6 +134,7 @@ void SandboxLayer::Update(Prism::Duration delta)
 		.renderTargetFormats = {TextureFormat::RGBA8_UNorm}
 	});
 
+	renderContext->SetPSO(pso);
 
 	renderContext->SetVertexBuffer(m_vertexBuffer, sizeof(Vertex));
 	renderContext->SetIndexBuffer(m_indexBuffer, IndexBufferFormat::Uint16);
@@ -159,7 +160,6 @@ void SandboxLayer::Update(Prism::Duration delta)
 		.startIndexLocation = 0,
 		.baseVertexLocation = 0
 	});
-	renderContext->SetPSO(pso);
 
 	renderContext->Transition({
 		.resource = currentBackBuffer->GetTexture(),

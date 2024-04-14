@@ -157,6 +157,20 @@ GPUDescriptorHeapAllocation D3D12RenderDevice::CopyToGPUHeap(const CPUDescriptor
 	return gpuAllocation;
 }
 
+std::array<ID3D12DescriptorHeap*, 2> D3D12RenderDevice::GetGPUDescriptorHeaps() const
+{
+	std::array<ID3D12DescriptorHeap*, 2> gpuHeaps;
+
+	int32_t index = 0;
+	for (auto& [type, manager] : m_gpuDescriptorHeapManagers)
+	{
+		gpuHeaps[index] = manager.GetDescriptorHeap().GetD3D12DescriptorHeap();
+		++index;
+	}
+
+	return gpuHeaps;
+}
+
 uint32_t D3D12RenderDevice::GetDescriptorHandleSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const
 {
 	PE_ASSERT(m_descriptorHandleSizes.contains(type));

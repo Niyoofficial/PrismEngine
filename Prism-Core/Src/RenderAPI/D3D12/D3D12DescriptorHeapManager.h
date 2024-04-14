@@ -94,6 +94,7 @@ public:
 	DescriptorHeapAllocation<Type> Allocate(int32_t count);
 
 	D3D12_DESCRIPTOR_HEAP_TYPE GetHeapType() const;
+	ID3D12DescriptorHeap* GetD3D12DescriptorHeap() const { return m_descriptorHeap.Get(); }
 
 private:
 	DescriptorHeapAllocation<Type> AllocateFromFreeBlock(const SizesMapTypeIt& freeBlock, int32_t count);
@@ -120,6 +121,8 @@ public:
 
 	CPUDescriptorHeapAllocation Allocate(int32_t count = 1);
 
+	const std::vector<CPUDescriptorHeap>& GetDescriptorHeaps() const { return m_heaps; }
+
 private:
 	D3D12_DESCRIPTOR_HEAP_TYPE m_heapType;
 
@@ -133,6 +136,8 @@ public:
 	explicit GPUDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type);
 
 	GPUDescriptorHeapAllocation Allocate(int32_t count = 1);
+
+	const GPUDescriptorHeap& GetDescriptorHeap() const { return m_heap; }
 
 private:
 	D3D12_DESCRIPTOR_HEAP_TYPE m_heapType;

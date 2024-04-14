@@ -22,6 +22,8 @@ D3D12RenderContext::D3D12RenderContext()
 		m_commandAllocator.Get(),
 		nullptr,
 		IID_PPV_ARGS(&m_commandList)));
+
+	m_commandList->SetDescriptorHeaps(D3D12RenderDevice::Get()->)
 }
 
 void D3D12RenderContext::Draw(DrawCommandDesc desc)
