@@ -16,10 +16,10 @@ public:
 
 	virtual Texture* GetTexture() const override;
 
-	const DescriptorHeapAllocation& GetDescriptor() const { return m_descriptor; }
+	const CPUDescriptorHeapAllocation& GetDescriptor() const { return m_descriptor; }
 
 private:
 	Texture* m_owningTexture = nullptr;
-	DescriptorHeapAllocation m_descriptor;
+	CPUDescriptorHeapAllocation m_descriptor;
 };
 }

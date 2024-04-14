@@ -765,10 +765,21 @@ D3D12_CLEAR_VALUE GetD3D12ClearValue(ClearValue clearValue)
 	return {};
 }
 
+D3D12_CONSTANT_BUFFER_VIEW_DESC GetD3D12ConstantBufferViewDesc(Buffer* buffer, BufferViewDesc viewDesc)
+{
+	auto* d3d12Buffer = static_cast<D3D12Buffer*>(buffer);
+	int64_t location = (int64_t)d3d12Buffer->GetD3D12Resource()->GetGPUVirtualAddress() + viewDesc.offset;
+	return {
+		.BufferLocation = (uint64_t)location,
+		.SizeInBytes = (uint32_t)viewDesc.size
+	};
+}
+
 D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(TextureViewDesc desc)
 {
 	PE_ASSERT(desc.type == TextureViewType::SRV);
 
+	// TODO
 	PE_ASSERT_NO_ENTRY();
 
 	return {};

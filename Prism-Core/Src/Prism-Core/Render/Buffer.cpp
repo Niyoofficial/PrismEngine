@@ -13,4 +13,17 @@ Buffer* Buffer::Create(const BufferDesc& desc, const std::vector<BufferInitData>
 {
 	return Private::CreateBuffer(desc, initData);
 }
+
+BufferView* Buffer::CreateView(const BufferViewDesc& desc)
+{
+	return BufferView::Create(desc, this);
+}
+
+BufferView* Buffer::CreateDefaultView()
+{
+	return CreateView({
+		.offset = 0,
+		.size = GetBufferDesc().size
+	});
+}
 }

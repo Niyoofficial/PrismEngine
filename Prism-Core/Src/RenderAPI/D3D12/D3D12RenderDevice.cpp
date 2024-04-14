@@ -138,10 +138,23 @@ ID3D12CommandQueue* D3D12RenderDevice::GetD3D12CommandQueue() const
 	return m_commandQueue.Get();
 }
 
-DescriptorHeapAllocation D3D12RenderDevice::AllocateCPUDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t count)
+CPUDescriptorHeapAllocation D3D12RenderDevice::AllocateCPUDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t count)
 {
 	PE_ASSERT(m_cpuDescriptorHeapManagers.contains(type));
 	return m_cpuDescriptorHeapManagers.at(type).Allocate(count);
+}
+
+GPUDescriptorHeapAllocation D3D12RenderDevice::CopyToGPUHeap(const CPUDescriptorHeapAllocation& cpuAllocation)
+{
+	auto heapType = cpuAllocation.GetOwningHeap()->GetHeapType();
+	PE_ASSERT(m_cpuDescriptorHeapManagers.contains(heapType));
+
+	auto gpuAllocation = m_gpuDescriptorHeapManagers.at(heapType).Allocate(cpuAllocation.GetNumHandles());
+	m_d3dDevice->CopyDescriptorsSimple(gpuAllocation.GetNumHandles(),
+									   gpuAllocation.GetCPUHandle(), cpuAllocation.GetCPUHandle(),
+									   gpuAllocation.GetOwningHeap()->GetHeapType());
+
+	return gpuAllocation;
 }
 
 uint32_t D3D12RenderDevice::GetDescriptorHandleSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const

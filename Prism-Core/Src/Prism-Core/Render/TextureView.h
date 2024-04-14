@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Prism-Core/Render/RenderTypes.h"
+#include "Prism-Core/Render/RenderResourceView.h"
 
 namespace Prism::Render
 {
@@ -33,10 +34,12 @@ public:
 	int32_t arrayOrDepthSlicesCount = -1;
 };
 
-class TextureView
+class TextureView : public RenderResourceView
 {
 public:
 	static TextureView* Create(const TextureViewDesc& desc, class Texture* texture);
+
+	ResourceType GetResourceType() const override { return ResourceType::Texture; }
 
 	virtual Texture* GetTexture() const = 0;
 };

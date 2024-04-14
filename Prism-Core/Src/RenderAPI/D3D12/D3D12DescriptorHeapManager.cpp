@@ -11,31 +11,35 @@ namespace Prism::Render::D3D12
 // DescriptorHeapAllocation
 //
 
-DescriptorHeapAllocation::DescriptorHeapAllocation(DescriptorHeap* heap,
+template<DescriptorType Type>
+DescriptorHeapAllocation<Type>::DescriptorHeapAllocation(DescriptorHeap<Type>* heap,
 												   D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
 												   D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle,
-												   int32_t handlesCount)
-	: m_heap(heap), m_handlesCount(handlesCount), m_firstCPUHandle(cpuHandle), m_firstGPUHandle(gpuHandle)
+												   int32_t handlesCount) requires HAS_GPU_HANDLE
+	: m_heap(heap), m_numHandles(handlesCount), m_firstCPUHandle(cpuHandle), m_firstGPUHandle(gpuHandle)
 {
 }
 
-DescriptorHeapAllocation::DescriptorHeapAllocation(DescriptorHeap* heap,
+template<DescriptorType Type>
+DescriptorHeapAllocation<Type>::DescriptorHeapAllocation(DescriptorHeap<Type>* heap,
 												   D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
 												   int32_t handlesCount)
-	: DescriptorHeapAllocation(heap, cpuHandle, {}, handlesCount)
+	: m_heap(heap), m_numHandles(handlesCount), m_firstCPUHandle(cpuHandle)
 {
 }
 
-DescriptorHeap* DescriptorHeapAllocation::GetOwningHeap() const
+template<DescriptorType Type>
+DescriptorHeap<Type>* DescriptorHeapAllocation<Type>::GetOwningHeap() const
 {
 	PE_ASSERT(m_heap);
 	return m_heap;
 }
 
-CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeapAllocation::GetCPUHandle(int32_t index) const
+template<DescriptorType Type>
+CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeapAllocation<Type>::GetCPUHandle(int32_t index) const
 {
-	PE_ASSERT(m_heap && m_handlesCount > 0);
-	PE_ASSERT(index >= 0 && index < m_handlesCount, "Index out of allocation bounds");
+	PE_ASSERT(m_heap && m_numHandles > 0);
+	PE_ASSERT(index >= 0 && index < m_numHandles, "Index out of allocation bounds");
 
 	return {
 		m_firstCPUHandle, index,
@@ -43,11 +47,12 @@ CD3DX12_CPU_DESCRIPTOR_HANDLE DescriptorHeapAllocation::GetCPUHandle(int32_t ind
 	};
 }
 
-CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorHeapAllocation::GetGPUHandle(int32_t index) const
+template<DescriptorType Type>
+CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorHeapAllocation<Type>::GetGPUHandle(int32_t index) const requires HAS_GPU_HANDLE
 {
-	PE_ASSERT(m_heap && m_handlesCount > 0);
+	PE_ASSERT(m_heap && m_numHandles > 0);
 	PE_ASSERT(m_firstGPUHandle.ptr != 0, "Allocation doesn't hold a GPU handle!");
-	PE_ASSERT(index >= 0 && index < m_handlesCount, "Index out of allocation bounds");
+	PE_ASSERT(index >= 0 && index < m_numHandles, "Index out of allocation bounds");
 
 	return {
 		m_firstGPUHandle, index,
@@ -60,14 +65,15 @@ CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorHeapAllocation::GetGPUHandle(int32_t ind
 // DescriptorHeap
 //
 
-DescriptorHeap::DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t descriptorsCount, bool shaderVisible)
+template<DescriptorType Type>
+DescriptorHeap<Type>::DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t descriptorsCount)
 {
 	PE_ASSERT(descriptorsCount > 0);
 
 	D3D12_DESCRIPTOR_HEAP_DESC desc = {
 		.Type = type,
 		.NumDescriptors = (UINT)descriptorsCount,
-		.Flags = shaderVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
+		.Flags = IS_GPU_HEAP ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
 		.NodeMask = 0
 	};
 	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_descriptorHeap)));
@@ -75,7 +81,8 @@ DescriptorHeap::DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t descript
 	AddNewBlock(0, descriptorsCount);
 }
 
-DescriptorHeapAllocation DescriptorHeap::Allocate(int32_t count)
+template<DescriptorType Type>
+DescriptorHeapAllocation<Type> DescriptorHeap<Type>::Allocate(int32_t count)
 {
 	auto sizeIt = std::ranges::min_element(m_freeBlocksBySize,
 										   [count](auto e1, auto e2) -> bool
@@ -88,12 +95,14 @@ DescriptorHeapAllocation DescriptorHeap::Allocate(int32_t count)
 	return AllocateFromFreeBlock(sizeIt, count);
 }
 
-D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeap::GetHeapType() const
+template<DescriptorType Type>
+D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeap<Type>::GetHeapType() const
 {
 	return m_descriptorHeap->GetDesc().Type;
 }
 
-DescriptorHeapAllocation DescriptorHeap::AllocateFromFreeBlock(const SizesMapType::iterator& freeBlock, int32_t count)
+template<DescriptorType Type>
+DescriptorHeapAllocation<Type> DescriptorHeap<Type>::AllocateFromFreeBlock(const SizesMapTypeIt& freeBlock, int32_t count)
 {
 	PE_ASSERT(freeBlock != m_freeBlocksBySize.end());
 
@@ -113,19 +122,25 @@ DescriptorHeapAllocation DescriptorHeap::AllocateFromFreeBlock(const SizesMapTyp
 		allocationOffset,
 		D3D12RenderDevice::Get().GetDescriptorHandleSize(GetHeapType()));
 
-	CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle = {};
-	if (m_descriptorHeap->GetDesc().Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)
+	if constexpr (IS_GPU_HEAP)
 	{
-		gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
-			m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(),
-			allocationOffset,
-			D3D12RenderDevice::Get().GetDescriptorHandleSize(m_descriptorHeap->GetDesc().Type)
-		);
+		CD3DX12_GPU_DESCRIPTOR_HANDLE gpuHandle = {};
+		if (m_descriptorHeap->GetDesc().Flags & D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE)
+		{
+			gpuHandle = CD3DX12_GPU_DESCRIPTOR_HANDLE(
+				m_descriptorHeap->GetGPUDescriptorHandleForHeapStart(),
+				allocationOffset,
+				D3D12RenderDevice::Get().GetDescriptorHandleSize(m_descriptorHeap->GetDesc().Type)
+			);
+		}
+		return {this, cpuHandle, gpuHandle, count};
 	}
-	return {this, cpuHandle, gpuHandle, count};
+
+	return {this, cpuHandle, count};
 }
 
-void DescriptorHeap::AddNewBlock(int32_t offset, int32_t size)
+template<DescriptorType Type>
+void DescriptorHeap<Type>::AddNewBlock(int32_t offset, int32_t size)
 {
 	auto [newBlockOffsetIt, success] = m_freeBlocksByOffset.emplace(offset, FreeBlockInfo());
 	auto newBlockSizeIt = m_freeBlocksBySize.emplace(size, newBlockOffsetIt);
@@ -141,26 +156,28 @@ CPUDescriptorHeapManager::CPUDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE ty
 	: m_heapType(type)
 {
 	// Create 1 heap
-	m_heaps.emplace_back(m_heapType, Constants::DESCRIPTOR_COUNT_PER_CPU_HEAP, false);
+	m_heaps.emplace_back(m_heapType, Constants::DESCRIPTOR_COUNT_PER_CPU_HEAP);
 }
 
-DescriptorHeapAllocation CPUDescriptorHeapManager::Allocate(int32_t count)
+CPUDescriptorHeapAllocation CPUDescriptorHeapManager::Allocate(int32_t count)
 {
 	// TODO
 	return m_heaps[0].Allocate(count);
 }
 
-GPUDescriptorHeapManager::GPUDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type)
-	: m_heapType(type)
-{
-	PE_ASSERT(type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
-	m_heaps.emplace_back(m_heapType, Constants::DESCRIPTOR_COUNT_PER_CPU_HEAP, true);
+//
+// GPUDescriptorHeapManager
+//
+
+GPUDescriptorHeapManager::GPUDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type)
+	: m_heapType(type), m_heap(type, Constants::DESCRIPTOR_COUNT_PER_CPU_HEAP)
+{
+	PE_ASSERT(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 }
 
-DescriptorHeapAllocation GPUDescriptorHeapManager::Allocate(int32_t count)
+GPUDescriptorHeapAllocation GPUDescriptorHeapManager::Allocate(int32_t count)
 {
-	// TODO
-	return {nullptr, {}, {}};
+	return m_heap.Allocate(count);
 }
 }

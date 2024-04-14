@@ -5,6 +5,7 @@
 namespace Prism::Render
 {
 class Buffer;
+class BufferView;
 class Texture;
 class TextureView;
 
@@ -52,7 +53,7 @@ public:
 	virtual void SetVertexBuffer(Buffer* buffer, int32_t vertexSizeInBytes) = 0;
 	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) = 0;
 
-	virtual void SetUniformBuffer(Buffer* buffer, const std::wstring& paramName = 0) = 0;
+	virtual void SetUniformBuffer(BufferView* bufferView, const std::wstring& paramName) = 0;
 
 	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr) = 0;
 	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr) = 0;

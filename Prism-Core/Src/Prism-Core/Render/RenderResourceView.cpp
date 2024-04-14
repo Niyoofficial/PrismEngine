@@ -1,5 +1,5 @@
 ﻿#include "pcpch.h"
-#include "RenderResource.h"
+#include "RenderResourceView.h"
 
 namespace Prism::Render
 {

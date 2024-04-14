@@ -29,7 +29,7 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 			PE_ASSERT_HR(reflection->GetResourceBindingDesc(resIndex, &bindingDesc));
 
 			// This allows us to refer to the params by name, not an index
-			m_rootParamsIndexMap[bindingDesc.Name] = (int32_t)rootParams.size();
+			m_rootParamsIndexMap[StringToWString(bindingDesc.Name)] = (int32_t)rootParams.size();
 
 			if (bindingDesc.Type == D3D_SIT_CBUFFER)
 			{

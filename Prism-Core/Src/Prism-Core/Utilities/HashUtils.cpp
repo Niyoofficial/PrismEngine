@@ -28,7 +28,7 @@ Hash<Size>::Hash(const void* data, size_t size)
 }
 
 template<HashSize Size>
-Hash<Size>::Hash(typename HashInternal::HashStorage<Size>::Type hash)
+Hash<Size>::Hash(HashStorageType<Size> hash)
 	: hashValue(hash)
 {
 }

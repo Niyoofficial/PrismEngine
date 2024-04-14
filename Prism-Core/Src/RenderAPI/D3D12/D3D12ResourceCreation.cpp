@@ -6,7 +6,9 @@
 #include "RenderAPI/D3D12/D3D12ShaderImpl.h"
 #include "RenderAPI/D3D12/D3D12Swapchain.h"
 #include "Prism-Core/Render/Buffer.h"
+#include "Prism-Core/Render/BufferView.h"
 #include "RenderAPI/D3D12/D3D12Buffer.h"
+#include "RenderAPI/D3D12/D3D12BufferView.h"
 #include "RenderAPI/D3D12/D3D12Texture.h"
 #include "RenderAPI/D3D12/D3D12TextureView.h"
 
@@ -41,6 +43,11 @@ GraphicsPipelineState* CreatePipelineState(const GraphicsPipelineStateDesc& desc
 Buffer* CreateBuffer(const BufferDesc& desc, const std::vector<BufferInitData>& initData)
 {
 	return new D3D12::D3D12Buffer(desc, initData);
+}
+
+BufferView* CreateBufferView(const BufferViewDesc& desc, class Buffer* buffer)
+{
+	return new D3D12::D3D12BufferView(desc, buffer);
 }
 
 Texture* CreateTexture(const TextureDesc& desc, const std::vector<TextureInitData>& initData)

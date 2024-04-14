@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "Prism-Core/Render/RenderContext.h"
+#include "Prism-Core/Render/RenderResourceView.h"
 #include "RenderAPI/D3D12/D3D12GraphicsPipelineState.h"
 
 
@@ -25,7 +26,7 @@ public:
 	virtual void SetVertexBuffer(Buffer* buffer, int32_t vertexSizeInBytes) override;
 	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) override;
 
-	virtual void SetUniformBuffer(Buffer* buffer, const std::wstring& paramName) override;
+	virtual void SetUniformBuffer(BufferView* bufferView, const std::wstring& paramName) override;
 
 	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr) override;
 	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr) override;
@@ -40,8 +41,9 @@ private:
 	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
 	ComPtr<ID3D12GraphicsCommandList> m_commandList;
 
-
 	D3D12GraphicsPipelineState* m_currentPSO = nullptr;
 	class D3D12RootSignature* m_currentRootSig = nullptr;
+
+	std::unordered_map<int32_t, RenderResourceView*> m_rootResources;
 };
 }
