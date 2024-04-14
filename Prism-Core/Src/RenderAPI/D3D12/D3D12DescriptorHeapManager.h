@@ -4,15 +4,29 @@
 
 namespace Prism::Render::D3D12
 {
+enum class DescriptorType
+{
+	CPU,
+	GPU
+};
+
+template<DescriptorType Type>
+class DescriptorHeap;
+
+template<DescriptorType Type>
 class DescriptorHeapAllocation
 {
+	static constexpr bool HAS_GPU_HANDLE = Type == DescriptorType::GPU;
+
+	using DescriptorHandleType = std::conditional<HAS_GPU_HANDLE, CD3DX12_GPU_DESCRIPTOR_HANDLE, CD3DX12_CPU_DESCRIPTOR_HANDLE>;
+
 public:
 	DescriptorHeapAllocation() = default;
-	DescriptorHeapAllocation(class DescriptorHeap* heap,
+	DescriptorHeapAllocation(DescriptorHeap<Type>* heap,
 							 D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
 							 D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle,
-							 int32_t handlesCount = 1);
-	DescriptorHeapAllocation(DescriptorHeap* heap,
+							 int32_t handlesCount = 1) requires HAS_GPU_HANDLE;
+	DescriptorHeapAllocation(DescriptorHeap<Type>* heap,
 							 D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
 							 int32_t handlesCount = 1);
 
@@ -22,36 +36,52 @@ public:
 	DescriptorHeapAllocation& operator=(DescriptorHeapAllocation&& other) = default;
 
 	// No copies allowed
-	DescriptorHeapAllocation(const DescriptorHeapAllocation& other) = delete;
-	DescriptorHeapAllocation operator=(const DescriptorHeapAllocation& other) = delete;
+	//DescriptorHeapAllocation(const DescriptorHeapAllocation& other) = delete;
+	//DescriptorHeapAllocation operator=(const DescriptorHeapAllocation& other) = delete;
 
-	DescriptorHeap* GetOwningHeap() const;
+	DescriptorHeap<Type>* GetOwningHeap() const;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(int32_t index = 0) const;
-	CD3DX12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(int32_t index = 0) const;
+	CD3DX12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(int32_t index = 0) const requires HAS_GPU_HANDLE;
+
+	int32_t GetNumHandles() const { return m_numHandles; }
 
 private:
-	DescriptorHeap* m_heap = nullptr;
-	int32_t m_handlesCount = -1;
+	DescriptorHeap<Type>* m_heap = nullptr;
+	int32_t m_numHandles = -1;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE m_firstCPUHandle = {};
-	CD3DX12_GPU_DESCRIPTOR_HANDLE m_firstGPUHandle = {};
+
+	struct Empty {};
+	using GPUDescriptorHandle = std::conditional_t<HAS_GPU_HANDLE, CD3DX12_GPU_DESCRIPTOR_HANDLE, Empty>;
+	[[no_unique_address]] GPUDescriptorHandle m_firstGPUHandle = {};
 };
 
+template DescriptorHeapAllocation<DescriptorType::CPU>;
+template DescriptorHeapAllocation<DescriptorType::GPU>;
+
+using CPUDescriptorHeapAllocation = DescriptorHeapAllocation<DescriptorType::CPU>;
+using GPUDescriptorHeapAllocation = DescriptorHeapAllocation<DescriptorType::GPU>;
 
 // Wrapper for ID3D12DescriptorHeap
+template<DescriptorType Type>
 class DescriptorHeap
 {
+	static constexpr bool IS_GPU_HEAP = Type == DescriptorType::GPU;
+
 	struct FreeBlockInfo;
 
 	using OffsetsMapType = std::unordered_map<int32_t, FreeBlockInfo>;
-	using SizesMapType = std::unordered_multimap<int32_t, OffsetsMapType::iterator>;
+	using OffsetsMapTypeIt = typename OffsetsMapType::iterator;
+
+	using SizesMapType = std::unordered_multimap<int32_t, OffsetsMapTypeIt>;
+	using SizesMapTypeIt = typename SizesMapType::iterator;
 
 	struct FreeBlockInfo
 	{
-		SizesMapType::iterator sizeMapIt;
+		SizesMapTypeIt sizeMapIt;
 	};
 
 public:
-	DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t descriptorsCount, bool shaderVisible);
+	DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t descriptorsCount);
 	~DescriptorHeap() = default;
 
 	DescriptorHeap(DescriptorHeap&& other) = default;
@@ -61,12 +91,12 @@ public:
 	DescriptorHeap(const DescriptorHeap& other) = delete;
 	DescriptorHeap operator=(const DescriptorHeap& other) = delete;
 
-	DescriptorHeapAllocation Allocate(int32_t count);
+	DescriptorHeapAllocation<Type> Allocate(int32_t count);
 
 	D3D12_DESCRIPTOR_HEAP_TYPE GetHeapType() const;
 
 private:
-	DescriptorHeapAllocation AllocateFromFreeBlock(const SizesMapType::iterator& freeBlock, int32_t count);
+	DescriptorHeapAllocation<Type> AllocateFromFreeBlock(const SizesMapTypeIt& freeBlock, int32_t count);
 	void AddNewBlock(int32_t offset, int32_t size);
 
 private:
@@ -76,18 +106,24 @@ private:
 	SizesMapType m_freeBlocksBySize;
 };
 
+template DescriptorHeap<DescriptorType::CPU>;
+template DescriptorHeap<DescriptorType::GPU>;
+
+using CPUDescriptorHeap = DescriptorHeap<DescriptorType::CPU>;
+using GPUDescriptorHeap = DescriptorHeap<DescriptorType::GPU>;
+
 
 class CPUDescriptorHeapManager
 {
 public:
 	explicit CPUDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type);
 
-	DescriptorHeapAllocation Allocate(int32_t count = 1);
+	CPUDescriptorHeapAllocation Allocate(int32_t count = 1);
 
 private:
 	D3D12_DESCRIPTOR_HEAP_TYPE m_heapType;
 
-	std::vector<DescriptorHeap> m_heaps;
+	std::vector<CPUDescriptorHeap> m_heaps;
 };
 
 
@@ -96,11 +132,11 @@ class GPUDescriptorHeapManager
 public:
 	explicit GPUDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type);
 
-	DescriptorHeapAllocation Allocate(int32_t count = 1);
+	GPUDescriptorHeapAllocation Allocate(int32_t count = 1);
 
 private:
 	D3D12_DESCRIPTOR_HEAP_TYPE m_heapType;
 
-	std::vector<DescriptorHeap> m_heaps;
+	GPUDescriptorHeap m_heap;
 };
 }

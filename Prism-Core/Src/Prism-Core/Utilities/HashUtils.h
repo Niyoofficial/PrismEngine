@@ -17,40 +17,21 @@ struct HashSize128Storage
 	bool operator==(const HashSize128Storage& other) const;
 };
 
-	namespace HashInternal
-	{
-	template<HashSize>
-	struct HashStorage
-	{
-	};
-
-	template<>
-	struct HashStorage<HashSize::Bit32>
-	{
-		using Type = uint32_t;
-	};
-
-	template<>
-	struct HashStorage<HashSize::Bit64>
-	{
-		using Type = uint64_t;
-	};
-
-	template<>
-	struct HashStorage<HashSize::Bit128>
-	{
-		using Type = HashSize128Storage;
-	};
-	}
+template<HashSize Size>
+using HashStorageType = std::conditional_t<
+	Size == HashSize::Bit32,
+	uint32_t, std::conditional_t<
+		Size == HashSize::Bit64,
+		uint64_t, HashSize128Storage>>;
 
 template<HashSize Size>
 struct Hash
 {
-	using Canonical = std::array<uint8_t, sizeof(typename HashInternal::HashStorage<Size>::Type)>;
+	using Canonical = std::array<uint8_t, sizeof(HashStorageType<Size>)>;
 
 	Hash() = default;
 	Hash(const void* data, size_t size);
-	explicit Hash(typename HashInternal::HashStorage<Size>::Type hash);
+	explicit Hash(HashStorageType<Size> hash);
 	explicit Hash(Canonical canonicalHash);
 	template<typename T>
 	explicit Hash(const T& object)
@@ -65,7 +46,7 @@ struct Hash
 	bool operator==(const Hash& other) const;
 
 public:
-	typename HashInternal::HashStorage<Size>::Type hashValue = {};
+	HashStorageType<Size> hashValue = {};
 };
 
 template Hash<HashSize::Bit32>;

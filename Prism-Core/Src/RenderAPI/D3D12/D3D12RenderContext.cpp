@@ -3,6 +3,7 @@
 
 #include "Prism-Core/Render/RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12Buffer.h"
+#include "RenderAPI/D3D12/D3D12BufferView.h"
 #include "RenderAPI/D3D12/D3D12GraphicsPipelineState.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12TextureView.h"
@@ -30,6 +31,19 @@ void D3D12RenderContext::Draw(DrawCommandDesc desc)
 
 void D3D12RenderContext::DrawIndexed(DrawIndexedCommandDesc desc)
 {
+	for (auto [index, view] : m_rootResources)
+	{
+		CPUDescriptorHeapAllocation cpuDescriptorHandle;
+		if (view->GetResourceType() == ResourceType::Buffer)
+			cpuDescriptorHandle = view->GetSubType<D3D12BufferView>()->GetDescriptor();
+		else
+			cpuDescriptorHandle = view->GetSubType<D3D12TextureView>()->GetDescriptor();
+
+		auto gpuDescriptorHandle = D3D12RenderDevice::Get().CopyToGPUHeap(cpuDescriptorHandle);
+
+		m_commandList->SetGraphicsRootDescriptorTable(index, gpuDescriptorHandle.GetGPUHandle());
+	}
+
 	m_commandList->DrawIndexedInstanced(desc.numIndices, desc.numInstances, desc.startIndexLocation, desc.baseVertexLocation, 0);
 }
 
@@ -102,10 +116,10 @@ void D3D12RenderContext::SetIndexBuffer(Buffer* buffer, IndexBufferFormat format
 	m_commandList->IASetIndexBuffer(&view);
 }
 
-void D3D12RenderContext::SetUniformBuffer(Buffer* buffer, const std::wstring& paramName)
+void D3D12RenderContext::SetUniformBuffer(BufferView* bufferView, const std::wstring& paramName)
 {
 	int32_t paramIndex = m_currentRootSig->GetParamIndex(paramName);
-	m_commandList->SetGraphicsRootDescriptorTable(paramIndex, )
+	m_rootResources[paramIndex] = bufferView;
 }
 
 void D3D12RenderContext::ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor)

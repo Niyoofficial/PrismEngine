@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Prism-Core/Render/BufferView.h"
 #include "Prism-Core/Render/RenderResource.h"
 #include "Prism-Core/Render/RenderTypes.h"
 
@@ -8,7 +9,7 @@ struct BufferDesc
 {
 	std::wstring bufferName;
 
-	int32_t size = 0;
+	int64_t size = 0;
 
 	Flags<BindFlags> bindFlags = BindFlags::None;
 	ResourceUsage usage = ResourceUsage::Default;
@@ -17,8 +18,8 @@ struct BufferDesc
 struct BufferInitData
 {
 	const void* data = nullptr;
-	int32_t sizeInBytes = 0;
-	int32_t byteOffset = 0;
+	int64_t sizeInBytes = 0;
+	int64_t byteOffset = 0;
 };
 
 class Buffer : public RenderResource
@@ -26,6 +27,9 @@ class Buffer : public RenderResource
 public:
 	static Buffer* Create(const BufferDesc& desc, const BufferInitData& initData = {});
 	static Buffer* Create(const BufferDesc& desc, const std::vector<BufferInitData>& initData);
+
+	BufferView* CreateView(const BufferViewDesc& desc);
+	BufferView* CreateDefaultView();
 
 	ResourceType GetResourceType() const override { return ResourceType::Buffer; }
 

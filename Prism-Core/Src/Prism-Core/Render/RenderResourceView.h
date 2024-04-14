@@ -1,17 +1,12 @@
 ﻿#pragma once
+#include "Prism-Core/Render/RenderResource.h"
 
 namespace Prism::Render
 {
-enum class ResourceType
-{
-	Buffer,
-	Texture
-};
+class BufferView;
+class TextureView;
 
-class Buffer;
-class Texture;
-
-class RenderResource
+class RenderResourceView
 {
 public:
 	virtual ResourceType GetResourceType() const = 0;
@@ -19,9 +14,9 @@ public:
 	template<typename T>
 	T* GetSubType() const
 	{
-		if constexpr (std::derived_from<T, Buffer>)
+		if constexpr (std::derived_from<T, BufferView>)
 			PE_ASSERT(GetResourceType() == ResourceType::Buffer);
-		else if constexpr (std::derived_from<T, Texture>)
+		else if constexpr (std::derived_from<T, TextureView>)
 			PE_ASSERT(GetResourceType() == ResourceType::Texture);
 		else
 			static_assert(true);

@@ -35,7 +35,7 @@ D3D12TextureView::D3D12TextureView(const TextureViewDesc& desc, Texture* texture
 		break;
 	case TextureViewType::RTV:
 		{
-			D3D12_RENDER_TARGET_VIEW_DESC d3d12ViewDesc = GetD3D12RenderTargetViewDesc(desc);
+			auto d3d12ViewDesc = GetD3D12RenderTargetViewDesc(desc);
 
 			m_descriptor = D3D12RenderDevice::Get().AllocateCPUDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 			D3D12RenderDevice::Get().GetD3D12Device()->CreateRenderTargetView(static_cast<D3D12Texture*>(texture)->GetD3D12Resource(),

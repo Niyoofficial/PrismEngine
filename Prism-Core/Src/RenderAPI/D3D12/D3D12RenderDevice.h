@@ -30,7 +30,8 @@ public:
 	D3D12ShaderCompiler& GetShaderCompiler() { return m_shaderCompiler; }
 	const D3D12ShaderCompiler& GetShaderCompiler() const { return m_shaderCompiler; }
 
-	DescriptorHeapAllocation AllocateCPUDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t count = 1);
+	CPUDescriptorHeapAllocation AllocateCPUDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t count = 1);
+	GPUDescriptorHeapAllocation CopyToGPUHeap(const CPUDescriptorHeapAllocation& cpuAllocation);
 
 	uint32_t GetDescriptorHandleSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
