@@ -4,6 +4,7 @@
 !Vendor/Premake/Bin/
 !Vendor/spdlog/Bin/
 !Prism-Core/Platform/SDL/Vender/SDL/Bin
+!Prism-Core/Platform/SDL/Vender/assimp/Bin
 
 # Visual Studio files and folder
 .vs/
