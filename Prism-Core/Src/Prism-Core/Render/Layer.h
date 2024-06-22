@@ -3,7 +3,7 @@
 
 namespace Prism::Render
 {
-class Layer
+class Layer : public RefCounted
 {
 public:
 	virtual void Attach();

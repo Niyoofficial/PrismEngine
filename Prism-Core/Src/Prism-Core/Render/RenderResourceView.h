@@ -6,10 +6,10 @@ namespace Prism::Render
 class BufferView;
 class TextureView;
 
-class RenderResourceView
+class RenderResourceView : public RefCounted
 {
 public:
-	virtual ResourceType GetResourceType() const = 0;
+	constexpr virtual ResourceType GetResourceType() const = 0;
 
 	template<typename T>
 	const T* GetSubType() const
@@ -19,7 +19,7 @@ public:
 		else if constexpr (std::derived_from<T, TextureView>)
 			PE_ASSERT(GetResourceType() == ResourceType::Texture);
 		else
-			static_assert(true);
+			static_assert(false);
 
 		return static_cast<const T*>(this);
 	}

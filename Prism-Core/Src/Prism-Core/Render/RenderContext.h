@@ -1,5 +1,7 @@
 ﻿#pragma once
+#include "Prism-Core/Render/Buffer.h"
 #include "Prism-Core/Render/GraphicsPipelineState.h"
+#include "Prism-Core/Render/ReleaseQueue.h"
 
 
 namespace Prism::Render
@@ -30,7 +32,7 @@ enum class IndexBufferFormat
 	Uint32
 };
 
-class RenderContext
+class RenderContext : public RefCounted
 {
 public:
 	virtual ~RenderContext() = default;
@@ -53,17 +55,44 @@ public:
 	virtual void SetVertexBuffer(Buffer* buffer, int32_t vertexSizeInBytes) = 0;
 	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) = 0;
 
-	virtual void SetUniformBuffer(BufferView* bufferView, const std::wstring& paramName) = 0;
+	virtual void SetTexture(TextureView* textureView, const std::wstring& paramName) = 0;
+	virtual void SetCBuffer(BufferView* bufferView, const std::wstring& paramName) = 0;
 
 	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr) = 0;
 	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr) = 0;
 
 	virtual void Transition(StateTransitionDesc desc) = 0;
 
+	virtual void UpdateBuffer(Buffer* buffer, BufferData data) = 0;
+
 	virtual void CopyBufferRegion(Buffer* dest, int32_t destOffset, Buffer* src, int32_t srcOffset, int32_t numBytes) = 0;
+
+
+	// Object MUST be std::move'd into this function
+	template<typename T>
+	void SafeReleaseResource(T&& resource) requires !std::is_lvalue_reference_v<T>
+	{
+		struct PreservedResourceWrapper : public PreservedResourceWrapperBase
+		{
+		public:
+			explicit PreservedResourceWrapper(T&& specificObject) requires !std::is_lvalue_reference_v<T>
+				: m_resource(std::move(specificObject))
+			{
+			}
+
+		private:
+			T m_resource = nullptr;
+		};
+
+		m_preservedResources.emplace_back(new PreservedResourceWrapper{std::move(resource)});
+	}
 
 
 	// Called by RenderDevice before executing
 	virtual void CloseContext() = 0;
+
+protected:
+	struct PreservedResourceWrapperBase {};
+	std::vector<PreservedResourceWrapperBase*> m_preservedResources;
 };
 }

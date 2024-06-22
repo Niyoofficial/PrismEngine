@@ -69,6 +69,7 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
 	commandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
 	PE_ASSERT_HR(m_d3dDevice->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&m_commandQueue)));
+	PE_ASSERT_HR(m_commandQueue->SetName(L"Main Cmd Queue"));
 
 	m_descriptorHandleSizes[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	m_descriptorHandleSizes[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
@@ -84,6 +85,7 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	m_gpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
 	PE_ASSERT_HR(m_d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_mainFence)));
+	PE_ASSERT_HR(m_mainFence->SetName(L"Main Fence"));
 }
 
 D3D12RenderDevice::~D3D12RenderDevice()
@@ -98,16 +100,20 @@ void D3D12RenderDevice::SubmitContext(RenderContext* context)
 {
 	auto* d3d12Context = static_cast<D3D12RenderContext*>(context);
 	d3d12Context->CloseContext();
-	std::array<ID3D12CommandList*, 1> commandLists = { d3d12Context->GetCommandList() };
-	m_commandQueue->ExecuteCommandLists(commandLists.size(), commandLists.data());
+
+	m_contextReleaseQueue.AddResource(Ref(context), m_mainFenceValue + 1);
+
+	std::array<ID3D12CommandList*, 1> commandLists = {d3d12Context->GetCommandList()};
+	m_commandQueue->ExecuteCommandLists((UINT)commandLists.size(), commandLists.data());
+
+	++m_mainFenceValue;
+	PE_ASSERT_HR(m_commandQueue->Signal(m_mainFence.Get(), m_mainFenceValue));
+
+	m_contextReleaseQueue.PurgeReleaseQueue(GetCompletedCommandListFenceValue());
 }
 
 void D3D12RenderDevice::FlushCommandQueue()
 {
-	++m_mainFenceValue;
-
-	PE_ASSERT_HR(m_commandQueue->Signal(m_mainFence.Get(), m_mainFenceValue));
-
 	if (m_mainFence->GetCompletedValue() < m_mainFenceValue)
 	{
 		HANDLE eventHandle = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
@@ -117,6 +123,11 @@ void D3D12RenderDevice::FlushCommandQueue()
 		WaitForSingleObject(eventHandle, INFINITE);
 		CloseHandle(eventHandle);
 	}
+}
+
+uint64_t D3D12RenderDevice::GetCompletedCommandListFenceValue() const
+{
+	return m_mainFence->GetCompletedValue();
 }
 
 ID3D12Device* D3D12RenderDevice::GetD3D12Device() const

@@ -4,22 +4,17 @@
 
 namespace Prism::Render
 {
-Buffer* Buffer::Create(const BufferDesc& desc, const BufferInitData& initData)
+Ref<Buffer> Buffer::Create(const BufferDesc& desc, BufferData initData, Flags<ResourceStateFlags> initState)
 {
-	return Buffer::Create(desc, std::vector{initData});
+	return Private::CreateBuffer(desc, initData, initState);
 }
 
-Buffer* Buffer::Create(const BufferDesc& desc, const std::vector<BufferInitData>& initData)
-{
-	return Private::CreateBuffer(desc, initData);
-}
-
-BufferView* Buffer::CreateView(const BufferViewDesc& desc)
+Ref<BufferView> Buffer::CreateView(const BufferViewDesc& desc)
 {
 	return BufferView::Create(desc, this);
 }
 
-BufferView* Buffer::CreateDefaultView()
+Ref<BufferView> Buffer::CreateDefaultView()
 {
 	return CreateView({
 		.offset = 0,

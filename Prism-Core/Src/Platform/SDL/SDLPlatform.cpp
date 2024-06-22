@@ -1,6 +1,7 @@
 ﻿#include "pcpch.h"
 #include "SDLPlatform.h"
 
+#include "Platform/SDL/SDLTypeConversions.h"
 #include "Prism-Core/Utilities/Duration.h"
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_init.h"
@@ -183,13 +184,21 @@ void SDLPlatform::PumpEvents()
 		/* Keyboard events */
 		case SDL_EVENT_KEY_DOWN:
 			{
-				AppEvents::KeyDown event;
+				AppEvents::KeyDown event = {
+					.scanCode = (ScanCode)sdlEvent.key.keysym.scancode,
+					.keyCode = (KeyCode)sdlEvent.key.keysym.sym,
+					.repeat = (bool)sdlEvent.key.repeat
+				};
 				executeCallbacks(event);
 			}
 			break;
 		case SDL_EVENT_KEY_UP:
 			{
-				AppEvents::KeyUp event;
+				AppEvents::KeyUp event = {
+					.scanCode = (ScanCode)sdlEvent.key.keysym.scancode,
+					.keyCode = (KeyCode)sdlEvent.key.keysym.sym,
+					.repeat = (bool)sdlEvent.key.repeat
+				};
 				executeCallbacks(event);
 			}
 			break;
@@ -215,13 +224,20 @@ void SDLPlatform::PumpEvents()
 		/* Mouse events */
 		case SDL_EVENT_MOUSE_MOTION:
 			{
-				AppEvents::MouseMotion event;
+				AppEvents::MouseMotion event = {
+					.position = {sdlEvent.motion.x, sdlEvent.motion.y},
+					.relPosition = {sdlEvent.motion.xrel, sdlEvent.motion.yrel}
+				};
 				executeCallbacks(event);
 			}
 			break;
 		case SDL_EVENT_MOUSE_BUTTON_DOWN:
 			{
-				AppEvents::MouseButtonDown event;
+				AppEvents::MouseButtonDown event = {
+					.keyCode = GetPrismKeyCodeFromMouseButton(sdlEvent.button.button),
+					.position = {sdlEvent.button.x, sdlEvent.button.y},
+					.doubleClick = sdlEvent.button.clicks == 2
+				};
 				executeCallbacks(event);
 			}
 			break;
@@ -323,6 +339,22 @@ void SDLPlatform::PumpEvents()
 			//PE_ASSERT(false, "SDL event type not handled!");
 		}
 	}
+}
+
+bool SDLPlatform::IsKeyPressed(KeyCode keyCode)
+{
+	int32_t numKeys = 0;
+	const uint8_t* keyboardState = SDL_GetKeyboardState(&numKeys);
+	SDL_Scancode scanCode = SDL_GetScancodeFromKey(GetSDLKeyCode(keyCode));
+
+	PE_ASSERT(scanCode >= 0 && scanCode < numKeys);
+
+	return keyboardState[scanCode];
+}
+
+void SDLPlatform::SetMouseRelativeMode(bool bRelativeMode)
+{
+	SDL_SetRelativeMouseMode(bRelativeMode ? SDL_TRUE : SDL_FALSE);
 }
 
 Duration SDLPlatform::GetApplicationTime()

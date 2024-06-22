@@ -118,12 +118,18 @@ int32_t TextureDesc::GetDepthOrArraySize() const
 	return depthOrArraySize;
 }
 
-Texture* Texture::Create(const TextureDesc& desc, const std::vector<TextureInitData>& initData)
+Ref<Texture> Texture::Create(const TextureDesc& desc, const std::vector<TextureData>& initData,
+							 Flags<ResourceStateFlags> initState)
 {
-	return Private::CreateTexture(desc, initData);
+	return Private::CreateTexture(desc, initData, initState);
 }
 
-TextureView* Texture::CreateView(const TextureViewDesc& desc)
+Ref<Texture> Texture::Create(std::wstring filepath, bool loadAsCubemap)
+{
+	return Private::CreateTexture(filepath, loadAsCubemap);
+}
+
+Ref<TextureView> Texture::CreateView(const TextureViewDesc& desc)
 {
 	return TextureView::Create(desc, this);
 }

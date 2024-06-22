@@ -7,7 +7,7 @@ workspace "PrismEngine"
 	filter "system:windows"
 		buildoptions { "/EHsc", "/Zc:preprocessor", "/Zc:__cplusplus" }
 	filter {}
-		
+
 	outputFolderName = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 	binDirectory = path.normalize("%{prj.location}/Bin/" .. outputFolderName .. "/")
 	intDirectory = path.normalize("%{prj.location}/Bin/" .. outputFolderName .. "/Int/")
@@ -22,6 +22,12 @@ workspace "PrismEngine"
 
 	libDirs = {}
 	libDirs["spdlog"] = path.normalize("%{wks.location}/Vendor/spdlog/Bin/" .. outputFolderName)
+
+	defines
+	{
+		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
+		"GLM_FORCE_LEFT_HANDED"
+	}
 
 	filter "system:windows"
 		libDirs["dxc"] = path.normalize("%{wks.location}/Vendor/dxc/")
@@ -39,8 +45,10 @@ group ""
 group "Core"
 	include "Prism-Core/Build-Core.lua"
 group "Core/Dependencies"
+	include "Prism-Core/Vendor/assimp/Build-assimp.lua"
 	include "Prism-Core/Vendor/SDL/Build-SDL.lua"
-	include "Prism-Core/Vendor/xxHash/Build-xxHash.lua"
+	include "Prism-Core/Vendor/DirectXTK12/Build-DirectXTK12.lua"
+	include "Prism-Core/Vendor/xxHash_cpp/Build-xxHash_cpp.lua"
 group ""
 
 include "Prism-Sandbox/Build-Sandbox.lua"

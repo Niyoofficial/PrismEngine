@@ -1,13 +1,16 @@
 #pragma once
 
+#include <variant>
+
+#include "Prism-Core/Base/Base.h"
+#include "Prism-Core/Base/KeyCode.h"
+
+
 namespace Prism::Core
 {
 namespace AppEvents
 {
-	struct Quit
-	{
-		
-	};
+	struct Quit {};
 
 	/* Window events */
 	struct WindowShown {};
@@ -35,15 +38,34 @@ namespace AppEvents
 	struct WindowDestroyed {};
 
 	/* Keyboard events */
-	struct KeyDown {};
-	struct KeyUp {};
+	struct KeyDown
+	{
+		ScanCode scanCode;
+		KeyCode keyCode;
+		bool repeat;
+	};
+	struct KeyUp
+	{
+		ScanCode scanCode;
+		KeyCode keyCode;
+		bool repeat;
+	};
 	struct TextEditing {};
 	struct TextInput {};
 	struct KeymapChanged {};
 
 	/* Mouse events */
-	struct MouseMotion {};
-	struct MouseButtonDown {};
+	struct MouseMotion
+	{
+		glm::float2 position;
+		glm::float2 relPosition;
+	};
+	struct MouseButtonDown
+	{
+		KeyCode keyCode;
+		glm::float2 position;
+		bool doubleClick = false;
+	};
 	struct MouseButtonUp {};
 	struct MouseWheel {};
 

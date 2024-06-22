@@ -31,7 +31,7 @@ RenderDevice* RenderDevice::TryGet()
 	return StaticPointerSingleton<RenderDevice>::TryGet();
 }
 
-RenderContext* RenderDevice::AllocateContext()
+Ref<RenderContext> RenderDevice::AllocateContext()
 {
 	return Private::CreateRenderContext();
 }

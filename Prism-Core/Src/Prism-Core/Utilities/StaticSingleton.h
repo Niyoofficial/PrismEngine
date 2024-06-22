@@ -74,6 +74,8 @@ public:
 		return s_singleton;
 	}
 
+	virtual ~StaticPointerSingleton() = default;
+
 private:
 	static inline T* s_singleton = nullptr;
 };

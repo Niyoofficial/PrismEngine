@@ -1,11 +1,14 @@
 ﻿#pragma once
 #include "Prism-Core/Render/RenderTypes.h"
 #include "Prism-Core/Render/Shader.h"
+#include "Prism-Core/Base/Base.h"
 
 namespace Prism::Render
 {
 struct GraphicsPipelineStateDesc
 {
+	bool operator==(const GraphicsPipelineStateDesc& other) const;
+
 	Shader* vs = nullptr;
 	Shader* ps = nullptr;
 	BlendStateDesc blendState;
@@ -23,7 +26,7 @@ struct GraphicsPipelineStateDesc
 	SampleDesc sampleDesc;
 };
 
-class GraphicsPipelineState
+class GraphicsPipelineState : public RefCounted
 {
 public:
 	static GraphicsPipelineState* Create(const GraphicsPipelineStateDesc& desc);
@@ -37,17 +40,27 @@ protected:
 	GraphicsPipelineStateDesc m_desc = {};
 };
 
-struct PipelineStateHash : Hash<HashSize::Bit128>
-{
-	explicit PipelineStateHash(const GraphicsPipelineStateDesc& desc);
-};
 }
 
 template<>
-struct std::hash<Prism::Render::PipelineStateHash>
+struct std::hash<Prism::Render::GraphicsPipelineStateDesc>
 {
-	size_t operator()(const Prism::Render::PipelineStateHash& hash) const noexcept
+	size_t operator()(const Prism::Render::GraphicsPipelineStateDesc& desc) const noexcept
 	{
-		return hash.hashValue.low ^ hash.hashValue.high;
+		using namespace Prism::Render;
+
+		static_assert(sizeof(desc) == 440,
+			"If new field was added, add it to the hash function and update this assert");
+
+		return
+			std::hash<Shader*>()(desc.vs) ^
+			std::hash<Shader*>()(desc.ps) ^
+			std::hash<BlendStateDesc>()(desc.blendState) ^
+			std::hash<RasterizerStateDesc>()(desc.rasterizerState) ^
+			std::hash<DepthStencilStateDesc>()(desc.depthStencilState) ^
+			std::hash<TopologyType>()(desc.primitiveTopologyType) ^
+			std::hash<int32_t>()(desc.numRenderTargets) ^
+			std::hash<std::array<TextureFormat, 8>>()(desc.renderTargetFormats) ^
+			std::hash<TextureFormat>()(desc.depthStencilFormat);
 	}
 };

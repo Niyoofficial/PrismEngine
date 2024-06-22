@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Prism-Core/Render/RenderContext.h"
 #include "Prism-Core/Render/RenderResourceView.h"
+#include "RenderAPI/D3D12/D3D12DescriptorHeapManager.h"
 #include "RenderAPI/D3D12/D3D12GraphicsPipelineState.h"
 
 
@@ -26,16 +27,24 @@ public:
 	virtual void SetVertexBuffer(Buffer* buffer, int32_t vertexSizeInBytes) override;
 	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) override;
 
-	virtual void SetUniformBuffer(BufferView* bufferView, const std::wstring& paramName) override;
+	virtual void SetTexture(TextureView* textureView, const std::wstring& paramName) override;
+	virtual void SetCBuffer(BufferView* bufferView, const std::wstring& paramName) override;
 
 	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr) override;
 	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr) override;
 
 	virtual void Transition(StateTransitionDesc desc) override;
 
+	virtual void UpdateBuffer(Buffer* buffer, BufferData data) override;
+
 	virtual void CopyBufferRegion(Buffer* dest, int32_t destOffset, Buffer* src, int32_t srcOffset, int32_t numBytes) override;
 
 	virtual void CloseContext() override;
+
+private:
+	void PrepareDraw();
+
+	void SetResource(RenderResourceView* view, const std::wstring& paramName);
 
 private:
 	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
@@ -45,5 +54,6 @@ private:
 	class D3D12RootSignature* m_currentRootSig = nullptr;
 
 	std::unordered_map<int32_t, RenderResourceView*> m_rootResources;
+	std::vector<GPUDescriptorHeapAllocation> m_gpuDescriptors;
 };
 }

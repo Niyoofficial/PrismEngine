@@ -28,10 +28,12 @@ public:
 
 	explicit RenderDevice(RenderDeviceParams params) {}
 
-	RenderContext* AllocateContext();
+	Ref<RenderContext> AllocateContext();
 	virtual void SubmitContext(RenderContext* context) = 0;
 
 	virtual void FlushCommandQueue() = 0;
+
+	virtual uint64_t GetCompletedCommandListFenceValue() const = 0;
 
 	ShaderCache& GetShaderCache() { return m_shaderCache; }
 	const ShaderCache& GetShaderCache() const { return m_shaderCache; }

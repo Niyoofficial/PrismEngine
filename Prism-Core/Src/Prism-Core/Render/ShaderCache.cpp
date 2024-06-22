@@ -7,13 +7,11 @@ namespace Prism::Render
 {
 Shader* ShaderCache::GetOrCreateShader(const ShaderCreateInfo& createInfo)
 {
-	ShaderHash hash(createInfo);
-
-	auto findIt = m_shaders.find(hash);
+	auto findIt = m_shaders.find(createInfo);
 	if (findIt != m_shaders.end())
-		return findIt->second.get();
+		return findIt->second;
 
-	auto [it, success] = m_shaders.emplace(hash, Private::CreateShader(createInfo));
-	return it->second.get();
+	auto [it, success] = m_shaders.emplace(createInfo, Private::CreateShader(createInfo));
+	return it->second;
 }
 }

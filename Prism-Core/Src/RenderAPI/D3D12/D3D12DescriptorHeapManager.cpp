@@ -29,6 +29,47 @@ DescriptorHeapAllocation<Type>::DescriptorHeapAllocation(DescriptorHeap<Type>* h
 }
 
 template<DescriptorType Type>
+DescriptorHeapAllocation<Type>::~DescriptorHeapAllocation()
+{
+	if (!IsNull())
+		m_heap->Free(std::move(*this));
+
+	PE_ASSERT(IsNull());
+}
+
+template<DescriptorType Type>
+DescriptorHeapAllocation<Type>::DescriptorHeapAllocation(DescriptorHeapAllocation&& other) noexcept
+	: m_heap(std::move(other.m_heap)),
+	  m_numHandles(std::move(other.m_numHandles)),
+	  m_firstCPUHandle(std::move(other.m_firstCPUHandle)),
+	  m_firstGPUHandle(std::move(other.m_firstGPUHandle))
+{
+	other.Reset();
+}
+
+template<DescriptorType Type>
+DescriptorHeapAllocation<Type>& DescriptorHeapAllocation<Type>::operator=(DescriptorHeapAllocation&& other) noexcept
+{
+	m_heap = std::move(other.m_heap);
+	m_numHandles = std::move(other.m_numHandles);
+	m_firstCPUHandle = std::move(other.m_firstCPUHandle);
+	m_firstGPUHandle = std::move(other.m_firstGPUHandle);
+
+	other.Reset();
+
+	return *this;
+}
+
+template<DescriptorType Type>
+void DescriptorHeapAllocation<Type>::Reset()
+{
+	m_heap = nullptr;
+	m_numHandles = -1;
+	m_firstCPUHandle = CD3DX12_CPU_DESCRIPTOR_HANDLE{};
+	m_firstGPUHandle = {};
+}
+
+template<DescriptorType Type>
 DescriptorHeap<Type>* DescriptorHeapAllocation<Type>::GetOwningHeap() const
 {
 	PE_ASSERT(m_heap);
@@ -58,6 +99,17 @@ CD3DX12_GPU_DESCRIPTOR_HANDLE DescriptorHeapAllocation<Type>::GetGPUHandle(int32
 		m_firstGPUHandle, index,
 		D3D12RenderDevice::Get().GetDescriptorHandleSize(m_heap->GetHeapType())
 	};
+}
+
+template<DescriptorType Type>
+bool DescriptorHeapAllocation<Type>::IsNull() const
+{
+	bool heapIsNull = m_heap == nullptr;
+	PE_ASSERT(!heapIsNull || m_firstCPUHandle.ptr == 0);
+	if constexpr (HAS_GPU_HANDLE)
+		PE_ASSERT(!heapIsNull || m_firstGPUHandle.ptr == 0);
+
+	return heapIsNull;
 }
 
 
@@ -93,6 +145,87 @@ DescriptorHeapAllocation<Type> DescriptorHeap<Type>::Allocate(int32_t count)
 										   });
 
 	return AllocateFromFreeBlock(sizeIt, count);
+}
+
+template<DescriptorType Type>
+void DescriptorHeap<Type>::Free(DescriptorHeapAllocation<Type>&& allocation)
+{
+	uint32_t handleSize = D3D12RenderDevice::Get().GetDescriptorHandleSize(GetHeapType());
+	int32_t offset = (int32_t)((allocation.GetCPUHandle().ptr - m_descriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr) / handleSize);
+	int32_t size = allocation.GetNumHandles();
+
+	auto nextBlockIt = m_freeBlocksByOffset.upper_bound(offset);
+	PE_ASSERT(nextBlockIt == m_freeBlocksByOffset.end() || offset + size <= nextBlockIt->first);
+
+	auto prevBlockIt = nextBlockIt;
+	if (prevBlockIt != m_freeBlocksByOffset.begin())
+	{
+		--prevBlockIt;
+		PE_ASSERT(offset >= prevBlockIt->first + prevBlockIt->second.GetBlockSize());
+	}
+	else
+	{
+		prevBlockIt = m_freeBlocksByOffset.end();
+	}
+
+	int32_t newOffset = -1;
+	int32_t newSize = -1;
+	if (prevBlockIt != m_freeBlocksByOffset.end() && offset == prevBlockIt->first + prevBlockIt->second.GetBlockSize())
+	{
+		//  PrevBlock.Offset             Offset
+		//       |                          |
+		//       |<-----PrevBlock.Size----->|<------Size-------->|
+		//
+		newOffset = prevBlockIt->first;
+		newSize = prevBlockIt->second.GetBlockSize() + size;
+
+		if (nextBlockIt != m_freeBlocksByOffset.end() && offset + size == nextBlockIt->first)
+		{
+			//   PrevBlock.Offset           Offset            NextBlock.Offset
+			//     |                          |                    |
+			//     |<-----PrevBlock.Size----->|<------Size-------->|<-----NextBlock.Size----->|
+			//
+			newSize += nextBlockIt->second.GetBlockSize();
+			m_freeBlocksBySize.erase(prevBlockIt->second.sizeMapIt);
+			m_freeBlocksBySize.erase(nextBlockIt->second.sizeMapIt);
+			// Delete the range of two blocks
+			++nextBlockIt;
+			m_freeBlocksByOffset.erase(prevBlockIt, nextBlockIt);
+		}
+		else
+		{
+			//   PrevBlock.Offset           Offset                     NextBlock.Offset
+			//     |                          |                             |
+			//     |<-----PrevBlock.Size----->|<------Size-------->| ~ ~ ~  |<-----NextBlock.Size----->|
+			//
+			m_freeBlocksBySize.erase(prevBlockIt->second.sizeMapIt);
+			m_freeBlocksByOffset.erase(prevBlockIt);
+		}
+	}
+	else if (nextBlockIt != m_freeBlocksByOffset.end() && offset + size == nextBlockIt->first)
+	{
+		//   PrevBlock.Offset                   Offset            NextBlock.Offset
+		//     |                                  |                    |
+		//     |<-----PrevBlock.Size----->| ~ ~ ~ |<------Size-------->|<-----NextBlock.Size----->|
+		//
+		newSize = size + nextBlockIt->second.GetBlockSize();
+		newOffset = offset;
+		m_freeBlocksBySize.erase(nextBlockIt->second.sizeMapIt);
+		m_freeBlocksByOffset.erase(nextBlockIt);
+	}
+	else
+	{
+		//   PrevBlock.Offset                   Offset                     NextBlock.Offset
+		//     |                                  |                            |
+		//     |<-----PrevBlock.Size----->| ~ ~ ~ |<------Size-------->| ~ ~ ~ |<-----NextBlock.Size----->|
+		//
+		newSize = size;
+		newOffset = offset;
+	}
+
+	AddNewBlock(newOffset, newSize);
+
+	allocation.Reset();
 }
 
 template<DescriptorType Type>

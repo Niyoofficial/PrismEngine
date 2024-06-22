@@ -2,7 +2,7 @@
 #include "Prism-Core/Base/Base.h"
 #include "Prism-Core/Base/Window.h"
 
-class SDL_Window;
+struct SDL_Window;
 
 namespace Prism::SDL
 {
@@ -19,12 +19,12 @@ public:
 	virtual bool GetIsFullscreen() const override;
 	virtual std::wstring GetTitle() const override;
 
-	virtual Render::Swapchain* GetSwapchain() override { return m_swapchain.get(); }
+	virtual Render::Swapchain* GetSwapchain() override { return m_swapchain; }
 
 private:
 	SDL_Window* m_nativeWindow = nullptr;
 	bool m_windowed = false;
 
-	std::unique_ptr<Render::Swapchain> m_swapchain;
+	Ref<Render::Swapchain> m_swapchain;
 };
 }

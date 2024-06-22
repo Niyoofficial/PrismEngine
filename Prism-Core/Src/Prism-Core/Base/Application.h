@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "Prism-Core/Base/AppEvents.h"
 #include "Prism-Core/Base/Window.h"
 #include "Prism-Core/Utilities/Duration.h"
 #include "Prism-Core/Utilities/StaticSingleton.h"
@@ -20,7 +21,7 @@ class Application : public StaticPointerSingleton<Application>
 {
 public:
 	Application() = default;
-	virtual ~Application() = default;
+	virtual ~Application();
 
 	template<typename T>
 	static T& Get()
@@ -39,15 +40,18 @@ public:
 	void RegisterWindow(Window* window);
 	void UnregisterWindow(Window* window);
 
-protected:
-	virtual void Init();
-	virtual void Shutdown();
+	void CloseApplication();
 
+	Duration GetApplicationTime();
+
+protected:
 	void InitPlatform();
 	void ShutdownPlatform();
 
 	void InitRenderer();
 	void ShutdownRenderer();
+
+	void OnQuit(AppEvent event);
 
 protected:
 	bool m_running = false;
@@ -55,8 +59,8 @@ protected:
 
 	Duration m_previousFrameTime;
 
-	std::vector<Render::Layer*> m_layerStack;
+	std::vector<WeakRef<Render::Layer>> m_layerStack;
 
-	std::vector<Window*> m_windows;
+	std::vector<WeakRef<Window>> m_windows;
 };
 }

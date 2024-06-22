@@ -5,7 +5,7 @@
 
 namespace Prism::Render
 {
-BufferView* BufferView::Create(const BufferViewDesc& desc, Buffer* buffer)
+Ref<BufferView> BufferView::Create(const BufferViewDesc& desc, Buffer* buffer)
 {
 	return Private::CreateBufferView(desc, buffer);
 }

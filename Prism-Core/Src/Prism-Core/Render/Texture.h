@@ -44,7 +44,7 @@ public:
 	int32_t width = 0;
 	int32_t height = 1;
 	int32_t depthOrArraySize = 1;
-	ResourceDimension dimension;
+	ResourceDimension dimension = ResourceDimension::Tex2D;
 
 	TextureFormat format = TextureFormat::Unknown;
 	int32_t mipLevels = 1;
@@ -56,7 +56,7 @@ public:
 	ClearValue optimizedClearValue;
 };
 
-struct TextureInitData
+struct TextureData
 {
 	const void* data = nullptr;
 
@@ -70,12 +70,13 @@ struct TextureInitData
 class Texture : public RenderResource
 {
 public:
-	static Texture* Create(const TextureDesc& desc, const std::vector<TextureInitData>& initData = {});
+	static Ref<Texture> Create(const TextureDesc& desc, const std::vector<TextureData>& initData = {},
+							   Flags<ResourceStateFlags> initState = ResourceStateFlags::Common);
+	static Ref<Texture> Create(std::wstring filepath, bool loadAsCubemap = false);
 
-	TextureView* CreateView(const TextureViewDesc& desc);
+	Ref<TextureView> CreateView(const TextureViewDesc& desc);
 
 	virtual ResourceType GetResourceType() const override { return ResourceType::Texture; }
-
 	virtual TextureDesc GetTextureDesc() const = 0;
 };
 }

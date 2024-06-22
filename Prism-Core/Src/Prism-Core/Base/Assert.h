@@ -23,10 +23,10 @@
 #endif
 
 #ifdef PE_ENABLE_ASSERTS
-	#define PE_ASSERT(condition, ...) \
-		do { if (!(condition)) { Prism::Log::PrintAssertMessage(__FILE__, __LINE__, SPDLOG_FUNCTION __VA_OPT__(, __VA_ARGS__)); PE_ASSERT_BREAK_INSTRUCTION; }} while (false)
-	#define PE_ASSERT_NO_ENTRY() PE_ASSERT(false, "No entry assert failed!")
+	#define PE_ASSERT(expr, ...) \
+		do { if (!(expr)) { Prism::Log::PrintAssertMessage(__FILE__, __LINE__, SPDLOG_FUNCTION __VA_OPT__(, __VA_ARGS__)); PE_ASSERT_BREAK_INSTRUCTION; }} while (0)
+	#define PE_ASSERT_NO_ENTRY(...) PE_ASSERT(false, "No entry assert failed!" __VA_OPT__(" - {}", __VA_ARGS__))
 #else
-	#define PE_ASSERT(condition, ...)
+	#define PE_ASSERT(expr, ...) do { expr } while (0)
 	#define PE_ASSERT_NO_ENTRY()
 #endif

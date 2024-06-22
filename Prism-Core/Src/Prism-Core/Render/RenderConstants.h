@@ -8,4 +8,6 @@ constexpr int32_t RENDER_THREADS_COUNT = 3;
 
 constexpr int32_t DESCRIPTOR_COUNT_PER_CPU_HEAP = 1024;
 constexpr int32_t DESCRIPTOR_COUNT_PER_GPU_HEAP = 64;
+
+constexpr int32_t CBUFFER_ALIGNMENT = 256;
 }

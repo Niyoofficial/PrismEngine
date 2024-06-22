@@ -636,7 +636,7 @@ D3D12_RESOURCE_STATES GetD3D12ResourceStatesSingleBit(ResourceStateFlags flag)
 	{
 	case ResourceStateFlags::Undefined:			return D3D12_RESOURCE_STATE_COMMON;
 	case ResourceStateFlags::VertexBuffer:		return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
-	case ResourceStateFlags::UniformBuffer:	return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
+	case ResourceStateFlags::ConstantBuffer:	return D3D12_RESOURCE_STATE_VERTEX_AND_CONSTANT_BUFFER;
 	case ResourceStateFlags::IndexBuffer:		return D3D12_RESOURCE_STATE_INDEX_BUFFER;
 	case ResourceStateFlags::RenderTarget:		return D3D12_RESOURCE_STATE_RENDER_TARGET;
 	case ResourceStateFlags::UnorderedAccess:	return D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
@@ -779,10 +779,75 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(TextureViewDesc d
 {
 	PE_ASSERT(desc.type == TextureViewType::SRV);
 
-	// TODO
-	PE_ASSERT_NO_ENTRY();
+	D3D12_SHADER_RESOURCE_VIEW_DESC d3d12SRVDesc = {
+		.Format = GetDXGIFormat(desc.format),
+		.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
+	};
 
-	return {};
+	switch (desc.dimension)
+	{
+	case ResourceDimension::Tex1D:
+		if (!desc.IsArray())
+		{
+			d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+			d3d12SRVDesc.Texture1D = {
+				.MostDetailedMip = (UINT)desc.firstMipLevel,
+				.MipLevels = (UINT)desc.numMipLevels,
+				.ResourceMinLODClamp = 0.f
+			};
+		}
+		else
+		{
+			d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+			d3d12SRVDesc.Texture1DArray = {
+				.MostDetailedMip = (UINT)desc.firstMipLevel,
+				.MipLevels = (UINT)desc.numMipLevels,
+				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
+				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount,
+				.ResourceMinLODClamp = 0.f
+			};
+		}
+		break;
+	case ResourceDimension::TexCube:
+		PE_ASSERT(desc.arrayOrDepthSlicesCount == 6);
+	case ResourceDimension::Tex2D:
+		if (!desc.IsArray())
+		{
+			d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+			d3d12SRVDesc.Texture2D = {
+				.MostDetailedMip = (UINT)desc.firstMipLevel,
+				.MipLevels = (UINT)desc.numMipLevels,
+				.PlaneSlice = GetPlaneSlice(desc.format),
+				.ResourceMinLODClamp = 0.f
+			};
+		}
+		else
+		{
+			d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+			d3d12SRVDesc.Texture2DArray = {
+				.MostDetailedMip = (UINT)desc.firstMipLevel,
+				.MipLevels = (UINT)desc.numMipLevels,
+				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
+				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount,
+				.PlaneSlice = GetPlaneSlice(desc.format),
+				.ResourceMinLODClamp = 0.f
+			};
+		}
+		break;
+	case ResourceDimension::Tex3D:
+		d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+		d3d12SRVDesc.Texture3D = {
+			.MostDetailedMip = (UINT)desc.firstMipLevel,
+			.MipLevels = (UINT)desc.numMipLevels,
+			.ResourceMinLODClamp = 0.f
+		};
+		break;
+	default:
+		PE_ASSERT_NO_ENTRY();
+		return {};
+	}
+
+	return d3d12SRVDesc;
 }
 
 D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(TextureViewDesc desc)
@@ -813,8 +878,9 @@ D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(TextureViewDesc desc)
 			};
 		}
 		break;
-	case ResourceDimension::Tex2D:
 	case ResourceDimension::TexCube:
+		PE_ASSERT(desc.arrayOrDepthSlicesCount == 6);
+	case ResourceDimension::Tex2D:
 		if (!desc.IsArray())
 		{
 			d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
@@ -824,7 +890,7 @@ D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(TextureViewDesc desc)
 		}
 		else
 		{
-			d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+			d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
 			d3d12RTVDesc.Texture2DArray = {
 				.MipSlice = (UINT)desc.firstMipLevel,
 				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
@@ -852,9 +918,59 @@ D3D12_DEPTH_STENCIL_VIEW_DESC GetD3D12DepthStencilViewDesc(TextureViewDesc desc)
 {
 	PE_ASSERT(desc.type == TextureViewType::DSV);
 
-	PE_ASSERT_NO_ENTRY();
+	D3D12_DEPTH_STENCIL_VIEW_DESC d3d12DSVDesc = {
+		.Format = GetDXGIFormat(desc.format),
+	};
 
-	return {};
+	switch (desc.dimension)
+	{
+	case ResourceDimension::Tex1D:
+		if (!desc.IsArray())
+		{
+			d3d12DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
+			d3d12DSVDesc.Texture1D = {
+				.MipSlice = (UINT)desc.firstMipLevel
+			};
+		}
+		else
+		{
+			d3d12DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+			d3d12DSVDesc.Texture1DArray = {
+				.MipSlice = (UINT)desc.firstMipLevel,
+				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
+				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount
+			};
+		}
+		break;
+	case ResourceDimension::TexCube:
+		PE_ASSERT(desc.arrayOrDepthSlicesCount == 6);
+	case ResourceDimension::Tex2D:
+		if (!desc.IsArray())
+		{
+			d3d12DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+			d3d12DSVDesc.Texture2D = {
+				.MipSlice = (UINT)desc.firstMipLevel
+			};
+		}
+		else
+		{
+			d3d12DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+			d3d12DSVDesc.Texture2DArray = {
+				.MipSlice = (UINT)desc.firstMipLevel,
+				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
+				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount
+			};
+		}
+		break;
+	case ResourceDimension::Tex3D:
+		PE_ASSERT_NO_ENTRY("DSV cannot be 3D texture view");
+		return {};
+	default:
+		PE_ASSERT_NO_ENTRY();
+		return {};
+	}
+
+	return d3d12DSVDesc;
 }
 
 D3D12_VIEWPORT GetD3D12Viewport(Viewport viewport)
@@ -903,6 +1019,12 @@ DXGI_FORMAT GetIndexBufferDXGIFormat(IndexBufferFormat format)
 	}
 
 	return {};
+}
+
+UINT GetPlaneSlice(TextureFormat format)
+{
+	// Stencil is in plane 1
+	return format == TextureFormat::X32_Typeless_G8X24_UInt || format == TextureFormat::X24_Typeless_G8_UInt ? 1 : 0;
 }
 
 TextureFormat GetTextureFormat(DXGI_FORMAT dxgiFormat)

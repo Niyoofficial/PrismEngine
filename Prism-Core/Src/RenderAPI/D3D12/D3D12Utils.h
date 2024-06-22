@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include <dxgiformat.h>
 #include <intsafe.h>
 
 
@@ -15,10 +14,14 @@ namespace Prism::Render::D3D12
 bool VerifyHResult(HRESULT hr);
 }
 
-#define PE_ASSERT_HR(expr)							\
-	do												\
-	{												\
-		if (!Prism::Render::D3D12::VerifyHResult((expr)))	\
-			PE_ASSERT_BREAK_INSTRUCTION;			\
-	}												\
-	while (0)
+#ifdef PE_ENABLE_ASSERTS
+	#define PE_ASSERT_HR(expr)									\
+		do														\
+		{														\
+			if (!Prism::Render::D3D12::VerifyHResult((expr)))	\
+				PE_ASSERT_BREAK_INSTRUCTION;					\
+		}														\
+		while (0)
+#else
+	#define PE_ASSERT_HR(expr) do { expr } while (0)
+#endif

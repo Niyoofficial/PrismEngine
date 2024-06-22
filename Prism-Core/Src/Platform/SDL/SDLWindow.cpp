@@ -16,7 +16,7 @@ SDLWindow::SDLWindow(const Core::WindowDesc& windowParams, const Render::Swapcha
 									  windowParams.windowSize.x, windowParams.windowSize.y,
 									  SDL_WINDOW_RESIZABLE);
 
-	m_swapchain.reset(Render::Swapchain::Create(this, swapchainDesc));
+	m_swapchain = Render::Swapchain::Create(this, swapchainDesc);
 }
 
 std::any SDLWindow::GetNativeWindow() const

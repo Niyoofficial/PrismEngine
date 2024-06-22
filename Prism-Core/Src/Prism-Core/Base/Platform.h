@@ -8,7 +8,7 @@
 
 namespace Prism
 {
-class Duration;
+struct Duration;
 }
 
 namespace Prism::Core
@@ -31,6 +31,10 @@ public:
 		static_assert(std::is_constructible_v<AppEvent, T>, "Provided type is not included in AppEvent variant");
 		m_eventCallbacks[typeid(T).hash_code()].push_back(std::forward<std::function<void(AppEvent)>>(callback));
 	}
+
+	virtual bool IsKeyPressed(KeyCode keyCode) = 0;
+
+	virtual void SetMouseRelativeMode(bool bRelativeMode) = 0;
 
 	virtual Duration GetApplicationTime() = 0;
 	virtual uint64_t GetPerformanceTicksPerSecond() = 0;

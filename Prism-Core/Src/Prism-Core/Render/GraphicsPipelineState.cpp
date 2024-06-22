@@ -6,6 +6,22 @@
 
 namespace Prism::Render
 {
+bool GraphicsPipelineStateDesc::operator==(const GraphicsPipelineStateDesc& other) const
+{
+	return
+		other.vs == vs &&
+		other.ps == ps &&
+		other.blendState == blendState &&
+		other.rasterizerState == rasterizerState &&
+		other.depthStencilState == depthStencilState &&
+		other.primitiveTopologyType == primitiveTopologyType &&
+		other.numRenderTargets == numRenderTargets &&
+		other.renderTargetFormats == renderTargetFormats &&
+		other.depthStencilFormat == depthStencilFormat &&
+		other.sampleMask == sampleMask &&
+		other.sampleDesc == sampleDesc;
+}
+
 GraphicsPipelineState* GraphicsPipelineState::Create(const GraphicsPipelineStateDesc& desc)
 {
 	return RenderDevice::Get().GetPipelineStateCache().GetOrCreatePipelineState(desc);
@@ -13,11 +29,6 @@ GraphicsPipelineState* GraphicsPipelineState::Create(const GraphicsPipelineState
 
 GraphicsPipelineState::GraphicsPipelineState(const GraphicsPipelineStateDesc& desc)
 	: m_desc(desc)
-{
-}
-
-PipelineStateHash::PipelineStateHash(const GraphicsPipelineStateDesc& desc)
-	: Hash(desc)
 {
 }
 }

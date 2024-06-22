@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "Prism-Core/Utilities/HashUtils.h"
 
 namespace Prism::Render
 {
@@ -22,28 +21,28 @@ enum class ShaderType
 
 struct ShaderCreateInfo
 {
+	bool operator==(const ShaderCreateInfo& other) const;
+
 	std::wstring filepath;
 	std::wstring entryName;
 	ShaderType shaderType;
 };
 
-class Shader
+class Shader : public RefCounted
 {
 public:
 	static Shader* Create(const ShaderCreateInfo& createInfo);
 };
-
-struct ShaderHash : Hash<HashSize::Bit128>
-{
-	explicit ShaderHash(const ShaderCreateInfo& createInfo);
-};
 }
 
 template<>
-struct std::hash<Prism::Render::ShaderHash>
+struct std::hash<Prism::Render::ShaderCreateInfo>
 {
-	size_t operator()(const Prism::Render::ShaderHash& hash) const noexcept
+	size_t operator()(const Prism::Render::ShaderCreateInfo& shaderCreateInfo) const noexcept
 	{
-		return hash.hashValue.low ^ hash.hashValue.high;
+		return
+			std::hash<std::wstring>()(shaderCreateInfo.filepath) ^
+			std::hash<std::wstring>()(shaderCreateInfo.entryName) ^
+			std::hash<Prism::Render::ShaderType>()(shaderCreateInfo.shaderType);
 	}
 };

@@ -313,6 +313,8 @@ enum class ColorMask : uint8_t
 
 struct RenderTargetBlendDesc
 {
+	bool operator==(const RenderTargetBlendDesc& other) const;
+
 	bool blendEnable = false;
 	bool logicOperationEnable = false;
 	BlendFactor srcBlend = BlendFactor::One;
@@ -327,6 +329,8 @@ struct RenderTargetBlendDesc
 
 struct BlendStateDesc
 {
+	bool operator==(const BlendStateDesc& other) const;
+
 	bool alphaToCoverageEnable = false;
 	bool independentBlendEnable = false;
 	std::array<RenderTargetBlendDesc, 8> renderTargetBlendDescs = {};
@@ -351,9 +355,11 @@ enum class CullMode
 
 struct RasterizerStateDesc
 {
+	bool operator==(const RasterizerStateDesc& other) const;
+
 	FillMode fillMode = FillMode::Solid;
 	CullMode cullMode = CullMode::None;
-	bool frontCounterClockwise = false;
+	bool frontCounterClockwise = true;
 	int32_t depthBias = 0;
 	float depthBiasClamp = 0.f;
 	float slopeScaledDepthBias = 0.f;
@@ -448,6 +454,8 @@ enum class StencilOperation
 
 struct DepthStencilOperationDesc
 {
+	bool operator==(const DepthStencilOperationDesc& other) const;
+
 	StencilOperation stencilFail = StencilOperation::Keep;
 	StencilOperation stencilDepthFail = StencilOperation::Keep;
 	StencilOperation stencilPass = StencilOperation::Keep;
@@ -456,6 +464,8 @@ struct DepthStencilOperationDesc
 
 struct DepthStencilStateDesc
 {
+	bool operator==(const DepthStencilStateDesc& other) const;
+
 	bool depthEnable = true;
 	bool depthWriteEnable = true;
 	ComparisionFunction depthFunc = ComparisionFunction::Less;
@@ -548,6 +558,8 @@ enum class TopologyType
 
 struct SampleDesc
 {
+	bool operator==(const SampleDesc& other) const;
+
 	int32_t count = 1;
 	int32_t quality = 0;
 };
@@ -587,18 +599,31 @@ enum class BindFlags : uint16_t
 	IndirectDrawArgs = 1u << 8u,
 };
 
+enum class CPUAccess
+{
+	None = 0,
+	Read,
+	Write
+};
+
 enum class ResourceUsage
 {
 	// A resource that requires read and write access by the GPU and can also be occasionally
 	// written by the CPU.
 	// D3D11 Counterpart: D3D11_USAGE_DEFAULT. OpenGL counterpart: GL_DYNAMIC_DRAW.
-	// Default buffers do not allow CPU access and must use CPU_ACCESS_NONE flag.
+	// Default buffers do not allow CPU access and must use CPUAccess::None flag.
 	Default = 0,
 
 	// A resource that can be read by the GPU and written at least once per frame by the CPU.
 	// D3D11 Counterpart: D3D11_USAGE_DYNAMIC. OpenGL counterpart: GL_STREAM_DRAW
-	// Dynamic buffers must use CPU_ACCESS_WRITE flag.
-	Dynamic
+	// Dynamic buffers must use CPUAccess::Write flag.
+	Dynamic,
+
+	// A resource that facilitates transferring data between GPU and CPU.
+    // D3D11 Counterpart: D3D11_USAGE_STAGING. OpenGL counterpart: GL_STATIC_READ or
+    // GL_STATIC_COPY depending on the CPU access flags.
+    // Staging buffers must use exactly one of CPUAccess::Write or CPUAccess::Read flags.
+    Staging
 };
 
 enum class ResourceStateFlags : uint32_t
@@ -614,7 +639,7 @@ enum class ResourceStateFlags : uint32_t
 
 	// The resource is accessed as a uniform (constant) buffer
 	// Supported contexts: graphics, compute.
-	UniformBuffer = 1u << 2,
+	ConstantBuffer = 1u << 2,
 
 	// The resource is accessed as an index buffer
 	// Supported contexts: graphics.
@@ -681,7 +706,7 @@ enum class ResourceStateFlags : uint32_t
 	MaxBit = Common,
 
 	GenericRead = VertexBuffer |
-				  UniformBuffer |
+				  ConstantBuffer |
 				  IndexBuffer |
 				  ShaderResource |
 				  IndirectArgument |
@@ -707,7 +732,7 @@ struct RenderTargetClearValue
 
 struct DepthStencilValue
 {
-	float depth = 0.f;
+	float depth = 1.f;
 	uint8_t stencil = 0;
 };
 
@@ -746,3 +771,107 @@ struct StateTransitionDesc
 	Flags<ResourceStateFlags> newState;
 };
 }
+
+template<>
+struct std::hash<Prism::Render::RenderTargetBlendDesc>
+{
+	size_t operator()(const Prism::Render::RenderTargetBlendDesc& desc) const noexcept
+	{
+		using namespace Prism::Render;
+
+		static_assert(sizeof(desc) == 36,
+					  "If new field was added, add it to the hash function and update this assert");
+
+		return
+			std::hash<bool>()(desc.blendEnable) ^
+			std::hash<bool>()(desc.logicOperationEnable) ^
+			std::hash<BlendFactor>()(desc.srcBlend) ^
+			std::hash<BlendFactor>()(desc.destBlend) ^
+			std::hash<BlendOperation>()(desc.blendOperation) ^
+			std::hash<BlendFactor>()(desc.srcBlendAlpha) ^
+			std::hash<BlendFactor>()(desc.destBlendAlpha) ^
+			std::hash<BlendOperation>()(desc.blendOperationAlpha) ^
+			std::hash<LogicOperation>()(desc.logicOperation) ^
+			std::hash<ColorMask>()(desc.renderTargetWriteMask);
+	}
+};
+
+template<>
+struct std::hash<Prism::Render::BlendStateDesc>
+{
+	size_t operator()(const Prism::Render::BlendStateDesc& desc) const noexcept
+	{
+		using namespace Prism::Render;
+
+		static_assert(sizeof(BlendStateDesc) == 292,
+			"If new field was added, add it to the hash function and update this assert");
+
+		return
+			std::hash<bool>()(desc.alphaToCoverageEnable) ^
+			std::hash<bool>()(desc.independentBlendEnable) ^
+			std::hash<std::array<RenderTargetBlendDesc, 8>>()(desc.renderTargetBlendDescs);
+	}
+};
+
+template<>
+struct std::hash<Prism::Render::RasterizerStateDesc>
+{
+	size_t operator()(const Prism::Render::RasterizerStateDesc& desc) const noexcept
+	{
+		using namespace Prism::Render;
+
+		static_assert(sizeof(desc) == 32,
+			"If new field was added, add it to the hash function and update this assert");
+
+		return
+			std::hash<FillMode>()(desc.fillMode) ^
+			std::hash<CullMode>()(desc.cullMode) ^
+			std::hash<bool>()(desc.frontCounterClockwise) ^
+			std::hash<int32_t>()(desc.depthBias) ^
+			std::hash<float>()(desc.depthBiasClamp) ^
+			std::hash<float>()(desc.slopeScaledDepthBias) ^
+			std::hash<bool>()(desc.depthClipEnable) ^
+			std::hash<bool>()(desc.antialiasedLineEnable) ^
+			std::hash<int32_t>()(desc.forcedSampleCount);
+	}
+};
+
+template<>
+struct std::hash<Prism::Render::DepthStencilOperationDesc>
+{
+	size_t operator()(const Prism::Render::DepthStencilOperationDesc& desc) const noexcept
+	{
+		using namespace Prism::Render;
+
+		static_assert(sizeof(desc) == 16,
+			"If new field was added, add it to the hash function and update this assert");
+
+		return
+			std::hash<StencilOperation>()(desc.stencilFail) ^
+			std::hash<StencilOperation>()(desc.stencilDepthFail) ^
+			std::hash<StencilOperation>()(desc.stencilPass) ^
+			std::hash<ComparisionFunction>()(desc.stencilFunction);
+	}
+};
+
+template<>
+struct std::hash<Prism::Render::DepthStencilStateDesc>
+{
+	size_t operator()(const Prism::Render::DepthStencilStateDesc& desc) const noexcept
+	{
+		using namespace Prism::Render;
+
+		static_assert(sizeof(desc) == 44,
+			"If new field was added, add it to the hash function and update this assert");
+
+		return
+			std::hash<bool>()(desc.depthEnable) ^
+			std::hash<bool>()(desc.depthWriteEnable) ^
+			std::hash<ComparisionFunction>()(desc.depthFunc) ^
+			std::hash<bool>()(desc.stencilEnable) ^
+			std::hash<uint8_t>()(desc.stencilReadMask) ^
+			std::hash<uint8_t>()(desc.stencilWriteMask) ^
+			std::hash<DepthStencilOperationDesc>()(desc.frontFace) ^
+			std::hash<DepthStencilOperationDesc>()(desc.backFace);
+	}
+};

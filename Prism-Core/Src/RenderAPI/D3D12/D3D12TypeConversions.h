@@ -65,6 +65,8 @@ D3D12_CLEAR_FLAGS GetD3D12ClearFlags(Flags<ClearFlags> clearFlags);
 
 DXGI_FORMAT GetIndexBufferDXGIFormat(IndexBufferFormat format);
 
+UINT GetPlaneSlice(TextureFormat format);
+
 
 // DXGI -> Prism
 TextureFormat GetTextureFormat(DXGI_FORMAT dxgiFormat);

@@ -3,7 +3,7 @@
 
 namespace Prism::Render
 {
-class PipelineStateCache final
+struct PipelineStateCache final
 {
 public:
 	PipelineStateCache() = default;
@@ -11,6 +11,6 @@ public:
 	GraphicsPipelineState* GetOrCreatePipelineState(const GraphicsPipelineStateDesc& desc);
 
 private:
-	std::unordered_map<PipelineStateHash, std::unique_ptr<GraphicsPipelineState>> m_pipelineStates;
+	std::unordered_map<GraphicsPipelineStateDesc, Ref<GraphicsPipelineState>> m_pipelineStates;
 };
 }

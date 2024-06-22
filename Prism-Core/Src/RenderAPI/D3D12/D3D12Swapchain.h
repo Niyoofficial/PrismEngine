@@ -25,10 +25,10 @@ public:
 	virtual int32_t GetCurrentBackBufferIndex() const override;
 
 private:
-	Core::Window* m_owningWindow = nullptr;
+	WeakRef<Core::Window> m_owningWindow;
 
 	ComPtr<IDXGISwapChain3> m_swapchain;
-	std::vector<std::unique_ptr<Texture>> m_backBuffers;
-	std::vector<std::unique_ptr<TextureView>> m_backBufferRTVs;
+	std::vector<Ref<Texture>> m_backBuffers;
+	std::vector<Ref<TextureView>> m_backBufferRTVs;
 };
 }

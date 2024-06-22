@@ -7,6 +7,12 @@
 
 namespace Prism::Core
 {
+Application::~Application()
+{
+	ShutdownPlatform();
+	ShutdownRenderer();
+}
+
 Application& Application::Get()
 {
 	return StaticPointerSingleton::Get();
@@ -16,15 +22,22 @@ void Application::Run()
 {
 	m_running = true;
 
-	Init();
+	Platform::Get().AddAppEventCallback<AppEvents::Quit>(
+		[this](AppEvent event)
+		{
+			OnQuit(event);
+		});
 
 	while (m_running)
 	{
 		Platform::Get().PumpEvents();
 
-		for (Render::Layer* layer : m_layerStack)
+		if (!m_running)
+			continue;
+
+		for (auto& layer : m_layerStack)
 		{
-			auto currTime = Platform::Get().GetApplicationTime();
+			auto currTime = GetApplicationTime();
 			auto delta = currTime - m_previousFrameTime;
 
 			layer->Update(delta);
@@ -34,19 +47,17 @@ void Application::Run()
 
 		++m_frameCounter;
 	}
-
-	Shutdown();
 }
 
 void Application::PushLayer(Render::Layer* layer)
 {
-	m_layerStack.push_back(layer);
+	m_layerStack.emplace_back(layer);
 	layer->Attach();
 }
 
 void Application::PopLayer(Render::Layer* layer)
 {
-	auto it = std::ranges::find(m_layerStack, layer);
+	auto it = std::ranges::find(m_layerStack, WeakRef(layer));
 	if (it != m_layerStack.end())
 	{
 		(*it)->Detach();
@@ -56,24 +67,24 @@ void Application::PopLayer(Render::Layer* layer)
 
 void Application::RegisterWindow(Window* window)
 {
-	m_windows.push_back(window);
+	m_windows.emplace_back(window);
 }
 
 void Application::UnregisterWindow(Window* window)
 {
-	auto it = std::ranges::find(m_windows, window);
+	auto it = std::ranges::find(m_windows, WeakRef(window));
 	if (it != m_windows.end())
 		m_windows.erase(it);
 }
 
-void Application::Init()
+void Application::CloseApplication()
 {
+	m_running = false;
 }
 
-void Application::Shutdown()
+Duration Application::GetApplicationTime()
 {
-	ShutdownPlatform();
-	ShutdownRenderer();
+	return Platform::Get().GetApplicationTime();
 }
 
 void Application::InitPlatform()
@@ -94,5 +105,10 @@ void Application::InitRenderer()
 void Application::ShutdownRenderer()
 {
 	Render::RenderDevice::TryDestroy();
+}
+
+void Application::OnQuit(AppEvent event)
+{
+	CloseApplication();
 }
 }

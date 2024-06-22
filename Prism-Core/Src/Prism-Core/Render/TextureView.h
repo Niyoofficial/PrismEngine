@@ -25,7 +25,7 @@ public:
 	TextureViewType type;
 
 	TextureFormat format;
-	ResourceDimension dimension;
+	ResourceDimension dimension = ResourceDimension::Tex2D;
 
 	int32_t firstMipLevel = 0;
 	int32_t numMipLevels = 1;
@@ -39,7 +39,7 @@ class TextureView : public RenderResourceView
 public:
 	static TextureView* Create(const TextureViewDesc& desc, class Texture* texture);
 
-	ResourceType GetResourceType() const override { return ResourceType::Texture; }
+	constexpr virtual ResourceType GetResourceType() const override { return ResourceType::Texture; }
 
 	virtual Texture* GetTexture() const = 0;
 };

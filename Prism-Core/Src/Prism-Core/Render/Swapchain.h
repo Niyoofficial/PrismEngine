@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "Prism-Core/Render/RenderTypes.h"
-#include "Prism-Core/Utilities/Duration.h"
 
 namespace Prism::Core
 {
@@ -21,7 +20,7 @@ struct SwapchainDesc
 	int32_t bufferCount = 3;
 };
 
-class Swapchain
+class Swapchain : public RefCounted
 {
 public:
 	static Swapchain* Create(Core::Window* window, SwapchainDesc swapchainDesc);

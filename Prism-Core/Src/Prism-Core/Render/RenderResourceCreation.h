@@ -13,8 +13,9 @@ RenderContext* CreateRenderContext();
 Swapchain* CreateSwapchain(Core::Window* window, SwapchainDesc swapchainDesc);
 Shader* CreateShader(const ShaderCreateInfo& createInfo);
 GraphicsPipelineState* CreatePipelineState(const GraphicsPipelineStateDesc& desc);
-Buffer* CreateBuffer(const BufferDesc& desc, const std::vector<BufferInitData>& initData);
+Buffer* CreateBuffer(const BufferDesc& desc, BufferData initData, Flags<ResourceStateFlags> initState);
 BufferView* CreateBufferView(const BufferViewDesc& desc, class Buffer* buffer);
-Texture* CreateTexture(const TextureDesc& desc, const std::vector<TextureInitData>& initData);
+Texture* CreateTexture(const TextureDesc& desc, const std::vector<TextureData>& initData, Flags<ResourceStateFlags> initState);
+Texture* CreateTexture(std::wstring filepath, bool loadAsCubemap);
 TextureView* CreateTextureView(const TextureViewDesc& desc, Texture* texture);
 }

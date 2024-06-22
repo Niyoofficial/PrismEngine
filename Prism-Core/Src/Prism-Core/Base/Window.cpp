@@ -6,9 +6,9 @@
 
 namespace Prism::Core
 {
-Window* Window::Create(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc)
+Ref<Window> Window::Create(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc)
 {
-	Window* window = Private::CreateWindow(windowDesc, swapchainDesc);
+	Ref<Window> window = Private::CreateWindow(windowDesc, swapchainDesc);
 	Application::Get().RegisterWindow(window);
 	return window;
 }

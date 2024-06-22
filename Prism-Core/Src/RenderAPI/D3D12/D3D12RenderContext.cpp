@@ -12,6 +12,18 @@
 
 namespace Prism::Render::D3D12
 {
+#pragma warning(suppress: 4172)
+const CPUDescriptorHeapAllocation& GetDescriptorFromView(RenderResourceView* view)
+{
+	if (view->GetResourceType() == ResourceType::Buffer)
+		return view->GetSubType<D3D12BufferView>()->GetDescriptor();
+	else if (view->GetResourceType() == ResourceType::Texture)
+		return view->GetSubType<D3D12TextureView>()->GetDescriptor();
+
+	PE_ASSERT_NO_ENTRY();
+	return {};
+}
+
 D3D12RenderContext::D3D12RenderContext()
 {
 	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommandAllocator(
@@ -22,29 +34,22 @@ D3D12RenderContext::D3D12RenderContext()
 		m_commandAllocator.Get(),
 		nullptr,
 		IID_PPV_ARGS(&m_commandList)));
+	PE_ASSERT_HR(m_commandList->SetName(L"Render Context Cmd List"));
 
-	m_commandList->SetDescriptorHeaps(D3D12RenderDevice::Get()->)
+	auto heaps = D3D12RenderDevice::Get().GetGPUDescriptorHeaps();
+	m_commandList->SetDescriptorHeaps((UINT)heaps.size(), heaps.data());
 }
 
 void D3D12RenderContext::Draw(DrawCommandDesc desc)
 {
+	PrepareDraw();
+
 	m_commandList->DrawInstanced(desc.numVertices, desc.numInstances, desc.startVertexLocation, 0);
 }
 
 void D3D12RenderContext::DrawIndexed(DrawIndexedCommandDesc desc)
 {
-	for (auto [index, view] : m_rootResources)
-	{
-		CPUDescriptorHeapAllocation cpuDescriptorHandle;
-		if (view->GetResourceType() == ResourceType::Buffer)
-			cpuDescriptorHandle = view->GetSubType<D3D12BufferView>()->GetDescriptor();
-		else
-			cpuDescriptorHandle = view->GetSubType<D3D12TextureView>()->GetDescriptor();
-
-		auto gpuDescriptorHandle = D3D12RenderDevice::Get().CopyToGPUHeap(cpuDescriptorHandle);
-
-		m_commandList->SetGraphicsRootDescriptorTable(index, gpuDescriptorHandle.GetGPUHandle());
-	}
+	PrepareDraw();
 
 	m_commandList->DrawIndexedInstanced(desc.numIndices, desc.numInstances, desc.startIndexLocation, desc.baseVertexLocation, 0);
 }
@@ -118,10 +123,14 @@ void D3D12RenderContext::SetIndexBuffer(Buffer* buffer, IndexBufferFormat format
 	m_commandList->IASetIndexBuffer(&view);
 }
 
-void D3D12RenderContext::SetUniformBuffer(BufferView* bufferView, const std::wstring& paramName)
+void D3D12RenderContext::SetTexture(TextureView* textureView, const std::wstring& paramName)
 {
-	int32_t paramIndex = m_currentRootSig->GetParamIndex(paramName);
-	m_rootResources[paramIndex] = bufferView;
+	SetResource(textureView, paramName);
+}
+
+void D3D12RenderContext::SetCBuffer(BufferView* bufferView, const std::wstring& paramName)
+{
+	SetResource(bufferView, paramName);
 }
 
 void D3D12RenderContext::ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor)
@@ -150,7 +159,7 @@ void D3D12RenderContext::ClearRenderTargetView(TextureView* rtv, glm::float4* cl
 void D3D12RenderContext::ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue)
 {
 	float depthValue = 0.f;
-	uint8_t stencilValue = 0.f;
+	uint8_t stencilValue = 0;
 	if (clearValue)
 	{
 		depthValue = clearValue->depth;
@@ -173,6 +182,22 @@ void D3D12RenderContext::Transition(StateTransitionDesc desc)
 	m_commandList->ResourceBarrier(1, &barrier);
 }
 
+void D3D12RenderContext::UpdateBuffer(Buffer* buffer, BufferData data)
+{
+	PE_ASSERT(buffer);
+	PE_ASSERT(buffer->GetBufferDesc().usage == ResourceUsage::Default,
+			  "Buffer must have Default usage to be updated through render context");
+
+	auto uploadBufferDesc = buffer->GetBufferDesc();
+	uploadBufferDesc.bufferName = L"UploadBuffer";
+	uploadBufferDesc.usage = ResourceUsage::Dynamic;
+	auto uploadBuffer = Buffer::Create(uploadBufferDesc, data, ResourceStateFlags::GenericRead);
+
+	CopyBufferRegion(buffer, 0, uploadBuffer, 0, (int32_t)uploadBuffer->GetBufferDesc().size);
+
+	SafeReleaseResource(std::move(uploadBuffer));
+}
+
 void D3D12RenderContext::CopyBufferRegion(Buffer* dest, int32_t destOffset, Buffer* src, int32_t srcOffset, int32_t numBytes)
 {
 	PE_ASSERT(dest && src);
@@ -186,5 +211,25 @@ void D3D12RenderContext::CopyBufferRegion(Buffer* dest, int32_t destOffset, Buff
 void D3D12RenderContext::CloseContext()
 {
 	PE_ASSERT_HR(m_commandList->Close());
+}
+
+void D3D12RenderContext::PrepareDraw()
+{
+	for (auto [index, view] : m_rootResources)
+	{
+		auto gpuDescriptorHandle = D3D12RenderDevice::Get().CopyToGPUHeap(GetDescriptorFromView(view));
+		m_commandList->SetGraphicsRootDescriptorTable(index, gpuDescriptorHandle.GetGPUHandle());
+		m_gpuDescriptors.push_back(std::move(gpuDescriptorHandle));
+	}
+
+	bool success = m_rootResources.empty();
+}
+
+void D3D12RenderContext::SetResource(RenderResourceView* view, const std::wstring& paramName)
+{
+	PE_ASSERT(view);
+
+	int32_t paramIndex = m_currentRootSig->GetParamIndex(paramName);
+	m_rootResources[paramIndex] = view;
 }
 }

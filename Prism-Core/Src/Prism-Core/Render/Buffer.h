@@ -13,26 +13,30 @@ struct BufferDesc
 
 	Flags<BindFlags> bindFlags = BindFlags::None;
 	ResourceUsage usage = ResourceUsage::Default;
+	CPUAccess cpuAccess = CPUAccess::None;
 };
 
-struct BufferInitData
+struct BufferData
 {
 	const void* data = nullptr;
 	int64_t sizeInBytes = 0;
-	int64_t byteOffset = 0;
 };
 
 class Buffer : public RenderResource
 {
 public:
-	static Buffer* Create(const BufferDesc& desc, const BufferInitData& initData = {});
-	static Buffer* Create(const BufferDesc& desc, const std::vector<BufferInitData>& initData);
+	static Ref<Buffer> Create(const BufferDesc& desc, BufferData initData,
+							  Flags<ResourceStateFlags> initState = ResourceStateFlags::Common);
 
-	BufferView* CreateView(const BufferViewDesc& desc);
-	BufferView* CreateDefaultView();
+	Ref<BufferView> CreateView(const BufferViewDesc& desc);
+	Ref<BufferView> CreateDefaultView();
 
 	ResourceType GetResourceType() const override { return ResourceType::Buffer; }
 
 	virtual BufferDesc GetBufferDesc() const = 0;
+
+	// Only Dynamic and Staging buffers can be mapped
+	virtual void* Map(CPUAccess access) = 0;
+	virtual void Unmap() = 0;
 };
 }

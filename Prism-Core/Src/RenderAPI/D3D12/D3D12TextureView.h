@@ -12,7 +12,7 @@ namespace Prism::Render::D3D12
 class D3D12TextureView : public TextureView
 {
 public:
-	D3D12TextureView(const TextureViewDesc& desc, Texture* texture);
+	D3D12TextureView(TextureViewDesc desc, Texture* texture);
 
 	virtual Texture* GetTexture() const override;
 

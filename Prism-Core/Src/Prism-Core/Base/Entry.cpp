@@ -1,11 +1,11 @@
 #include "pcpch.h"
 #include "Prism-Core/Base/Application.h"
-#include "Prism-Core/Base/Base.h"
+#include "Prism-Core/Base/Base.h"														\
 
 
 #ifdef PE_PLATFORM_WINDOWS
 
-extern Prism::Core::Application* CreateApplication(int32_t argc, char** argv);
+extern void CreateApplication(int32_t argc, char** argv);
 
 int32_t main(int32_t argc, char** argv)
 {
@@ -13,7 +13,7 @@ int32_t main(int32_t argc, char** argv)
 
 	InitCore();
 
-	Application::Create(CreateApplication(argc, argv));
+	CreateApplication(argc, argv);
 
 	Application::Get().Run();
 

@@ -9,8 +9,11 @@ project "Prism-Core"
 
 	includeDirs["SDL"] = path.normalize("%{prj.location}/Vendor/SDL/include")
 	libDirs["SDL"] = path.normalize("%{prj.location}/Vendor/SDL/Bin/" .. outputFolderName)
-	includeDirs["xxHash"] = path.normalize("%{prj.location}/Vendor/xxHash")
-	libDirs["xxHash"] = path.normalize("%{prj.location}/Vendor/xxHash/Bin/" .. outputFolderName)
+	includeDirs["DirectXTK12"] = path.normalize("%{prj.location}/Vendor/DirectXTK12/Inc")
+	libDirs["DirectXTK12"] = path.normalize("%{prj.location}/Vendor/DirectXTK12/Bin/" .. outputFolderName)
+	includeDirs["xxHash_cpp"] = path.normalize("%{prj.location}/Vendor/xxHash_cpp/include")
+	includeDirs["assimp"] = path.normalize("%{prj.location}/Vendor/assimp/include")
+	libDirs["assimp"] = path.normalize("%{prj.location}/Vendor/assimp/Bin/" .. outputFolderName)
 
 	files
 	{
@@ -25,19 +28,21 @@ project "Prism-Core"
 
 		includeDirs["glm"],
 		includeDirs["spdlog"],
-		includeDirs["xxHash"]
+		includeDirs["xxHash_cpp"],
+		includeDirs["assimp"]
 	}
 
 	libdirs
 	{
 		libDirs["spdlog"],
-		libDirs["xxHash"]
+		libDirs["assimp"]
 	}
 
 	links
 	{
 		"spdlog.lib",
-		"xxHash.lib"
+		"assimp.lib",
+		"zlib.lib"
 	}
 
 	filter "system:windows"
@@ -53,12 +58,14 @@ project "Prism-Core"
 		includedirs
 		{
 			includeDirs["SDL"],
+			includeDirs["DirectXTK12"],
 			includeDirs["WinPixEventRuntime"]
 		}
 
 		libdirs
 		{
 			libDirs["SDL"],
+			libDirs["DirectXTK12"],
 			libDirs["WinPixEventRuntime"]
 		}
 
@@ -69,7 +76,8 @@ project "Prism-Core"
 			"d3d12.lib",
 			"dxcompiler.lib",
 			"SDL3.lib",
-			"WinPixEventRuntime.lib"
+			"WinPixEventRuntime.lib",
+			"DirectXTK12.lib"
 		}
 
 	filter "configurations:Debug"

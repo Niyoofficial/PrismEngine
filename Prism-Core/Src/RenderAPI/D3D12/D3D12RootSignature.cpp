@@ -25,35 +25,130 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 		// Iterate over all the resources bound in the shader like cbuffers, textures and samplers
 		for (UINT resIndex = 0; resIndex < shaderDesc.BoundResources; ++resIndex)
 		{
-			D3D12_SHADER_INPUT_BIND_DESC bindingDesc = {};
-			PE_ASSERT_HR(reflection->GetResourceBindingDesc(resIndex, &bindingDesc));
+			D3D12_SHADER_INPUT_BIND_DESC resourceDesc = {};
+			PE_ASSERT_HR(reflection->GetResourceBindingDesc(resIndex, &resourceDesc));
 
-			// This allows us to refer to the params by name, not an index
-			m_rootParamsIndexMap[StringToWString(bindingDesc.Name)] = (int32_t)rootParams.size();
-
-			if (bindingDesc.Type == D3D_SIT_CBUFFER)
+			std::wstring resourceName = StringToWString(resourceDesc.Name);
+			if (!m_rootParamsIndexMap.contains(resourceName))
 			{
-				auto* constBufferRef = reflection->GetConstantBufferByIndex(resIndex);
-				D3D12_SHADER_BUFFER_DESC constBufferDesc = {};
-				PE_ASSERT_HR(constBufferRef->GetDesc(&constBufferDesc));
+				// This allows us to refer to the params by name, not an index
+				m_rootParamsIndexMap[resourceName] = (int32_t)rootParams.size();
 
-				D3D12_ROOT_PARAMETER rootParam = {
-					.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV,
-					.Descriptor = {
-						.ShaderRegister = bindingDesc.BindPoint,
-						.RegisterSpace = bindingDesc.Space,
-					},
-					//.ShaderVisibility = 
-				};
+				if (resourceDesc.Type == D3D_SIT_CBUFFER)
+				{
+					D3D12_DESCRIPTOR_RANGE range = {
+						.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
+						.NumDescriptors = 1,
+						.BaseShaderRegister = resourceDesc.BindPoint,
+						.RegisterSpace = resourceDesc.Space,
+						.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
+					};
 
-				rootParams.push_back(rootParam);
+					D3D12_ROOT_PARAMETER rootParam = {
+						.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+						.DescriptorTable = {
+							.NumDescriptorRanges = 1,
+							.pDescriptorRanges = &range
+						},
+						//.ShaderVisibility = 
+					};
+
+					rootParams.push_back(rootParam);
+				}
+				else if (resourceDesc.Type == D3D_SIT_TEXTURE)
+				{
+					D3D12_DESCRIPTOR_RANGE range = {
+						.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
+						.NumDescriptors = 1,
+						.BaseShaderRegister = resourceDesc.BindPoint,
+						.RegisterSpace = resourceDesc.Space,
+						.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
+					};
+
+					D3D12_ROOT_PARAMETER rootParam = {
+						.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+						.DescriptorTable = {
+							.NumDescriptorRanges = 1,
+							.pDescriptorRanges = &range
+						},
+						//.ShaderVisibility = 
+					};
+
+					rootParams.push_back(rootParam);
+				}
 			}
 		}
 	}
 
 
+	// TODO
+	const static CD3DX12_STATIC_SAMPLER_DESC s_pointWrap(
+		0, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP, // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP, // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+	const static CD3DX12_STATIC_SAMPLER_DESC s_pointClamp(
+		1, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+	const static CD3DX12_STATIC_SAMPLER_DESC s_linearWrap(
+		2, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP, // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP, // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+	const static CD3DX12_STATIC_SAMPLER_DESC s_linearClamp(
+		3, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+	const static CD3DX12_STATIC_SAMPLER_DESC s_anisotropicWrap(
+		4, // shaderRegister
+		D3D12_FILTER_ANISOTROPIC, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP, // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP, // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP, // addressW
+		0.0f, // mipLODBias
+		8); // maxAnisotropy
+
+	const static CD3DX12_STATIC_SAMPLER_DESC s_anisotropicClamp(
+		5, // shaderRegister
+		D3D12_FILTER_ANISOTROPIC, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP, // addressW
+		0.0f, // mipLODBias
+		8); // maxAnisotropy
+
+	const static CD3DX12_STATIC_SAMPLER_DESC s_shadow(
+		6, // shaderRegister
+		D3D12_FILTER_COMPARISON_MIN_MAG_LINEAR_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER, // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER, // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_BORDER, // addressW
+		0.0f, // mipLODBias
+		16, // maxAnisotropy
+		D3D12_COMPARISON_FUNC_LESS_EQUAL, // comparision function
+		D3D12_STATIC_BORDER_COLOR_OPAQUE_BLACK); // border color
+
+	std::array samplers = {
+		s_pointWrap, s_pointClamp,
+		s_linearWrap, s_linearClamp,
+		s_anisotropicWrap, s_anisotropicClamp,
+		s_shadow
+	};
+
 	// Create the root signature
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc((UINT)rootParams.size(), rootParams.data(), 0, nullptr,
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc((UINT)rootParams.size(), rootParams.data(),
+											(UINT)samplers.size(), samplers.data(),
 											D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> serializedRootSig;

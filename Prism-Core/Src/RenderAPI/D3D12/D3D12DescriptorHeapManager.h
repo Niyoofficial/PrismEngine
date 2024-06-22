@@ -1,6 +1,7 @@
 ﻿#pragma once
 
 #include "RenderAPI/D3D12/D3D12Base.h"
+#include <map>
 
 namespace Prism::Render::D3D12
 {
@@ -30,20 +31,24 @@ public:
 							 D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
 							 int32_t handlesCount = 1);
 
-	~DescriptorHeapAllocation() = default;
+	~DescriptorHeapAllocation();
 
-	//DescriptorHeapAllocation(DescriptorHeapAllocation&& other) = default;
-	//DescriptorHeapAllocation& operator=(DescriptorHeapAllocation&& other) = default;
+	DescriptorHeapAllocation(DescriptorHeapAllocation&& other) noexcept;
+	DescriptorHeapAllocation& operator=(DescriptorHeapAllocation&& other) noexcept;
 
 	// No copies allowed
-	//DescriptorHeapAllocation(const DescriptorHeapAllocation& other) = delete;
-	//DescriptorHeapAllocation operator=(const DescriptorHeapAllocation& other) = delete;
+	DescriptorHeapAllocation(const DescriptorHeapAllocation& other) = delete;
+	DescriptorHeapAllocation operator=(const DescriptorHeapAllocation& other) = delete;
+
+	void Reset();
 
 	DescriptorHeap<Type>* GetOwningHeap() const;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(int32_t index = 0) const;
 	CD3DX12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(int32_t index = 0) const requires HAS_GPU_HANDLE;
 
 	int32_t GetNumHandles() const { return m_numHandles; }
+
+	bool IsNull() const;
 
 private:
 	DescriptorHeap<Type>* m_heap = nullptr;
@@ -69,14 +74,19 @@ class DescriptorHeap
 
 	struct FreeBlockInfo;
 
-	using OffsetsMapType = std::unordered_map<int32_t, FreeBlockInfo>;
+	using OffsetsMapType = std::map<int32_t, FreeBlockInfo>;
 	using OffsetsMapTypeIt = typename OffsetsMapType::iterator;
 
-	using SizesMapType = std::unordered_multimap<int32_t, OffsetsMapTypeIt>;
+	using SizesMapType = std::multimap<int32_t, OffsetsMapTypeIt>;
 	using SizesMapTypeIt = typename SizesMapType::iterator;
 
 	struct FreeBlockInfo
 	{
+		int32_t GetBlockSize()
+		{
+			return sizeMapIt->first;
+		}
+
 		SizesMapTypeIt sizeMapIt;
 	};
 
@@ -92,6 +102,7 @@ public:
 	DescriptorHeap operator=(const DescriptorHeap& other) = delete;
 
 	DescriptorHeapAllocation<Type> Allocate(int32_t count);
+	void Free(DescriptorHeapAllocation<Type>&& allocation);
 
 	D3D12_DESCRIPTOR_HEAP_TYPE GetHeapType() const;
 	ID3D12DescriptorHeap* GetD3D12DescriptorHeap() const { return m_descriptorHeap.Get(); }

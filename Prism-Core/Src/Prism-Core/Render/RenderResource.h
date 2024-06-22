@@ -11,7 +11,7 @@ enum class ResourceType
 class Buffer;
 class Texture;
 
-class RenderResource
+class RenderResource : public RefCounted
 {
 public:
 	virtual ResourceType GetResourceType() const = 0;

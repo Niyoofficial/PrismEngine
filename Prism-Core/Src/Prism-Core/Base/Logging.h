@@ -108,6 +108,7 @@ template<typename... Args>
 void PrintAssertMessage(const char* filename, int32_t line, const char* function,
 						spdlog::format_string_t<Args...> string, Args&&... args)
 {
-	g_errorLogger.Log(filename, line, function, "Assertion Failed: {0}", fmt::format(string, std::forward<Args>(args)...));
+	g_errorLogger.Log(filename, line, function, "Assertion Failed: {0}",
+					  fmt::format(string, std::forward<Args>(args)...));
 }
 }

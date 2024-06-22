@@ -7,6 +7,7 @@
 
 #include "RenderAPI/D3D12/D3D12Base.h"
 
+
 namespace Prism::Render::D3D12
 {
 class D3D12RenderDevice : public RenderDevice
@@ -22,6 +23,8 @@ public:
 	virtual void SubmitContext(RenderContext* context) override;
 
 	virtual void FlushCommandQueue() override;
+
+	virtual uint64_t GetCompletedCommandListFenceValue() const override;
 
 	ID3D12Device* GetD3D12Device() const;
 	IDXGIFactory2* GetDXGIFactory() const;
@@ -60,5 +63,7 @@ private:
 
 	uint64_t m_mainFenceValue = 0;
 	ComPtr<ID3D12Fence> m_mainFence;
+
+	ReleaseQueue<Ref<RenderContext>> m_contextReleaseQueue;
 };
 }

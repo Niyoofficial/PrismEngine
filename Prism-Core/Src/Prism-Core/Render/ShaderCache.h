@@ -3,12 +3,12 @@
 
 namespace Prism::Render
 {
-class ShaderCache final
+struct ShaderCache final
 {
 public:
 	Shader* GetOrCreateShader(const ShaderCreateInfo& createInfo);
 
 private:
-	std::unordered_map<ShaderHash, std::unique_ptr<Shader>> m_shaders;
+	std::unordered_map<ShaderCreateInfo, Ref<Shader>> m_shaders;
 };
 }

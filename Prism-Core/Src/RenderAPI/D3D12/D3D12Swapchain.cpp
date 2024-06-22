@@ -52,7 +52,7 @@ D3D12Swapchain::D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc
 		ID3D12Resource* swapchainTexture = nullptr;
 		PE_ASSERT_HR(m_swapchain->GetBuffer(i, IID_PPV_ARGS(&swapchainTexture)));
 
-		m_backBuffers.push_back(std::make_unique<D3D12Texture>(
+		m_backBuffers.push_back(new D3D12Texture(
 			swapchainTexture,
 			L"",
 			ResourceUsage::Default,
@@ -63,8 +63,7 @@ D3D12Swapchain::D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc
 			.format = swapchainDesc.format,
 			.dimension = ResourceDimension::Tex2D
 		};
-		TextureView* view = m_backBuffers.back()->CreateView(viewDesc);
-		m_backBufferRTVs.push_back(std::unique_ptr<TextureView>(view));
+		m_backBufferRTVs.push_back(m_backBuffers.back()->CreateView(viewDesc));
 	}
 }
 
@@ -81,7 +80,7 @@ void D3D12Swapchain::Resize()
 
 TextureView* D3D12Swapchain::GetBackBufferRTV(int32_t index) const
 {
-	return m_backBufferRTVs[index].get();
+	return m_backBufferRTVs[index];
 }
 
 TextureView* D3D12Swapchain::GetCurrentBackBufferRTV() const
@@ -91,6 +90,6 @@ TextureView* D3D12Swapchain::GetCurrentBackBufferRTV() const
 
 int32_t D3D12Swapchain::GetCurrentBackBufferIndex() const
 {
-	return m_swapchain->GetCurrentBackBufferIndex();
+	return (int32_t)m_swapchain->GetCurrentBackBufferIndex();
 }
 }

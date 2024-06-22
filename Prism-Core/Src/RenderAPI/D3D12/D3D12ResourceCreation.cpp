@@ -40,9 +40,9 @@ GraphicsPipelineState* CreatePipelineState(const GraphicsPipelineStateDesc& desc
 	return new D3D12::D3D12GraphicsPipelineState(desc);
 }
 
-Buffer* CreateBuffer(const BufferDesc& desc, const std::vector<BufferInitData>& initData)
+Buffer* CreateBuffer(const BufferDesc& desc, BufferData initData, Flags<ResourceStateFlags> initState)
 {
-	return new D3D12::D3D12Buffer(desc, initData);
+	return new D3D12::D3D12Buffer(desc, initData, initState);
 }
 
 BufferView* CreateBufferView(const BufferViewDesc& desc, class Buffer* buffer)
@@ -50,9 +50,14 @@ BufferView* CreateBufferView(const BufferViewDesc& desc, class Buffer* buffer)
 	return new D3D12::D3D12BufferView(desc, buffer);
 }
 
-Texture* CreateTexture(const TextureDesc& desc, const std::vector<TextureInitData>& initData)
+Texture* CreateTexture(const TextureDesc& desc, const std::vector<TextureData>& initData, Flags<ResourceStateFlags> initState)
 {
-	return new D3D12::D3D12Texture(desc, initData);
+	return new D3D12::D3D12Texture(desc, initData, initState);
+}
+
+Texture* CreateTexture(std::wstring filepath, bool loadAsCubemap)
+{
+	return new D3D12::D3D12Texture(filepath, loadAsCubemap);
 }
 
 TextureView* CreateTextureView(const TextureViewDesc& desc, Texture* texture)

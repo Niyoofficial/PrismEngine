@@ -19,12 +19,12 @@ public:
 	bool fullscreen = false;
 };
 
-class Window
+class Window : public RefCounted
 {
 public:
-	virtual ~Window();
+	virtual ~Window() override;
 
-	static Window* Create(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc);
+	static Ref<Window> Create(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc);
 
 	// Returns native window for the platform abstraction
 	// if we are using any (like SDL) or native platform window if we don't

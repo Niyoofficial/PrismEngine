@@ -12,9 +12,9 @@ struct BufferViewDesc
 class BufferView : public RenderResourceView
 {
 public:
-	static BufferView* Create(const BufferViewDesc& desc, class Buffer* buffer);
+	static Ref<BufferView> Create(const BufferViewDesc& desc, class Buffer* buffer);
 
-	ResourceType GetResourceType() const override { return ResourceType::Buffer; }
+	constexpr virtual ResourceType GetResourceType() const override { return ResourceType::Buffer; }
 
 	virtual Buffer* GetBuffer() const = 0;
 };

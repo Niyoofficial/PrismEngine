@@ -21,4 +21,5 @@
 
 template<typename T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;
-//namespace DX = ::DirectX;
+namespace DirectX {}
+namespace DX = ::DirectX;

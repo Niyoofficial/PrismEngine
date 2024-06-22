@@ -10,6 +10,6 @@ public:
 	D3D12RootSignature* GetOrCreateRootSignature(const GraphicsPipelineStateDesc& psoDesc);
 
 private:
-	std::unordered_map<PipelineStateHash, D3D12RootSignature> m_rootSignatures;
+	std::unordered_map<GraphicsPipelineStateDesc, D3D12RootSignature> m_rootSignatures;
 };
 }
