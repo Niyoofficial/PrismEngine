@@ -9,6 +9,7 @@
 
 namespace Prism::Render
 {
+struct RenderDeviceParams;
 class RenderDevice;
 class Layer;
 }
@@ -48,7 +49,7 @@ protected:
 	void InitPlatform();
 	void ShutdownPlatform();
 
-	void InitRenderer();
+	void InitRenderer(const Render::RenderDeviceParams& params);
 	void ShutdownRenderer();
 
 	void OnQuit(AppEvent event);

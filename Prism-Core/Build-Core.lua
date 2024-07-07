@@ -28,6 +28,7 @@ project "Prism-Core"
 
 		includeDirs["glm"],
 		includeDirs["spdlog"],
+		includeDirs["spdlog-fmt"],
 		includeDirs["xxHash_cpp"],
 		includeDirs["assimp"]
 	}
@@ -35,12 +36,14 @@ project "Prism-Core"
 	libdirs
 	{
 		libDirs["spdlog"],
+		libDirs["spdlog-fmt"],
 		libDirs["assimp"]
 	}
 
 	links
 	{
 		"spdlog.lib",
+		"fmt.lib",
 		"assimp.lib",
 		"zlib.lib"
 	}

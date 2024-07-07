@@ -46,6 +46,8 @@ private:
 
 	void SetResource(RenderResourceView* view, const std::wstring& paramName);
 
+	RenderResourceView* GetResourceView(const std::wstring& name);
+
 private:
 	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
 	ComPtr<ID3D12GraphicsCommandList> m_commandList;
@@ -53,7 +55,7 @@ private:
 	D3D12GraphicsPipelineState* m_currentPSO = nullptr;
 	class D3D12RootSignature* m_currentRootSig = nullptr;
 
-	std::unordered_map<int32_t, RenderResourceView*> m_rootResources;
+	std::unordered_map<std::wstring, RenderResourceView*> m_rootResources;
 	std::vector<GPUDescriptorHeapAllocation> m_gpuDescriptors;
 };
 }

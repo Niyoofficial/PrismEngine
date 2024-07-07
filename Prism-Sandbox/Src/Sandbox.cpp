@@ -1,7 +1,5 @@
 ﻿#include "Sandbox.h"
 
-#include <array>
-
 #include "Prism-Core/Base/Base.h"
 #include "Prism-Core/Base/Platform.h"
 #include "Prism-Core/Base/Window.h"
@@ -9,7 +7,6 @@
 #include "Prism-Core/Render/RenderDevice.h"
 #include "Prism-Core/Render/Texture.h"
 #include "Prism-Core/Render/TextureView.h"
-#include "Prism-Core/Utilities/ShapeUtils.h"
 
 
 IMPLEMENT_APPLICATION(SandboxApplication);
@@ -36,7 +33,7 @@ SandboxLayer::SandboxLayer()
 
 	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
-	m_camera = new Camera(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 1000.f);
+	m_camera = new Camera(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
 	m_camera->SetPosition({0.f, 0.f, -5.f});
 
 	TextureDesc depthStencilDesc = {
@@ -67,135 +64,87 @@ SandboxLayer::SandboxLayer()
 	};
 	m_textureView = m_texture->CreateView(textureViewDesc);
 
-	BufferDesc cbufferDesc = {
-		.bufferName = L"CBuffer",
-		.size = sizeof(CBufferTest),
-		.bindFlags = BindFlags::ConstantBuffer,
-		.usage = ResourceUsage::Dynamic
-	};
 
-	CBufferTest cbufferTest = {
-		.view = m_camera->GetViewMatrix(),
-		.proj = m_camera->GetProjectionMatrix(),
-		.viewProj = m_camera->GetViewProjectionMatrix()
-	};
-	m_cbuffer = Buffer::Create(cbufferDesc, {.data = &cbufferTest, .sizeInBytes = sizeof(cbufferTest)}, ResourceStateFlags::ConstantBuffer);
-	m_cbufferView = m_cbuffer->CreateDefaultView();
+	// Camera cbuffer
+	m_cameraCbuffer = Buffer::Create({
+										 .bufferName = L"CameraCBuffer",
+										 .size = sizeof(CBufferCamera),
+										 .bindFlags = BindFlags::ConstantBuffer,
+										 .usage = ResourceUsage::Dynamic
+									 }, {}, ResourceStateFlags::ConstantBuffer);
+	m_cameraCbufferView = m_cameraCbuffer->CreateDefaultView();
 
-	//       5(-1,+1,+1)________________6(+1,+1,+1)
-	//                 /|              /|
-	//                / |             / |
-	//               /  |            /  |
-	//              /   |           /   |
-	//  4(-1,-1,+1)/____|__________/7(+1,-1,+1)
-	//             |    |__________|____|
-	//             |   /1(-1,+1,-1)|    /2(+1,+1,-1)
-	//             |  /            |   /
-	//             | /             |  /
-	//             |/              | /
-	//             /_______________|/
-	//         0(-1,-1,-1)      3(+1,-1,-1)
+	// Model cbuffer
+	m_modelCbuffer = Buffer::Create({
+										 .bufferName = L"ModelCBuffer",
+										 .size = sizeof(CBufferModel),
+										 .bindFlags = BindFlags::ConstantBuffer,
+										 .usage = ResourceUsage::Dynamic
+									 }, {}, ResourceStateFlags::ConstantBuffer);
+	m_modelCbufferView = m_cameraCbuffer->CreateDefaultView();
 
-	/*std::array vertices = {
-		Vertex{ // 0
-			.position = {-1, -1, -1},
-			.color = {0.8f, 0.2f, 0.3f},
-			.texCoords = {0.f, 1.f}
-		},
-		Vertex{ // 1
-			.position = {-1, +1, -1},
-			.color = {0.3f, 0.2f, 0.8f},
-			.texCoords = {0.f, 0.f}
-		},
-		Vertex{ // 2
-			.position = {+1, +1, -1},
-			.color = {0.2f, 0.8f, 0.3f},
-			.texCoords = {1.f, 0.f}
-		},
-		Vertex{ // 3
-			.position = {+1, -1, -1},
-			.color = {0.8f, 0.2f, 0.3f},
-			.texCoords = {1.f, 1.f}
-		},
-		Vertex{ // 4
-			.position = {-1, -1, +1},
-			.color = {0.3f, 0.2f, 0.8f},
-			.texCoords = {0.f, 1.f}
-		},
-		Vertex{ // 5
-			.position = {-1, +1, +1},
-			.color = {0.2f, 0.8f, 0.3f},
-			.texCoords = {0.f, 0.f}
-		},
-		Vertex{ // 6
-			.position = {+1, +1, +1},
-			.color = {0.8f, 0.2f, 0.3f},
-			.texCoords = {1.f, 0.f}
-		},
-		Vertex{ // 7
-			.position = {+1, -1, +1},
-			.color = {0.3f, 0.2f, 0.8f},
-			.texCoords = {1.f, 1.f}
-		},
-	};*/
 
+	// Load monkey
 	ShapeUtils::ShapeData monkey = ShapeUtils::LoadShapeFromFile(L"Meshes/Monkey.fbx");
-	std::vector<Vertex> vertices;
-	vertices.reserve(monkey.vertices.size());
-	for (ShapeUtils::VertexData& vertex : monkey.vertices)
-	{
-		vertices.push_back({
-			.position = vertex.position,
-			.color = vertex.vertexColor,
-			.texCoords = vertex.texCoord
-		});
-	}
-	BufferDesc vertexBufferDesc = {
-		.bufferName = L"Vertex Buffer",
-		.size = (int64_t)(vertices.size() * sizeof(Vertex)),
-		.bindFlags = BindFlags::VertexBuffer
-	};
-	BufferData vertexInitData = {
-		.data = vertices.data(),
-		.sizeInBytes = (int64_t)(vertices.size() * sizeof(Vertex))
-	};
-	m_vertexBuffer = Buffer::Create(vertexBufferDesc, {vertexInitData});
 
-	/*constexpr std::array<uint16_t, 36> indices = {
-		2,1,0, 2,0,3,
-		4,5,6, 4,6,7,
-		0,4,7, 0,7,3,
-		1,4,0, 1,5,4,
-		1,2,5, 5,2,6,
-		3,7,6, 3,6,2
-	};*/
-	std::vector<int16_t> indices;
-	indices.reserve(monkey.indices.size());
-	for (int32_t index : monkey.indices)
-	{
-		indices.push_back((int16_t)index);
-	}
-	BufferDesc indexBufferDesc = {
-		.bufferName = L"Index Buffer",
-		.size = (int64_t)(indices.size() * sizeof(uint16_t)),
-		.bindFlags = BindFlags::IndexBuffer
-	};
-	BufferData indexInitData = {
-		.data = indices.data(),
-		.sizeInBytes = indexBufferDesc.size
-	};
-	m_indexBuffer = Buffer::Create(indexBufferDesc, {indexInitData});
+	std::vector<Vertex> monkeyVertices = SandboxApplication::GetVerticesFromShapeData(monkey);
+	m_monkeyVertexBuffer = Buffer::Create({
+											  .bufferName = L"Vertex Buffer",
+											  .size = (int64_t)(monkeyVertices.size() * sizeof(Vertex)),
+											  .bindFlags = BindFlags::VertexBuffer
+										  },
+										  {
+											  .data = monkeyVertices.data(),
+											  .sizeInBytes = (int64_t)(monkeyVertices.size() * sizeof(Vertex))
+										  });
+
+	std::vector<uint32_t> monkeyIndices = SandboxApplication::GetIndicesFromShapeData(monkey);
+	m_monkeyIndexBuffer = Buffer::Create({
+											 .bufferName = L"Index Buffer",
+											 .size = (int64_t)(monkeyIndices.size() * sizeof(uint32_t)),
+											 .bindFlags = BindFlags::IndexBuffer
+										 },
+										 {
+											 .data = monkeyIndices.data(),
+											 .sizeInBytes = (int64_t)(monkeyIndices.size() * sizeof(uint32_t))
+										 });
+
+
+	// Load floor
+	ShapeUtils::ShapeData floor = ShapeUtils::LoadShapeFromFile(L"Meshes/Floor.fbx");
+
+	std::vector<Vertex> floorVertices = SandboxApplication::GetVerticesFromShapeData(floor);
+	m_floorVertexBuffer = Buffer::Create({
+											  .bufferName = L"Vertex Buffer",
+											  .size = (int64_t)(floorVertices.size() * sizeof(Vertex)),
+											  .bindFlags = BindFlags::VertexBuffer
+										  },
+										  {
+											  .data = floorVertices.data(),
+											  .sizeInBytes = (int64_t)(floorVertices.size() * sizeof(Vertex))
+										  });
+
+	std::vector<uint32_t> floorIndices = SandboxApplication::GetIndicesFromShapeData(floor);
+	m_floorIndexBuffer = Buffer::Create({
+											 .bufferName = L"Index Buffer",
+											 .size = (int64_t)(floorIndices.size() * sizeof(uint32_t)),
+											 .bindFlags = BindFlags::IndexBuffer
+										 },
+										 {
+											 .data = floorIndices.data(),
+											 .sizeInBytes = (int64_t)(floorIndices.size() * sizeof(uint32_t))
+										 });
 
 	Ref renderContext = RenderDevice::Get().AllocateContext();
 
 	renderContext->Transition({
-		.resource = m_vertexBuffer,
+		.resource = m_monkeyVertexBuffer,
 		.oldState = ResourceStateFlags::Common,
 		.newState = ResourceStateFlags::VertexBuffer
 	});
 
 	renderContext->Transition({
-		.resource = m_indexBuffer,
+		.resource = m_monkeyIndexBuffer,
 		.oldState = ResourceStateFlags::Common,
 		.newState = ResourceStateFlags::IndexBuffer
 	});
@@ -224,48 +173,20 @@ void SandboxLayer::Update(Duration delta)
 
 	Ref<RenderContext> renderContext = RenderDevice::Get().AllocateContext();
 
-	auto* vs = Shader::Create({
-		.filepath = L"Shaders/Basic.hlsl",
-		.entryName = L"vsmain",
-		.shaderType = ShaderType::VS
-	});
-	auto* ps = Shader::Create({
-		.filepath = L"Shaders/Basic.hlsl",
-		.entryName = L"psmain",
-		.shaderType = ShaderType::PS
-	});
-	auto pso = GraphicsPipelineState::Create({
-		.vs = vs,
-		.ps = ps,
-		.depthStencilState = {
-			.depthEnable = true,
-			.depthWriteEnable = true
-		},
-		.primitiveTopologyType = TopologyType::TriangleList,
-		.numRenderTargets = 1,
-		.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
-		.depthStencilFormat = m_depthStencil->GetTextureDesc().format
-	});
-
-	renderContext->SetPSO(pso);
-
-	renderContext->SetVertexBuffer(m_vertexBuffer, sizeof(Vertex));
-	renderContext->SetIndexBuffer(m_indexBuffer, IndexBufferFormat::Uint16);
-
 	renderContext->SetTexture(m_textureView, L"g_texture");
 
 	glm::float2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
-	CBufferTest cbufferTest = {
+	CBufferCamera cbufferCamera = {
 		.view = m_camera->GetViewMatrix(),
 		.proj = m_camera->GetProjectionMatrix(),
 		.viewProj = m_camera->GetViewProjectionMatrix()
 	};
-	void* cbufferData = m_cbuffer->Map(CPUAccess::Write);
-	memcpy_s(cbufferData, m_cbuffer->GetBufferDesc().size, &cbufferTest, sizeof(cbufferTest));
-	m_cbuffer->Unmap();
+	void* cbufferData = m_cameraCbuffer->Map(CPUAccess::Write);
+	memcpy_s(cbufferData, m_cameraCbuffer->GetBufferDesc().size, &cbufferCamera, sizeof(cbufferCamera));
+	m_cameraCbuffer->Unmap();
 
-	renderContext->SetCBuffer(m_cbufferView, L"TestBuffer");
+	renderContext->SetCBuffer(m_cameraCbufferView, L"CameraBuffer");
 
 	auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
 	renderContext->Transition({
@@ -282,12 +203,77 @@ void SandboxLayer::Update(Duration delta)
 	renderContext->ClearRenderTargetView(currentBackBuffer, &clearColor);
 	renderContext->ClearDepthStencilView(m_depthStencilView, Flags(ClearFlags::ClearDepth) | Flags(ClearFlags::ClearStencil));
 
-	renderContext->DrawIndexed({
-		.numIndices = (int32_t)(m_indexBuffer->GetBufferDesc().size / (int64_t)sizeof(int16_t)),
-		.numInstances = 1,
-		.startIndexLocation = 0,
-		.baseVertexLocation = 0
-	});
+	// Monkey
+	{
+		auto* pso = GraphicsPipelineState::Create({
+			.vs = Shader::Create({
+				.filepath = L"Shaders/Basic.hlsl",
+				.entryName = L"vsmain",
+				.shaderType = ShaderType::VS
+			}),
+			.ps = Shader::Create({
+				.filepath = L"Shaders/Basic.hlsl",
+				.entryName = L"monkeypsmain",
+				.shaderType = ShaderType::PS
+			}),
+			.depthStencilState = {
+				.depthEnable = true,
+				.depthWriteEnable = true
+			},
+			.primitiveTopologyType = TopologyType::TriangleList,
+			.numRenderTargets = 1,
+			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
+			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
+		});
+
+		renderContext->SetPSO(pso);
+
+		renderContext->SetVertexBuffer(m_monkeyVertexBuffer, sizeof(Vertex));
+		renderContext->SetIndexBuffer(m_monkeyIndexBuffer, IndexBufferFormat::Uint32);
+
+		renderContext->DrawIndexed({
+			.numIndices = (int32_t)(m_monkeyIndexBuffer->GetBufferDesc().size / (int64_t)sizeof(int32_t)),
+			.numInstances = 1,
+			.startIndexLocation = 0,
+			.baseVertexLocation = 0
+		});
+	}
+
+	// Floor
+	{
+		auto* pso = GraphicsPipelineState::Create({
+			.vs = Shader::Create({
+				.filepath = L"Shaders/Basic.hlsl",
+				.entryName = L"vsmain",
+				.shaderType = ShaderType::VS
+			}),
+			.ps = Shader::Create({
+				.filepath = L"Shaders/Basic.hlsl",
+				.entryName = L"floorpsmain",
+				.shaderType = ShaderType::PS
+			}),
+			.depthStencilState = {
+				.depthEnable = true,
+				.depthWriteEnable = true
+			},
+			.primitiveTopologyType = TopologyType::TriangleList,
+			.numRenderTargets = 1,
+			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
+			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
+		});
+
+		renderContext->SetPSO(pso);
+
+		renderContext->SetVertexBuffer(m_floorVertexBuffer, sizeof(Vertex));
+		renderContext->SetIndexBuffer(m_floorIndexBuffer, IndexBufferFormat::Uint32);
+
+		renderContext->DrawIndexed({
+			.numIndices = (int32_t)(m_floorIndexBuffer->GetBufferDesc().size / (int64_t)sizeof(uint32_t)),
+			.numInstances = 1,
+			.startIndexLocation = 0,
+			.baseVertexLocation = 0
+		});
+	}
 
 	renderContext->Transition({
 		.resource = currentBackBuffer->GetTexture(),
@@ -310,7 +296,7 @@ SandboxApplication& SandboxApplication::Get()
 SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 {
 	InitPlatform();
-	InitRenderer();
+	InitRenderer({});
 
 	Core::WindowDesc windowParams = {
 		.windowTitle = L"Test",
@@ -340,4 +326,30 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 Core::Window* SandboxApplication::GetWindow() const
 {
 	return m_window;
+}
+
+std::vector<Vertex> SandboxApplication::GetVerticesFromShapeData(const ShapeUtils::ShapeData& shapeData)
+{
+	std::vector<Vertex> vertices;
+	vertices.reserve(shapeData.vertices.size());
+	for (const ShapeUtils::VertexData& vertex : shapeData.vertices)
+	{
+		vertices.push_back({
+			.position = vertex.position,
+			.color = vertex.vertexColor,
+			.texCoords = vertex.texCoord
+		});
+	}
+
+	return vertices;
+}
+
+std::vector<uint32_t> SandboxApplication::GetIndicesFromShapeData(const ShapeUtils::ShapeData& shapeData)
+{
+	std::vector<uint32_t> indices;
+	indices.reserve(shapeData.indices.size());
+	for (uint32_t index : shapeData.indices)
+		indices.push_back(index);
+
+	return indices;
 }

@@ -1,9 +1,8 @@
 ﻿#include "pcpch.h"
 #include "Logging.h"
 
-#include <spdlog/sinks/stdout_color_sinks.h>
-
 #include "Prism-Core/Utilities/LazySingleton.h"
+
 
 namespace Prism::Log
 {
@@ -13,45 +12,91 @@ void InitLog()
 {
 	g_errorLogger.Init();
 
-	for (LogCategory* category : LogCategoryRegistry::Get().GetRegisteredCategories())
+	for (LogCategory* category : LogsRegistry::Get().GetRegisteredCategories())
 		category->Init();
 }
 
 void ShutdownLog()
 {
-	LogCategoryRegistry::DestroyRegistry();
+	LogsRegistry::DestroyRegistry();
 }
 
-LogCategoryRegistry& LogCategoryRegistry::Get()
+LogsRegistry& LogsRegistry::Get()
 {
-	return LazySingleton<LogCategoryRegistry>::Get();
+	return LazySingleton<LogsRegistry>::Get();
 }
 
-void LogCategoryRegistry::DestroyRegistry()
+void LogsRegistry::DestroyRegistry()
 {
-	LazySingleton<LogCategoryRegistry>::Destroy();
+	LazySingleton<LogsRegistry>::Destroy();
 }
 
-void LogCategoryRegistry::AddCategoryToRegistry(LogCategory* category)
+LogsRegistry::LogsRegistry()
+	: m_stdOutSink(std::make_shared<spdlog::sinks::stdout_color_sink_mt>()),
+	  m_stdErrSink(std::make_shared<spdlog::sinks::stderr_color_sink_mt>()),
+	  m_fileSink(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(L"Logs/PrismLog.log", -1, 10, true))
+{
+	/*auto tp = std::chrono::system_clock::now();
+	time_t tnow = std::chrono::system_clock::to_time_t(tp);
+	tm tm;
+	localtime_s(&tm, &tnow);
+	auto logname = fmt::format(SPDLOG_FMT_STRING(SPDLOG_FILENAME_T("{}_{:04d}-{:02d}-{:02d}{}")),
+							   "Logs/PrismLog", tm.tm_year + 1900, tm.tm_mon + 1, tm.tm_mday, ".log");
+
+	m_fileSink = std::make_shared<spdlog::sinks::rotating_file_sink_mt>(logname, -1, 10, true);*/
+}
+
+void LogsRegistry::AddCategoryToRegistry(LogCategory* category)
 {
 	m_categories.push_back(category);
 }
 
-ErrorLogger::ErrorLogger()
-	: m_logger("ErrorLog", std::make_shared<spdlog::sinks::stderr_color_sink_mt>())
+void LogsRegistry::RegisterErrorLogger(ErrorLogger* errorLogger)
 {
-	m_logger.set_pattern("%^[%T] %v [File: %g] [Line: %#] [Func: %!()]%$");
-	m_logger.set_level(spdlog::level::critical);
+	PE_ASSERT(errorLogger);
+	m_errorLogger = errorLogger;
+}
+
+ErrorLogger* LogsRegistry::GetErrorLogger() const
+{
+	PE_ASSERT(m_errorLogger);
+	return m_errorLogger;
+}
+
+std::string ConvertToString(const wchar_t* arg)
+{
+	return WStringToString(arg);
+}
+
+std::string ConvertToString(const std::wstring& arg)
+{
+	return ConvertToString(arg.c_str());
+}
+
+ErrorLogger::ErrorLogger()
+{
+	LogsRegistry::Get().RegisterErrorLogger(this);
 }
 
 void ErrorLogger::Init()
 {
-	//m_logger = std::make_unique<spdlog::logger>("Assert", std::make_shared<spdlog::sinks::stderr_color_sink_mt>());
+	std::array<spdlog::sink_ptr, 3> sinks = {
+		LogsRegistry::Get().GetStdErrSink(),
+		LogsRegistry::Get().GetStdOutSink(),
+		LogsRegistry::Get().GetFileSink()
+	};
+	m_logger = std::make_unique<spdlog::logger>("ErrorLog", sinks.begin(), sinks.end());
+	m_logger->set_pattern("%^[%T] %v [File: %g] [Line: %#] [Func: %!()]%$");
+	m_logger->set_level(spdlog::level::critical);
 }
 
 void LogCategory::Init()
 {
-	m_logger = std::make_unique<spdlog::logger>(m_name, std::make_shared<spdlog::sinks::stdout_color_sink_mt>());
+	std::array<spdlog::sink_ptr, 2> sinks = {
+		LogsRegistry::Get().GetStdOutSink(),
+		LogsRegistry::Get().GetFileSink()
+	};
+	m_logger = std::make_unique<spdlog::logger>(m_name, sinks.begin(), sinks.end());
 	m_logger->set_pattern("%^[%T] [%l] %n: %v%$");
 	m_logger->set_level(spdlog::level::trace);
 }
@@ -59,28 +104,28 @@ void LogCategory::Init()
 LogCategory::LogCategory(const std::string& logName)
 	: m_name(logName)
 {
-	LogCategoryRegistry::Get().AddCategoryToRegistry(this);
+	LogsRegistry::Get().AddCategoryToRegistry(this);
 }
 
-spdlog::level::level_enum LogCategory::PrismVerbosityToSpdlog(LogVerbosity verbosity)
+spdlog::level LogCategory::PrismVerbosityToSpdlog(LogVerbosity verbosity)
 {
-	spdlog::level::level_enum spdlogVerbosity = spdlog::level::level_enum::trace;
+	spdlog::level spdlogVerbosity = spdlog::level::trace;
 	switch (verbosity)
 	{
 	case LogVerbosity::Trace:
-		spdlogVerbosity = spdlog::level::level_enum::trace;
+		spdlogVerbosity = spdlog::level::trace;
 		break;
 	case LogVerbosity::Info:
-		spdlogVerbosity = spdlog::level::level_enum::info;
+		spdlogVerbosity = spdlog::level::info;
 		break;
 	case LogVerbosity::Warn:
-		spdlogVerbosity = spdlog::level::level_enum::warn;
+		spdlogVerbosity = spdlog::level::warn;
 		break;
 	case LogVerbosity::Error:
-		spdlogVerbosity = spdlog::level::level_enum::err;
+		spdlogVerbosity = spdlog::level::err;
 		break;
 	case LogVerbosity::Critical:
-		spdlogVerbosity = spdlog::level::level_enum::critical;
+		spdlogVerbosity = spdlog::level::critical;
 		break;
 	}
 

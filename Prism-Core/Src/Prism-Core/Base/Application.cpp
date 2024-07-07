@@ -97,9 +97,9 @@ void Application::ShutdownPlatform()
 	Platform::TryDestroy();
 }
 
-void Application::InitRenderer()
+void Application::InitRenderer(const Render::RenderDeviceParams& params)
 {
-	Render::RenderDevice::Create();
+	Render::RenderDevice::Create(params);
 }
 
 void Application::ShutdownRenderer()

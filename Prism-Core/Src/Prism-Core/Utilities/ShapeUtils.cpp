@@ -1,13 +1,79 @@
 ﻿#include "pcpch.h"
 #include "ShapeUtils.h"
 
+#include "assimp/DefaultLogger.hpp"
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
 
 
+DECLARE_LOG_CATEGORY(AssimpLog, "Assimp");
+
 namespace Prism::ShapeUtils
 {
+class PrismLogger : public Assimp::Logger
+{
+public:
+	static void Create(Log::LogVerbosity verbosity)
+	{
+		Assimp::DefaultLogger::set(new PrismLogger(verbosity));
+	}
+
+	explicit PrismLogger(Log::LogVerbosity verbosity)
+		: m_verbosity(verbosity)
+	{
+	}
+
+	bool attachStream(Assimp::LogStream* pStream, unsigned severity) override
+	{
+		return false;
+	}
+	bool detachStream(Assimp::LogStream* pStream, unsigned severity) override
+	{
+		return false;
+	}
+
+protected:
+	void OnDebug(const char* message) override
+	{
+		if (m_verbosity > Log::LogVerbosity::Trace)
+			return;
+
+		PE_LOG(AssimpLog, Info, message);
+	}
+	void OnVerboseDebug(const char* message) override
+	{
+		if (m_verbosity > Log::LogVerbosity::Trace)
+			return;
+
+		PE_LOG(AssimpLog, Trace, message);
+	}
+	void OnInfo(const char* message) override
+	{
+		if (m_verbosity > Log::LogVerbosity::Info)
+			return;
+
+		PE_LOG(AssimpLog, Info, message);
+	}
+	void OnWarn(const char* message) override
+	{
+		if (m_verbosity > Log::LogVerbosity::Warn)
+			return;
+
+		PE_LOG(AssimpLog, Warn, message);
+	}
+	void OnError(const char* message) override
+	{
+		if (m_verbosity > Log::LogVerbosity::Error)
+			return;
+
+		PE_LOG(AssimpLog, Error, message);
+	}
+
+protected:
+	Log::LogVerbosity m_verbosity;
+};
+
 void ProcessMesh(ShapeData& data, aiNode* node, aiMesh* mesh, const aiScene* scene)
 {
 	data.vertices.resize(mesh->mNumVertices);
@@ -18,7 +84,7 @@ void ProcessMesh(ShapeData& data, aiNode* node, aiMesh* mesh, const aiScene* sce
 			aiVector3D& position = mesh->mVertices[i];
 			position *= node->mTransformation;
 
-			data.vertices[i].position = { position.x, position.y, position.z };
+			data.vertices[i].position = {position.x, position.y, position.z};
 		}
 
 		if (mesh->HasNormals())
@@ -55,7 +121,7 @@ void ProcessMesh(ShapeData& data, aiNode* node, aiMesh* mesh, const aiScene* sce
 	{
 		aiFace& face = mesh->mFaces[i];
 		for (int32_t j = 0; j < (int32_t)face.mNumIndices; ++j)
-			data.indices.push_back((int32_t)face.mIndices[j]);
+			data.indices.push_back(face.mIndices[j]);
 	}
 
 	// TODO: Load textures
@@ -73,13 +139,20 @@ void ProcessNode(ShapeData& data, aiNode* node, const aiScene* scene)
 		ProcessNode(data, node->mChildren[i], scene);
 }
 
+void InitShapeLoading()
+{
+	PrismLogger::Create(Log::LogVerbosity::Warn);
+}
+
 ShapeData LoadShapeFromFile(const std::wstring& filename)
 {
 	Assimp::Importer importer;
+
 	const aiScene* scene = importer.ReadFile(WStringToString(filename),
 											 aiProcess_Triangulate |
 											 aiProcess_ConvertToLeftHanded |
 											 aiProcess_CalcTangentSpace |
+											 aiProcess_ValidateDataStructure |
 											 aiProcess_FixInfacingNormals);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)

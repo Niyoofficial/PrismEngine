@@ -1,7 +1,10 @@
 ﻿#pragma once
 
 #define SPDLOG_COMPILED_LIB
+#include "Prism-Core/Utilities/StringUtils.h"
 #include "spdlog/spdlog.h"
+#include "spdlog/sinks/rotating_file_sink.h"
+#include "spdlog/sinks/stdout_color_sinks.h"
 
 namespace Prism::Log
 {
@@ -24,30 +27,17 @@ public:
 
 	void Init();
 
-	template<typename... Args>
-	void Log(LogVerbosity verbosity, spdlog::format_string_t<Args...> string, Args&&... args);
+	template<typename T, typename... Args>
+	void Log(LogVerbosity verbosity, T&& string, Args&&... args);
 
 protected:
 	explicit LogCategory(const std::string& logName);
 
-	static spdlog::level::level_enum PrismVerbosityToSpdlog(LogVerbosity verbosity);
+	static spdlog::level PrismVerbosityToSpdlog(LogVerbosity verbosity);
 
 private:
 	std::string m_name;
 	std::unique_ptr<spdlog::logger> m_logger;
-};
-
-class LogCategoryRegistry final
-{
-public:
-	static LogCategoryRegistry& Get();
-	static void DestroyRegistry();
-
-	void AddCategoryToRegistry(LogCategory* category);
-	const std::vector<LogCategory*>& GetRegisteredCategories() { return m_categories; }
-
-private:
-	std::vector<LogCategory*> m_categories;
 };
 
 class ErrorLogger
@@ -57,13 +47,49 @@ public:
 
 	void Init();
 
-	template<typename... Args>
+	template<typename T, typename... Args>
 	void Log(const char* filename, int32_t line, const char* function,
-			 spdlog::format_string_t<Args...> string, Args&&... args);
+			 T&& string, Args&&... args);
 
 private:
-	spdlog::logger m_logger;
+	std::unique_ptr<spdlog::logger> m_logger;
 };
+
+class LogsRegistry final
+{
+public:
+	static LogsRegistry& Get();
+	static void DestroyRegistry();
+
+	LogsRegistry();
+
+	void AddCategoryToRegistry(LogCategory* category);
+	const std::vector<LogCategory*>& GetRegisteredCategories() { return m_categories; }
+	void RegisterErrorLogger(ErrorLogger* errorLogger);
+	ErrorLogger* GetErrorLogger() const;
+
+	std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> GetStdOutSink() const { return m_stdOutSink; }
+	std::shared_ptr<spdlog::sinks::stderr_color_sink_mt> GetStdErrSink() const { return m_stdErrSink; }
+	std::shared_ptr<spdlog::sinks::rotating_file_sink_mt> GetFileSink() const { return m_fileSink; }
+
+private:
+	std::vector<LogCategory*> m_categories;
+	ErrorLogger* m_errorLogger = nullptr;
+
+	// Sinks
+	std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> m_stdOutSink;
+	std::shared_ptr<spdlog::sinks::stderr_color_sink_mt> m_stdErrSink;
+	std::shared_ptr<spdlog::sinks::rotating_file_sink_mt> m_fileSink;
+};
+
+template<typename T>
+auto ConvertToString(T&& arg)
+{
+	return std::forward<T>(arg);
+}
+
+std::string ConvertToString(const wchar_t* arg);
+std::string ConvertToString(const std::wstring& arg);
 }
 
 #define DECLARE_LOG_CATEGORY(categoryName, displayedName)			\
@@ -86,29 +112,36 @@ private:
 // Template implementations
 namespace Prism::Log
 {
-template<typename... Args>
-void LogCategory::Log(LogVerbosity verbosity, spdlog::format_string_t<Args...> string, Args&&... args)
+// TODO: Maybe remove fmt::runtime's if possible
+
+template<typename T, typename... Args>
+void LogCategory::Log(LogVerbosity verbosity, T&& string, Args&&... args)
 {
-	m_logger->log(PrismVerbosityToSpdlog(verbosity), string, std::forward<Args>(args)...);
+	m_logger->log(PrismVerbosityToSpdlog(verbosity),
+				  fmt::runtime(ConvertToString(std::forward<T>(string))),
+				  ConvertToString(std::forward<Args>(args))...);
 }
 
-template<typename... Args>
+template<typename T, typename... Args>
 void ErrorLogger::Log(const char* filename, int32_t line, const char* function,
-					  spdlog::format_string_t<Args...> string, Args&&... args)
+					  T&& string, Args&&... args)
 {
 	spdlog::source_loc sourceLoc(filename, line, function);
-	m_logger.log(sourceLoc, spdlog::level::level_enum::critical, string, std::forward<Args>(args)...);
+	m_logger->log(sourceLoc, spdlog::level::critical,
+				  fmt::runtime(ConvertToString(std::forward<T>(string))),
+				  ConvertToString(std::forward<Args>(args))...);
 }
 
 extern ErrorLogger g_errorLogger;
 
 void PrintAssertMessage(const char* filename, int32_t line, const char* function);
 
-template<typename... Args>
+template<typename T, typename... Args>
 void PrintAssertMessage(const char* filename, int32_t line, const char* function,
-						spdlog::format_string_t<Args...> string, Args&&... args)
+						T&& string, Args&&... args)
 {
-	g_errorLogger.Log(filename, line, function, "Assertion Failed: {0}",
-					  fmt::format(string, std::forward<Args>(args)...));
+	LogsRegistry::Get().GetErrorLogger()->Log(filename, line, function, "Assertion Failed: {0}",
+											  fmt::format(fmt::runtime(ConvertToString(std::forward<T>(string))),
+														  ConvertToString(std::forward<Args>(args))...));
 }
 }

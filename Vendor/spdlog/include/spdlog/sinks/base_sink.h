@@ -6,18 +6,17 @@
 // base sink templated over a mutex (either dummy or real)
 // concrete implementation should override the sink_it_() and flush_()  methods.
 // locking is taken care of in this class - no locking needed by the
-// implementers..
+// implementers
 //
 
-#include <spdlog/common.h>
-#include <spdlog/details/log_msg.h>
-#include <spdlog/sinks/sink.h>
+#include "../common.h"
+#include "../details/log_msg.h"
+#include "./sink.h"
 
 namespace spdlog {
 namespace sinks {
-template<typename Mutex>
-class SPDLOG_API base_sink : public sink
-{
+template <typename Mutex>
+class SPDLOG_API base_sink : public sink {
 public:
     base_sink();
     explicit base_sink(std::unique_ptr<spdlog::formatter> formatter);
@@ -44,9 +43,5 @@ protected:
     virtual void set_pattern_(const std::string &pattern);
     virtual void set_formatter_(std::unique_ptr<spdlog::formatter> sink_formatter);
 };
-} // namespace sinks
-} // namespace spdlog
-
-#ifdef SPDLOG_HEADER_ONLY
-#    include "base_sink-inl.h"
-#endif
+}  // namespace sinks
+}  // namespace spdlog

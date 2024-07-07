@@ -1,10 +1,5 @@
 ﻿#pragma once
-#include "Prism-Core/Base/AppEvents.h"
-#include "Prism-Core/Base/AppEvents.h"
-#include "Prism-Core/Base/AppEvents.h"
-#include "Prism-Core/Base/AppEvents.h"
-#include "Prism-Core/Base/AppEvents.h"
-#include "Prism-Core/Base/AppEvents.h"
+
 
 namespace Prism::Render
 {
@@ -37,7 +32,7 @@ protected:
 	void UpdateViewMatrix();
 	void UpdateViewProjectionMatrix();
 
-	glm::quat LimitRotation(glm::quat rotation);
+	glm::float3 LimitRotation(glm::float3 eulerRotation) const;
 
 protected:
 	glm::float3 m_position = {};

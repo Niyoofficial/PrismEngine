@@ -19,9 +19,11 @@ workspace "PrismEngine"
 	includeDirs["Prism-Core"] = path.normalize("%{wks.location}/Prism-Core/Src")
 	includeDirs["glm"] = path.normalize("%{wks.location}/Vendor/glm")
 	includeDirs["spdlog"] = path.normalize("%{wks.location}/Vendor/spdlog/include")
+	includeDirs["spdlog-fmt"] = path.normalize("%{wks.location}/Vendor/spdlog/dependencies/fmt-src/include")
 
 	libDirs = {}
 	libDirs["spdlog"] = path.normalize("%{wks.location}/Vendor/spdlog/Bin/" .. outputFolderName)
+	libDirs["spdlog-fmt"] = path.normalize("%{wks.location}/Vendor/spdlog/Bin/" .. outputFolderName)
 
 	defines
 	{

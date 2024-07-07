@@ -215,21 +215,32 @@ void D3D12RenderContext::CloseContext()
 
 void D3D12RenderContext::PrepareDraw()
 {
-	for (auto [index, view] : m_rootResources)
-	{
-		auto gpuDescriptorHandle = D3D12RenderDevice::Get().CopyToGPUHeap(GetDescriptorFromView(view));
-		m_commandList->SetGraphicsRootDescriptorTable(index, gpuDescriptorHandle.GetGPUHandle());
-		m_gpuDescriptors.push_back(std::move(gpuDescriptorHandle));
-	}
+	PE_ASSERT(m_currentRootSig);
 
-	bool success = m_rootResources.empty();
+	for (auto [name, index] : m_currentRootSig->GetRootParamsIndexMap())
+	{
+		if (auto* view = GetResourceView(name))
+		{
+			auto gpuDescriptorHandle = D3D12RenderDevice::Get().CopyToGPUHeap(GetDescriptorFromView(view));
+			m_commandList->SetGraphicsRootDescriptorTable(index, gpuDescriptorHandle.GetGPUHandle());
+			// Save the descriptor because destructor will free the descriptor otherwise
+			m_gpuDescriptors.push_back(std::move(gpuDescriptorHandle));
+		}
+	}
 }
 
 void D3D12RenderContext::SetResource(RenderResourceView* view, const std::wstring& paramName)
 {
 	PE_ASSERT(view);
+	PE_ASSERT(!paramName.empty(), "Param name cannot be empty");
+	m_rootResources[paramName] = view;
+}
 
-	int32_t paramIndex = m_currentRootSig->GetParamIndex(paramName);
-	m_rootResources[paramIndex] = view;
+RenderResourceView* D3D12RenderContext::GetResourceView(const std::wstring& name)
+{
+	auto it = m_rootResources.find(name);
+	if (it == m_rootResources.end())
+		return nullptr;
+	return it->second;
 }
 }

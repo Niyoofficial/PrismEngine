@@ -8,11 +8,16 @@ SamplerState g_samAnisotropicWrap : register(s4);
 SamplerState g_samAnisotropicClamp : register(s5);
 SamplerComparisonState g_samShadow : register(s6);
 
-cbuffer TestBuffer
+cbuffer CameraBuffer
 {
     float4x4 g_view;
     float4x4 g_proj;
     float4x4 g_viewProj;
+};
+
+cbuffer ModelBuffer
+{
+    float4x4 g_world;
 };
 
 struct VertexInput
@@ -40,7 +45,12 @@ PixelInput vsmain(VertexInput vin)
 	return vout;
 }
 
-float4 psmain(PixelInput pin) : SV_TARGET
+float4 monkeypsmain(PixelInput pin) : SV_TARGET
 {
     return g_texture.Sample(g_samLinearWrap, pin.texCoords);
+}
+
+float4 floorpsmain(PixelInput pin) : SV_TARGET
+{
+    return float4(0.3f, 0.4f, 0.8f, 1.f);
 }

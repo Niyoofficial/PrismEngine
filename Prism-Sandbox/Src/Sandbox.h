@@ -5,15 +5,21 @@
 #include "Prism-Core/Render/Camera.h"
 #include "Prism-Core/Render/Layer.h"
 #include "Prism-Core/Render/RenderConstants.h"
+#include "Prism-Core/Utilities/ShapeUtils.h"
 
 
 using namespace Prism;
 
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferTest
+struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferCamera
 {
 	glm::float4x4 view;
 	glm::float4x4 proj;
 	glm::float4x4 viewProj;
+};
+
+struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferModel
+{
+	glm::float4x4 world;
 };
 
 struct Vertex
@@ -38,12 +44,16 @@ private:
 	Ref<Render::TextureView> m_depthStencilView;
 	Ref<Render::Texture> m_texture;
 	Ref<Render::TextureView> m_textureView;
-	Ref<Render::Buffer> m_cbuffer;
-	Ref<Render::BufferView> m_cbufferView;
-	Ref<Render::Buffer> m_vertexBuffer;
-	Ref<Render::Buffer> m_indexBuffer;
+	Ref<Render::Buffer> m_cameraCbuffer;
+	Ref<Render::BufferView> m_cameraCbufferView;
+	Ref<Render::Buffer> m_modelCbuffer;
+	Ref<Render::BufferView> m_modelCbufferView;
+	Ref<Render::Buffer> m_monkeyVertexBuffer;
+	Ref<Render::Buffer> m_monkeyIndexBuffer;
+	Ref<Render::Buffer> m_floorVertexBuffer;
+	Ref<Render::Buffer> m_floorIndexBuffer;
 
-	float m_cameraSpeed = 0.5f;
+	float m_cameraSpeed = 0.05f;
 	float m_mouseSpeed = 0.005f;
 };
 
@@ -55,6 +65,9 @@ public:
 	SandboxApplication(int32_t argc, char** argv);
 
 	Core::Window* GetWindow() const;
+
+	static std::vector<Vertex> GetVerticesFromShapeData(const ShapeUtils::ShapeData& shapeData);
+	static std::vector<uint32_t> GetIndicesFromShapeData(const ShapeUtils::ShapeData& shapeData);
 
 private:
 	Ref<Core::Window> m_window;

@@ -2,6 +2,7 @@
 #include "RenderDevice.h"
 
 #include "Prism-Core/Render/RenderResourceCreation.h"
+#include "Prism-Core/Utilities/ShapeUtils.h"
 
 
 namespace Prism::Render
@@ -29,6 +30,11 @@ RenderDevice& RenderDevice::Get()
 RenderDevice* RenderDevice::TryGet()
 {
 	return StaticPointerSingleton<RenderDevice>::TryGet();
+}
+
+RenderDevice::RenderDevice(RenderDeviceParams params)
+{
+	ShapeUtils::InitShapeLoading();
 }
 
 Ref<RenderContext> RenderDevice::AllocateContext()

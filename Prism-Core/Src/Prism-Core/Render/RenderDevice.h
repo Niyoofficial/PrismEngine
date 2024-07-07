@@ -26,7 +26,7 @@ public:
 	static RenderDevice* TryGet();
 
 
-	explicit RenderDevice(RenderDeviceParams params) {}
+	explicit RenderDevice(RenderDeviceParams params);
 
 	Ref<RenderContext> AllocateContext();
 	virtual void SubmitContext(RenderContext* context) = 0;

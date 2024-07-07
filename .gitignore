@@ -1,10 +1,18 @@
 # Binaries
 **/Bin/
-**/Int/
+*.log
+*.tlog
+*.obj
+*.recipe
+**/tmp/
 !Vendor/Premake/Bin/
 !Vendor/spdlog/Bin/
 !Prism-Core/Platform/SDL/Vender/SDL/Bin
 !Prism-Core/Platform/SDL/Vender/assimp/Bin
+
+# Intermediate
+**/Int/
+**/Logs/
 
 # Visual Studio files and folder
 .vs/

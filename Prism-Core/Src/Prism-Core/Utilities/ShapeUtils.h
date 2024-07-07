@@ -15,8 +15,9 @@ struct VertexData
 struct ShapeData
 {
 	std::vector<VertexData> vertices;
-	std::vector<int32_t> indices;
+	std::vector<uint32_t> indices;
 };
 
+void InitShapeLoading();
 ShapeData LoadShapeFromFile(const std::wstring& filename);
 }

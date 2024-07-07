@@ -5,41 +5,34 @@
 
 #include <atomic>
 #include <utility>
-// null, no cost dummy "mutex" and dummy "atomic" int
+
+// null, no cost dummy "mutex" and dummy "atomic" log level
 
 namespace spdlog {
 namespace details {
-struct null_mutex
-{
+struct null_mutex {
     void lock() const {}
     void unlock() const {}
 };
 
-struct null_atomic_int
-{
-    int value;
-    null_atomic_int() = default;
+template <typename T>
+struct null_atomic {
+    T value;
 
-    explicit null_atomic_int(int new_value)
-        : value(new_value)
-    {}
+    null_atomic() = default;
 
-    int load(std::memory_order = std::memory_order_relaxed) const
-    {
-        return value;
-    }
+    explicit constexpr null_atomic(T new_value)
+        : value(new_value) {}
 
-    void store(int new_value, std::memory_order = std::memory_order_relaxed)
-    {
-        value = new_value;
-    }
+    [[nodiscard]] T load(std::memory_order = std::memory_order_seq_cst) const { return value; }
 
-    int exchange(int new_value, std::memory_order = std::memory_order_relaxed)
-    {
+    void store(T new_value, std::memory_order = std::memory_order_seq_cst) { value = new_value; }
+
+    T exchange(T new_value, std::memory_order = std::memory_order_seq_cst) {
         std::swap(new_value, value);
-        return new_value; // return value before the call
+        return new_value;  // return value before the call
     }
 };
 
-} // namespace details
-} // namespace spdlog
+}  // namespace details
+}  // namespace spdlog

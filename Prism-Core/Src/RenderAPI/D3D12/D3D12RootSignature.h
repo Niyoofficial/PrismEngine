@@ -11,6 +11,7 @@ public:
 
 	ID3D12RootSignature* GetD3D12RootSignature() const { return m_rootSignature.Get(); }
 	int32_t GetParamIndex(const std::wstring& paramName);
+	const std::unordered_map<std::wstring, int32_t>& GetRootParamsIndexMap() const { return m_rootParamsIndexMap; }
 
 private:
 	std::unordered_map<std::wstring, int32_t> m_rootParamsIndexMap;

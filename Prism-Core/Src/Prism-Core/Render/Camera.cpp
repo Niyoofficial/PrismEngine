@@ -18,7 +18,7 @@ void Camera::SetPosition(glm::float3 position)
 
 void Camera::SetRotation(glm::float3 eulerRotation)
 {
-	m_rotation = eulerRotation;
+	m_rotation = LimitRotation(eulerRotation);
 	UpdateViewMatrix();
 }
 
@@ -30,7 +30,7 @@ void Camera::AddPosition(glm::float3 position)
 
 void Camera::AddRotation(glm::float3 eulerRotation)
 {
-	m_rotation += eulerRotation;
+	m_rotation = LimitRotation(m_rotation + eulerRotation);
 	UpdateViewMatrix();
 }
 
@@ -60,8 +60,8 @@ glm::float3 Camera::GetUpVector() const
 void Camera::UpdateViewMatrix()
 {
 	glm::quat quatRot = glm::identity<glm::quat>();
-	quatRot = quatRot * glm::quat({0.f, m_rotation.y, 0.f});
-	quatRot = glm::quat({m_rotation.x, 0.f, 0.f}) * quatRot;
+	quatRot = quatRot * glm::quat({0.f, m_rotation.y, 0.f}); // Add Yaw locally
+	quatRot = glm::quat({m_rotation.x, 0.f, 0.f}) * quatRot; // Add Pitch globally
 	m_viewMatrix = glm::toMat4(quatRot) * glm::translate(glm::mat4x4(1.f), -m_position);
 	m_invViewMatrix = glm::inverse(m_viewMatrix);
 	UpdateViewProjectionMatrix();
@@ -73,11 +73,12 @@ void Camera::UpdateViewProjectionMatrix()
 	m_invViewProjectionMatrix = glm::inverse(m_viewProjectionMatrix);
 }
 
-glm::quat Camera::LimitRotation(glm::quat rotation)
+glm::float3 Camera::LimitRotation(glm::float3 eulerRotation) const
 {
-	glm::vec3 eulerRotation = glm::eulerAngles(rotation);
-	//PE_CORE_LOG(Info, "{}", glm::degrees(eulerRotation.z));
-	//eulerRotation.z = glm::clamp(eulerRotation.z, glm::radians(-89.f), glm::radians(89.f));
-	return glm::quat(eulerRotation);
+	return {
+		glm::clamp(eulerRotation.x, glm::radians(-89.9f), glm::radians(89.f)),
+		eulerRotation.y,
+		eulerRotation.z
+	};
 }
 }

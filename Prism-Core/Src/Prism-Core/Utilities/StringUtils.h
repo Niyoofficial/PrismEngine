@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include <string>
+
 namespace Prism
 {
 std::wstring StringToWString(const std::string& string);

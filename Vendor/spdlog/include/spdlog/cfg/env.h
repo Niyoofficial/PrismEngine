@@ -2,9 +2,9 @@
 // Distributed under the MIT License (http://opensource.org/licenses/MIT)
 
 #pragma once
-#include <spdlog/cfg/helpers.h>
-#include <spdlog/details/registry.h>
-#include <spdlog/details/os.h>
+#include "../details/os.h"
+#include "../details/registry.h"
+#include "./helpers.h"
 
 //
 // Init levels and patterns from env variables SPDLOG_LEVEL
@@ -25,14 +25,12 @@
 
 namespace spdlog {
 namespace cfg {
-inline void load_env_levels()
-{
+inline void load_env_levels() {
     auto env_val = details::os::getenv("SPDLOG_LEVEL");
-    if (!env_val.empty())
-    {
+    if (!env_val.empty()) {
         helpers::load_levels(env_val);
     }
 }
 
-} // namespace cfg
-} // namespace spdlog
+}  // namespace cfg
+}  // namespace spdlog

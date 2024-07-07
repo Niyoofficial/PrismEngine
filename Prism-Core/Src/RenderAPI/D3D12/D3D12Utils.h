@@ -23,5 +23,5 @@ bool VerifyHResult(HRESULT hr);
 		}														\
 		while (0)
 #else
-	#define PE_ASSERT_HR(expr) do { expr } while (0)
+	#define PE_ASSERT_HR(expr) do { if (!(expr)) (void)0; } while (0)
 #endif

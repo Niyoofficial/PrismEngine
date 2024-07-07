@@ -12,6 +12,9 @@ Shader* ShaderCache::GetOrCreateShader(const ShaderCreateInfo& createInfo)
 		return findIt->second;
 
 	auto [it, success] = m_shaders.emplace(createInfo, Private::CreateShader(createInfo));
+	PE_ASSERT(success, "Failed to create shader! Filename: {}, entryname: {}", createInfo.filepath, createInfo.entryName);
+	PE_RENDER_LOG(Info, "New shader created. Hash: {}, Filename: {}, Entryname: {}", std::hash<ShaderCreateInfo>()(createInfo),
+				  createInfo.filepath, createInfo.entryName);
 	return it->second;
 }
 }

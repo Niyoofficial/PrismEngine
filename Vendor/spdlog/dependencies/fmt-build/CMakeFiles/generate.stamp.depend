@@ -1,0 +1,16 @@
+# CMake generation dependency list for this directory.
+C:/Program Files/CMake/share/cmake-3.23/Modules/BasicConfigVersion-AnyNewerVersion.cmake.in
+C:/Program Files/CMake/share/cmake-3.23/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake
+C:/Program Files/CMake/share/cmake-3.23/Modules/CMakePackageConfigHelpers.cmake
+C:/Program Files/CMake/share/cmake-3.23/Modules/CMakeParseArguments.cmake
+C:/Program Files/CMake/share/cmake-3.23/Modules/CheckCXXCompilerFlag.cmake
+C:/Program Files/CMake/share/cmake-3.23/Modules/CheckCXXSourceCompiles.cmake
+C:/Program Files/CMake/share/cmake-3.23/Modules/GNUInstallDirs.cmake
+C:/Program Files/CMake/share/cmake-3.23/Modules/Internal/CheckCompilerFlag.cmake
+C:/Program Files/CMake/share/cmake-3.23/Modules/Internal/CheckFlagCommonConfig.cmake
+C:/Program Files/CMake/share/cmake-3.23/Modules/Internal/CheckSourceCompiles.cmake
+C:/Program Files/CMake/share/cmake-3.23/Modules/WriteBasicConfigVersionFile.cmake
+F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-src/CMakeLists.txt
+F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-src/support/cmake/JoinPaths.cmake
+F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-src/support/cmake/fmt-config.cmake.in
+F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-src/support/cmake/fmt.pc.in

@@ -1,0 +1,43 @@
+{
+	"sources" : 
+	[
+		{
+			"file" : "F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-subbuild/CMakeFiles/fmt-populate"
+		},
+		{
+			"file" : "F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-subbuild/CMakeFiles/444f03a92228fb89c4ae65dcdfd3b5c9/fmt-populate.rule"
+		},
+		{
+			"file" : "F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-subbuild/CMakeFiles/950fb726c5fd4b1f4e9ec6af72d6fcfe/fmt-populate-complete.rule"
+		},
+		{
+			"file" : "F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-subbuild/CMakeFiles/e066f7180d8b29b4c2f66774df410b50/fmt-populate-build.rule"
+		},
+		{
+			"file" : "F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-subbuild/CMakeFiles/e066f7180d8b29b4c2f66774df410b50/fmt-populate-configure.rule"
+		},
+		{
+			"file" : "F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-subbuild/CMakeFiles/e066f7180d8b29b4c2f66774df410b50/fmt-populate-download.rule"
+		},
+		{
+			"file" : "F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-subbuild/CMakeFiles/e066f7180d8b29b4c2f66774df410b50/fmt-populate-install.rule"
+		},
+		{
+			"file" : "F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-subbuild/CMakeFiles/e066f7180d8b29b4c2f66774df410b50/fmt-populate-mkdir.rule"
+		},
+		{
+			"file" : "F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-subbuild/CMakeFiles/e066f7180d8b29b4c2f66774df410b50/fmt-populate-patch.rule"
+		},
+		{
+			"file" : "F:/VisualStudio/PrismEngine/Vendor/spdlog/New folder/spdlog/VS2022/_deps/fmt-subbuild/CMakeFiles/e066f7180d8b29b4c2f66774df410b50/fmt-populate-test.rule"
+		}
+	],
+	"target" : 
+	{
+		"labels" : 
+		[
+			"fmt-populate"
+		],
+		"name" : "fmt-populate"
+	}
+}
