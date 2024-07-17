@@ -18,7 +18,7 @@ public:
 	constexpr explicit Flags(MaskType flags) : m_mask(flags) {}
 
 	// relational operators
-	//constexpr auto operator<=>(Flags<BitType> const&) const = default;
+	constexpr auto operator<=>(Flags<BitType> const&) const = default;
 
 	// logical operator
 	constexpr bool operator!() const

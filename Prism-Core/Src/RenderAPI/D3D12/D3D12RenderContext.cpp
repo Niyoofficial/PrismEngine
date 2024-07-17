@@ -12,6 +12,22 @@
 
 namespace Prism::Render::D3D12
 {
+void BuildResourceView(RenderResourceView* view)
+{
+	if (view->GetResourceType() == ResourceType::Buffer)
+	{
+		view->GetSubType<D3D12BufferView>()->BuildView();
+		return;
+	}
+	else if (view->GetResourceType() == ResourceType::Texture)
+	{
+		view->GetSubType<D3D12TextureView>()->BuildView();
+		return;
+	}
+
+	PE_ASSERT_NO_ENTRY();
+}
+
 #pragma warning(suppress: 4172)
 const CPUDescriptorHeapAllocation& GetDescriptorFromView(RenderResourceView* view)
 {
@@ -103,7 +119,7 @@ void D3D12RenderContext::SetScissors(std::vector<Scissor> scissors)
 	m_commandList->RSSetScissorRects((UINT)d3d12Rects.size(), d3d12Rects.data());
 }
 
-void D3D12RenderContext::SetVertexBuffer(Buffer* buffer, int32_t vertexSizeInBytes)
+void D3D12RenderContext::SetVertexBuffer(Buffer* buffer, int64_t vertexSizeInBytes)
 {
 	D3D12_VERTEX_BUFFER_VIEW view = {
 		.BufferLocation = static_cast<D3D12Buffer*>(buffer)->GetD3D12Resource()->GetGPUVirtualAddress(),
@@ -191,9 +207,10 @@ void D3D12RenderContext::UpdateBuffer(Buffer* buffer, BufferData data)
 	auto uploadBufferDesc = buffer->GetBufferDesc();
 	uploadBufferDesc.bufferName = L"UploadBuffer";
 	uploadBufferDesc.usage = ResourceUsage::Dynamic;
+	uploadBufferDesc.cpuAccess = CPUAccess::Write;
 	auto uploadBuffer = Buffer::Create(uploadBufferDesc, data, ResourceStateFlags::GenericRead);
 
-	CopyBufferRegion(buffer, 0, uploadBuffer, 0, (int32_t)uploadBuffer->GetBufferDesc().size);
+	CopyBufferRegion(buffer, 0, uploadBuffer, 0, (int32_t)buffer->GetBufferDesc().size);
 
 	SafeReleaseResource(std::move(uploadBuffer));
 }
@@ -204,8 +221,10 @@ void D3D12RenderContext::CopyBufferRegion(Buffer* dest, int32_t destOffset, Buff
 	PE_ASSERT(dest->GetResourceType() == ResourceType::Buffer);
 	PE_ASSERT(src->GetResourceType() == ResourceType::Buffer);
 
-	m_commandList->CopyBufferRegion(static_cast<D3D12Buffer*>(dest)->GetD3D12Resource(), destOffset,
-									static_cast<D3D12Buffer*>(src)->GetD3D12Resource(), srcOffset, numBytes);
+	auto* d3d12Dest = static_cast<D3D12Buffer*>(dest);
+	auto* d3d12Src = static_cast<D3D12Buffer*>(src);
+	m_commandList->CopyBufferRegion(d3d12Dest->GetD3D12Resource(), d3d12Dest->GetDefaultOffset() + destOffset,
+									d3d12Src->GetD3D12Resource(), d3d12Src->GetDefaultOffset() + srcOffset, numBytes);
 }
 
 void D3D12RenderContext::CloseContext()
@@ -221,9 +240,11 @@ void D3D12RenderContext::PrepareDraw()
 	{
 		if (auto* view = GetResourceView(name))
 		{
+			BuildResourceView(view);
+
 			auto gpuDescriptorHandle = D3D12RenderDevice::Get().CopyToGPUHeap(GetDescriptorFromView(view));
 			m_commandList->SetGraphicsRootDescriptorTable(index, gpuDescriptorHandle.GetGPUHandle());
-			// Save the descriptor because destructor will free the descriptor otherwise
+			// Save the descriptor allocation because destructor will free the descriptor handle otherwise
 			m_gpuDescriptors.push_back(std::move(gpuDescriptorHandle));
 		}
 	}

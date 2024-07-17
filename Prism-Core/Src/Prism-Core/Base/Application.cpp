@@ -47,6 +47,8 @@ void Application::Run()
 
 		++m_frameCounter;
 	}
+
+	Render::RenderDevice::Get().FlushCommandQueue();
 }
 
 void Application::PushLayer(Render::Layer* layer)

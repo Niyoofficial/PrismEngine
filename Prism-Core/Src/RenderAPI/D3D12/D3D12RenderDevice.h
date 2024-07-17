@@ -6,6 +6,7 @@
 #include "RenderAPI/D3D12/D3D12ShaderCompiler.h"
 
 #include "RenderAPI/D3D12/D3D12Base.h"
+#include "RenderAPI/D3D12/D3D12DynamicBufferAllocator.h"
 
 
 namespace Prism::Render::D3D12
@@ -18,13 +19,13 @@ public:
 
 
 	explicit D3D12RenderDevice(RenderDeviceParams params);
-	virtual ~D3D12RenderDevice();
+	virtual ~D3D12RenderDevice() override;
 
 	virtual void SubmitContext(RenderContext* context) override;
 
 	virtual void FlushCommandQueue() override;
 
-	virtual uint64_t GetCompletedCommandListFenceValue() const override;
+	virtual uint64_t GetCompletedCmdListFenceValue() const override;
 
 	ID3D12Device* GetD3D12Device() const;
 	IDXGIFactory2* GetDXGIFactory() const;
@@ -43,9 +44,13 @@ public:
 	const D3D12RootSignatureCache& GetRootSignatureCache() const { return m_rootSignatureCache; }
 	D3D12RootSignatureCache& GetRootSignatureCache() { return m_rootSignatureCache; }
 
+	DynamicGPURingBuffer::DynamicAllocation AllocateDynamicBufferMemory(int64_t size);
+
 private:
+#if USE_PIX
 	HMODULE m_pixGpuCaptureModule = {};
 	HMODULE m_pixTimingCaptureModule = {};
+#endif
 
 	ComPtr<ID3D12CommandQueue> m_commandQueue;
 
@@ -60,6 +65,8 @@ private:
 	std::unordered_map<D3D12_DESCRIPTOR_HEAP_TYPE, GPUDescriptorHeapManager> m_gpuDescriptorHeapManagers;
 
 	D3D12RootSignatureCache m_rootSignatureCache;
+
+	DynamicBufferAllocator m_dynamicBufferAllocator;
 
 	uint64_t m_mainFenceValue = 0;
 	ComPtr<ID3D12Fence> m_mainFence;

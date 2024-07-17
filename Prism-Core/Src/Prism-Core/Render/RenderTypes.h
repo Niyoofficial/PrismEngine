@@ -602,8 +602,8 @@ enum class BindFlags : uint16_t
 enum class CPUAccess
 {
 	None = 0,
-	Read,
-	Write
+	Read = 1 << 0,
+	Write = 1 << 1
 };
 
 enum class ResourceUsage

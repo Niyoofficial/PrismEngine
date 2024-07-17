@@ -5,6 +5,7 @@
 #include "RenderAPI/D3D12/D3D12RenderContext.h"
 #include "WinPixEventRuntime/pix3.h"
 
+
 namespace Prism::Render::D3D12
 {
 D3D12RenderDevice& D3D12RenderDevice::Get()
@@ -86,10 +87,16 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 
 	PE_ASSERT_HR(m_d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_mainFence)));
 	PE_ASSERT_HR(m_mainFence->SetName(L"Main Fence"));
+
+	m_dynamicBufferAllocator.Init(1024);
 }
 
 D3D12RenderDevice::~D3D12RenderDevice()
 {
+	D3D12RenderDevice::FlushCommandQueue();
+	m_dynamicBufferAllocator.CloseCmdListAllocations(m_mainFenceValue);
+	m_dynamicBufferAllocator.ReleaseCompletedResources(D3D12RenderDevice::GetCompletedCmdListFenceValue());
+
 #if USE_PIX
 	FreeLibrary(m_pixGpuCaptureModule);
 	FreeLibrary(m_pixTimingCaptureModule);
@@ -109,7 +116,11 @@ void D3D12RenderDevice::SubmitContext(RenderContext* context)
 	++m_mainFenceValue;
 	PE_ASSERT_HR(m_commandQueue->Signal(m_mainFence.Get(), m_mainFenceValue));
 
-	m_contextReleaseQueue.PurgeReleaseQueue(GetCompletedCommandListFenceValue());
+	m_dynamicBufferAllocator.CloseCmdListAllocations(m_mainFenceValue);
+
+	m_contextReleaseQueue.PurgeReleaseQueue(GetCompletedCmdListFenceValue());
+
+	m_dynamicBufferAllocator.ReleaseCompletedResources(GetCompletedCmdListFenceValue());
 }
 
 void D3D12RenderDevice::FlushCommandQueue()
@@ -125,7 +136,7 @@ void D3D12RenderDevice::FlushCommandQueue()
 	}
 }
 
-uint64_t D3D12RenderDevice::GetCompletedCommandListFenceValue() const
+uint64_t D3D12RenderDevice::GetCompletedCmdListFenceValue() const
 {
 	return m_mainFence->GetCompletedValue();
 }
@@ -186,5 +197,10 @@ uint32_t D3D12RenderDevice::GetDescriptorHandleSize(D3D12_DESCRIPTOR_HEAP_TYPE t
 {
 	PE_ASSERT(m_descriptorHandleSizes.contains(type));
 	return m_descriptorHandleSizes.at(type);
+}
+
+DynamicGPURingBuffer::DynamicAllocation D3D12RenderDevice::AllocateDynamicBufferMemory(int64_t size)
+{
+	return m_dynamicBufferAllocator.Allocate(size);
 }
 }

@@ -4,6 +4,7 @@
 #include "Prism-Core/Render/Buffer.h"
 #include "Prism-Core/Render/Camera.h"
 #include "Prism-Core/Render/Layer.h"
+#include "Prism-Core/Render/Primitive.h"
 #include "Prism-Core/Render/RenderConstants.h"
 #include "Prism-Core/Utilities/ShapeUtils.h"
 
@@ -46,12 +47,9 @@ private:
 	Ref<Render::TextureView> m_textureView;
 	Ref<Render::Buffer> m_cameraCbuffer;
 	Ref<Render::BufferView> m_cameraCbufferView;
-	Ref<Render::Buffer> m_modelCbuffer;
-	Ref<Render::BufferView> m_modelCbufferView;
-	Ref<Render::Buffer> m_monkeyVertexBuffer;
-	Ref<Render::Buffer> m_monkeyIndexBuffer;
-	Ref<Render::Buffer> m_floorVertexBuffer;
-	Ref<Render::Buffer> m_floorIndexBuffer;
+
+	Ref<Render::Primitive> m_monkey;
+	Ref<Render::Primitive> m_floor;
 
 	float m_cameraSpeed = 0.05f;
 	float m_mouseSpeed = 0.005f;

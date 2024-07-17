@@ -33,7 +33,7 @@ public:
 
 	virtual void FlushCommandQueue() = 0;
 
-	virtual uint64_t GetCompletedCommandListFenceValue() const = 0;
+	virtual uint64_t GetCompletedCmdListFenceValue() const = 0;
 
 	ShaderCache& GetShaderCache() { return m_shaderCache; }
 	const ShaderCache& GetShaderCache() const { return m_shaderCache; }

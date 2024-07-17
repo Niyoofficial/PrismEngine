@@ -150,6 +150,9 @@ DescriptorHeapAllocation<Type> DescriptorHeap<Type>::Allocate(int32_t count)
 template<DescriptorType Type>
 void DescriptorHeap<Type>::Free(DescriptorHeapAllocation<Type>&& allocation)
 {
+	if (!D3D12RenderDevice::TryGet())
+		return;
+
 	uint32_t handleSize = D3D12RenderDevice::Get().GetDescriptorHandleSize(GetHeapType());
 	int32_t offset = (int32_t)((allocation.GetCPUHandle().ptr - m_descriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr) / handleSize);
 	int32_t size = allocation.GetNumHandles();

@@ -115,7 +115,7 @@ public:
 	}
 
 	bool operator!() const noexcept { return m_object == nullptr; }
-	explicit operator bool() const noexcept { return m_object != nullptr; }
+	operator bool() const noexcept { return m_object != nullptr; }
 	template<typename T2> requires std::is_base_of_v<T, T2>
 	bool operator==(const Ref<T2>& otherRef) const noexcept { return m_object == otherRef.m_object; }
 	template<typename T2> requires std::is_base_of_v<T, T2>

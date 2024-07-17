@@ -40,4 +40,10 @@ TextureView* TextureView::Create(const TextureViewDesc& desc, Texture* texture)
 {
 	return Private::CreateTextureView(desc, texture);
 }
+
+Texture* TextureView::GetTexture() const
+{
+	PE_ASSERT(m_owningTexture);
+	return m_owningTexture;
+}
 }

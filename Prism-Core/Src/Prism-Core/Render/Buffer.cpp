@@ -16,9 +16,10 @@ Ref<BufferView> Buffer::CreateView(const BufferViewDesc& desc)
 
 Ref<BufferView> Buffer::CreateDefaultView()
 {
+	auto desc = GetBufferDesc();
 	return CreateView({
 		.offset = 0,
-		.size = GetBufferDesc().size
+		.size = desc.size
 	});
 }
 }

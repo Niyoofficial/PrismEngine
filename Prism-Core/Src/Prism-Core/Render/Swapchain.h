@@ -17,7 +17,7 @@ struct SwapchainDesc
 	} refreshRate;
 	TextureFormat format = TextureFormat::RGBA8_UNorm;
 	SampleDesc sampleDesc;
-	int32_t bufferCount = 3;
+	int32_t bufferCount = 2;
 };
 
 class Swapchain : public RefCounted

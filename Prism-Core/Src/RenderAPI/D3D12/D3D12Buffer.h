@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Prism-Core/Render/Buffer.h"
 #include "RenderAPI/D3D12/D3D12Base.h"
+#include "RenderAPI/D3D12/D3D12DynamicGPURingBuffer.h"
 
 namespace Prism::Render::D3D12
 {
@@ -10,16 +11,26 @@ public:
 	D3D12Buffer(const BufferDesc& desc, BufferData initData, Flags<ResourceStateFlags> initState);
 	D3D12Buffer(ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage);
 
-	virtual void* Map(CPUAccess access) override;
+	virtual void* Map(Flags<CPUAccess> access) override;
 	virtual void Unmap() override;
 
 	virtual BufferDesc GetBufferDesc() const override;
 
-	ID3D12Resource* GetD3D12Resource() const { return m_resource.Get(); }
+	ID3D12Resource* GetD3D12Resource() const;
+	// Since dynamic resources are allocated from a different resource,
+	// this will return the offset where this buffers actually starts in the resource,
+	// this will return 0 for everything else
+	int64_t GetDefaultOffset() const;
+
+	const DynamicGPURingBuffer::DynamicAllocation& GetDynamicAllocation() const { return m_dynamicAllocation; }
 
 private:
+	bool m_isMapped = false;
+
 	BufferDesc m_originalDesc;
 
 	ComPtr<ID3D12Resource> m_resource;
+
+	DynamicGPURingBuffer::DynamicAllocation m_dynamicAllocation;
 };
 }

@@ -41,6 +41,10 @@ public:
 
 	constexpr virtual ResourceType GetResourceType() const override { return ResourceType::Texture; }
 
-	virtual Texture* GetTexture() const = 0;
+	Texture* GetTexture() const;
+
+protected:
+	// View keeps a strong ref to its resource to keep if alive as long as there are views to it existing
+	Ref<Texture> m_owningTexture;
 };
 }

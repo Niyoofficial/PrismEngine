@@ -10,27 +10,37 @@ namespace Prism::Render::D3D12
 D3D12Buffer::D3D12Buffer(const BufferDesc& desc, BufferData initData, Flags<ResourceStateFlags> initState)
 	: m_originalDesc(desc)
 {
-	auto actualInitState = desc.usage == ResourceUsage::Default && initData.data ? ResourceStateFlags::CopyDest : initState;
-	actualInitState = ResourceStateFlags::Common;
+	// TODO: Implement staging buffers
+	PE_ASSERT(desc.usage != ResourceUsage::Staging);
 
-	auto heapProps = CD3DX12_HEAP_PROPERTIES(m_originalDesc.usage == ResourceUsage::Default
-												 ? D3D12_HEAP_TYPE_DEFAULT
-												 : D3D12_HEAP_TYPE_UPLOAD);
-	auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(m_originalDesc.size, GetD3D12ResourceFlags(m_originalDesc.bindFlags));
-	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource(
-		&heapProps,
-		D3D12_HEAP_FLAG_NONE,
-		&bufferDesc,
-		GetD3D12ResourceStates(actualInitState),
-		nullptr, IID_PPV_ARGS(&m_resource)));
+	if (desc.usage == ResourceUsage::Default)
+	{
+		auto actualInitState = desc.usage == ResourceUsage::Default && initData.data ? ResourceStateFlags::CopyDest : initState;
+		actualInitState = ResourceStateFlags::Common;
 
-	PE_ASSERT_HR(m_resource->SetName(m_originalDesc.bufferName.c_str()));
+		auto heapProps = CD3DX12_HEAP_PROPERTIES(m_originalDesc.usage == ResourceUsage::Default
+													 ? D3D12_HEAP_TYPE_DEFAULT
+													 : D3D12_HEAP_TYPE_UPLOAD);
+		auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(
+			m_originalDesc.size,
+			GetD3D12ResourceFlags(m_originalDesc.bindFlags));
+		PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&bufferDesc,
+			GetD3D12ResourceStates(actualInitState),
+			nullptr, IID_PPV_ARGS(&m_resource)));
+
+		PE_ASSERT_HR(m_resource->SetName(m_originalDesc.bufferName.c_str()));
+	}
 
 	if (initData.data)
 	{
 		if (desc.usage == ResourceUsage::Dynamic)
 		{
-			auto data = D3D12Buffer::Map(CPUAccess::Write);
+			PE_ASSERT(desc.cpuAccess == CPUAccess::Write, "Dynamic buffers must have only the CPUAccess::Write flag set");
+
+			void* data = D3D12Buffer::Map(CPUAccess::Write);
 			memcpy_s(data, m_originalDesc.size, initData.data, initData.sizeInBytes);
 			D3D12Buffer::Unmap();
 		}
@@ -59,7 +69,7 @@ D3D12Buffer::D3D12Buffer(ID3D12Resource* resource, const std::wstring& name, Res
 {
 }
 
-void* D3D12Buffer::Map(CPUAccess access)
+void* D3D12Buffer::Map(Flags<CPUAccess> access)
 {
 	PE_ASSERT(
 		m_originalDesc.usage == ResourceUsage::Dynamic ||
@@ -71,19 +81,46 @@ void* D3D12Buffer::Map(CPUAccess access)
 	else if (m_originalDesc.usage == ResourceUsage::Staging)
 		PE_ASSERT(m_originalDesc.cpuAccess == access, "Map access doesn't match the one buffer was created with");
 
-	void* mappedData = nullptr;
-	PE_ASSERT_HR(m_resource->Map(0, nullptr, &mappedData));
+	PE_ASSERT(!m_isMapped, "Can't map a buffer that is already mapped, unmap it first");
 
-	return mappedData;
+	m_isMapped = true;
+	m_dynamicAllocation = D3D12RenderDevice::Get().AllocateDynamicBufferMemory(m_originalDesc.size);
+
+	return m_dynamicAllocation.cpuAddress;
 }
 
 void D3D12Buffer::Unmap()
 {
-	m_resource->Unmap(0, nullptr);
+	m_isMapped = false;
 }
 
 BufferDesc D3D12Buffer::GetBufferDesc() const
 {
-	return D3D12::GetBufferDesc(m_resource->GetDesc(), m_originalDesc.bufferName, m_originalDesc.usage);
+	if (auto* d3d12Resource = GetD3D12Resource())
+	{
+		auto desc = D3D12::GetBufferDesc(d3d12Resource->GetDesc(), m_originalDesc.bufferName, m_originalDesc.usage);
+		if (m_originalDesc.usage == ResourceUsage::Dynamic)
+			desc.size = m_originalDesc.size;
+
+		return desc;
+	}
+
+	return m_originalDesc;
+}
+
+ID3D12Resource* D3D12Buffer::GetD3D12Resource() const
+{
+	if (m_originalDesc.usage == ResourceUsage::Dynamic)
+		return m_dynamicAllocation.resource;
+	else
+		return m_resource.Get();
+}
+
+int64_t D3D12Buffer::GetDefaultOffset() const
+{
+	if (m_originalDesc.usage == ResourceUsage::Dynamic)
+		return m_dynamicAllocation.offset;
+	else
+		return 0;
 }
 }

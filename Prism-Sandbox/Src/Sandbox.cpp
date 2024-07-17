@@ -70,87 +70,31 @@ SandboxLayer::SandboxLayer()
 										 .bufferName = L"CameraCBuffer",
 										 .size = sizeof(CBufferCamera),
 										 .bindFlags = BindFlags::ConstantBuffer,
-										 .usage = ResourceUsage::Dynamic
+										 .usage = ResourceUsage::Dynamic,
+										 .cpuAccess = CPUAccess::Write
 									 }, {}, ResourceStateFlags::ConstantBuffer);
 	m_cameraCbufferView = m_cameraCbuffer->CreateDefaultView();
-
-	// Model cbuffer
-	m_modelCbuffer = Buffer::Create({
-										 .bufferName = L"ModelCBuffer",
-										 .size = sizeof(CBufferModel),
-										 .bindFlags = BindFlags::ConstantBuffer,
-										 .usage = ResourceUsage::Dynamic
-									 }, {}, ResourceStateFlags::ConstantBuffer);
-	m_modelCbufferView = m_cameraCbuffer->CreateDefaultView();
 
 
 	// Load monkey
 	ShapeUtils::ShapeData monkey = ShapeUtils::LoadShapeFromFile(L"Meshes/Monkey.fbx");
-
 	std::vector<Vertex> monkeyVertices = SandboxApplication::GetVerticesFromShapeData(monkey);
-	m_monkeyVertexBuffer = Buffer::Create({
-											  .bufferName = L"Vertex Buffer",
-											  .size = (int64_t)(monkeyVertices.size() * sizeof(Vertex)),
-											  .bindFlags = BindFlags::VertexBuffer
-										  },
-										  {
-											  .data = monkeyVertices.data(),
-											  .sizeInBytes = (int64_t)(monkeyVertices.size() * sizeof(Vertex))
-										  });
-
 	std::vector<uint32_t> monkeyIndices = SandboxApplication::GetIndicesFromShapeData(monkey);
-	m_monkeyIndexBuffer = Buffer::Create({
-											 .bufferName = L"Index Buffer",
-											 .size = (int64_t)(monkeyIndices.size() * sizeof(uint32_t)),
-											 .bindFlags = BindFlags::IndexBuffer
-										 },
-										 {
-											 .data = monkeyIndices.data(),
-											 .sizeInBytes = (int64_t)(monkeyIndices.size() * sizeof(uint32_t))
-										 });
 
+	m_monkey = new Primitive(L"Monkey", sizeof(Vertex), IndexBufferFormat::Uint32,
+							 monkeyVertices.data(), (int64_t)monkeyVertices.size(),
+							 monkeyIndices.data(), (int64_t)monkeyIndices.size(),
+							 L"ModelBuffer", sizeof(CBufferModel));
 
 	// Load floor
 	ShapeUtils::ShapeData floor = ShapeUtils::LoadShapeFromFile(L"Meshes/Floor.fbx");
-
 	std::vector<Vertex> floorVertices = SandboxApplication::GetVerticesFromShapeData(floor);
-	m_floorVertexBuffer = Buffer::Create({
-											  .bufferName = L"Vertex Buffer",
-											  .size = (int64_t)(floorVertices.size() * sizeof(Vertex)),
-											  .bindFlags = BindFlags::VertexBuffer
-										  },
-										  {
-											  .data = floorVertices.data(),
-											  .sizeInBytes = (int64_t)(floorVertices.size() * sizeof(Vertex))
-										  });
-
 	std::vector<uint32_t> floorIndices = SandboxApplication::GetIndicesFromShapeData(floor);
-	m_floorIndexBuffer = Buffer::Create({
-											 .bufferName = L"Index Buffer",
-											 .size = (int64_t)(floorIndices.size() * sizeof(uint32_t)),
-											 .bindFlags = BindFlags::IndexBuffer
-										 },
-										 {
-											 .data = floorIndices.data(),
-											 .sizeInBytes = (int64_t)(floorIndices.size() * sizeof(uint32_t))
-										 });
 
-	Ref renderContext = RenderDevice::Get().AllocateContext();
-
-	renderContext->Transition({
-		.resource = m_monkeyVertexBuffer,
-		.oldState = ResourceStateFlags::Common,
-		.newState = ResourceStateFlags::VertexBuffer
-	});
-
-	renderContext->Transition({
-		.resource = m_monkeyIndexBuffer,
-		.oldState = ResourceStateFlags::Common,
-		.newState = ResourceStateFlags::IndexBuffer
-	});
-
-	RenderDevice::Get().SubmitContext(renderContext);
-	RenderDevice::Get().FlushCommandQueue();
+	m_floor = new Primitive(L"Floor", sizeof(Vertex), IndexBufferFormat::Uint32,
+							floorVertices.data(), (int64_t)floorVertices.size(),
+							floorIndices.data(), (int64_t)floorIndices.size(),
+							L"ModelBuffer", sizeof(CBufferModel));
 }
 
 void SandboxLayer::Update(Duration delta)
@@ -177,16 +121,19 @@ void SandboxLayer::Update(Duration delta)
 
 	glm::float2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
-	CBufferCamera cbufferCamera = {
-		.view = m_camera->GetViewMatrix(),
-		.proj = m_camera->GetProjectionMatrix(),
-		.viewProj = m_camera->GetViewProjectionMatrix()
-	};
-	void* cbufferData = m_cameraCbuffer->Map(CPUAccess::Write);
-	memcpy_s(cbufferData, m_cameraCbuffer->GetBufferDesc().size, &cbufferCamera, sizeof(cbufferCamera));
-	m_cameraCbuffer->Unmap();
+	// Camera cbuffer
+	{
+		CBufferCamera cbufferCamera = {
+			.view = m_camera->GetViewMatrix(),
+			.proj = m_camera->GetProjectionMatrix(),
+			.viewProj = m_camera->GetViewProjectionMatrix()
+		};
+		void* cameraCBufferData = m_cameraCbuffer->Map(CPUAccess::Write);
+		memcpy_s(cameraCBufferData, m_cameraCbuffer->GetBufferDesc().size, &cbufferCamera, sizeof(cbufferCamera));
+		m_cameraCbuffer->Unmap();
 
-	renderContext->SetCBuffer(m_cameraCbufferView, L"CameraBuffer");
+		renderContext->SetCBuffer(m_cameraCbufferView, L"CameraBuffer");
+	}
 
 	auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
 	renderContext->Transition({
@@ -225,18 +172,13 @@ void SandboxLayer::Update(Duration delta)
 			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
 			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
 		});
-
 		renderContext->SetPSO(pso);
 
-		renderContext->SetVertexBuffer(m_monkeyVertexBuffer, sizeof(Vertex));
-		renderContext->SetIndexBuffer(m_monkeyIndexBuffer, IndexBufferFormat::Uint32);
-
-		renderContext->DrawIndexed({
-			.numIndices = (int32_t)(m_monkeyIndexBuffer->GetBufferDesc().size / (int64_t)sizeof(int32_t)),
-			.numInstances = 1,
-			.startIndexLocation = 0,
-			.baseVertexLocation = 0
-		});
+		CBufferModel modelData = {
+			.world = glm::translate(glm::float4x4(1.f), glm::float3(0.f, 2.f, 0.f))
+		};
+		m_monkey->BindPrimitive(renderContext, &modelData, sizeof(CBufferModel));
+		m_monkey->DrawPrimitive(renderContext);
 	}
 
 	// Floor
@@ -261,18 +203,13 @@ void SandboxLayer::Update(Duration delta)
 			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
 			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
 		});
-
 		renderContext->SetPSO(pso);
 
-		renderContext->SetVertexBuffer(m_floorVertexBuffer, sizeof(Vertex));
-		renderContext->SetIndexBuffer(m_floorIndexBuffer, IndexBufferFormat::Uint32);
-
-		renderContext->DrawIndexed({
-			.numIndices = (int32_t)(m_floorIndexBuffer->GetBufferDesc().size / (int64_t)sizeof(uint32_t)),
-			.numInstances = 1,
-			.startIndexLocation = 0,
-			.baseVertexLocation = 0
-		});
+		CBufferModel modelData = {
+			.world = glm::float4x4(1.f)
+		};
+		m_floor->BindPrimitive(renderContext, &modelData, sizeof(CBufferModel));
+		m_floor->DrawPrimitive(renderContext);
 	}
 
 	renderContext->Transition({
@@ -285,7 +222,7 @@ void SandboxLayer::Update(Duration delta)
 
 	SandboxApplication::Get().GetWindow()->GetSwapchain()->Present();
 
-	RenderDevice::Get().FlushCommandQueue();
+	//RenderDevice::Get().FlushCommandQueue();
 }
 
 SandboxApplication& SandboxApplication::Get()
@@ -312,8 +249,7 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 		.sampleDesc = {
 			.count = 1,
 			.quality = 0
-		},
-		.bufferCount = 3
+		}
 	};
 	m_window = Core::Window::Create(windowParams, swapchainDesc);
 

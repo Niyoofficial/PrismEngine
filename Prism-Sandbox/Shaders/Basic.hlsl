@@ -8,14 +8,14 @@ SamplerState g_samAnisotropicWrap : register(s4);
 SamplerState g_samAnisotropicClamp : register(s5);
 SamplerComparisonState g_samShadow : register(s6);
 
-cbuffer CameraBuffer
+cbuffer CameraBuffer : register(b0)
 {
     float4x4 g_view;
     float4x4 g_proj;
     float4x4 g_viewProj;
 };
 
-cbuffer ModelBuffer
+cbuffer ModelBuffer : register(b1)
 {
     float4x4 g_world;
 };
@@ -37,8 +37,9 @@ struct PixelInput
 PixelInput vsmain(VertexInput vin)
 {
 	PixelInput vout;
-
-    vout.positionClip = mul(g_viewProj, float4(vin.positionLocal, 1.f));
+	
+    float4 posWorld = mul(g_world, float4(vin.positionLocal, 1.f));
+    vout.positionClip = mul(g_viewProj, posWorld);
 	
     vout.texCoords = vin.texCoords;
 

@@ -14,12 +14,12 @@ class D3D12TextureView : public TextureView
 public:
 	D3D12TextureView(TextureViewDesc desc, Texture* texture);
 
-	virtual Texture* GetTexture() const override;
+	void BuildView();
 
 	const CPUDescriptorHeapAllocation& GetDescriptor() const { return m_descriptor; }
 
 private:
-	Texture* m_owningTexture = nullptr;
+	TextureViewDesc m_viewDesc;
 	CPUDescriptorHeapAllocation m_descriptor;
 };
 }

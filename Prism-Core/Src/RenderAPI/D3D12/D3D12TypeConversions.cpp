@@ -765,12 +765,34 @@ D3D12_CLEAR_VALUE GetD3D12ClearValue(ClearValue clearValue)
 	return {};
 }
 
+D3D12_DESCRIPTOR_HEAP_TYPE GetD3D12DescriptorHeapType(TextureViewType textureViewType)
+{
+	switch (textureViewType)
+	{
+	case TextureViewType::SRV:
+		return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	case TextureViewType::UAV:
+		return D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	case TextureViewType::RTV:
+		return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
+	case TextureViewType::DSV:
+		return D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	}
+
+	PE_ASSERT_NO_ENTRY();
+	return {};
+}
+
 D3D12_CONSTANT_BUFFER_VIEW_DESC GetD3D12ConstantBufferViewDesc(Buffer* buffer, BufferViewDesc viewDesc)
 {
-	auto* d3d12Buffer = static_cast<D3D12Buffer*>(buffer);
-	int64_t location = (int64_t)d3d12Buffer->GetD3D12Resource()->GetGPUVirtualAddress() + viewDesc.offset;
+	return GetD3D12ConstantBufferViewDesc(static_cast<D3D12Buffer*>(buffer)->GetD3D12Resource(), viewDesc);
+}
+
+D3D12_CONSTANT_BUFFER_VIEW_DESC GetD3D12ConstantBufferViewDesc(ID3D12Resource* buffer, BufferViewDesc viewDesc)
+{
+	uint64_t location = buffer->GetGPUVirtualAddress() + viewDesc.offset;
 	return {
-		.BufferLocation = (uint64_t)location,
+		.BufferLocation = location,
 		.SizeInBytes = (uint32_t)viewDesc.size
 	};
 }

@@ -13,7 +13,7 @@ struct BufferDesc
 
 	Flags<BindFlags> bindFlags = BindFlags::None;
 	ResourceUsage usage = ResourceUsage::Default;
-	CPUAccess cpuAccess = CPUAccess::None;
+	Flags<CPUAccess> cpuAccess = CPUAccess::None;
 };
 
 struct BufferData
@@ -36,7 +36,7 @@ public:
 	virtual BufferDesc GetBufferDesc() const = 0;
 
 	// Only Dynamic and Staging buffers can be mapped
-	virtual void* Map(CPUAccess access) = 0;
+	virtual void* Map(Flags<CPUAccess> access) = 0;
 	virtual void Unmap() = 0;
 };
 }

@@ -24,7 +24,7 @@ public:
 	virtual void SetViewports(std::vector<Viewport> viewports) override;
 	virtual void SetScissors(std::vector<Scissor> scissors) override;
 
-	virtual void SetVertexBuffer(Buffer* buffer, int32_t vertexSizeInBytes) override;
+	virtual void SetVertexBuffer(Buffer* buffer, int64_t vertexSizeInBytes) override;
 	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) override;
 
 	virtual void SetTexture(TextureView* textureView, const std::wstring& paramName) override;

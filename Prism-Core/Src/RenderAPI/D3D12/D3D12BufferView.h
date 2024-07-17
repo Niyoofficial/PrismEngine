@@ -9,13 +9,12 @@ class D3D12BufferView : public BufferView
 public:
 	D3D12BufferView(const BufferViewDesc& desc, Buffer* buffer);
 
-	Buffer* GetBuffer() const override;
+	void BuildView();
 
 	const CPUDescriptorHeapAllocation& GetDescriptor() const { return m_descriptor; }
 
 private:
-	Buffer* m_owningBuffer = nullptr;
-
+	BufferViewDesc m_viewDesc;
 	CPUDescriptorHeapAllocation m_descriptor;
 };
 }

@@ -14,6 +14,7 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 	};
 
 	std::vector<D3D12_ROOT_PARAMETER> rootParams;
+	std::forward_list<D3D12_DESCRIPTOR_RANGE> descriptorRanges; // To keep ranges alive since root parameter takes a pointer
 
 	for (D3D12Shader* shader : shaders)
 	{
@@ -36,13 +37,13 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 
 				if (resourceDesc.Type == D3D_SIT_CBUFFER)
 				{
-					D3D12_DESCRIPTOR_RANGE range = {
+					auto& range = descriptorRanges.emplace_front(D3D12_DESCRIPTOR_RANGE{
 						.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_CBV,
 						.NumDescriptors = 1,
 						.BaseShaderRegister = resourceDesc.BindPoint,
 						.RegisterSpace = resourceDesc.Space,
 						.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
-					};
+					});
 
 					D3D12_ROOT_PARAMETER rootParam = {
 						.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
@@ -57,13 +58,13 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 				}
 				else if (resourceDesc.Type == D3D_SIT_TEXTURE)
 				{
-					D3D12_DESCRIPTOR_RANGE range = {
+					auto& range = descriptorRanges.emplace_front(D3D12_DESCRIPTOR_RANGE{
 						.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
 						.NumDescriptors = 1,
 						.BaseShaderRegister = resourceDesc.BindPoint,
 						.RegisterSpace = resourceDesc.Space,
 						.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
-					};
+					});
 
 					D3D12_ROOT_PARAMETER rootParam = {
 						.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,

@@ -54,7 +54,10 @@ CD3DX12_RESOURCE_BARRIER GetD3D12ResourceBarrier(StateTransitionDesc desc);
 
 D3D12_CLEAR_VALUE GetD3D12ClearValue(ClearValue clearValue);
 
+D3D12_DESCRIPTOR_HEAP_TYPE GetD3D12DescriptorHeapType(TextureViewType textureViewType);
+
 D3D12_CONSTANT_BUFFER_VIEW_DESC GetD3D12ConstantBufferViewDesc(Buffer* buffer, BufferViewDesc viewDesc);
+D3D12_CONSTANT_BUFFER_VIEW_DESC GetD3D12ConstantBufferViewDesc(ID3D12Resource* buffer, BufferViewDesc viewDesc);
 D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(TextureViewDesc desc);
 D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(TextureViewDesc desc);
 D3D12_DEPTH_STENCIL_VIEW_DESC GetD3D12DepthStencilViewDesc(TextureViewDesc desc);
