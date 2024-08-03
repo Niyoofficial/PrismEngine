@@ -21,7 +21,7 @@ public:
 	DynamicGPURingBuffer::DynamicAllocation Allocate(int64_t size);
 
 	void CloseCmdListAllocations(uint64_t fenceValue);
-	void ReleaseCompletedResources(uint64_t lastCompletedFenceValue);
+	void ReleaseStaleAllocations(uint64_t lastCompletedFenceValue);
 
 private:
 	std::vector<DynamicGPURingBuffer> m_ringBuffers;

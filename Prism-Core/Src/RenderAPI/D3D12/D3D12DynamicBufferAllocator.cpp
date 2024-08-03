@@ -30,7 +30,7 @@ void DynamicBufferAllocator::CloseCmdListAllocations(uint64_t fenceValue)
 		ringBuffer.CloseCmdListAllocations(fenceValue);
 }
 
-void DynamicBufferAllocator::ReleaseCompletedResources(uint64_t lastCompletedFenceValue)
+void DynamicBufferAllocator::ReleaseStaleAllocations(uint64_t lastCompletedFenceValue)
 {
     size_t numBuffsToDelete = 0;
     for (size_t i = 0; i < m_ringBuffers.size(); ++i)

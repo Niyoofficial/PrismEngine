@@ -32,22 +32,27 @@ void Application::Run()
 	{
 		Platform::Get().PumpEvents();
 
-		if (!m_running)
-			continue;
-
-		for (auto& layer : m_layerStack)
+		if (m_running)
 		{
-			auto currTime = GetApplicationTime();
-			auto delta = currTime - m_previousFrameTime;
+			++m_frameCounter;
 
-			layer->Update(delta);
+			BeginFrame();
 
-			m_previousFrameTime = currTime;
+			for (auto& layer : m_layerStack)
+			{
+				auto currTime = GetApplicationTime();
+				auto delta = currTime - m_previousFrameTime;
+
+				layer->Update(delta);
+
+				m_previousFrameTime = currTime;
+			}
+
+			EndFrame(); // TODO: Add waiting for GPU here
 		}
-
-		++m_frameCounter;
 	}
 
+	// Flush GPU work before exiting
 	Render::RenderDevice::Get().FlushCommandQueue();
 }
 
@@ -87,6 +92,16 @@ void Application::CloseApplication()
 Duration Application::GetApplicationTime()
 {
 	return Platform::Get().GetApplicationTime();
+}
+
+void Application::BeginFrame()
+{
+	Render::RenderDevice::Get().BeginRenderFrame();
+}
+
+void Application::EndFrame()
+{
+	Render::RenderDevice::Get().EndRenderFrame();
 }
 
 void Application::InitPlatform()

@@ -240,7 +240,7 @@ D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeap<Type>::GetHeapType() const
 template<DescriptorType Type>
 DescriptorHeapAllocation<Type> DescriptorHeap<Type>::AllocateFromFreeBlock(const SizesMapTypeIt& freeBlock, int32_t count)
 {
-	PE_ASSERT(freeBlock != m_freeBlocksBySize.end());
+	PE_ASSERT(freeBlock != m_freeBlocksBySize.end(), "Failed to allocate descriptors!");
 
 	auto offsetIt = freeBlock->second;
 	int32_t allocationOffset = offsetIt->first;
@@ -307,7 +307,7 @@ CPUDescriptorHeapAllocation CPUDescriptorHeapManager::Allocate(int32_t count)
 //
 
 GPUDescriptorHeapManager::GPUDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE type)
-	: m_heapType(type), m_heap(type, Constants::DESCRIPTOR_COUNT_PER_CPU_HEAP)
+	: m_heapType(type), m_heap(type, Constants::DESCRIPTOR_COUNT_PER_GPU_HEAP)
 {
 	PE_ASSERT(m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || m_heapType == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 }

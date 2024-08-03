@@ -45,6 +45,11 @@ public:
 
 	Duration GetApplicationTime();
 
+	virtual void BeginFrame();
+	virtual void EndFrame();
+
+	int64_t GetCurrentFrame() const { return m_frameCounter; }
+
 protected:
 	void InitPlatform();
 	void ShutdownPlatform();

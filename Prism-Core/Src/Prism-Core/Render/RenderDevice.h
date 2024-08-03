@@ -28,11 +28,20 @@ public:
 
 	explicit RenderDevice(RenderDeviceParams params);
 
-	Ref<RenderContext> AllocateContext();
-	virtual void SubmitContext(RenderContext* context) = 0;
+	// Called by Application
+	virtual void BeginRenderFrame();
+	virtual void EndRenderFrame();
 
+
+	Ref<RenderContext> AllocateContext();
+	virtual uint64_t SubmitContext(RenderContext* context) = 0;
+
+	virtual void WaitForCmdListToComplete(uint64_t fenceValue) = 0;
 	virtual void FlushCommandQueue() = 0;
 
+	virtual void ReleaseStaleResources() = 0;
+
+	virtual uint64_t GetSubmittedCmdListFenceValue() const = 0;
 	virtual uint64_t GetCompletedCmdListFenceValue() const = 0;
 
 	ShaderCache& GetShaderCache() { return m_shaderCache; }
@@ -42,7 +51,9 @@ public:
 	const PipelineStateCache& GetPipelineStateCache() const { return m_pipelineStateCache; }
 
 private:
-	int64_t m_frameCounter = 0;
+	// Holds last frame's cmd list fence values for frames
+	// prepared by CPU but not yet completed by the GPU
+	std::queue<uint64_t> m_cpuPreparedFrames;
 
 	ShaderCache m_shaderCache;
 	PipelineStateCache m_pipelineStateCache;

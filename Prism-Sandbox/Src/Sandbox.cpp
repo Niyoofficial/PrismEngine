@@ -233,7 +233,7 @@ SandboxApplication& SandboxApplication::Get()
 SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 {
 	InitPlatform();
-	InitRenderer({});
+	InitRenderer({.initPixLibrary = false});
 
 	Core::WindowDesc windowParams = {
 		.windowTitle = L"Test",

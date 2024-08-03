@@ -18,5 +18,8 @@ public:
 
 	virtual Duration GetApplicationTime() override;
 	virtual uint64_t GetPerformanceTicksPerSecond() override;
+
+private:
+	uint64_t m_ticksStart = 0;
 };
 }

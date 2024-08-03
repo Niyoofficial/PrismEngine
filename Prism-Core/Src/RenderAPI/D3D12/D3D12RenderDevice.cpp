@@ -3,7 +3,10 @@
 
 #include "Prism-Core/Base/Application.h"
 #include "RenderAPI/D3D12/D3D12RenderContext.h"
+
+#if USE_PIX
 #include "WinPixEventRuntime/pix3.h"
+#endif
 
 
 namespace Prism::Render::D3D12
@@ -95,7 +98,7 @@ D3D12RenderDevice::~D3D12RenderDevice()
 {
 	D3D12RenderDevice::FlushCommandQueue();
 	m_dynamicBufferAllocator.CloseCmdListAllocations(m_mainFenceValue);
-	m_dynamicBufferAllocator.ReleaseCompletedResources(D3D12RenderDevice::GetCompletedCmdListFenceValue());
+	m_dynamicBufferAllocator.ReleaseStaleAllocations(D3D12RenderDevice::GetCompletedCmdListFenceValue());
 
 #if USE_PIX
 	FreeLibrary(m_pixGpuCaptureModule);
@@ -103,7 +106,7 @@ D3D12RenderDevice::~D3D12RenderDevice()
 #endif
 }
 
-void D3D12RenderDevice::SubmitContext(RenderContext* context)
+uint64_t D3D12RenderDevice::SubmitContext(RenderContext* context)
 {
 	auto* d3d12Context = static_cast<D3D12RenderContext*>(context);
 	d3d12Context->CloseContext();
@@ -118,14 +121,12 @@ void D3D12RenderDevice::SubmitContext(RenderContext* context)
 
 	m_dynamicBufferAllocator.CloseCmdListAllocations(m_mainFenceValue);
 
-	m_contextReleaseQueue.PurgeReleaseQueue(GetCompletedCmdListFenceValue());
-
-	m_dynamicBufferAllocator.ReleaseCompletedResources(GetCompletedCmdListFenceValue());
+	return GetSubmittedCmdListFenceValue();
 }
 
-void D3D12RenderDevice::FlushCommandQueue()
+void D3D12RenderDevice::WaitForCmdListToComplete(uint64_t fenceValue)
 {
-	if (m_mainFence->GetCompletedValue() < m_mainFenceValue)
+	if (m_mainFence->GetCompletedValue() < fenceValue)
 	{
 		HANDLE eventHandle = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
 
@@ -134,6 +135,22 @@ void D3D12RenderDevice::FlushCommandQueue()
 		WaitForSingleObject(eventHandle, INFINITE);
 		CloseHandle(eventHandle);
 	}
+}
+
+void D3D12RenderDevice::FlushCommandQueue()
+{
+	WaitForCmdListToComplete(m_mainFenceValue);
+}
+
+void D3D12RenderDevice::ReleaseStaleResources()
+{
+	m_contextReleaseQueue.PurgeReleaseQueue(GetCompletedCmdListFenceValue());
+	m_dynamicBufferAllocator.ReleaseStaleAllocations(GetCompletedCmdListFenceValue());
+}
+
+uint64_t D3D12RenderDevice::GetSubmittedCmdListFenceValue() const
+{
+	return m_mainFenceValue;
 }
 
 uint64_t D3D12RenderDevice::GetCompletedCmdListFenceValue() const

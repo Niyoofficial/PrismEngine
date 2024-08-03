@@ -12,6 +12,8 @@ namespace Prism::SDL
 SDLPlatform::SDLPlatform()
 {
 	SDL_Init(SDL_INIT_EVERYTHING);
+
+	m_ticksStart = SDL_GetPerformanceCounter();
 }
 
 SDLPlatform::~SDLPlatform()
@@ -359,7 +361,7 @@ void SDLPlatform::SetMouseRelativeMode(bool bRelativeMode)
 
 Duration SDLPlatform::GetApplicationTime()
 {
-	return Duration(SDL_GetPerformanceCounter());
+	return Duration(SDL_GetPerformanceCounter() - m_ticksStart);
 }
 
 uint64_t SDLPlatform::GetPerformanceTicksPerSecond()

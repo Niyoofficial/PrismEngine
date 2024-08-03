@@ -37,6 +37,26 @@ RenderDevice::RenderDevice(RenderDeviceParams params)
 	ShapeUtils::InitShapeLoading();
 }
 
+void RenderDevice::BeginRenderFrame()
+{
+}
+
+void RenderDevice::EndRenderFrame()
+{
+	m_cpuPreparedFrames.emplace(GetSubmittedCmdListFenceValue());
+
+	ReleaseStaleResources();
+
+	while (!m_cpuPreparedFrames.empty() && GetCompletedCmdListFenceValue() >= m_cpuPreparedFrames.front())
+		m_cpuPreparedFrames.pop();
+
+	while (m_cpuPreparedFrames.size() >= Constants::MAX_FRAMES_IN_FLIGHT)
+	{
+		WaitForCmdListToComplete(m_cpuPreparedFrames.front());
+		m_cpuPreparedFrames.pop();
+	}
+}
+
 Ref<RenderContext> RenderDevice::AllocateContext()
 {
 	return Private::CreateRenderContext();

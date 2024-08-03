@@ -21,10 +21,14 @@ public:
 	explicit D3D12RenderDevice(RenderDeviceParams params);
 	virtual ~D3D12RenderDevice() override;
 
-	virtual void SubmitContext(RenderContext* context) override;
+	virtual uint64_t SubmitContext(RenderContext* context) override;
 
+	virtual void WaitForCmdListToComplete(uint64_t fenceValue) override;
 	virtual void FlushCommandQueue() override;
 
+	virtual void ReleaseStaleResources() override;
+
+	virtual uint64_t GetSubmittedCmdListFenceValue() const override;
 	virtual uint64_t GetCompletedCmdListFenceValue() const override;
 
 	ID3D12Device* GetD3D12Device() const;
