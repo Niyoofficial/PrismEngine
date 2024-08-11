@@ -45,7 +45,7 @@ project "Prism-Core"
 		"spdlog.lib",
 		"fmt.lib",
 		"assimp.lib",
-		"zlib.lib"
+		"zlibstatic.lib"
 	}
 
 	filter "system:windows"
