@@ -23,6 +23,7 @@ cbuffer ModelBuffer : register(b1)
 struct VertexInput
 {
 	float3 positionLocal : POSITION;
+	float3 normalLocal : NORMAL;
 	float3 color : COLOR;
 	float2 texCoords : TEXCOORD;
 };
@@ -30,6 +31,8 @@ struct VertexInput
 struct PixelInput
 {
 	float4 positionClip : SV_POSITION;
+	float4 positionWorld : POSITION;
+	float3 normalWorld : NORMAL;
 	float3 color : COLOR;
 	float2 texCoords : TEXCOORD;
 };
@@ -39,7 +42,10 @@ PixelInput vsmain(VertexInput vin)
 	PixelInput vout;
 	
     float4 posWorld = mul(g_world, float4(vin.positionLocal, 1.f));
+    vout.positionWorld = posWorld;
     vout.positionClip = mul(g_viewProj, posWorld);
+	
+    vout.normalWorld = mul((float3x3)g_world, vin.normalLocal);
 	
     vout.texCoords = vin.texCoords;
 
@@ -48,6 +54,7 @@ PixelInput vsmain(VertexInput vin)
 
 float4 monkeypsmain(PixelInput pin) : SV_TARGET
 {
+    return float4(pin.normalWorld, 0.f);
     return g_texture.Sample(g_samLinearWrap, pin.texCoords);
 }
 

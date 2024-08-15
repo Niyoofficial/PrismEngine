@@ -27,6 +27,7 @@ struct Vertex
 {
 	alignas(16)
 	glm::float3 position;
+	glm::float3 normal;
 	glm::float3 color;
 	glm::float2 texCoords;
 };

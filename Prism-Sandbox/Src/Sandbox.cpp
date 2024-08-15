@@ -272,6 +272,7 @@ std::vector<Vertex> SandboxApplication::GetVerticesFromShapeData(const ShapeUtil
 	{
 		vertices.push_back({
 			.position = vertex.position,
+			.normal = vertex.normal,
 			.color = vertex.vertexColor,
 			.texCoords = vertex.texCoord
 		});
