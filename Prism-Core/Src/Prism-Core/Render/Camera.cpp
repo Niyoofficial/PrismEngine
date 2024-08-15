@@ -41,10 +41,17 @@ void Camera::SetPerspective(float fovDegrees, float aspectRatio, float nearZ, fl
 	UpdateViewProjectionMatrix();
 }
 
+glm::quat Camera::GetRotationQuat() const
+{
+	glm::quat quatRot = glm::identity<glm::quat>();
+	quatRot = quatRot * glm::quat({ 0.f, m_rotation.y, 0.f }); // Add Yaw locally
+	quatRot = glm::quat({ m_rotation.x, 0.f, 0.f }) * quatRot; // Add Pitch globally
+	return quatRot;
+}
+
 glm::float3 Camera::GetForwardVector() const
 {
-	auto ret = glm::float3(0.f, 0.f, 1.f) * glm::quat(m_rotation);
-	return ret;
+	return glm::float3(0.f, 0.f, 1.f) * GetRotationQuat();
 }
 
 glm::float3 Camera::GetRightVector() const
@@ -59,10 +66,7 @@ glm::float3 Camera::GetUpVector() const
 
 void Camera::UpdateViewMatrix()
 {
-	glm::quat quatRot = glm::identity<glm::quat>();
-	quatRot = quatRot * glm::quat({0.f, m_rotation.y, 0.f}); // Add Yaw locally
-	quatRot = glm::quat({m_rotation.x, 0.f, 0.f}) * quatRot; // Add Pitch globally
-	m_viewMatrix = glm::toMat4(quatRot) * glm::translate(glm::mat4x4(1.f), -m_position);
+	m_viewMatrix = glm::toMat4(GetRotationQuat()) * glm::translate(glm::mat4x4(1.f), -m_position);
 	m_invViewMatrix = glm::inverse(m_viewMatrix);
 	UpdateViewProjectionMatrix();
 }

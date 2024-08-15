@@ -15,8 +15,10 @@ public:
 
 	void SetPerspective(float fovDegrees, float aspectRatio, float nearZ, float farZ);
 
+
 	glm::float3 GetPosition() const { return m_position; }
 	glm::quat GetRotation() const { return m_rotation; }
+	glm::quat GetRotationQuat() const;
 	glm::float3 GetForwardVector() const;
 	glm::float3 GetRightVector() const;
 	glm::float3 GetUpVector() const;
