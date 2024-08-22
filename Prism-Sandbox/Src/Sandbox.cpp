@@ -126,7 +126,9 @@ void SandboxLayer::Update(Duration delta)
 		CBufferCamera cbufferCamera = {
 			.view = m_camera->GetViewMatrix(),
 			.proj = m_camera->GetProjectionMatrix(),
-			.viewProj = m_camera->GetViewProjectionMatrix()
+			.viewProj = m_camera->GetViewProjectionMatrix(),
+
+			.camPos = m_camera->GetPosition()
 		};
 		void* cameraCBufferData = m_cameraCbuffer->Map(CPUAccess::Write);
 		memcpy_s(cameraCBufferData, m_cameraCbuffer->GetBufferDesc().size, &cbufferCamera, sizeof(cbufferCamera));
@@ -154,12 +156,12 @@ void SandboxLayer::Update(Duration delta)
 	{
 		auto* pso = GraphicsPipelineState::Create({
 			.vs = Shader::Create({
-				.filepath = L"Shaders/Basic.hlsl",
+				.filepath = L"Shaders/PBR.hlsl",
 				.entryName = L"vsmain",
 				.shaderType = ShaderType::VS
 			}),
 			.ps = Shader::Create({
-				.filepath = L"Shaders/Basic.hlsl",
+				.filepath = L"Shaders/PBR.hlsl",
 				.entryName = L"monkeypsmain",
 				.shaderType = ShaderType::PS
 			}),
@@ -185,12 +187,12 @@ void SandboxLayer::Update(Duration delta)
 	{
 		auto* pso = GraphicsPipelineState::Create({
 			.vs = Shader::Create({
-				.filepath = L"Shaders/Basic.hlsl",
+				.filepath = L"Shaders/PBR.hlsl",
 				.entryName = L"vsmain",
 				.shaderType = ShaderType::VS
 			}),
 			.ps = Shader::Create({
-				.filepath = L"Shaders/Basic.hlsl",
+				.filepath = L"Shaders/PBR.hlsl",
 				.entryName = L"floorpsmain",
 				.shaderType = ShaderType::PS
 			}),
@@ -237,7 +239,7 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 
 	Core::WindowDesc windowParams = {
 		.windowTitle = L"Test",
-		.windowSize = {2560, 1440},
+		.windowSize = {2560/2, 1440/2},
 		.fullscreen = false
 	};
 	Render::SwapchainDesc swapchainDesc = {

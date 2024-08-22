@@ -16,6 +16,8 @@ struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferCamera
 	glm::float4x4 view;
 	glm::float4x4 proj;
 	glm::float4x4 viewProj;
+
+	glm::float3 camPos;
 };
 
 struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferModel
