@@ -17,7 +17,7 @@
 #include <dxgidebug.h>
 #endif
 
-#include "RenderAPI/D3D12/D3DX12Helpers/d3dx12.h"
+#include "d3dx12/d3dx12.h"
 
 template<typename T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;

@@ -1,6 +1,7 @@
 #pragma once
 #include "Prism-Core/Render/RenderThreadCommands.h"
 #include "Prism-Core/Render/PipelineStateCache.h"
+#include "Prism-Core/Render/ReleaseQueue.h"
 #include "Prism-Core/Render/RenderContext.h"
 #include "Prism-Core/Render/ShaderCache.h"
 #include "Prism-Core/Utilities/StaticSingleton.h"
@@ -41,14 +42,26 @@ public:
 
 	virtual void ReleaseStaleResources() = 0;
 
-	virtual uint64_t GetSubmittedCmdListFenceValue() const = 0;
-	virtual uint64_t GetCompletedCmdListFenceValue() const = 0;
+	virtual uint64_t GetLastSubmittedCmdListFenceValue() const = 0;
+	virtual uint64_t GetLastCompletedCmdListFenceValue() const = 0;
 
 	ShaderCache& GetShaderCache() { return m_shaderCache; }
 	const ShaderCache& GetShaderCache() const { return m_shaderCache; }
 
 	PipelineStateCache& GetPipelineStateCache() { return m_pipelineStateCache; }
 	const PipelineStateCache& GetPipelineStateCache() const { return m_pipelineStateCache; }
+
+	template<typename T>
+	void AddResourceToReleaseQueue(T&& resource, uint64_t fenceValue)
+	{
+		m_releaseQueue.AddResource(std::move(resource), fenceValue);
+	}
+
+	template<typename T>
+	void AddResourceToReleaseQueueWhenFrameEnds(T&& resource)
+	{
+		m_endFramePreservedObjects.AddObject(std::move(resource));
+	}
 
 private:
 	// Holds last frame's cmd list fence values for frames
@@ -59,5 +72,8 @@ private:
 	PipelineStateCache m_pipelineStateCache;
 
 	RenderThreadCommandQueue m_rtCommandQueue;
+
+	PreservingObjectContainer m_endFramePreservedObjects;
+	ReleaseQueueAny m_releaseQueue;
 };
 }

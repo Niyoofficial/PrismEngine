@@ -241,6 +241,14 @@ D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineS
 	};
 }
 
+D3D12_COMPUTE_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const ComputePipelineStateDesc& desc)
+{
+	return {
+		.pRootSignature = D3D12RenderDevice::Get().GetRootSignatureCache().GetOrCreateRootSignature(desc)->GetD3D12RootSignature(),
+		.CS = GetD3D12ShaderBytecode(desc.cs)
+	};
+}
+
 CD3DX12_SHADER_BYTECODE GetD3D12ShaderBytecode(Shader* shader)
 {
 	PE_ASSERT(shader);
@@ -797,6 +805,27 @@ D3D12_CONSTANT_BUFFER_VIEW_DESC GetD3D12ConstantBufferViewDesc(ID3D12Resource* b
 	};
 }
 
+D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(BufferViewDesc desc)
+{
+	PE_ASSERT(desc.type == BufferViewType::SRV);
+	PE_ASSERT(desc.elementSize > 0, "Element size must be set when creating an SRV of a buffer");
+	PE_ASSERT(desc.offset % desc.elementSize == 0, "Offset must be a multiple of an element size");
+	PE_ASSERT(desc.size % desc.elementSize == 0, "Buffer size must be a multiple of an element size");
+
+	return {
+		.Format = DXGI_FORMAT_UNKNOWN,
+		.ViewDimension = D3D12_SRV_DIMENSION_BUFFER,
+		.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+		.Buffer = {
+			.FirstElement = (UINT64)(desc.offset / desc.elementSize),
+			.NumElements = (UINT)(desc.size / desc.elementSize),
+			.StructureByteStride = (UINT)desc.elementSize,
+			// TODO: Add support for raw buffers
+			.Flags = D3D12_BUFFER_SRV_FLAG_NONE
+		}
+	};
+}
+
 D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(TextureViewDesc desc)
 {
 	PE_ASSERT(desc.type == TextureViewType::SRV);
@@ -831,7 +860,17 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(TextureViewDesc d
 		}
 		break;
 	case ResourceDimension::TexCube:
-		PE_ASSERT(desc.arrayOrDepthSlicesCount == 6);
+		{
+			PE_ASSERT(desc.IsCube());
+			d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+			d3d12SRVDesc.Texture2D = {
+				.MostDetailedMip = (UINT)desc.firstMipLevel,
+				.MipLevels = (UINT)desc.numMipLevels,
+				.PlaneSlice = GetPlaneSlice(desc.format),
+				.ResourceMinLODClamp = 0.f
+			};
+		}
+		break;
 	case ResourceDimension::Tex2D:
 		if (!desc.IsArray())
 		{
@@ -870,6 +909,90 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(TextureViewDesc d
 	}
 
 	return d3d12SRVDesc;
+}
+
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetD3D12UnorderedAccessViewDesc(BufferViewDesc desc)
+{
+	PE_ASSERT(desc.type == BufferViewType::UAV);
+	PE_ASSERT(desc.elementSize > 0, "Element size must be set when creating an UAV of a buffer");
+	PE_ASSERT(desc.offset % desc.elementSize == 0, "Offset must be a multiple of an element size");
+	PE_ASSERT(desc.size % desc.elementSize == 0, "Buffer size must be a multiple of an element size");
+
+	return {
+		.Format = DXGI_FORMAT_UNKNOWN,
+		.ViewDimension = D3D12_UAV_DIMENSION_BUFFER,
+		.Buffer = {
+			.FirstElement = (UINT64)(desc.offset / desc.elementSize),
+			.NumElements = (UINT)(desc.size / desc.elementSize),
+			.StructureByteStride = (UINT)desc.elementSize,
+			// TODO: Add support for raw buffers
+			.Flags = D3D12_BUFFER_UAV_FLAG_NONE
+		}
+	};
+}
+
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetD3D12UnorderedAccessViewDesc(TextureViewDesc desc)
+{
+	PE_ASSERT(desc.type == TextureViewType::UAV);
+
+	D3D12_UNORDERED_ACCESS_VIEW_DESC d3d12UAVDesc = {
+		.Format = GetDXGIFormat(desc.format)
+	};
+
+	switch (desc.dimension)
+	{
+	case ResourceDimension::Tex1D:
+		if (!desc.IsArray())
+		{
+			d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
+			d3d12UAVDesc.Texture1D = {
+				.MipSlice = (UINT)desc.firstMipLevel
+			};
+		}
+		else
+		{
+			d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+			d3d12UAVDesc.Texture1DArray = {
+				.MipSlice = (UINT)desc.firstMipLevel,
+				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
+				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount
+			};
+		}
+		break;
+	case ResourceDimension::TexCube:
+		PE_ASSERT(desc.arrayOrDepthSlicesCount == 6);
+	case ResourceDimension::Tex2D:
+		if (!desc.IsArray())
+		{
+			d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+			d3d12UAVDesc.Texture2D = {
+				.MipSlice = (UINT)desc.firstMipLevel
+			};
+		}
+		else
+		{
+			d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+			d3d12UAVDesc.Texture2DArray = {
+				.MipSlice = (UINT)desc.firstMipLevel,
+				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
+				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount
+			};
+		}
+		break;
+	case ResourceDimension::Tex3D:
+		d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+		d3d12UAVDesc.Texture3D = {
+			.MipSlice = (UINT)desc.firstMipLevel,
+			.FirstWSlice = (UINT)desc.firstArrayOrDepthSlice,
+			.WSize = (UINT)desc.arrayOrDepthSlicesCount
+		};
+		break;
+	default:
+		PE_ASSERT_NO_ENTRY();
+		return {};
+	}
+
+	return d3d12UAVDesc;
 }
 
 D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(TextureViewDesc desc)
@@ -1017,6 +1140,18 @@ D3D12_RECT GetD3D12Rect(Scissor scissor)
 	};
 }
 
+D3D12_BOX GetD3D12Box(Box box)
+{
+	return {
+		.left = (UINT)box.left,
+		.top = (UINT)box.top,
+		.front = (UINT)box.front,
+		.right = (UINT)box.right,
+		.bottom = (UINT)box.bottom,
+		.back = (UINT)box.back
+	};
+}
+
 D3D12_CLEAR_FLAGS GetD3D12ClearFlags(Flags<ClearFlags> clearFlags)
 {
 	D3D12_CLEAR_FLAGS d3d12Flags = {};
@@ -1084,7 +1219,7 @@ Flags<BindFlags> GetBindFlags(D3D12_RESOURCE_FLAGS resourceFlags)
 		bindFlags |= BindFlags::DepthStencil;
 	if ((resourceFlags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS) != 0)
 		bindFlags |= BindFlags::UnorderedAccess;
-	if ((resourceFlags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) != 0)
+	if ((resourceFlags & D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE) == 0)
 		bindFlags |= BindFlags::ShaderResource;
 
 	return bindFlags;
@@ -1127,7 +1262,7 @@ BufferDesc GetBufferDesc(const D3D12_RESOURCE_DESC& d3d12ResDesc, const std::wst
 TextureDesc GetTextureDesc(const D3D12_RESOURCE_DESC& d3d12ResDesc,
 						   const std::wstring& name,
 						   ResourceUsage usage,
-						   ClearValue optimizedClearValue,
+						   std::optional<ClearValue> optimizedClearValue,
 						   bool isCubeTexture)
 {
 	PE_ASSERT(!isCubeTexture || d3d12ResDesc.DepthOrArraySize == 6);
@@ -1145,5 +1280,57 @@ TextureDesc GetTextureDesc(const D3D12_RESOURCE_DESC& d3d12ResDesc,
 		.usage = usage,
 		.optimizedClearValue = optimizedClearValue
 	};
+}
+
+D3D12_SRV_DIMENSION GetD3D12SRVDimension(D3D_SRV_DIMENSION dimension)
+{
+	switch (dimension)
+	{
+	case D3D_SRV_DIMENSION_BUFFER:
+		return D3D12_SRV_DIMENSION_BUFFER;
+	case D3D_SRV_DIMENSION_TEXTURE1D:
+		return D3D12_SRV_DIMENSION_TEXTURE1D;
+	case D3D_SRV_DIMENSION_TEXTURE1DARRAY:
+		return D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+	case D3D_SRV_DIMENSION_TEXTURE2D:
+		return D3D12_SRV_DIMENSION_TEXTURE2D;
+	case D3D_SRV_DIMENSION_TEXTURE2DARRAY:
+		return D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+	case D3D_SRV_DIMENSION_TEXTURE2DMS:
+		return D3D12_SRV_DIMENSION_TEXTURE2DMS;
+	case D3D_SRV_DIMENSION_TEXTURE2DMSARRAY:
+		return D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
+	case D3D_SRV_DIMENSION_TEXTURE3D:
+		return D3D12_SRV_DIMENSION_TEXTURE3D;
+	case D3D_SRV_DIMENSION_TEXTURECUBE:
+		return D3D12_SRV_DIMENSION_TEXTURECUBE;
+	case D3D_SRV_DIMENSION_TEXTURECUBEARRAY:
+		return D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+	default: 
+		PE_ASSERT_NO_ENTRY();
+		return {};
+	}
+}
+
+D3D12_UAV_DIMENSION GetD3D12UAVDimension(D3D_SRV_DIMENSION dimension)
+{
+	switch (dimension)
+	{
+	case D3D_SRV_DIMENSION_BUFFER:
+		return D3D12_UAV_DIMENSION_BUFFER;
+	case D3D_SRV_DIMENSION_TEXTURE1D:
+		return D3D12_UAV_DIMENSION_TEXTURE1D;
+	case D3D_SRV_DIMENSION_TEXTURE1DARRAY:
+		return D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+	case D3D_SRV_DIMENSION_TEXTURE2D:
+		return D3D12_UAV_DIMENSION_TEXTURE2D;
+	case D3D_SRV_DIMENSION_TEXTURE2DARRAY:
+		return D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+	case D3D_SRV_DIMENSION_TEXTURE3D:
+		return D3D12_UAV_DIMENSION_TEXTURE3D;
+	default:
+		PE_ASSERT_NO_ENTRY();
+		return {};
+	}
 }
 }

@@ -90,6 +90,8 @@ void ProcessMesh(ShapeData& data, aiNode* node, aiMesh* mesh, const aiScene* sce
 		if (mesh->HasNormals())
 		{
 			aiVector3D& normal = mesh->mNormals[i];
+			normal *= node->mTransformation;
+
 			data.vertices[i].normal = {normal.x, normal.y, normal.z};
 		}
 

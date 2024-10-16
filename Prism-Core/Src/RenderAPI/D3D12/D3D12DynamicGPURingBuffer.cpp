@@ -2,7 +2,7 @@
 #include "D3D12DynamicGPURingBuffer.h"
 
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
-#include "RenderAPI/D3D12/D3DX12Helpers/d3dx12_core.h"
+#include "d3dx12/d3dx12_core.h"
 
 namespace Prism::Render::D3D12
 {

@@ -57,7 +57,12 @@ project "Prism-Sandbox"
 		{
 			"{COPYFILE} %[%{libDirs.dxc}/dxcompiler.dll] %[%{binDirectory}dxcompiler.dll]",
 			"{COPYFILE} %[%{libDirs.dxc}/dxil.dll] %[%{binDirectory}dxil.dll]",
-			"{COPYFILE} %[%{libDirs.WinPixEventRuntime}/WinPixEventRuntime.dll] %[%{binDirectory}WinPixEventRuntime.dll]"
+			"{COPYFILE} %[%{libDirs.WinPixEventRuntime}/WinPixEventRuntime.dll] %[%{binDirectory}WinPixEventRuntime.dll]",
+			"{MKDIR} %{binDirectory}D3D12",
+			"{COPYFILE} %[%{libDirs.AgilitySDK}/D3D12Core.dll] %[%{binDirectory}D3D12/D3D12Core.dll]",
+			"{COPYFILE} %[%{libDirs.AgilitySDK}/D3D12Core.pdb] %[%{binDirectory}D3D12/D3D12Core.pdb]",
+			"{COPYFILE} %[%{libDirs.AgilitySDK}/d3d12SDKLayers.dll] %[%{binDirectory}D3D12/d3d12SDKLayers.dll]",
+			"{COPYFILE} %[%{libDirs.AgilitySDK}/d3d12SDKLayers.pdb] %[%{binDirectory}D3D12/d3d12SDKLayers.pdb]"
 		}
 
 	filter "configurations:Debug"

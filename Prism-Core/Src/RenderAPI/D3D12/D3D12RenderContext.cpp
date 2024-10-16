@@ -1,11 +1,13 @@
 ﻿#include "pcpch.h"
 #include "D3D12RenderContext.h"
+#include "RenderAPI/D3D12/D3D12RenderContext.h"
+#include "RenderAPI/D3D12/D3D12RenderContext.h"
 
-#include "Prism-Core/Render/RenderDevice.h"
+#include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12Buffer.h"
 #include "RenderAPI/D3D12/D3D12BufferView.h"
-#include "RenderAPI/D3D12/D3D12GraphicsPipelineState.h"
-#include "RenderAPI/D3D12/D3D12RenderDevice.h"
+#include "RenderAPI/D3D12/D3D12PipelineState.h"
+#include "RenderAPI/D3D12/D3D12Texture.h"
 #include "RenderAPI/D3D12/D3D12TextureView.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 
@@ -58,26 +60,42 @@ D3D12RenderContext::D3D12RenderContext()
 
 void D3D12RenderContext::Draw(DrawCommandDesc desc)
 {
-	PrepareDraw();
+	PrepareDrawOrDispatch(PipelineStateType::Graphics);
 
-	m_commandList->DrawInstanced(desc.numVertices, desc.numInstances, desc.startVertexLocation, 0);
+	m_commandList->DrawInstanced((UINT)desc.numVertices, (UINT)desc.numInstances, (UINT)desc.startVertexLocation, 0);
 }
 
 void D3D12RenderContext::DrawIndexed(DrawIndexedCommandDesc desc)
 {
-	PrepareDraw();
+	PrepareDrawOrDispatch(PipelineStateType::Graphics);
 
-	m_commandList->DrawIndexedInstanced(desc.numIndices, desc.numInstances, desc.startIndexLocation, desc.baseVertexLocation, 0);
+	m_commandList->DrawIndexedInstanced((UINT)desc.numIndices, (UINT)desc.numInstances, (UINT)desc.startIndexLocation, (UINT)desc.baseVertexLocation, 0);
+}
+
+void D3D12RenderContext::Dispatch(int32_t threadGroupCountX, int32_t threadGroupCountY, int32_t threadGroupCountZ)
+{
+	PrepareDrawOrDispatch(PipelineStateType::Compute);
+
+	m_commandList->Dispatch((UINT)threadGroupCountX, (UINT)threadGroupCountY, (UINT)threadGroupCountZ);
 }
 
 void D3D12RenderContext::SetPSO(GraphicsPipelineState* pso)
 {
-	m_currentPSO = static_cast<D3D12GraphicsPipelineState*>(pso);
+	auto* graphicsPSO = static_cast<D3D12GraphicsPipelineState*>(pso);
 	m_currentRootSig = D3D12RenderDevice::Get().GetRootSignatureCache().GetOrCreateRootSignature(pso->GetDesc());
 
-	m_commandList->SetPipelineState(m_currentPSO->GetD3D12PipelineState());
+	m_commandList->SetPipelineState(graphicsPSO->GetD3D12PipelineState());
 	m_commandList->SetGraphicsRootSignature(m_currentRootSig->GetD3D12RootSignature());
 	m_commandList->IASetPrimitiveTopology(GetD3D12PrimitiveTopology(pso->GetDesc().primitiveTopologyType));
+}
+
+void D3D12RenderContext::SetPSO(ComputePipelineState* pso)
+{
+	auto* computePSO = static_cast<D3D12ComputePipelineState*>(pso);
+	m_currentRootSig = D3D12RenderDevice::Get().GetRootSignatureCache().GetOrCreateRootSignature(pso->GetDesc());
+
+	m_commandList->SetPipelineState(computePSO->GetD3D12PipelineState());
+	m_commandList->SetComputeRootSignature(m_currentRootSig->GetD3D12RootSignature());
 }
 
 void D3D12RenderContext::SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv)
@@ -139,14 +157,18 @@ void D3D12RenderContext::SetIndexBuffer(Buffer* buffer, IndexBufferFormat format
 	m_commandList->IASetIndexBuffer(&view);
 }
 
-void D3D12RenderContext::SetTexture(TextureView* textureView, const std::wstring& paramName)
+void D3D12RenderContext::SetTexture(TextureView* textureView, const std::wstring& paramName, int32_t index)
 {
-	SetResource(textureView, paramName);
+	PE_ASSERT(textureView);
+	PE_ASSERT(!paramName.empty(), "Param name cannot be empty");
+	m_rootResources[paramName][index] = textureView;
 }
 
 void D3D12RenderContext::SetCBuffer(BufferView* bufferView, const std::wstring& paramName)
 {
-	SetResource(bufferView, paramName);
+	PE_ASSERT(bufferView);
+	PE_ASSERT(!paramName.empty(), "Param name cannot be empty");
+	m_rootResources[paramName][0] = bufferView;
 }
 
 void D3D12RenderContext::ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor)
@@ -162,7 +184,8 @@ void D3D12RenderContext::ClearRenderTargetView(TextureView* rtv, glm::float4* cl
 	else
 	{
 		TextureDesc texDesc = rtv->GetTexture()->GetTextureDesc();
-		glm::float4 color = std::get<RenderTargetClearValue>(texDesc.optimizedClearValue).color;
+		PE_ASSERT(texDesc.optimizedClearValue.has_value());
+		glm::float4 color = std::get<RenderTargetClearValue>(texDesc.optimizedClearValue.value()).color;
 		rtClearColor[0] = color.r;
 		rtClearColor[1] = color.g;
 		rtClearColor[2] = color.b;
@@ -184,7 +207,8 @@ void D3D12RenderContext::ClearDepthStencilView(TextureView* dsv, Flags<ClearFlag
 	else
 	{
 		TextureDesc texDesc = dsv->GetTexture()->GetTextureDesc();
-		auto [depth, stencil] = std::get<DepthStencilClearValue>(texDesc.optimizedClearValue).depthStencil;
+		PE_ASSERT(texDesc.optimizedClearValue.has_value());
+		auto [depth, stencil] = std::get<DepthStencilClearValue>(texDesc.optimizedClearValue.value()).depthStencil;
 		depthValue = depth;
 		stencilValue = stencil;
 	}
@@ -198,7 +222,7 @@ void D3D12RenderContext::Transition(StateTransitionDesc desc)
 	m_commandList->ResourceBarrier(1, &barrier);
 }
 
-void D3D12RenderContext::UpdateBuffer(Buffer* buffer, BufferData data)
+void D3D12RenderContext::UpdateBuffer(Buffer* buffer, RawData data)
 {
 	PE_ASSERT(buffer);
 	PE_ASSERT(buffer->GetBufferDesc().usage == ResourceUsage::Default,
@@ -215,6 +239,25 @@ void D3D12RenderContext::UpdateBuffer(Buffer* buffer, BufferData data)
 	SafeReleaseResource(std::move(uploadBuffer));
 }
 
+void D3D12RenderContext::UpdateTexture(Texture* texture, RawData data, int32_t subresourceIndex)
+{
+	PE_ASSERT(texture);
+	PE_ASSERT(texture->GetTextureDesc().usage == ResourceUsage::Default,
+			  "Texture must have Default usage to be updated through render context");
+
+	int64_t intermediateSize = (int64_t)GetRequiredIntermediateSize(static_cast<D3D12Texture*>(texture)->GetD3D12Resource(),
+																	subresourceIndex, 1);
+	BufferDesc uploadBufferDesc = {
+		.bufferName = L"UploadBuffer",
+		.size = intermediateSize,
+		.usage = ResourceUsage::Dynamic,
+		.cpuAccess = CPUAccess::Write
+	};
+	auto uploadBuffer = Buffer::Create(uploadBufferDesc, data, ResourceStateFlags::GenericRead);
+
+	CopyTextureRegion(texture, 0, 0, 0, subresourceIndex, uploadBuffer);
+}
+
 void D3D12RenderContext::CopyBufferRegion(Buffer* dest, int32_t destOffset, Buffer* src, int32_t srcOffset, int32_t numBytes)
 {
 	PE_ASSERT(dest && src);
@@ -227,41 +270,147 @@ void D3D12RenderContext::CopyBufferRegion(Buffer* dest, int32_t destOffset, Buff
 									d3d12Src->GetD3D12Resource(), d3d12Src->GetDefaultOffset() + srcOffset, numBytes);
 }
 
+void D3D12RenderContext::CopyTextureRegion(Texture* dest, int32_t x, int32_t y, int32_t z, int32_t subresourceIndex, Buffer* src, int64_t srcOffset)
+{
+	PE_ASSERT(dest && src);
+	PE_ASSERT(dest->GetResourceType() == ResourceType::Texture);
+	PE_ASSERT(src->GetResourceType() == ResourceType::Buffer);
+
+	auto destDesc = static_cast<D3D12Texture*>(dest)->GetD3D12Resource()->GetDesc();
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout;
+	UINT numRows = 0;
+	UINT64 rowSizeInBytes = 0;
+	UINT64 totalBytes = 0;
+	D3D12RenderDevice::Get().GetD3D12Device()->GetCopyableFootprints(&destDesc, subresourceIndex, 1, srcOffset, &layout, &numRows,
+																	 &rowSizeInBytes, &totalBytes);
+
+	rowSizeInBytes *= 4;
+
+	CD3DX12_TEXTURE_COPY_LOCATION destLoc(static_cast<D3D12Texture*>(dest)->GetD3D12Resource(), subresourceIndex);
+	CD3DX12_TEXTURE_COPY_LOCATION srcLoc(static_cast<D3D12Buffer*>(src)->GetD3D12Resource(), layout);
+
+	m_commandList->CopyTextureRegion(&destLoc, 0, 0, 0, &srcLoc, nullptr);
+}
+
 void D3D12RenderContext::CloseContext()
 {
 	PE_ASSERT_HR(m_commandList->Close());
 }
 
-void D3D12RenderContext::PrepareDraw()
+void D3D12RenderContext::PrepareDrawOrDispatch(PipelineStateType type)
 {
 	PE_ASSERT(m_currentRootSig);
 
-	for (auto [name, index] : m_currentRootSig->GetRootParamsIndexMap())
+	for (const auto& [name, rootIndex] : m_currentRootSig->GetRootParamsIndexMap())
 	{
-		if (auto* view = GetResourceView(name))
-		{
-			BuildResourceView(view);
+		auto nullDescriptor = GetNullDescriptorForRootParam(m_currentRootSig, rootIndex);
 
-			auto gpuDescriptorHandle = D3D12RenderDevice::Get().CopyToGPUHeap(GetDescriptorFromView(view));
-			m_commandList->SetGraphicsRootDescriptorTable(index, gpuDescriptorHandle.GetGPUHandle());
-			// Save the descriptor allocation because destructor will free the descriptor handle otherwise
-			m_gpuDescriptors.push_back(std::move(gpuDescriptorHandle));
+		auto rootResIt = m_rootResources.find(name);
+		if (rootResIt != m_rootResources.end())
+		{
+			auto& rootParamViews = rootResIt->second;
+
+			std::vector<const CPUDescriptorHeapAllocation*> descriptorAllocations;
+			int32_t desctriptorArrayCount = (int32_t)m_currentRootSig->GetReflectionForRootParam(rootIndex).BindCount;
+			for (int32_t i = 0; i < desctriptorArrayCount;)
+			{
+				auto viewIt = rootParamViews.find(i);
+				if (viewIt != rootParamViews.end())
+				{
+					auto& resView = viewIt->second;
+					BuildResourceView(resView);
+					const auto& descriptorAllocation = GetDescriptorFromView(resView);
+					descriptorAllocations.push_back(&descriptorAllocation);
+
+					i += descriptorAllocation.GetNumHandles();
+				}
+				else
+				{
+					descriptorAllocations.push_back(&nullDescriptor);
+					++i;
+				}
+			}
+			SetRootParam(rootIndex, descriptorAllocations, type);
+		}
+		else
+		{
+			SetRootParam(rootIndex, nullDescriptor, type);
 		}
 	}
 }
 
-void D3D12RenderContext::SetResource(RenderResourceView* view, const std::wstring& paramName)
+CPUDescriptorHeapAllocation D3D12RenderContext::GetNullDescriptorForRootParam(D3D12RootSignature* rootSignature, int32_t rootParamIndex)
 {
-	PE_ASSERT(view);
-	PE_ASSERT(!paramName.empty(), "Param name cannot be empty");
-	m_rootResources[paramName] = view;
+	auto resDesc = rootSignature->GetReflectionForRootParam(rootParamIndex);
+
+	// TODO: Add sampler support
+	auto nullDescriptor = D3D12RenderDevice::Get().AllocateCPUDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, 1);
+	switch (resDesc.Type)
+	{
+	case D3D_SIT_CBUFFER:
+		{
+			D3D12_CONSTANT_BUFFER_VIEW_DESC viewDesc = {
+				.BufferLocation = 0,
+				.SizeInBytes = 0
+			};
+			D3D12RenderDevice::Get().GetD3D12Device()->CreateConstantBufferView(&viewDesc, nullDescriptor.GetCPUHandle());
+		}
+		break;
+	case D3D_SIT_TEXTURE:
+		{
+			D3D12_SHADER_RESOURCE_VIEW_DESC viewDesc = {
+				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+				.ViewDimension = GetD3D12SRVDimension(resDesc.Dimension),
+				.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING,
+			};
+
+			D3D12RenderDevice::Get().GetD3D12Device()->CreateShaderResourceView(nullptr, &viewDesc, nullDescriptor.GetCPUHandle());
+		}
+		break;
+	case D3D_SIT_UAV_RWTYPED:
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {
+				.Format = DXGI_FORMAT_R8G8B8A8_UNORM,
+				.ViewDimension = GetD3D12UAVDimension(resDesc.Dimension)
+			};
+
+			D3D12RenderDevice::Get().GetD3D12Device()->CreateUnorderedAccessView(
+				nullptr, nullptr, &viewDesc, nullDescriptor.GetCPUHandle());
+		}
+		break;
+	case D3D_SIT_UAV_RWSTRUCTURED:
+		{
+			D3D12_UNORDERED_ACCESS_VIEW_DESC viewDesc = {
+				.Format = DXGI_FORMAT_R32_FLOAT,
+				.ViewDimension = GetD3D12UAVDimension(resDesc.Dimension)
+			};
+
+			D3D12RenderDevice::Get().GetD3D12Device()->CreateUnorderedAccessView(
+				nullptr, nullptr, &viewDesc, nullDescriptor.GetCPUHandle());
+		}
+		break;
+	default:
+		PE_ASSERT_NO_ENTRY();
+	}
+
+	return nullDescriptor;
 }
 
-RenderResourceView* D3D12RenderContext::GetResourceView(const std::wstring& name)
+void D3D12RenderContext::SetRootParam(int32_t rootIndex, const CPUDescriptorHeapAllocation& cpuAllocation, PipelineStateType type)
 {
-	auto it = m_rootResources.find(name);
-	if (it == m_rootResources.end())
-		return nullptr;
-	return it->second;
+	const auto* allocPtr = &cpuAllocation;
+	SetRootParam(rootIndex, std::span(&allocPtr, 1), type);
+}
+
+void D3D12RenderContext::SetRootParam(int32_t rootIndex, std::span<const CPUDescriptorHeapAllocation*> cpuAllocations, PipelineStateType type)
+{
+	auto gpuDescriptorHandle = D3D12RenderDevice::Get().CopyToGPUHeap(cpuAllocations);
+	if (type == PipelineStateType::Graphics)
+		m_commandList->SetGraphicsRootDescriptorTable(rootIndex, gpuDescriptorHandle.GetGPUHandle());
+	else if (type == PipelineStateType::Compute)
+		m_commandList->SetComputeRootDescriptorTable(rootIndex, gpuDescriptorHandle.GetGPUHandle());
+
+	// Save the descriptor allocation because destructor will free the descriptor handle otherwise
+	m_gpuDescriptors.push_back(std::move(gpuDescriptorHandle));
 }
 }

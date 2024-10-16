@@ -251,7 +251,10 @@ void SDLPlatform::PumpEvents()
 			break;
 		case SDL_EVENT_MOUSE_WHEEL:
 			{
-				AppEvents::MouseWheel event;
+				AppEvents::MouseWheel event = {
+					.x = sdlEvent.wheel.x,
+					.y = sdlEvent.wheel.y
+				};
 				executeCallbacks(event);
 			}
 			break;

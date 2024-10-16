@@ -11,7 +11,7 @@
 
 using namespace Prism;
 
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferCamera
+struct CBufferCamera
 {
 	glm::float4x4 view;
 	glm::float4x4 proj;
@@ -20,16 +20,62 @@ struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferCamera
 	glm::float3 camPos;
 };
 
+struct DirectionalLight
+{
+	alignas(16)
+	glm::float3 direction;
+	alignas(16)
+	glm::float3 lightColor;
+};
+
+struct PointLight
+{
+	alignas(16)
+	glm::float3 position;
+	alignas(16)
+	glm::float3 lightColor;
+};
+
+struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferScene
+{
+	alignas(16)
+	CBufferCamera camera;
+
+	alignas(16)
+	DirectionalLight directionalLights[16];
+	alignas(16)
+	PointLight pointLights[16];
+};
+
+struct Material
+{
+	glm::float3 albedo;
+	float metallic = 0.f;
+	float roughness = 0.f;
+	float ao = 0.f;
+};
+
 struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferModel
 {
 	glm::float4x4 world;
+
+	alignas(16)
+	int32_t useAlbedoTexture = false;
+	int32_t useMetallicTexture = false;
+	int32_t useRoughnessTexture = false;
+	int32_t useAoTexture = false;
+	alignas(16)
+	int32_t useNormalTexture = false;
+
+	alignas(16)
+	Material material;
 };
 
 struct Vertex
 {
-	alignas(16)
 	glm::float3 position;
 	glm::float3 normal;
+	glm::float3 tangent;
 	glm::float3 color;
 	glm::float2 texCoords;
 };
@@ -46,13 +92,33 @@ private:
 
 	Ref<Render::Texture> m_depthStencil;
 	Ref<Render::TextureView> m_depthStencilView;
-	Ref<Render::Texture> m_texture;
-	Ref<Render::TextureView> m_textureView;
-	Ref<Render::Buffer> m_cameraCbuffer;
-	Ref<Render::BufferView> m_cameraCbufferView;
+
+	Ref<Render::Texture> m_skybox;
+	Ref<Render::TextureView> m_skyboxSRVView;
+	Ref<Render::TextureView> m_skyboxUAVView;
+
+	Ref<Render::Texture> m_irradiance;
+	Ref<Render::TextureView> m_irradianceSRVView;
+	Ref<Render::TextureView> m_irradianceUAVView;
+
+	Ref<Render::Texture> m_rustedIronAlbedo;
+	Ref<Render::TextureView> m_rustedIronAlbedoView;
+	Ref<Render::Texture> m_rustedIronMetallic;
+	Ref<Render::TextureView> m_rustedIronMetallicView;
+	Ref<Render::Texture> m_rustedIronRoughness;
+	Ref<Render::TextureView> m_rustedIronRoughnessView;
+	Ref<Render::Texture> m_rustedIronNormal;
+	Ref<Render::TextureView> m_rustedIronNormalView;
+
+	Ref<Render::Texture> m_environmentTexture;
+	Ref<Render::TextureView> m_environmentTextureView;
+
+	Ref<Render::Buffer> m_sceneCbuffer;
+	Ref<Render::BufferView> m_sceneCbufferView;
 
 	Ref<Render::Primitive> m_monkey;
 	Ref<Render::Primitive> m_floor;
+	Ref<Render::Primitive> m_cube;
 
 	float m_cameraSpeed = 0.05f;
 	float m_mouseSpeed = 0.005f;

@@ -11,9 +11,9 @@ project "Prism-Core"
 	libDirs["SDL"] = path.normalize("%{prj.location}/Vendor/SDL/Bin/" .. outputFolderName)
 	includeDirs["DirectXTK12"] = path.normalize("%{prj.location}/Vendor/DirectXTK12/Inc")
 	libDirs["DirectXTK12"] = path.normalize("%{prj.location}/Vendor/DirectXTK12/Bin/" .. outputFolderName)
-	includeDirs["xxHash_cpp"] = path.normalize("%{prj.location}/Vendor/xxHash_cpp/include")
 	includeDirs["assimp"] = path.normalize("%{prj.location}/Vendor/assimp/include")
 	libDirs["assimp"] = path.normalize("%{prj.location}/Vendor/assimp/Bin/" .. outputFolderName)
+	includeDirs["stb"] = path.normalize("%{prj.location}/Vendor/stb/")
 
 	files
 	{
@@ -29,8 +29,9 @@ project "Prism-Core"
 		includeDirs["glm"],
 		includeDirs["spdlog"],
 		includeDirs["spdlog-fmt"],
-		includeDirs["xxHash_cpp"],
-		includeDirs["assimp"]
+		includeDirs["assimp"],
+		includeDirs["stb"],
+		includeDirs["AgilitySDK"]
 	}
 
 	libdirs
@@ -62,14 +63,15 @@ project "Prism-Core"
 		{
 			includeDirs["SDL"],
 			includeDirs["DirectXTK12"],
-			includeDirs["WinPixEventRuntime"]
+			includeDirs["WinPixEventRuntime"],
+			includeDirs["AgilitySDK"]
 		}
 
 		libdirs
 		{
 			libDirs["SDL"],
 			libDirs["DirectXTK12"],
-			libDirs["WinPixEventRuntime"]
+			libDirs["WinPixEventRuntime"],
 		}
 
 		links

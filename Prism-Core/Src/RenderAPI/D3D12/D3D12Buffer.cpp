@@ -7,20 +7,16 @@
 
 namespace Prism::Render::D3D12
 {
-D3D12Buffer::D3D12Buffer(const BufferDesc& desc, BufferData initData, Flags<ResourceStateFlags> initState)
+D3D12Buffer::D3D12Buffer(const BufferDesc& desc, RawData initData, Flags<ResourceStateFlags> initState)
 	: m_originalDesc(desc)
 {
 	// TODO: Implement staging buffers
 	PE_ASSERT(desc.usage != ResourceUsage::Staging);
 
+	// Dynamic buffers don't need to be created here, they will be automatically created when Map is called
 	if (desc.usage == ResourceUsage::Default)
 	{
-		auto actualInitState = desc.usage == ResourceUsage::Default && initData.data ? ResourceStateFlags::CopyDest : initState;
-		actualInitState = ResourceStateFlags::Common;
-
-		auto heapProps = CD3DX12_HEAP_PROPERTIES(m_originalDesc.usage == ResourceUsage::Default
-													 ? D3D12_HEAP_TYPE_DEFAULT
-													 : D3D12_HEAP_TYPE_UPLOAD);
+		auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 		auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(
 			m_originalDesc.size,
 			GetD3D12ResourceFlags(m_originalDesc.bindFlags));
@@ -28,16 +24,17 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc, BufferData initData, Flags<Reso
 			&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&bufferDesc,
-			GetD3D12ResourceStates(actualInitState),
+			GetD3D12ResourceStates(ResourceStateFlags::Common),
 			nullptr, IID_PPV_ARGS(&m_resource)));
 
 		PE_ASSERT_HR(m_resource->SetName(m_originalDesc.bufferName.c_str()));
 	}
 
-	if (initData.data)
+	if (initData.data && initData.sizeInBytes > 0)
 	{
 		if (desc.usage == ResourceUsage::Dynamic)
 		{
+			// TODO: Maybe add dynamic readback buffers?
 			PE_ASSERT(desc.cpuAccess == CPUAccess::Write, "Dynamic buffers must have only the CPUAccess::Write flag set");
 
 			void* data = D3D12Buffer::Map(CPUAccess::Write);
@@ -50,7 +47,6 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc, BufferData initData, Flags<Reso
 
 			context->UpdateBuffer(this, initData);
 
-			// TODO
 			/*context->Transition({
 				.resource = this,
 				.oldState = ResourceStateFlags::CopyDest,
@@ -65,7 +61,7 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc, BufferData initData, Flags<Reso
 }
 
 D3D12Buffer::D3D12Buffer(ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage)
-	: m_originalDesc(D3D12::GetBufferDesc(resource->GetDesc(), name, usage)), m_resource(resource)
+	: m_resource(resource), m_originalDesc(D3D12::GetBufferDesc(resource->GetDesc(), name, usage))
 {
 }
 

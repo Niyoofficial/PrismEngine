@@ -6,6 +6,7 @@ namespace Prism::Render
 {
 enum class TextureViewType
 {
+	Unknown,
 	SRV,
 	UAV,
 	RTV,
@@ -37,7 +38,7 @@ public:
 class TextureView : public RenderResourceView
 {
 public:
-	static TextureView* Create(const TextureViewDesc& desc, class Texture* texture);
+	static TextureView* Create(const TextureViewDesc& desc, Texture* texture);
 
 	constexpr virtual ResourceType GetResourceType() const override { return ResourceType::Texture; }
 

@@ -358,8 +358,8 @@ struct RasterizerStateDesc
 	bool operator==(const RasterizerStateDesc& other) const;
 
 	FillMode fillMode = FillMode::Solid;
-	CullMode cullMode = CullMode::None;
-	bool frontCounterClockwise = true;
+	CullMode cullMode = CullMode::Back;
+	bool frontCounterClockwise = false;
 	int32_t depthBias = 0;
 	float depthBiasClamp = 0.f;
 	float slopeScaledDepthBias = 0.f;
@@ -769,6 +769,22 @@ struct StateTransitionDesc
 
 	Flags<ResourceStateFlags> oldState;
 	Flags<ResourceStateFlags> newState;
+};
+
+struct RawData
+{
+	const void* data = nullptr;
+	int64_t sizeInBytes = 0;
+};
+
+struct Box
+{
+	int32_t left;
+	int32_t top;
+	int32_t front;
+	int32_t right;
+	int32_t bottom;
+	int32_t back;
 };
 }
 

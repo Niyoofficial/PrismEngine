@@ -86,7 +86,12 @@ public:
 
 	constexpr bool HasAllFlags(Flags<BitType> flags)
 	{
-		return (m_mask & flags.m_mask) == m_mask;
+		return (m_mask & flags.m_mask) == flags.m_mask;
+	}
+
+	constexpr MaskType GetUnderlyingType()
+	{
+		return m_mask;
 	}
 
 private:

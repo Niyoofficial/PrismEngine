@@ -52,29 +52,19 @@ public:
 
 	Flags<BindFlags> bindFlags = BindFlags::None;
 	ResourceUsage usage = ResourceUsage::Default;
+	Flags<CPUAccess> cpuAccess = CPUAccess::None;
 
-	ClearValue optimizedClearValue;
-};
-
-struct TextureData
-{
-	const void* data = nullptr;
-
-	// For 2D and 3D textures, row stride in bytes
-	uint64_t stride = 0;
-
-	// For 3D textures, depth slice stride in bytes
-	uint64_t depthStride = 0;
+	std::optional<ClearValue> optimizedClearValue;
 };
 
 class Texture : public RenderResource
 {
 public:
-	static Ref<Texture> Create(const TextureDesc& desc, const std::vector<TextureData>& initData = {},
+	static Ref<Texture> Create(const TextureDesc& desc, RawData initData = {},
 							   Flags<ResourceStateFlags> initState = ResourceStateFlags::Common);
 	static Ref<Texture> Create(std::wstring filepath, bool loadAsCubemap = false);
 
-	Ref<TextureView> CreateView(const TextureViewDesc& desc);
+	Ref<TextureView> CreateView(const TextureViewDesc& desc = {});
 
 	virtual ResourceType GetResourceType() const override { return ResourceType::Texture; }
 	virtual TextureDesc GetTextureDesc() const = 0;

@@ -25,7 +25,7 @@ Primitive::Primitive(const std::wstring& primitiveName, int64_t vertexSize, Inde
 											.usage = ResourceUsage::Dynamic,
 											.cpuAccess = CPUAccess::Write
 										}, {}, ResourceStateFlags::ConstantBuffer);
-	m_primitiveCBufferView = m_primitiveCBuffer->CreateDefaultView();
+	m_primitiveCBufferView = m_primitiveCBuffer->CreateDefaultCBVView();
 
 	// Vertex Buffer
 	m_vertexBuffer = Buffer::Create({

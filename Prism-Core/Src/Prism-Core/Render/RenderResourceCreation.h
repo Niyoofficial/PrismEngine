@@ -3,7 +3,7 @@
 #include "Prism-Core/Render/Buffer.h"
 #include "Prism-Core/Render/BufferView.h"
 #include "Prism-Core/Render/Texture.h"
-#include "Prism-Core/Render/GraphicsPipelineState.h"
+#include "Prism-Core/Render/PipelineState.h"
 #include "Prism-Core/Render/RenderDevice.h"
 
 namespace Prism::Render::Private
@@ -13,9 +13,10 @@ RenderContext* CreateRenderContext();
 Swapchain* CreateSwapchain(Core::Window* window, SwapchainDesc swapchainDesc);
 Shader* CreateShader(const ShaderCreateInfo& createInfo);
 GraphicsPipelineState* CreatePipelineState(const GraphicsPipelineStateDesc& desc);
-Buffer* CreateBuffer(const BufferDesc& desc, BufferData initData, Flags<ResourceStateFlags> initState);
+ComputePipelineState* CreatePipelineState(const ComputePipelineStateDesc& desc);
+Buffer* CreateBuffer(const BufferDesc& desc, RawData initData, Flags<ResourceStateFlags> initState);
 BufferView* CreateBufferView(const BufferViewDesc& desc, class Buffer* buffer);
-Texture* CreateTexture(const TextureDesc& desc, const std::vector<TextureData>& initData, Flags<ResourceStateFlags> initState);
+Texture* CreateTexture(const TextureDesc& desc, RawData initData, Flags<ResourceStateFlags> initState);
 Texture* CreateTexture(std::wstring filepath, bool loadAsCubemap);
 TextureView* CreateTextureView(const TextureViewDesc& desc, Texture* texture);
 }

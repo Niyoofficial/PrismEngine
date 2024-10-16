@@ -3,10 +3,21 @@
 
 namespace Prism::Render
 {
+enum class BufferViewType
+{
+	Unknown,
+	CBV,
+	SRV,
+	UAV,
+};
+
 struct BufferViewDesc
 {
+	BufferViewType type;
 	int64_t offset = 0;
 	int64_t size = 0;
+	// Used only for SRV and UAV, can be left as 0 for CBV
+	int64_t elementSize = 0;
 };
 
 class BufferView : public RenderResourceView

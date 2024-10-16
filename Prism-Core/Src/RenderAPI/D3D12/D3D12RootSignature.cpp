@@ -4,14 +4,41 @@
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12ShaderImpl.h"
 
+
 namespace Prism::Render::D3D12
 {
-D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
+struct RootSignatureInfo
 {
-	std::array shaders = {
-		static_cast<D3D12Shader*>(psoDesc.vs),
-		static_cast<D3D12Shader*>(psoDesc.ps)
-	};
+	ID3D12RootSignature* rootSignature = nullptr;
+	std::unordered_map<std::wstring, int32_t> indexMap;
+	std::unordered_map<int32_t, D3D12_SHADER_INPUT_BIND_DESC> reflectionInfo;
+};
+
+template<typename T>
+RootSignatureInfo CreateRootSignature(const T& psoDesc) requires
+															std::is_same_v<T, GraphicsPipelineStateDesc> ||
+															std::is_same_v<T, ComputePipelineStateDesc>
+{
+	RootSignatureInfo info;
+
+	using ShaderArray = std::conditional_t<std::is_same_v<T, GraphicsPipelineStateDesc>,
+										   std::array<D3D12Shader*, 2>,
+										   std::array<D3D12Shader*, 1>>;
+
+	ShaderArray shaders;
+	if constexpr (std::is_same_v<T, GraphicsPipelineStateDesc>)
+	{
+		shaders = {
+			static_cast<D3D12Shader*>(psoDesc.vs),
+			static_cast<D3D12Shader*>(psoDesc.ps)
+		};
+	}
+	else
+	{
+		shaders = {
+			static_cast<D3D12Shader*>(psoDesc.cs)
+		};
+	}
 
 	std::vector<D3D12_ROOT_PARAMETER> rootParams;
 	std::forward_list<D3D12_DESCRIPTOR_RANGE> descriptorRanges; // To keep ranges alive since root parameter takes a pointer
@@ -30,11 +57,8 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 			PE_ASSERT_HR(reflection->GetResourceBindingDesc(resIndex, &resourceDesc));
 
 			std::wstring resourceName = StringToWString(resourceDesc.Name);
-			if (!m_rootParamsIndexMap.contains(resourceName))
+			if (!info.indexMap.contains(resourceName))
 			{
-				// This allows us to refer to the params by name, not an index
-				m_rootParamsIndexMap[resourceName] = (int32_t)rootParams.size();
-
 				if (resourceDesc.Type == D3D_SIT_CBUFFER)
 				{
 					auto& range = descriptorRanges.emplace_front(D3D12_DESCRIPTOR_RANGE{
@@ -43,7 +67,7 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 						.BaseShaderRegister = resourceDesc.BindPoint,
 						.RegisterSpace = resourceDesc.Space,
 						.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
-					});
+						});
 
 					D3D12_ROOT_PARAMETER rootParam = {
 						.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
@@ -60,7 +84,28 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 				{
 					auto& range = descriptorRanges.emplace_front(D3D12_DESCRIPTOR_RANGE{
 						.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV,
-						.NumDescriptors = 1,
+						.NumDescriptors = resourceDesc.BindCount,
+						.BaseShaderRegister = resourceDesc.BindPoint,
+						.RegisterSpace = resourceDesc.Space,
+						.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
+						});
+
+					D3D12_ROOT_PARAMETER rootParam = {
+						.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+						.DescriptorTable = {
+							.NumDescriptorRanges = 1,
+							.pDescriptorRanges = &range
+						},
+						//.ShaderVisibility = 
+					};
+
+					rootParams.push_back(rootParam);
+				}
+				else if (resourceDesc.Type == D3D_SIT_UAV_RWTYPED)
+				{
+					auto& range = descriptorRanges.emplace_front(D3D12_DESCRIPTOR_RANGE{
+						.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+						.NumDescriptors = resourceDesc.BindCount,
 						.BaseShaderRegister = resourceDesc.BindPoint,
 						.RegisterSpace = resourceDesc.Space,
 						.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
@@ -77,6 +122,36 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 
 					rootParams.push_back(rootParam);
 				}
+				else if (resourceDesc.Type == D3D_SIT_UAV_RWSTRUCTURED)
+				{
+					auto& range = descriptorRanges.emplace_front(D3D12_DESCRIPTOR_RANGE{
+						.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+						.NumDescriptors = resourceDesc.BindCount,
+						.BaseShaderRegister = resourceDesc.BindPoint,
+						.RegisterSpace = resourceDesc.Space,
+						.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
+					});
+
+					D3D12_ROOT_PARAMETER rootParam = {
+						.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+						.DescriptorTable = {
+							.NumDescriptorRanges = 1,
+							.pDescriptorRanges = &range
+						},
+						//.ShaderVisibility = 
+					};
+
+					rootParams.push_back(rootParam);
+				}
+				else
+				{
+					continue;
+				}
+
+				int32_t rootParamIndex = (int32_t)rootParams.size() - 1;
+				// This allows us to refer to the params by name, not an index
+				info.indexMap[resourceName] = rootParamIndex;
+				info.reflectionInfo[rootParamIndex] = resourceDesc;
 			}
 		}
 	}
@@ -149,8 +224,8 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 
 	// Create the root signature
 	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc((UINT)rootParams.size(), rootParams.data(),
-											(UINT)samplers.size(), samplers.data(),
-											D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+		(UINT)samplers.size(), samplers.data(),
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	ComPtr<ID3DBlob> serializedRootSig;
 	ComPtr<ID3DBlob> errorBlob;
@@ -173,7 +248,25 @@ D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
 	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateRootSignature(
 		0,
 		serializedRootSig->GetBufferPointer(), serializedRootSig->GetBufferSize(),
-		IID_PPV_ARGS(&m_rootSignature)));
+		IID_PPV_ARGS(&info.rootSignature)));
+
+	return info;
+}
+
+D3D12RootSignature::D3D12RootSignature(const GraphicsPipelineStateDesc& psoDesc)
+{
+	auto [rootSig, indexMap, reflection] = CreateRootSignature(psoDesc);
+	m_rootSignature = rootSig;
+	m_rootParamsIndexMap = indexMap;
+	m_rootParamsReflection = reflection;
+}
+
+D3D12RootSignature::D3D12RootSignature(const ComputePipelineStateDesc& psoDesc)
+{
+	auto [rootSig, indexMap, reflection] = CreateRootSignature(psoDesc);
+	m_rootSignature = rootSig;
+	m_rootParamsIndexMap = indexMap;
+	m_rootParamsReflection = reflection;
 }
 
 int32_t D3D12RootSignature::GetParamIndex(const std::wstring& paramName)
@@ -181,6 +274,18 @@ int32_t D3D12RootSignature::GetParamIndex(const std::wstring& paramName)
 	auto it = m_rootParamsIndexMap.find(paramName);
 	if (it == m_rootParamsIndexMap.end())
 		return -1;
+	return it->second;
+}
+
+D3D12_SHADER_INPUT_BIND_DESC D3D12RootSignature::GetReflectionForRootParam(int32_t paramIndex)
+{
+	auto it = m_rootParamsReflection.find(paramIndex);
+	if (it == m_rootParamsReflection.end())
+	{
+		PE_ASSERT_NO_ENTRY();
+		return {};
+	}
+
 	return it->second;
 }
 }

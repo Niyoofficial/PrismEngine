@@ -7,6 +7,7 @@
 #include <queue>
 #include <deque>
 #include <any>
+#include <span>
 
 #include "glm/gtx/compatibility.hpp"
 #include "glm/gtx/quaternion.hpp"

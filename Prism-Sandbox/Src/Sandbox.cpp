@@ -31,50 +31,113 @@ SandboxLayer::SandboxLayer()
 			m_camera->AddRotation({-delta.y, -delta.x, 0.f});
 		});
 
+	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseWheel>(
+		[this](Core::AppEvent event)
+		{
+			float delta = std::get<Core::AppEvents::MouseWheel>(event).y;
+			constexpr float moveSpeedChangeMult = 0.01f;
+			constexpr float minMoveSpeed = 0.01f;
+			m_cameraSpeed += delta * moveSpeedChangeMult;
+			m_cameraSpeed = std::max(m_cameraSpeed, minMoveSpeed);
+		});
+
 	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
 	m_camera = new Camera(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
 	m_camera->SetPosition({0.f, 0.f, -5.f});
 
-	TextureDesc depthStencilDesc = {
-		.textureName = L"DepthStencil",
-		.width = windowSize.x,
-		.height = windowSize.y,
-		.dimension = ResourceDimension::Tex2D,
-		.format = TextureFormat::D24_UNorm_S8_UInt,
-		.bindFlags = BindFlags::DepthStencil,
-		.optimizedClearValue = DepthStencilClearValue{
-			.format = TextureFormat::D24_UNorm_S8_UInt
-		}
-	};
-	m_depthStencil = Texture::Create(depthStencilDesc, {}, ResourceStateFlags::DepthWrite);
-	TextureViewDesc depthStencilViewDesc = {
+	m_depthStencil = Texture::Create({
+										 .textureName = L"DepthStencil",
+										 .width = windowSize.x,
+										 .height = windowSize.y,
+										 .dimension = ResourceDimension::Tex2D,
+										 .format = TextureFormat::D24_UNorm_S8_UInt,
+										 .bindFlags = BindFlags::DepthStencil,
+										 .optimizedClearValue = DepthStencilClearValue{
+											 .format = TextureFormat::D24_UNorm_S8_UInt
+										 }
+									 }, {}, ResourceStateFlags::DepthWrite);
+	m_depthStencilView = m_depthStencil->CreateView({
 		.type = TextureViewType::DSV,
 		.dimension = ResourceDimension::Tex2D,
-	};
-	m_depthStencilView = m_depthStencil->CreateView(depthStencilViewDesc);
+	});
 
-	m_texture = Texture::Create(L"Textures/CheckerBoard.jpeg");
-	TextureViewDesc textureViewDesc = {
+	m_skybox = Texture::Create({
+		.textureName = L"Skybox",
+		.width = 1024,
+		.height = 1024,
+		.depthOrArraySize = 6,
+		.dimension = ResourceDimension::TexCube,
+		.format = TextureFormat::RGBA16_Float,
+		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
+		.optimizedClearValue = {}
+	});
+	m_skyboxSRVView = m_skybox->CreateView({
 		.type = TextureViewType::SRV,
-		.format = m_texture->GetTextureDesc().format,
-		.dimension = m_texture->GetTextureDesc().dimension,
+		.dimension = ResourceDimension::TexCube,
 		.firstMipLevel = 0,
-		.numMipLevels = m_texture->GetTextureDesc().mipLevels
-	};
-	m_textureView = m_texture->CreateView(textureViewDesc);
+		.numMipLevels = 1,
+		.firstArrayOrDepthSlice = 0,
+		.arrayOrDepthSlicesCount = 6
+	});
+	m_skyboxUAVView = m_skybox->CreateView({
+		.type = TextureViewType::UAV,
+		.dimension = ResourceDimension::TexCube,
+		.firstMipLevel = 0,
+		.numMipLevels = 1,
+		.firstArrayOrDepthSlice = 0,
+		.arrayOrDepthSlicesCount = 6
+	});
+
+	m_irradiance = Texture::Create({
+		.textureName = L"irradiance",
+		.width = 1024,
+		.height = 1024,
+		.depthOrArraySize = 6,
+		.dimension = ResourceDimension::TexCube,
+		.format = TextureFormat::RGBA16_Float,
+		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
+		.optimizedClearValue = {}
+	});
+	m_irradianceSRVView = m_irradiance->CreateView({
+		.type = TextureViewType::SRV,
+		.dimension = ResourceDimension::TexCube,
+		.firstMipLevel = 0,
+		.numMipLevels = 1,
+		.firstArrayOrDepthSlice = 0,
+		.arrayOrDepthSlicesCount = 6
+	});
+	m_irradianceUAVView = m_irradiance->CreateView({
+		.type = TextureViewType::UAV,
+		.dimension = ResourceDimension::TexCube,
+		.firstMipLevel = 0,
+		.numMipLevels = 1,
+		.firstArrayOrDepthSlice = 0,
+		.arrayOrDepthSlicesCount = 6
+	});
+
+	m_rustedIronAlbedo = Texture::Create(L"Textures/rustediron2_basecolor.png");
+	m_rustedIronAlbedoView = m_rustedIronAlbedo->CreateView();
+	m_rustedIronMetallic = Texture::Create(L"Textures/rustediron2_metallic.png");
+	m_rustedIronMetallicView = m_rustedIronMetallic->CreateView();
+	m_rustedIronRoughness = Texture::Create(L"Textures/rustediron2_roughness.png");
+	m_rustedIronRoughnessView = m_rustedIronRoughness->CreateView();
+	m_rustedIronNormal = Texture::Create(L"Textures/rustediron2_normal.png");
+	m_rustedIronNormalView = m_rustedIronNormal->CreateView();
+
+	m_environmentTexture = Texture::Create(L"Textures/tief_etz_4k.hdr");
+	m_environmentTextureView = m_environmentTexture->CreateView();
 
 
-	// Camera cbuffer
-	m_cameraCbuffer = Buffer::Create({
-										 .bufferName = L"CameraCBuffer",
-										 .size = sizeof(CBufferCamera),
-										 .bindFlags = BindFlags::ConstantBuffer,
-										 .usage = ResourceUsage::Dynamic,
-										 .cpuAccess = CPUAccess::Write
-									 }, {}, ResourceStateFlags::ConstantBuffer);
-	m_cameraCbufferView = m_cameraCbuffer->CreateDefaultView();
-
+	// Scene cbuffer
+	m_sceneCbuffer = Buffer::Create({
+										.bufferName = L"SceneCBuffer",
+										.size = sizeof(CBufferScene),
+										.bindFlags = BindFlags::ConstantBuffer,
+										.usage = ResourceUsage::Dynamic,
+										.cpuAccess = CPUAccess::Write
+									}, {}, ResourceStateFlags::ConstantBuffer);
+	m_sceneCbufferView = m_sceneCbuffer->CreateDefaultCBVView();
 
 	// Load monkey
 	ShapeUtils::ShapeData monkey = ShapeUtils::LoadShapeFromFile(L"Meshes/Monkey.fbx");
@@ -95,6 +158,81 @@ SandboxLayer::SandboxLayer()
 							floorVertices.data(), (int64_t)floorVertices.size(),
 							floorIndices.data(), (int64_t)floorIndices.size(),
 							L"ModelBuffer", sizeof(CBufferModel));
+
+	// Load cube
+	ShapeUtils::ShapeData cube = ShapeUtils::LoadShapeFromFile(L"Meshes/Cube.fbx");
+	std::vector<Vertex> cubeVertices = SandboxApplication::GetVerticesFromShapeData(cube);
+	std::vector<uint32_t> cubeIndices = SandboxApplication::GetIndicesFromShapeData(cube);
+
+	m_cube = new Primitive(L"Cube", sizeof(Vertex), IndexBufferFormat::Uint32,
+						   cubeVertices.data(), (int64_t)cubeVertices.size(),
+						   cubeIndices.data(), (int64_t)cubeIndices.size(),
+						   L"ModelBuffer", sizeof(CBufferModel));
+
+	Ref<RenderContext> renderContext = RenderDevice::Get().AllocateContext();
+
+	// HDRI to cubemap skybox
+	{
+		auto* pso = ComputePipelineState::Create({
+			.cs = Shader::Create({
+				.filepath = L"Shaders/EquirectToCubemap.hlsl",
+				.entryName = L"main",
+				.shaderType = ShaderType::CS
+			}),
+		});
+		renderContext->SetPSO(pso);
+
+		renderContext->SetTexture(m_environmentTextureView, L"g_environment");
+		renderContext->SetTexture(m_skyboxUAVView, L"g_skybox");
+
+		renderContext->Dispatch(32, 32, 6);
+	}
+
+	// Generate SH coefficients
+	{
+		Ref<Buffer> coeffBuffer = Buffer::Create({
+													 .bufferName = L"SHCoefficients",
+													 .size = sizeof(float) * 3 * 9 * 64 * 64 * 6,
+													 .bindFlags = BindFlags::UnorderedAccess,
+													 .usage = ResourceUsage::Default
+												 }, {}, ResourceStateFlags::UnorderedAccess);
+		Ref<BufferView> coeffBufferView = coeffBuffer->CreateDefaultUAVView(sizeof(float) * 3 * 9);
+
+		auto* pso = ComputePipelineState::Create({
+			.cs = Shader::Create({
+				.filepath = L"Shaders/GenSHCoefficients.hlsl",
+				.entryName = L"main",
+				.shaderType = ShaderType::CS
+			}),
+		});
+		renderContext->SetPSO(pso);
+
+		renderContext->SetTexture(m_skyboxSRVView, L"g_skybox");
+		renderContext->SetCBuffer(coeffBufferView, L"g_coefficients");
+
+		renderContext->Dispatch(64, 64, 6);
+	}
+
+	// Skybox convolution
+	if (0)
+	{
+		auto* pso = ComputePipelineState::Create({
+			.cs = Shader::Create({
+				.filepath = L"Shaders/CubemapConvolution.hlsl",
+				.entryName = L"main",
+				.shaderType = ShaderType::CS
+			}),
+		});
+		renderContext->SetPSO(pso);
+
+		renderContext->SetTexture(m_skyboxSRVView, L"g_skybox");
+		renderContext->SetTexture(m_irradianceUAVView, L"g_convSkybox");
+
+		renderContext->Dispatch(32, 32, 6);
+	}
+
+	RenderDevice::Get().SubmitContext(renderContext);
+	RenderDevice::Get().FlushCommandQueue();
 }
 
 void SandboxLayer::Update(Duration delta)
@@ -117,25 +255,7 @@ void SandboxLayer::Update(Duration delta)
 
 	Ref<RenderContext> renderContext = RenderDevice::Get().AllocateContext();
 
-	renderContext->SetTexture(m_textureView, L"g_texture");
-
 	glm::float2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
-
-	// Camera cbuffer
-	{
-		CBufferCamera cbufferCamera = {
-			.view = m_camera->GetViewMatrix(),
-			.proj = m_camera->GetProjectionMatrix(),
-			.viewProj = m_camera->GetViewProjectionMatrix(),
-
-			.camPos = m_camera->GetPosition()
-		};
-		void* cameraCBufferData = m_cameraCbuffer->Map(CPUAccess::Write);
-		memcpy_s(cameraCBufferData, m_cameraCbuffer->GetBufferDesc().size, &cbufferCamera, sizeof(cbufferCamera));
-		m_cameraCbuffer->Unmap();
-
-		renderContext->SetCBuffer(m_cameraCbufferView, L"CameraBuffer");
-	}
 
 	auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
 	renderContext->Transition({
@@ -152,6 +272,86 @@ void SandboxLayer::Update(Duration delta)
 	renderContext->ClearRenderTargetView(currentBackBuffer, &clearColor);
 	renderContext->ClearDepthStencilView(m_depthStencilView, Flags(ClearFlags::ClearDepth) | Flags(ClearFlags::ClearStencil));
 
+	// Scene cbuffer
+	{
+		CBufferScene cbufferScene = {
+			.camera = {
+				.view = m_camera->GetViewMatrix(),
+				.proj = m_camera->GetProjectionMatrix(),
+				.viewProj = m_camera->GetViewProjectionMatrix(),
+
+				.camPos = m_camera->GetPosition()
+			},
+			.directionalLights = {
+				{.direction = {0.f, -1.f, 1.f}, .lightColor = {0.025f, 0.025f, 0.025f}}
+			},
+			.pointLights = {
+				{.position = {0.f, 2.f, -2.f}, .lightColor = {1.f, 1.f, 1.f}},
+				{.position = {2.f, 2.f, -1.f}, .lightColor = {1.f, 0.f, 0.f}}
+			}
+		};
+
+
+		void* sceneCBufferData = m_sceneCbuffer->Map(CPUAccess::Write);
+		memcpy_s(sceneCBufferData, m_sceneCbuffer->GetBufferDesc().size, &cbufferScene, sizeof(cbufferScene));
+		m_sceneCbuffer->Unmap();
+
+		renderContext->SetCBuffer(m_sceneCbufferView, L"SceneBuffer");
+	}
+
+	// Skybox
+	{
+		auto* pso = GraphicsPipelineState::Create({
+			.vs = Shader::Create({
+				.filepath = L"Shaders/Skybox.hlsl",
+				.entryName = L"vsmain",
+				.shaderType = ShaderType::VS
+			}),
+			.ps = Shader::Create({
+				.filepath = L"Shaders/Skybox.hlsl",
+				.entryName = L"psmain",
+				.shaderType = ShaderType::PS
+			}),
+			.rasterizerState = {
+				.cullMode = CullMode::Front
+			},
+			.depthStencilState = {
+				.depthEnable = true,
+				.depthWriteEnable = true,
+				.depthFunc = ComparisionFunction::LessEqual
+			},
+			.primitiveTopologyType = TopologyType::TriangleList,
+			.numRenderTargets = 1,
+			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
+			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
+		});
+		renderContext->SetPSO(pso);
+
+		renderContext->SetTexture(m_skyboxSRVView, L"g_skybox");
+
+		CBufferModel modelData = {
+			.world = glm::float4x4(1.f),
+
+			.useAlbedoTexture = false,
+			.useMetallicTexture = false,
+			.useRoughnessTexture = false,
+			.material = {
+				.albedo = glm::float3(0.2f, 0.3f, 0.8f),
+				.metallic = 0.2f,
+				.roughness = 0.4f,
+				.ao = 0.3f
+			}
+		};
+		m_cube->BindPrimitive(renderContext, &modelData, sizeof(CBufferModel));
+		m_cube->DrawPrimitive(renderContext);
+	}
+
+	renderContext->SetTexture(m_rustedIronAlbedoView, L"g_albedoTexture");
+	renderContext->SetTexture(m_rustedIronMetallicView, L"g_metallicTexture");
+	renderContext->SetTexture(m_rustedIronRoughnessView, L"g_roughnessTexture");
+	renderContext->SetTexture(m_rustedIronNormalView, L"g_normalTexture");
+	renderContext->SetTexture(m_irradianceSRVView, L"g_irradianceMap");
+
 	// Monkey
 	{
 		auto* pso = GraphicsPipelineState::Create({
@@ -162,7 +362,7 @@ void SandboxLayer::Update(Duration delta)
 			}),
 			.ps = Shader::Create({
 				.filepath = L"Shaders/PBR.hlsl",
-				.entryName = L"monkeypsmain",
+				.entryName = L"psmain",
 				.shaderType = ShaderType::PS
 			}),
 			.depthStencilState = {
@@ -177,7 +377,18 @@ void SandboxLayer::Update(Duration delta)
 		renderContext->SetPSO(pso);
 
 		CBufferModel modelData = {
-			.world = glm::translate(glm::float4x4(1.f), glm::float3(0.f, 2.f, 0.f))
+			.world = glm::translate(glm::float4x4(1.f), glm::float3(0.f, 2.f, 0.f)),
+
+			.useAlbedoTexture = true,
+			.useMetallicTexture = true,
+			.useRoughnessTexture = true,
+			.useNormalTexture = true,
+			.material = {
+				.albedo = glm::float3(1.f, 1.f, 1.f),
+				.metallic = 1.f,
+				.roughness = 1.f,
+				.ao = 0.3f
+			}
 		};
 		m_monkey->BindPrimitive(renderContext, &modelData, sizeof(CBufferModel));
 		m_monkey->DrawPrimitive(renderContext);
@@ -193,7 +404,7 @@ void SandboxLayer::Update(Duration delta)
 			}),
 			.ps = Shader::Create({
 				.filepath = L"Shaders/PBR.hlsl",
-				.entryName = L"floorpsmain",
+				.entryName = L"psmain",
 				.shaderType = ShaderType::PS
 			}),
 			.depthStencilState = {
@@ -208,7 +419,18 @@ void SandboxLayer::Update(Duration delta)
 		renderContext->SetPSO(pso);
 
 		CBufferModel modelData = {
-			.world = glm::float4x4(1.f)
+			.world = glm::float4x4(1.f),
+
+			.useAlbedoTexture = true,
+			.useMetallicTexture = true,
+			.useRoughnessTexture = true,
+			.useNormalTexture = true,
+			.material = {
+				.albedo = glm::float3(1.f, 1.f, 1.f),
+				.metallic = 1.f,
+				.roughness = 1.f,
+				.ao = 0.3f
+			}
 		};
 		m_floor->BindPrimitive(renderContext, &modelData, sizeof(CBufferModel));
 		m_floor->DrawPrimitive(renderContext);
@@ -223,8 +445,6 @@ void SandboxLayer::Update(Duration delta)
 	RenderDevice::Get().SubmitContext(renderContext);
 
 	SandboxApplication::Get().GetWindow()->GetSwapchain()->Present();
-
-	//RenderDevice::Get().FlushCommandQueue();
 }
 
 SandboxApplication& SandboxApplication::Get()
@@ -239,7 +459,7 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 
 	Core::WindowDesc windowParams = {
 		.windowTitle = L"Test",
-		.windowSize = {2560/2, 1440/2},
+		.windowSize = {2560, 1440},
 		.fullscreen = false
 	};
 	Render::SwapchainDesc swapchainDesc = {
@@ -275,6 +495,7 @@ std::vector<Vertex> SandboxApplication::GetVerticesFromShapeData(const ShapeUtil
 		vertices.push_back({
 			.position = vertex.position,
 			.normal = vertex.normal,
+			.tangent = vertex.tangent,
 			.color = vertex.vertexColor,
 			.texCoords = vertex.texCoord
 		});

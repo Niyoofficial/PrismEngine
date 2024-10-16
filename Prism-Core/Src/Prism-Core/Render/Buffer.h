@@ -16,20 +16,16 @@ struct BufferDesc
 	Flags<CPUAccess> cpuAccess = CPUAccess::None;
 };
 
-struct BufferData
-{
-	const void* data = nullptr;
-	int64_t sizeInBytes = 0;
-};
-
 class Buffer : public RenderResource
 {
 public:
-	static Ref<Buffer> Create(const BufferDesc& desc, BufferData initData,
+	static Ref<Buffer> Create(const BufferDesc& desc, RawData initData,
 							  Flags<ResourceStateFlags> initState = ResourceStateFlags::Common);
 
 	Ref<BufferView> CreateView(const BufferViewDesc& desc);
-	Ref<BufferView> CreateDefaultView();
+	Ref<BufferView> CreateDefaultCBVView();
+	Ref<BufferView> CreateDefaultSRVView(int64_t elementSize);
+	Ref<BufferView> CreateDefaultUAVView(int64_t elementSize);
 
 	ResourceType GetResourceType() const override { return ResourceType::Buffer; }
 

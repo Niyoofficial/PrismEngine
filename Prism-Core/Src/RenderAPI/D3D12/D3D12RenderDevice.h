@@ -1,4 +1,7 @@
 ﻿#pragma once
+
+#include <span>
+
 #include "Prism-Core/Render/RenderDevice.h"
 
 #include "RenderAPI/D3D12/D3D12DescriptorHeapManager.h"
@@ -28,8 +31,8 @@ public:
 
 	virtual void ReleaseStaleResources() override;
 
-	virtual uint64_t GetSubmittedCmdListFenceValue() const override;
-	virtual uint64_t GetCompletedCmdListFenceValue() const override;
+	virtual uint64_t GetLastSubmittedCmdListFenceValue() const override;
+	virtual uint64_t GetLastCompletedCmdListFenceValue() const override;
 
 	ID3D12Device* GetD3D12Device() const;
 	IDXGIFactory2* GetDXGIFactory() const;
@@ -40,6 +43,9 @@ public:
 
 	CPUDescriptorHeapAllocation AllocateCPUDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t count = 1);
 	GPUDescriptorHeapAllocation CopyToGPUHeap(const CPUDescriptorHeapAllocation& cpuAllocation);
+	// All descriptors from the span will be grouped together when copied to GPU
+	// All cpu descriptors must be of the same heap type
+	GPUDescriptorHeapAllocation CopyToGPUHeap(std::span<const CPUDescriptorHeapAllocation*> cpuAllocations);
 
 	std::array<ID3D12DescriptorHeap*, 2> GetGPUDescriptorHeaps() const;
 

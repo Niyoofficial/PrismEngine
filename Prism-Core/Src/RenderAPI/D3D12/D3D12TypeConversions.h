@@ -3,7 +3,7 @@
 
 #include "Prism-Core/Render/Buffer.h"
 #include "Prism-Core/Render/BufferView.h"
-#include "Prism-Core/Render/GraphicsPipelineState.h"
+#include "Prism-Core/Render/PipelineState.h"
 #include "Prism-Core/Render/RenderContext.h"
 #include "Prism-Core/Render/Texture.h"
 #include "Prism-Core/Render/TextureView.h"
@@ -30,6 +30,7 @@ DXGI_SAMPLE_DESC GetDXGISampleDesc(SampleDesc sampleDesc);
 DXGI_RATIONAL GetDXGIRational(int32_t numerator, int32_t denominator);
 
 D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc);
+D3D12_COMPUTE_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const ComputePipelineStateDesc& desc);
 CD3DX12_SHADER_BYTECODE GetD3D12ShaderBytecode(Shader* shader);
 
 D3D12_FILL_MODE GetD3D12FillMode(FillMode fillMode);
@@ -58,17 +59,22 @@ D3D12_DESCRIPTOR_HEAP_TYPE GetD3D12DescriptorHeapType(TextureViewType textureVie
 
 D3D12_CONSTANT_BUFFER_VIEW_DESC GetD3D12ConstantBufferViewDesc(Buffer* buffer, BufferViewDesc viewDesc);
 D3D12_CONSTANT_BUFFER_VIEW_DESC GetD3D12ConstantBufferViewDesc(ID3D12Resource* buffer, BufferViewDesc viewDesc);
+D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(BufferViewDesc desc);
 D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(TextureViewDesc desc);
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetD3D12UnorderedAccessViewDesc(BufferViewDesc desc);
+D3D12_UNORDERED_ACCESS_VIEW_DESC GetD3D12UnorderedAccessViewDesc(TextureViewDesc desc);
 D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(TextureViewDesc desc);
 D3D12_DEPTH_STENCIL_VIEW_DESC GetD3D12DepthStencilViewDesc(TextureViewDesc desc);
 
 D3D12_VIEWPORT GetD3D12Viewport(Viewport viewport);
 D3D12_RECT GetD3D12Rect(Scissor scissor);
+D3D12_BOX GetD3D12Box(Box box);
 D3D12_CLEAR_FLAGS GetD3D12ClearFlags(Flags<ClearFlags> clearFlags);
 
 DXGI_FORMAT GetIndexBufferDXGIFormat(IndexBufferFormat format);
 
 UINT GetPlaneSlice(TextureFormat format);
+
 
 
 // DXGI -> Prism
@@ -84,6 +90,10 @@ BufferDesc GetBufferDesc(const D3D12_RESOURCE_DESC& d3d12ResDesc,
 TextureDesc GetTextureDesc(const D3D12_RESOURCE_DESC& d3d12ResDesc,
 						   const std::wstring& name = {},
 						   ResourceUsage usage = ResourceUsage::Default,
-						   ClearValue optimizedClearValue = {},
+						   std::optional<ClearValue> optimizedClearValue = {},
 						   bool isCubeTexture = false);
+
+// Other
+D3D12_SRV_DIMENSION GetD3D12SRVDimension(D3D_SRV_DIMENSION dimension);
+D3D12_UAV_DIMENSION GetD3D12UAVDimension(D3D_SRV_DIMENSION dimension);
 }

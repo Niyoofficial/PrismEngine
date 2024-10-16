@@ -8,6 +8,9 @@
 #include "WinPixEventRuntime/pix3.h"
 #endif
 
+extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 614; }
+extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
+
 
 namespace Prism::Render::D3D12
 {
@@ -48,6 +51,13 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	PE_ASSERT_HR(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_dxgiFactory)));
 
 	PE_ASSERT_HR(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_d3dDevice)));
+
+	// Make sure that required features are supported
+	D3D12_FEATURE_DATA_D3D12_OPTIONS12 requiredFeatureSet = {};
+	PE_ASSERT_HR(m_d3dDevice->CheckFeatureSupport(
+		D3D12_FEATURE_D3D12_OPTIONS12, &requiredFeatureSet, sizeof(requiredFeatureSet)));
+
+	PE_ASSERT(requiredFeatureSet.EnhancedBarriersSupported == TRUE);
 
 #ifdef PE_BUILD_DEBUG
 	{
@@ -98,7 +108,7 @@ D3D12RenderDevice::~D3D12RenderDevice()
 {
 	D3D12RenderDevice::FlushCommandQueue();
 	m_dynamicBufferAllocator.CloseCmdListAllocations(m_mainFenceValue);
-	m_dynamicBufferAllocator.ReleaseStaleAllocations(D3D12RenderDevice::GetCompletedCmdListFenceValue());
+	m_dynamicBufferAllocator.ReleaseStaleAllocations(D3D12RenderDevice::GetLastCompletedCmdListFenceValue());
 
 #if USE_PIX
 	FreeLibrary(m_pixGpuCaptureModule);
@@ -119,9 +129,7 @@ uint64_t D3D12RenderDevice::SubmitContext(RenderContext* context)
 	++m_mainFenceValue;
 	PE_ASSERT_HR(m_commandQueue->Signal(m_mainFence.Get(), m_mainFenceValue));
 
-	m_dynamicBufferAllocator.CloseCmdListAllocations(m_mainFenceValue);
-
-	return GetSubmittedCmdListFenceValue();
+	return GetLastSubmittedCmdListFenceValue();
 }
 
 void D3D12RenderDevice::WaitForCmdListToComplete(uint64_t fenceValue)
@@ -144,16 +152,18 @@ void D3D12RenderDevice::FlushCommandQueue()
 
 void D3D12RenderDevice::ReleaseStaleResources()
 {
-	m_contextReleaseQueue.PurgeReleaseQueue(GetCompletedCmdListFenceValue());
-	m_dynamicBufferAllocator.ReleaseStaleAllocations(GetCompletedCmdListFenceValue());
+	m_contextReleaseQueue.PurgeReleaseQueue(GetLastCompletedCmdListFenceValue());
+
+	m_dynamicBufferAllocator.CloseCmdListAllocations(m_mainFenceValue);
+	m_dynamicBufferAllocator.ReleaseStaleAllocations(GetLastCompletedCmdListFenceValue());
 }
 
-uint64_t D3D12RenderDevice::GetSubmittedCmdListFenceValue() const
+uint64_t D3D12RenderDevice::GetLastSubmittedCmdListFenceValue() const
 {
 	return m_mainFenceValue;
 }
 
-uint64_t D3D12RenderDevice::GetCompletedCmdListFenceValue() const
+uint64_t D3D12RenderDevice::GetLastCompletedCmdListFenceValue() const
 {
 	return m_mainFence->GetCompletedValue();
 }
@@ -192,6 +202,37 @@ GPUDescriptorHeapAllocation D3D12RenderDevice::CopyToGPUHeap(const CPUDescriptor
 	m_d3dDevice->CopyDescriptorsSimple(gpuAllocation.GetNumHandles(),
 									   gpuAllocation.GetCPUHandle(), cpuAllocation.GetCPUHandle(),
 									   gpuAllocation.GetOwningHeap()->GetHeapType());
+
+	return gpuAllocation;
+}
+
+GPUDescriptorHeapAllocation D3D12RenderDevice::CopyToGPUHeap(std::span<const CPUDescriptorHeapAllocation*> cpuAllocations)
+{
+	if (cpuAllocations.empty())
+		return {};
+
+	D3D12_DESCRIPTOR_HEAP_TYPE heapType = cpuAllocations[0]->GetOwningHeap()->GetHeapType();
+	int32_t totalDescriptors = 0;
+	for (auto& cpuAllocation : cpuAllocations)
+	{
+		PE_ASSERT(cpuAllocation);
+		PE_ASSERT(heapType == cpuAllocation->GetOwningHeap()->GetHeapType());
+		PE_ASSERT(m_cpuDescriptorHeapManagers.contains(heapType));
+		totalDescriptors += cpuAllocation->GetNumHandles();
+	}
+
+	auto gpuAllocation = m_gpuDescriptorHeapManagers.at(heapType).Allocate(totalDescriptors);
+	int32_t currentHandle = 0;
+	for (auto& cpuAllocation : cpuAllocations)
+	{
+		PE_ASSERT(cpuAllocation);
+
+		m_d3dDevice->CopyDescriptorsSimple(cpuAllocation->GetNumHandles(),
+										   gpuAllocation.GetCPUHandle(currentHandle), cpuAllocation->GetCPUHandle(),
+										   gpuAllocation.GetOwningHeap()->GetHeapType());
+
+		currentHandle += cpuAllocation->GetNumHandles();
+	}
 
 	return gpuAllocation;
 }

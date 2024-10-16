@@ -67,7 +67,11 @@ namespace AppEvents
 		bool doubleClick = false;
 	};
 	struct MouseButtonUp {};
-	struct MouseWheel {};
+	struct MouseWheel
+	{
+		float x = 0.f;
+		float y = 0.f;
+	};
 
 	/* Gamepad events */
 	struct GamepadAxisMotion {};

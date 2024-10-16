@@ -35,6 +35,8 @@ workspace "PrismEngine"
 		libDirs["dxc"] = path.normalize("%{wks.location}/Vendor/dxc/")
 		includeDirs["WinPixEventRuntime"] = path.normalize("%{wks.location}/Vendor/WinPixEventRuntime/Include/")
 		libDirs["WinPixEventRuntime"] = path.normalize("%{wks.location}/Vendor/WinPixEventRuntime/bin/x64/")
+		includeDirs["AgilitySDK"] = path.normalize("%{wks.location}/Vendor/AgilitySDK/include/")
+		libDirs["AgilitySDK"] = path.normalize("%{wks.location}/Vendor/AgilitySDK/bin/x64/")
 
 		defines { "USE_PIX" }
 	filter {}
@@ -50,7 +52,6 @@ group "Core/Dependencies"
 	include "Prism-Core/Vendor/assimp/Build-assimp.lua"
 	include "Prism-Core/Vendor/SDL/Build-SDL.lua"
 	include "Prism-Core/Vendor/DirectXTK12/Build-DirectXTK12.lua"
-	include "Prism-Core/Vendor/xxHash_cpp/Build-xxHash_cpp.lua"
 group ""
 
 include "Prism-Sandbox/Build-Sandbox.lua"

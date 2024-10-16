@@ -118,7 +118,7 @@ int32_t TextureDesc::GetDepthOrArraySize() const
 	return depthOrArraySize;
 }
 
-Ref<Texture> Texture::Create(const TextureDesc& desc, const std::vector<TextureData>& initData,
+Ref<Texture> Texture::Create(const TextureDesc& desc, RawData initData,
 							 Flags<ResourceStateFlags> initState)
 {
 	return Private::CreateTexture(desc, initData, initState);

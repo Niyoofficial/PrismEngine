@@ -10,7 +10,7 @@ public:
 
 	struct CompletedTailAttributes
 	{
-		uint64_t fenceValue;
+		uint64_t fenceValue = 0;
 		int64_t offset = INVALID_OFFSET;
 		int64_t size = INVALID_OFFSET;
 	};

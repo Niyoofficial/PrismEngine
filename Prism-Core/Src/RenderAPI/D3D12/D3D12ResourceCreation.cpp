@@ -1,6 +1,6 @@
 #include "pcpch.h"
 
-#include "RenderAPI/D3D12/D3D12GraphicsPipelineState.h"
+#include "RenderAPI/D3D12/D3D12PipelineState.h"
 #include "RenderAPI/D3D12/D3D12RenderContext.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12ShaderImpl.h"
@@ -40,7 +40,12 @@ GraphicsPipelineState* CreatePipelineState(const GraphicsPipelineStateDesc& desc
 	return new D3D12::D3D12GraphicsPipelineState(desc);
 }
 
-Buffer* CreateBuffer(const BufferDesc& desc, BufferData initData, Flags<ResourceStateFlags> initState)
+ComputePipelineState* CreatePipelineState(const ComputePipelineStateDesc& desc)
+{
+	return new D3D12::D3D12ComputePipelineState(desc);
+}
+
+Buffer* CreateBuffer(const BufferDesc& desc, RawData initData, Flags<ResourceStateFlags> initState)
 {
 	return new D3D12::D3D12Buffer(desc, initData, initState);
 }
@@ -50,7 +55,7 @@ BufferView* CreateBufferView(const BufferViewDesc& desc, class Buffer* buffer)
 	return new D3D12::D3D12BufferView(desc, buffer);
 }
 
-Texture* CreateTexture(const TextureDesc& desc, const std::vector<TextureData>& initData, Flags<ResourceStateFlags> initState)
+Texture* CreateTexture(const TextureDesc& desc, RawData initData, Flags<ResourceStateFlags> initState)
 {
 	return new D3D12::D3D12Texture(desc, initData, initState);
 }

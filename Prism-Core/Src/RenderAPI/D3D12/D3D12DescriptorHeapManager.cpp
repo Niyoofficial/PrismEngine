@@ -13,17 +13,17 @@ namespace Prism::Render::D3D12
 
 template<DescriptorType Type>
 DescriptorHeapAllocation<Type>::DescriptorHeapAllocation(DescriptorHeap<Type>* heap,
-												   D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
-												   D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle,
-												   int32_t handlesCount) requires HAS_GPU_HANDLE
+														 D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
+														 D3D12_GPU_DESCRIPTOR_HANDLE gpuHandle,
+														 int32_t handlesCount) requires HAS_GPU_HANDLE
 	: m_heap(heap), m_numHandles(handlesCount), m_firstCPUHandle(cpuHandle), m_firstGPUHandle(gpuHandle)
 {
 }
 
 template<DescriptorType Type>
 DescriptorHeapAllocation<Type>::DescriptorHeapAllocation(DescriptorHeap<Type>* heap,
-												   D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
-												   int32_t handlesCount)
+														 D3D12_CPU_DESCRIPTOR_HANDLE cpuHandle,
+														 int32_t handlesCount)
 	: m_heap(heap), m_numHandles(handlesCount), m_firstCPUHandle(cpuHandle)
 {
 }

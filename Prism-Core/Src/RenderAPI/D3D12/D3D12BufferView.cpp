@@ -19,8 +19,37 @@ D3D12BufferView::D3D12BufferView(const BufferViewDesc& desc, Buffer* buffer)
 	auto* d3d12Buffer = static_cast<D3D12Buffer*>(m_owningBuffer.Raw());
 	if (d3d12Buffer->GetBufferDesc().usage != ResourceUsage::Dynamic)
 	{
-		auto d3d12ViewDesc = GetD3D12ConstantBufferViewDesc(m_owningBuffer, m_viewDesc);
-		D3D12RenderDevice::Get().GetD3D12Device()->CreateConstantBufferView(&d3d12ViewDesc, m_descriptor.GetCPUHandle());
+		switch (m_viewDesc.type)
+		{
+		case BufferViewType::CBV:
+			{
+				auto d3d12ViewDesc = GetD3D12ConstantBufferViewDesc(m_owningBuffer, m_viewDesc);
+				D3D12RenderDevice::Get().GetD3D12Device()->CreateConstantBufferView(&d3d12ViewDesc, m_descriptor.GetCPUHandle());
+			}
+			break;
+		case BufferViewType::SRV:
+			{
+				auto d3d12ViewDesc = GetD3D12ShaderResourceViewDesc(m_viewDesc);
+				D3D12RenderDevice::Get().GetD3D12Device()->CreateShaderResourceView(
+					static_cast<D3D12Buffer*>(m_owningBuffer.Raw())->GetD3D12Resource(),
+					&d3d12ViewDesc,
+					m_descriptor.GetCPUHandle());
+			}
+			break;
+		case BufferViewType::UAV:
+			{
+				auto d3d12ViewDesc = GetD3D12UnorderedAccessViewDesc(m_viewDesc);
+				D3D12RenderDevice::Get().GetD3D12Device()->CreateUnorderedAccessView(
+					static_cast<D3D12Buffer*>(m_owningBuffer.Raw())->GetD3D12Resource(),
+					nullptr,
+					&d3d12ViewDesc,
+					m_descriptor.GetCPUHandle());
+			}
+			break;
+		default:
+			PE_ASSERT_NO_ENTRY();
+		}
+
 	}
 }
 

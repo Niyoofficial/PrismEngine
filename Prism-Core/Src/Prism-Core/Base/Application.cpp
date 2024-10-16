@@ -48,7 +48,7 @@ void Application::Run()
 				m_previousFrameTime = currTime;
 			}
 
-			EndFrame(); // TODO: Add waiting for GPU here
+			EndFrame();
 		}
 	}
 
