@@ -31,11 +31,12 @@ project "Prism-Core"
 		includeDirs["spdlog-fmt"],
 		includeDirs["assimp"],
 		includeDirs["stb"],
-		includeDirs["AgilitySDK"]
+		includeDirs["AgilitySDK"],
+		includeDirs["boost"]
 	}
 
 	libdirs
-	{
+	{	
 		libDirs["spdlog"],
 		libDirs["spdlog-fmt"],
 		libDirs["assimp"]

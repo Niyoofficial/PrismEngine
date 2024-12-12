@@ -2,12 +2,13 @@
 #include "D3D12RenderDevice.h"
 
 #include "Prism-Core/Base/Application.h"
-#include "RenderAPI/D3D12/D3D12RenderContext.h"
+#include "RenderAPI/D3D12/D3D12RenderCommandQueue.h"
 
 #if USE_PIX
 #include "WinPixEventRuntime/pix3.h"
 #endif
 
+// AgilitySDK
 extern "C" { __declspec(dllexport) extern const UINT D3D12SDKVersion = 614; }
 extern "C" { __declspec(dllexport) extern const char* D3D12SDKPath = ".\\D3D12\\"; }
 
@@ -37,6 +38,7 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 #endif
 
 #ifdef PE_BUILD_DEBUG
+	if (params.enableDebugLayer)
 	{
 		ComPtr<ID3D12Debug> debugController;
 		PE_ASSERT_HR(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)));
@@ -46,7 +48,8 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 
 	uint32_t dxgiFactoryFlags = 0;
 #ifdef PE_BUILD_DEBUG
-	dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
+	if (params.enableDebugLayer)
+		dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
 	PE_ASSERT_HR(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_dxgiFactory)));
 
@@ -60,6 +63,7 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	PE_ASSERT(requiredFeatureSet.EnhancedBarriersSupported == TRUE);
 
 #ifdef PE_BUILD_DEBUG
+	if (params.enableDebugLayer)
 	{
 		ComPtr<IDXGIInfoQueue> dxgiInfoQueue;
 		if (SUCCEEDED(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiInfoQueue))))
@@ -79,11 +83,7 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	}
 #endif
 
-	D3D12_COMMAND_QUEUE_DESC commandQueueDesc = {};
-	commandQueueDesc.Type = D3D12_COMMAND_LIST_TYPE_DIRECT;
-	commandQueueDesc.Flags = D3D12_COMMAND_QUEUE_FLAG_NONE;
-	PE_ASSERT_HR(m_d3dDevice->CreateCommandQueue(&commandQueueDesc, IID_PPV_ARGS(&m_commandQueue)));
-	PE_ASSERT_HR(m_commandQueue->SetName(L"Main Cmd Queue"));
+	m_commandQueue = new D3D12RenderCommandQueue;
 
 	m_descriptorHandleSizes[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	m_descriptorHandleSizes[D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER] = m_d3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
@@ -98,17 +98,13 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	m_gpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 	m_gpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
 
-	PE_ASSERT_HR(m_d3dDevice->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_mainFence)));
-	PE_ASSERT_HR(m_mainFence->SetName(L"Main Fence"));
-
 	m_dynamicBufferAllocator.Init(1024);
 }
 
 D3D12RenderDevice::~D3D12RenderDevice()
 {
-	D3D12RenderDevice::FlushCommandQueue();
-	m_dynamicBufferAllocator.CloseCmdListAllocations(m_mainFenceValue);
-	m_dynamicBufferAllocator.ReleaseStaleAllocations(D3D12RenderDevice::GetLastCompletedCmdListFenceValue());
+	m_dynamicBufferAllocator.CloseCmdListAllocations(D3D12RenderDevice::GetRenderQueue()->GetLastSubmittedCmdListFenceValue());
+	m_dynamicBufferAllocator.ReleaseStaleAllocations(D3D12RenderDevice::GetRenderQueue()->GetLastCompletedCmdListFenceValue());
 
 #if USE_PIX
 	FreeLibrary(m_pixGpuCaptureModule);
@@ -116,59 +112,20 @@ D3D12RenderDevice::~D3D12RenderDevice()
 #endif
 }
 
-uint64_t D3D12RenderDevice::SubmitContext(RenderContext* context)
+RenderCommandQueue* D3D12RenderDevice::GetRenderQueue() const
 {
-	auto* d3d12Context = static_cast<D3D12RenderContext*>(context);
-	d3d12Context->CloseContext();
-
-	m_contextReleaseQueue.AddResource(Ref(context), m_mainFenceValue + 1);
-
-	std::array<ID3D12CommandList*, 1> commandLists = {d3d12Context->GetCommandList()};
-	m_commandQueue->ExecuteCommandLists((UINT)commandLists.size(), commandLists.data());
-
-	++m_mainFenceValue;
-	PE_ASSERT_HR(m_commandQueue->Signal(m_mainFence.Get(), m_mainFenceValue));
-
-	return GetLastSubmittedCmdListFenceValue();
-}
-
-void D3D12RenderDevice::WaitForCmdListToComplete(uint64_t fenceValue)
-{
-	if (m_mainFence->GetCompletedValue() < fenceValue)
-	{
-		HANDLE eventHandle = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
-
-		PE_ASSERT_HR(m_mainFence->SetEventOnCompletion(m_mainFenceValue, eventHandle));
-
-		WaitForSingleObject(eventHandle, INFINITE);
-		CloseHandle(eventHandle);
-	}
-}
-
-void D3D12RenderDevice::FlushCommandQueue()
-{
-	WaitForCmdListToComplete(m_mainFenceValue);
+	return m_commandQueue;
 }
 
 void D3D12RenderDevice::ReleaseStaleResources()
 {
-	m_contextReleaseQueue.PurgeReleaseQueue(GetLastCompletedCmdListFenceValue());
+	RenderDevice::ReleaseStaleResources();
 
-	m_dynamicBufferAllocator.CloseCmdListAllocations(m_mainFenceValue);
-	m_dynamicBufferAllocator.ReleaseStaleAllocations(GetLastCompletedCmdListFenceValue());
+	m_dynamicBufferAllocator.CloseCmdListAllocations(GetRenderQueue()->GetLastSubmittedCmdListFenceValue());
+	m_dynamicBufferAllocator.ReleaseStaleAllocations(GetRenderQueue()->GetLastCompletedCmdListFenceValue());
 }
 
-uint64_t D3D12RenderDevice::GetLastSubmittedCmdListFenceValue() const
-{
-	return m_mainFenceValue;
-}
-
-uint64_t D3D12RenderDevice::GetLastCompletedCmdListFenceValue() const
-{
-	return m_mainFence->GetCompletedValue();
-}
-
-ID3D12Device* D3D12RenderDevice::GetD3D12Device() const
+ID3D12Device10* D3D12RenderDevice::GetD3D12Device() const
 {
 	PE_ASSERT(m_d3dDevice.Get());
 	return m_d3dDevice.Get();
@@ -182,9 +139,7 @@ IDXGIFactory2* D3D12RenderDevice::GetDXGIFactory() const
 
 ID3D12CommandQueue* D3D12RenderDevice::GetD3D12CommandQueue() const
 {
-	PE_ASSERT(m_commandQueue.Get());
-
-	return m_commandQueue.Get();
+	return static_cast<D3D12RenderCommandQueue*>(GetRenderQueue())->GetD3D12CommandQueue();
 }
 
 CPUDescriptorHeapAllocation D3D12RenderDevice::AllocateCPUDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t count)

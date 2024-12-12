@@ -47,11 +47,18 @@ D3D12_LOGIC_OP GetD3D12LogicOp(LogicOperation logicOperation);
 DXGI_FORMAT GetD3D12InputElementDescFormat(const D3D12_SIGNATURE_PARAMETER_DESC& paramDesc);
 D3D12InputLayout GetD3D12InputLayoutFromVertexShader(Shader* vertexShader);
 
-D3D12_RESOURCE_DESC GetD3D12ResourceDesc(const TextureDesc& textureDesc);
+D3D12_RESOURCE_DESC1 GetD3D12ResourceDesc(const TextureDesc& textureDesc);
 D3D12_RESOURCE_STATES GetD3D12ResourceStates(Flags<ResourceStateFlags> states);
 D3D12_RESOURCE_DIMENSION GetD3D12ResourceDimension(ResourceDimension dimension);
 D3D12_RESOURCE_FLAGS GetD3D12ResourceFlags(Flags<BindFlags> bindFlags);
 CD3DX12_RESOURCE_BARRIER GetD3D12ResourceBarrier(StateTransitionDesc desc);
+CD3DX12_BUFFER_BARRIER GetD3D12BufferBarrier(BufferBarrier barrier);
+CD3DX12_TEXTURE_BARRIER GetD3D12TextureBarrier(TextureBarrier barrier);
+D3D12_BARRIER_SYNC GetD3D12BarrierSync(Flags<BarrierSync> barrierSync);
+D3D12_BARRIER_ACCESS GetD3D12BarrierAccess(Flags<BarrierAccess> barrierAccess);
+D3D12_BARRIER_LAYOUT GetD3D12BarrierLayout(BarrierLayout barrierLayout);
+D3D12_BARRIER_SUBRESOURCE_RANGE GetD3D12BarrierSubresourceRange(SubresourceRange subresourceRange);
+D3D12_TEXTURE_BARRIER_FLAGS GetD3D12TextureBarrierFlags(Flags<TextureBarrierFlags> textureBarrierFlags);
 
 D3D12_CLEAR_VALUE GetD3D12ClearValue(ClearValue clearValue);
 
@@ -84,9 +91,6 @@ SampleDesc GetSampleDesc(DXGI_SAMPLE_DESC dxgiSampleDesc);
 // D3D12 -> Prism
 Flags<BindFlags> GetBindFlags(D3D12_RESOURCE_FLAGS resourceFlags);
 ResourceDimension GetResourceDimension(D3D12_RESOURCE_DIMENSION d3d12Dimension, bool isCube);
-BufferDesc GetBufferDesc(const D3D12_RESOURCE_DESC& d3d12ResDesc,
-						 const std::wstring& name = {},
-						 ResourceUsage usage = ResourceUsage::Default);
 TextureDesc GetTextureDesc(const D3D12_RESOURCE_DESC& d3d12ResDesc,
 						   const std::wstring& name = {},
 						   ResourceUsage usage = ResourceUsage::Default,

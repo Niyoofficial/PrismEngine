@@ -19,13 +19,12 @@ struct BufferDesc
 class Buffer : public RenderResource
 {
 public:
-	static Ref<Buffer> Create(const BufferDesc& desc, RawData initData,
-							  Flags<ResourceStateFlags> initState = ResourceStateFlags::Common);
+	static Ref<Buffer> Create(const BufferDesc& desc, RawData initData = {});
 
 	Ref<BufferView> CreateView(const BufferViewDesc& desc);
 	Ref<BufferView> CreateDefaultCBVView();
 	Ref<BufferView> CreateDefaultSRVView(int64_t elementSize);
-	Ref<BufferView> CreateDefaultUAVView(int64_t elementSize);
+	Ref<BufferView> CreateDefaultUAVView(int64_t elementSize, bool bNeedsCounter = false);
 
 	ResourceType GetResourceType() const override { return ResourceType::Buffer; }
 

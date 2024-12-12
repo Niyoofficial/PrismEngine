@@ -28,6 +28,7 @@ public:
 	TextureFormat format;
 	ResourceDimension dimension = ResourceDimension::Tex2D;
 
+	// TODO: Replace with subresource range?
 	int32_t firstMipLevel = 0;
 	int32_t numMipLevels = 1;
 

@@ -31,8 +31,10 @@ public:
 	template<typename T>
 	void AddObject(T&& object) requires !std::is_lvalue_reference_v<T>
 	{
-		m_preservedObjects.emplace_back(new PreservedResourceWrapper{ std::move(object) });
+		m_preservedObjects.emplace_back(new PreservedResourceWrapper{std::move(object)});
 	}
+
+	void MoveObjects(PreservingObjectContainer& containerToMoveFrom);
 
 	std::vector<Ref<PreservedResourceWrapperBase>>& GetPreservedObjects() { return m_preservedObjects; }
 	const std::vector<Ref<PreservedResourceWrapperBase>>& GetPreservedObjects() const { return m_preservedObjects; }

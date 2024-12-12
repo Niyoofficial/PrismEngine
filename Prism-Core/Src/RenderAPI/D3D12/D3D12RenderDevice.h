@@ -14,6 +14,8 @@
 
 namespace Prism::Render::D3D12
 {
+class D3D12RenderCommandQueue;
+
 class D3D12RenderDevice : public RenderDevice
 {
 public:
@@ -24,17 +26,11 @@ public:
 	explicit D3D12RenderDevice(RenderDeviceParams params);
 	virtual ~D3D12RenderDevice() override;
 
-	virtual uint64_t SubmitContext(RenderContext* context) override;
-
-	virtual void WaitForCmdListToComplete(uint64_t fenceValue) override;
-	virtual void FlushCommandQueue() override;
+	RenderCommandQueue* GetRenderQueue() const override;
 
 	virtual void ReleaseStaleResources() override;
 
-	virtual uint64_t GetLastSubmittedCmdListFenceValue() const override;
-	virtual uint64_t GetLastCompletedCmdListFenceValue() const override;
-
-	ID3D12Device* GetD3D12Device() const;
+	ID3D12Device10* GetD3D12Device() const;
 	IDXGIFactory2* GetDXGIFactory() const;
 	ID3D12CommandQueue* GetD3D12CommandQueue() const;
 
@@ -62,10 +58,8 @@ private:
 	HMODULE m_pixTimingCaptureModule = {};
 #endif
 
-	ComPtr<ID3D12CommandQueue> m_commandQueue;
-
 	ComPtr<IDXGIFactory2> m_dxgiFactory;
-	ComPtr<ID3D12Device> m_d3dDevice;
+	ComPtr<ID3D12Device10> m_d3dDevice;
 
 	D3D12ShaderCompiler m_shaderCompiler;
 
@@ -74,13 +68,10 @@ private:
 	std::unordered_map<D3D12_DESCRIPTOR_HEAP_TYPE, CPUDescriptorHeapManager> m_cpuDescriptorHeapManagers;
 	std::unordered_map<D3D12_DESCRIPTOR_HEAP_TYPE, GPUDescriptorHeapManager> m_gpuDescriptorHeapManagers;
 
+	Ref<D3D12RenderCommandQueue> m_commandQueue;
+
 	D3D12RootSignatureCache m_rootSignatureCache;
 
 	DynamicBufferAllocator m_dynamicBufferAllocator;
-
-	uint64_t m_mainFenceValue = 0;
-	ComPtr<ID3D12Fence> m_mainFence;
-
-	ReleaseQueue<Ref<RenderContext>> m_contextReleaseQueue;
 };
 }

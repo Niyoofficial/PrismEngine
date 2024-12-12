@@ -119,9 +119,9 @@ int32_t TextureDesc::GetDepthOrArraySize() const
 }
 
 Ref<Texture> Texture::Create(const TextureDesc& desc, RawData initData,
-							 Flags<ResourceStateFlags> initState)
+							 BarrierLayout initLayout)
 {
-	return Private::CreateTexture(desc, initData, initState);
+	return Private::CreateTexture(desc, initData, initLayout);
 }
 
 Ref<Texture> Texture::Create(std::wstring filepath, bool loadAsCubemap)

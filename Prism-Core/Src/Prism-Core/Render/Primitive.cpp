@@ -1,6 +1,8 @@
 ﻿#include "pcpch.h"
 #include "Primitive.h"
 
+#include "Prism-Core/Render/Buffer.h"
+
 namespace Prism::Render
 {
 Primitive::Primitive(const std::wstring& primitiveName, int64_t vertexSize, IndexBufferFormat indexFormat,
@@ -24,7 +26,7 @@ Primitive::Primitive(const std::wstring& primitiveName, int64_t vertexSize, Inde
 											.bindFlags = BindFlags::ConstantBuffer,
 											.usage = ResourceUsage::Dynamic,
 											.cpuAccess = CPUAccess::Write
-										}, {}, ResourceStateFlags::ConstantBuffer);
+										}, {});
 	m_primitiveCBufferView = m_primitiveCBuffer->CreateDefaultCBVView();
 
 	// Vertex Buffer
@@ -60,7 +62,7 @@ void Primitive::BindPrimitive(RenderContext* renderContext, void* cbufferData, i
 		void* data = m_primitiveCBuffer->Map(CPUAccess::Write);
 		memcpy_s(data, m_primitiveCBuffer->GetBufferDesc().size, cbufferData, dataSize);
 		m_primitiveCBuffer->Unmap();
-		renderContext->SetCBuffer(m_primitiveCBufferView, m_primitiveCBufferParamName);
+		renderContext->SetBuffer(m_primitiveCBufferView, m_primitiveCBufferParamName);
 	}
 
 	renderContext->SetVertexBuffer(m_vertexBuffer, m_vertexSize);

@@ -20,6 +20,7 @@ workspace "PrismEngine"
 	includeDirs["glm"] = path.normalize("%{wks.location}/Vendor/glm")
 	includeDirs["spdlog"] = path.normalize("%{wks.location}/Vendor/spdlog/include")
 	includeDirs["spdlog-fmt"] = path.normalize("%{wks.location}/Vendor/spdlog/dependencies/fmt-src/include")
+	includeDirs["boost"] = path.normalize("%{wks.location}/Vendor/boost_1_82")
 
 	libDirs = {}
 	libDirs["spdlog"] = path.normalize("%{wks.location}/Vendor/spdlog/Bin/" .. outputFolderName)

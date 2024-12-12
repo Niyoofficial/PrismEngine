@@ -3,7 +3,6 @@
 
 #include "glm/ext/scalar_integer.hpp"
 #include "RenderAPI/D3D12/D3D12Buffer.h"
-#include "RenderAPI/D3D12/D3D12RenderContext.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12RootSignature.h"
 #include "RenderAPI/D3D12/D3D12ShaderImpl.h"
@@ -621,7 +620,7 @@ D3D12InputLayout GetD3D12InputLayoutFromVertexShader(Shader* vertexShader)
 	return layout;
 }
 
-D3D12_RESOURCE_DESC GetD3D12ResourceDesc(const TextureDesc& textureDesc)
+D3D12_RESOURCE_DESC1 GetD3D12ResourceDesc(const TextureDesc& textureDesc)
 {
 	return {
 		.Dimension = GetD3D12ResourceDimension(textureDesc.dimension),
@@ -745,6 +744,248 @@ CD3DX12_RESOURCE_BARRIER GetD3D12ResourceBarrier(StateTransitionDesc desc)
 		GetD3D12ResourceStates(desc.newState));
 }
 
+CD3DX12_BUFFER_BARRIER GetD3D12BufferBarrier(BufferBarrier barrier)
+{
+	return D3D12_BUFFER_BARRIER{
+		.SyncBefore = GetD3D12BarrierSync(barrier.syncBefore),
+		.SyncAfter = GetD3D12BarrierSync(barrier.syncAfter),
+		.AccessBefore = GetD3D12BarrierAccess(barrier.accessBefore),
+		.AccessAfter = GetD3D12BarrierAccess(barrier.accessAfter),
+		.pResource = static_cast<D3D12Buffer*>(barrier.buffer)->GetD3D12Resource(),
+		.Offset = (UINT64)barrier.offset,
+		.Size = (UINT64)barrier.size
+	};
+}
+
+CD3DX12_TEXTURE_BARRIER GetD3D12TextureBarrier(TextureBarrier barrier)
+{
+	return D3D12_TEXTURE_BARRIER{
+		.SyncBefore = GetD3D12BarrierSync(barrier.syncBefore),
+		.SyncAfter = GetD3D12BarrierSync(barrier.syncAfter),
+		.AccessBefore = GetD3D12BarrierAccess(barrier.accessBefore),
+		.AccessAfter = GetD3D12BarrierAccess(barrier.accessAfter),
+		.LayoutBefore = GetD3D12BarrierLayout(barrier.layoutBefore),
+		.LayoutAfter = GetD3D12BarrierLayout(barrier.layoutAfter),
+		.pResource = static_cast<D3D12Texture*>(barrier.texture)->GetD3D12Resource(),
+		.Subresources = GetD3D12BarrierSubresourceRange(barrier.subresourceRange),
+		.Flags = GetD3D12TextureBarrierFlags(barrier.flags)
+	};
+}
+
+D3D12_BARRIER_SYNC GetD3D12BarrierSync(Flags<BarrierSync> barrierSync)
+{
+	D3D12_BARRIER_SYNC d3d12BarrierSync = D3D12_BARRIER_SYNC_NONE;
+	if (barrierSync.HasAllFlags(BarrierSync::All))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_ALL;
+	if (barrierSync.HasAllFlags(BarrierSync::Draw))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_DRAW;
+	if (barrierSync.HasAllFlags(BarrierSync::IndexInput))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_INDEX_INPUT;
+	if (barrierSync.HasAllFlags(BarrierSync::VertexShading))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_VERTEX_SHADING;
+	if (barrierSync.HasAllFlags(BarrierSync::PixelShading))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_PIXEL_SHADING;
+	if (barrierSync.HasAllFlags(BarrierSync::DepthStencil))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_DEPTH_STENCIL;
+	if (barrierSync.HasAllFlags(BarrierSync::RenderTarget))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_RENDER_TARGET;
+	if (barrierSync.HasAllFlags(BarrierSync::ComputeShading))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_COMPUTE_SHADING;
+	if (barrierSync.HasAllFlags(BarrierSync::Raytracing))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_RAYTRACING;
+	if (barrierSync.HasAllFlags(BarrierSync::Copy))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_COPY;
+	if (barrierSync.HasAllFlags(BarrierSync::Resolve))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_RESOLVE;
+	if (barrierSync.HasAllFlags(BarrierSync::ExecuteIndirect))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_EXECUTE_INDIRECT;
+	if (barrierSync.HasAllFlags(BarrierSync::Predication))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_PREDICATION;
+	if (barrierSync.HasAllFlags(BarrierSync::AllShading))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_ALL_SHADING;
+	if (barrierSync.HasAllFlags(BarrierSync::NonPixelShading))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_NON_PIXEL_SHADING;
+	if (barrierSync.HasAllFlags(BarrierSync::EmitRaytracingAccelerationStructurePostbuildInfo))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_EMIT_RAYTRACING_ACCELERATION_STRUCTURE_POSTBUILD_INFO;
+	if (barrierSync.HasAllFlags(BarrierSync::ClearUnorderedAccessView))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_CLEAR_UNORDERED_ACCESS_VIEW;
+	if (barrierSync.HasAllFlags(BarrierSync::VideoDecode))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_VIDEO_DECODE;
+	if (barrierSync.HasAllFlags(BarrierSync::VideoProcess))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_VIDEO_PROCESS;
+	if (barrierSync.HasAllFlags(BarrierSync::VideoEncode))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_VIDEO_ENCODE;
+	if (barrierSync.HasAllFlags(BarrierSync::BuildRaytracingAccelerationStructure))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_BUILD_RAYTRACING_ACCELERATION_STRUCTURE;
+	if (barrierSync.HasAllFlags(BarrierSync::CopyRaytracingAccelerationStructure))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_COPY_RAYTRACING_ACCELERATION_STRUCTURE;
+	if (barrierSync.HasAllFlags(BarrierSync::Split))
+		d3d12BarrierSync |= D3D12_BARRIER_SYNC_SPLIT;
+
+	return d3d12BarrierSync;
+}
+
+D3D12_BARRIER_ACCESS GetD3D12BarrierAccess(Flags<BarrierAccess> barrierAccess)
+{
+	D3D12_BARRIER_ACCESS d3d12BarrierAccess = D3D12_BARRIER_ACCESS_COMMON;
+	if (barrierAccess.HasAllFlags(BarrierAccess::VertexBuffer))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_VERTEX_BUFFER;
+	if (barrierAccess.HasAllFlags(BarrierAccess::ConstantBuffer))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_CONSTANT_BUFFER;
+	if (barrierAccess.HasAllFlags(BarrierAccess::IndexBuffer))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_INDEX_BUFFER;
+	if (barrierAccess.HasAllFlags(BarrierAccess::RenderTarget))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_RENDER_TARGET;
+	if (barrierAccess.HasAllFlags(BarrierAccess::UnorderedAccess))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_UNORDERED_ACCESS;
+	if (barrierAccess.HasAllFlags(BarrierAccess::DepthStencilWrite))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_WRITE;
+	if (barrierAccess.HasAllFlags(BarrierAccess::DepthStencilRead))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_DEPTH_STENCIL_READ;
+	if (barrierAccess.HasAllFlags(BarrierAccess::ShaderResource))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_SHADER_RESOURCE;
+	if (barrierAccess.HasAllFlags(BarrierAccess::StreamOutput))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_STREAM_OUTPUT;
+	if (barrierAccess.HasAllFlags(BarrierAccess::IndirectArgument))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_INDIRECT_ARGUMENT;
+	if (barrierAccess.HasAllFlags(BarrierAccess::CopyDest))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_COPY_DEST;
+	if (barrierAccess.HasAllFlags(BarrierAccess::CopySource))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_COPY_SOURCE;
+	if (barrierAccess.HasAllFlags(BarrierAccess::ResolveDest))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_RESOLVE_DEST;
+	if (barrierAccess.HasAllFlags(BarrierAccess::ResolveSource))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_RESOLVE_SOURCE;
+	if (barrierAccess.HasAllFlags(BarrierAccess::RaytracingAccelerationStructureRead))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_READ;
+	if (barrierAccess.HasAllFlags(BarrierAccess::RaytracingAccelerationStructureWrite))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_RAYTRACING_ACCELERATION_STRUCTURE_WRITE;
+	if (barrierAccess.HasAllFlags(BarrierAccess::ShadingRateSource))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_SHADING_RATE_SOURCE;
+	if (barrierAccess.HasAllFlags(BarrierAccess::VideoDecodeRead))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_VIDEO_DECODE_READ;
+	if (barrierAccess.HasAllFlags(BarrierAccess::VideoDecodeWrite))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_VIDEO_DECODE_WRITE;
+	if (barrierAccess.HasAllFlags(BarrierAccess::VideoProcessRead))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_VIDEO_PROCESS_READ;
+	if (barrierAccess.HasAllFlags(BarrierAccess::VideoProcessWrite))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_VIDEO_PROCESS_WRITE;
+	if (barrierAccess.HasAllFlags(BarrierAccess::VideoEncodeRead))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_VIDEO_ENCODE_READ;
+	if (barrierAccess.HasAllFlags(BarrierAccess::VideoEncodeWrite))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_VIDEO_ENCODE_WRITE;
+	if (barrierAccess.HasAllFlags(BarrierAccess::NoAccess))
+		d3d12BarrierAccess |= D3D12_BARRIER_ACCESS_NO_ACCESS;
+
+	return d3d12BarrierAccess;
+}
+
+D3D12_BARRIER_LAYOUT GetD3D12BarrierLayout(BarrierLayout barrierLayout)
+{
+	switch (barrierLayout)
+	{
+	case BarrierLayout::Undefined:
+		return D3D12_BARRIER_LAYOUT_UNDEFINED;
+	case BarrierLayout::Common: // same as BarrierLayout::Present
+		return D3D12_BARRIER_LAYOUT_COMMON; // same as D3D12_BARRIER_LAYOUT_PRESENT
+	case BarrierLayout::GenericRead:
+		return D3D12_BARRIER_LAYOUT_GENERIC_READ;
+	case BarrierLayout::RenderTarget:
+		return D3D12_BARRIER_LAYOUT_RENDER_TARGET;
+	case BarrierLayout::UnorderedAccess:
+		return D3D12_BARRIER_LAYOUT_UNORDERED_ACCESS;
+	case BarrierLayout::DepthStencilWrite:
+		return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_WRITE;
+	case BarrierLayout::DepthStencilRead:
+		return D3D12_BARRIER_LAYOUT_DEPTH_STENCIL_READ;
+	case BarrierLayout::ShaderResource:
+		return D3D12_BARRIER_LAYOUT_SHADER_RESOURCE;
+	case BarrierLayout::CopySource:
+		return D3D12_BARRIER_LAYOUT_COPY_SOURCE;
+	case BarrierLayout::CopyDest:
+		return D3D12_BARRIER_LAYOUT_COPY_DEST;
+	case BarrierLayout::ResolveSource:
+		return D3D12_BARRIER_LAYOUT_RESOLVE_SOURCE;
+	case BarrierLayout::ResolveDest:
+		return D3D12_BARRIER_LAYOUT_RESOLVE_DEST;
+	case BarrierLayout::ShadingRateSource:
+		return D3D12_BARRIER_LAYOUT_SHADING_RATE_SOURCE;
+	case BarrierLayout::VideoDecodeRead:
+		return D3D12_BARRIER_LAYOUT_VIDEO_DECODE_READ;
+	case BarrierLayout::VideoDecodeWrite:
+		return D3D12_BARRIER_LAYOUT_VIDEO_DECODE_WRITE;
+	case BarrierLayout::VideoProcessRead:
+		return D3D12_BARRIER_LAYOUT_VIDEO_PROCESS_READ;
+	case BarrierLayout::VideoProcessWrite:
+		return D3D12_BARRIER_LAYOUT_VIDEO_PROCESS_WRITE;
+	case BarrierLayout::VideoEncodeRead:
+		return D3D12_BARRIER_LAYOUT_VIDEO_ENCODE_READ;
+	case BarrierLayout::VideoEncodeWrite:
+		return D3D12_BARRIER_LAYOUT_VIDEO_ENCODE_WRITE;
+	case BarrierLayout::DirectQueueCommon:
+		return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COMMON;
+	case BarrierLayout::DirectQueueGenericRead:
+		return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_GENERIC_READ;
+	case BarrierLayout::DirectQueueUnorderedAccess:
+		return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_UNORDERED_ACCESS;
+	case BarrierLayout::DirectQueueShaderResource:
+		return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_SHADER_RESOURCE;
+	case BarrierLayout::DirectQueueCopySource:
+		return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COPY_SOURCE;
+	case BarrierLayout::DirectQueueCopyDest:
+		return D3D12_BARRIER_LAYOUT_DIRECT_QUEUE_COPY_DEST;
+	case BarrierLayout::ComputeQueueCommon:
+		return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COMMON;
+	case BarrierLayout::ComputeQueueGenericRead:
+		return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_GENERIC_READ;
+	case BarrierLayout::ComputeQueueUnorderedAccess:
+		return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_UNORDERED_ACCESS;
+	case BarrierLayout::ComputeQueueShaderResource:
+		return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_SHADER_RESOURCE;
+	case BarrierLayout::ComputeQueueCopySource:
+		return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COPY_SOURCE;
+	case BarrierLayout::ComputeQueueCopyDest:
+		return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COPY_DEST;
+	case BarrierLayout::VideoQueueCommon:
+		return D3D12_BARRIER_LAYOUT_VIDEO_QUEUE_COMMON;
+	default:
+		PE_ASSERT_NO_ENTRY();
+		return {};
+	}
+}
+
+D3D12_BARRIER_SUBRESOURCE_RANGE GetD3D12BarrierSubresourceRange(SubresourceRange subresourceRange)
+{
+	if (subresourceRange.firstMipLevel == -1)
+	{
+		return {
+			.IndexOrFirstMipLevel = 0xffffffff
+		
+		};
+	}
+	else
+	{
+		return {
+			.IndexOrFirstMipLevel = D3D12CalcSubresource(
+				subresourceRange.firstMipLevel,
+				subresourceRange.firstArraySlice,
+				0,
+				subresourceRange.numMipLevels,
+				subresourceRange.numArraySlices)
+		};
+	}
+}
+
+D3D12_TEXTURE_BARRIER_FLAGS GetD3D12TextureBarrierFlags(Flags<TextureBarrierFlags> textureBarrierFlags)
+{
+	D3D12_TEXTURE_BARRIER_FLAGS d3d12TextureBarrierFlags = D3D12_TEXTURE_BARRIER_FLAG_NONE;
+
+	if (textureBarrierFlags.HasAllFlags(TextureBarrierFlags::Discard))
+		d3d12TextureBarrierFlags |= D3D12_TEXTURE_BARRIER_FLAG_DISCARD;
+
+	return d3d12TextureBarrierFlags;
+}
+
 D3D12_CLEAR_VALUE GetD3D12ClearValue(ClearValue clearValue)
 {
 	if (std::holds_alternative<RenderTargetClearValue>(clearValue))
@@ -785,10 +1026,10 @@ D3D12_DESCRIPTOR_HEAP_TYPE GetD3D12DescriptorHeapType(TextureViewType textureVie
 		return D3D12_DESCRIPTOR_HEAP_TYPE_RTV;
 	case TextureViewType::DSV:
 		return D3D12_DESCRIPTOR_HEAP_TYPE_DSV;
+	default:
+		PE_ASSERT_NO_ENTRY();
+		return {};
 	}
-
-	PE_ASSERT_NO_ENTRY();
-	return {};
 }
 
 D3D12_CONSTANT_BUFFER_VIEW_DESC GetD3D12ConstantBufferViewDesc(Buffer* buffer, BufferViewDesc viewDesc)
@@ -925,6 +1166,7 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetD3D12UnorderedAccessViewDesc(BufferViewDesc 
 			.FirstElement = (UINT64)(desc.offset / desc.elementSize),
 			.NumElements = (UINT)(desc.size / desc.elementSize),
 			.StructureByteStride = (UINT)desc.elementSize,
+			.CounterOffsetInBytes = 0,
 			// TODO: Add support for raw buffers
 			.Flags = D3D12_BUFFER_UAV_FLAG_NONE
 		}
@@ -1247,16 +1489,6 @@ ResourceDimension GetResourceDimension(D3D12_RESOURCE_DIMENSION d3d12Dimension, 
 		PE_ASSERT_NO_ENTRY();
 		return {};
 	}
-}
-
-BufferDesc GetBufferDesc(const D3D12_RESOURCE_DESC& d3d12ResDesc, const std::wstring& name, ResourceUsage usage)
-{
-	return {
-		.bufferName = name,
-		.size = (int32_t)d3d12ResDesc.Width,
-		.bindFlags = GetBindFlags(d3d12ResDesc.Flags),
-		.usage = usage
-	};
 }
 
 TextureDesc GetTextureDesc(const D3D12_RESOURCE_DESC& d3d12ResDesc,

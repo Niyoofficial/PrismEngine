@@ -143,6 +143,27 @@ RootSignatureInfo CreateRootSignature(const T& psoDesc) requires
 
 					rootParams.push_back(rootParam);
 				}
+				else if (resourceDesc.Type == D3D_SIT_UAV_RWSTRUCTURED_WITH_COUNTER)
+				{
+					auto& range = descriptorRanges.emplace_front(D3D12_DESCRIPTOR_RANGE{
+						.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV,
+						.NumDescriptors = resourceDesc.BindCount,
+						.BaseShaderRegister = resourceDesc.BindPoint,
+						.RegisterSpace = resourceDesc.Space,
+						.OffsetInDescriptorsFromTableStart = D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND
+						});
+
+					D3D12_ROOT_PARAMETER rootParam = {
+						.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE,
+						.DescriptorTable = {
+							.NumDescriptorRanges = 1,
+							.pDescriptorRanges = &range
+						},
+						//.ShaderVisibility = 
+					};
+
+					rootParams.push_back(rootParam);
+				}
 				else
 				{
 					continue;

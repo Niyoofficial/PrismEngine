@@ -8,8 +8,8 @@ namespace Prism::Render::D3D12
 class D3D12Buffer : public Buffer
 {
 public:
-	D3D12Buffer(const BufferDesc& desc, RawData initData, Flags<ResourceStateFlags> initState);
-	D3D12Buffer(ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage);
+	D3D12Buffer(const BufferDesc& desc, RawData initData);
+	D3D12Buffer(ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage, CPUAccess cpuAccess);
 
 	virtual void* Map(Flags<CPUAccess> access) override;
 	virtual void Unmap() override;

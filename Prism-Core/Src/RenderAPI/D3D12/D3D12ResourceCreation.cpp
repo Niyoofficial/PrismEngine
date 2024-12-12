@@ -1,7 +1,6 @@
 #include "pcpch.h"
 
 #include "RenderAPI/D3D12/D3D12PipelineState.h"
-#include "RenderAPI/D3D12/D3D12RenderContext.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12ShaderImpl.h"
 #include "RenderAPI/D3D12/D3D12Swapchain.h"
@@ -9,6 +8,8 @@
 #include "Prism-Core/Render/BufferView.h"
 #include "RenderAPI/D3D12/D3D12Buffer.h"
 #include "RenderAPI/D3D12/D3D12BufferView.h"
+#include "RenderAPI/D3D12/D3D12RenderCommandList.h"
+#include "RenderAPI/D3D12/D3D12RenderCommandQueue.h"
 #include "RenderAPI/D3D12/D3D12Texture.h"
 #include "RenderAPI/D3D12/D3D12TextureView.h"
 
@@ -20,9 +21,9 @@ void CreateRenderDevice(RenderDeviceParams params)
 	StaticPointerSingleton<RenderDevice>::Create<D3D12::D3D12RenderDevice>(params);
 }
 
-RenderContext* CreateRenderContext()
+RenderCommandList* CreateRenderCommandList(uint64_t fenceValue)
 {
-	return new D3D12::D3D12RenderContext;
+	return new D3D12::D3D12RenderCommandList(fenceValue);
 }
 
 Swapchain* CreateSwapchain(Core::Window* window, SwapchainDesc swapchainDesc)
@@ -45,9 +46,9 @@ ComputePipelineState* CreatePipelineState(const ComputePipelineStateDesc& desc)
 	return new D3D12::D3D12ComputePipelineState(desc);
 }
 
-Buffer* CreateBuffer(const BufferDesc& desc, RawData initData, Flags<ResourceStateFlags> initState)
+Buffer* CreateBuffer(const BufferDesc& desc, RawData initData)
 {
-	return new D3D12::D3D12Buffer(desc, initData, initState);
+	return new D3D12::D3D12Buffer(desc, initData);
 }
 
 BufferView* CreateBufferView(const BufferViewDesc& desc, class Buffer* buffer)
@@ -55,9 +56,9 @@ BufferView* CreateBufferView(const BufferViewDesc& desc, class Buffer* buffer)
 	return new D3D12::D3D12BufferView(desc, buffer);
 }
 
-Texture* CreateTexture(const TextureDesc& desc, RawData initData, Flags<ResourceStateFlags> initState)
+Texture* CreateTexture(const TextureDesc& desc, RawData initData, BarrierLayout initLayout)
 {
-	return new D3D12::D3D12Texture(desc, initData, initState);
+	return new D3D12::D3D12Texture(desc, initData, initLayout);
 }
 
 Texture* CreateTexture(std::wstring filepath, bool loadAsCubemap)

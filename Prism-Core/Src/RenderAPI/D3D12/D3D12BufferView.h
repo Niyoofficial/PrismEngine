@@ -16,5 +16,7 @@ public:
 private:
 	BufferViewDesc m_viewDesc;
 	CPUDescriptorHeapAllocation m_descriptor;
+
+	ComPtr<ID3D12Resource> m_counterBuffer;
 };
 }

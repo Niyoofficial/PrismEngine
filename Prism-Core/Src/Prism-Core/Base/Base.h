@@ -5,6 +5,7 @@
 #include "Prism-Core/Base/Ref.h"
 #include "Prism-Core/Utilities/StringUtils.h"
 #include "Prism-Core/Utilities/MathUtils.h"
+#include "Prism-Core/Utilities/PreprocessorUtils.h"
 #include "Prism-Core/Utilities/Flags.h"
 
 #include "glm/gtx/compatibility.hpp"

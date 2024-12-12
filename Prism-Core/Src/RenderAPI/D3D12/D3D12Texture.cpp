@@ -8,24 +8,26 @@
 #include "WICTextureLoader.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "Prism-Core/Render/RenderCommandQueue.h"
 
 namespace Prism::Render::D3D12
 {
-D3D12Texture::D3D12Texture(const TextureDesc& desc, RawData initData, Flags<ResourceStateFlags> initState)
+D3D12Texture::D3D12Texture(const TextureDesc& desc, RawData initData, BarrierLayout initLayout)
 	: m_originalDesc(desc)
 {
 	PE_ASSERT(desc.usage != ResourceUsage::Staging);
 	PE_ASSERT(desc.usage != ResourceUsage::Dynamic);
 
 	auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-	D3D12_RESOURCE_DESC d3d12Desc = GetD3D12ResourceDesc(m_originalDesc);
+	D3D12_RESOURCE_DESC1 d3d12Desc = GetD3D12ResourceDesc(m_originalDesc);
 	D3D12_CLEAR_VALUE d3d12ClearValue = m_originalDesc.optimizedClearValue.has_value()
 											? GetD3D12ClearValue(m_originalDesc.optimizedClearValue.value())
 											: D3D12_CLEAR_VALUE{};
-	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource(
+	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource3(
 		&heapProps, D3D12_HEAP_FLAG_NONE,
-		&d3d12Desc, GetD3D12ResourceStates(initState),
+		&d3d12Desc, GetD3D12BarrierLayout(initLayout),
 		m_originalDesc.optimizedClearValue.has_value() ? &d3d12ClearValue : nullptr,
+		nullptr, 0, nullptr,
 		IID_PPV_ARGS(&m_resource)));
 
 	PE_ASSERT_HR(m_resource->SetName(m_originalDesc.textureName.c_str()));
@@ -36,12 +38,14 @@ D3D12Texture::D3D12Texture(const TextureDesc& desc, RawData initData, Flags<Reso
 		context->UpdateTexture(this, initData, 0);
 
 		D3D12RenderDevice::Get().SubmitContext(context);
-		D3D12RenderDevice::Get().FlushCommandQueue();
+		D3D12RenderDevice::Get().GetRenderQueue()->Flush();
 	}
 }
 
 D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap)
 {
+	DISABLE_DESTRUCTION_SCOPE_GUARD(this);
+
 	std::wstring ext = filepath.substr(filepath.find_last_of('.', std::wstring::npos) + 1);
 	if (ext == L"hdr")
 	{
@@ -73,10 +77,11 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap)
 		auto resDesc = GetD3D12ResourceDesc(m_originalDesc);
 		auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
 
-		PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource(
+		PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource3(
 			&heapProps, D3D12_HEAP_FLAG_NONE,
-			&resDesc, D3D12_RESOURCE_STATE_COMMON,
+			&resDesc, D3D12_BARRIER_LAYOUT_COMMON,
 			nullptr,
+			nullptr, 0, nullptr,
 			IID_PPV_ARGS(&m_resource)));
 
 		PE_ASSERT(m_resource);
@@ -88,7 +93,7 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap)
 		context->UpdateTexture(this, {.data = loadedData, .sizeInBytes = (int64_t)(width * height * 4 * 4)}, 0);
 
 		D3D12RenderDevice::Get().SubmitContext(context);
-		D3D12RenderDevice::Get().FlushCommandQueue();
+		D3D12RenderDevice::Get().GetRenderQueue()->Flush();
 	}
 	else
 	{

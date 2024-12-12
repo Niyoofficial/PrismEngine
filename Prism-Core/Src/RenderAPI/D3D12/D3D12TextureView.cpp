@@ -1,7 +1,6 @@
 ﻿#include "pcpch.h"
 #include "D3D12TextureView.h"
 
-#include "RenderAPI/D3D12/D3D12RenderContext.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12Texture.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"

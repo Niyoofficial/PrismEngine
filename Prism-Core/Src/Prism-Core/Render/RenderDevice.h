@@ -1,5 +1,4 @@
 #pragma once
-#include "Prism-Core/Render/RenderThreadCommands.h"
 #include "Prism-Core/Render/PipelineStateCache.h"
 #include "Prism-Core/Render/ReleaseQueue.h"
 #include "Prism-Core/Render/RenderContext.h"
@@ -14,6 +13,7 @@ namespace Prism::Render
 {
 struct RenderDeviceParams
 {
+	bool enableDebugLayer = false;
 	bool initPixLibrary = false;
 };
 
@@ -35,15 +35,11 @@ public:
 
 
 	Ref<RenderContext> AllocateContext();
-	virtual uint64_t SubmitContext(RenderContext* context) = 0;
+	virtual uint64_t SubmitContext(RenderContext* context);
 
-	virtual void WaitForCmdListToComplete(uint64_t fenceValue) = 0;
-	virtual void FlushCommandQueue() = 0;
+	virtual void ReleaseStaleResources();
 
-	virtual void ReleaseStaleResources() = 0;
-
-	virtual uint64_t GetLastSubmittedCmdListFenceValue() const = 0;
-	virtual uint64_t GetLastCompletedCmdListFenceValue() const = 0;
+	virtual RenderCommandQueue* GetRenderQueue() const = 0;
 
 	ShaderCache& GetShaderCache() { return m_shaderCache; }
 	const ShaderCache& GetShaderCache() const { return m_shaderCache; }
@@ -63,15 +59,13 @@ public:
 		m_endFramePreservedObjects.AddObject(std::move(resource));
 	}
 
-private:
+protected:
 	// Holds last frame's cmd list fence values for frames
 	// prepared by CPU but not yet completed by the GPU
 	std::queue<uint64_t> m_cpuPreparedFrames;
 
 	ShaderCache m_shaderCache;
 	PipelineStateCache m_pipelineStateCache;
-
-	RenderThreadCommandQueue m_rtCommandQueue;
 
 	PreservingObjectContainer m_endFramePreservedObjects;
 	ReleaseQueueAny m_releaseQueue;

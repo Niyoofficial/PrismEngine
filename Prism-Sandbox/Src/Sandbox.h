@@ -94,7 +94,8 @@ private:
 	Ref<Render::TextureView> m_depthStencilView;
 
 	Ref<Render::Texture> m_skybox;
-	Ref<Render::TextureView> m_skyboxSRVView;
+	Ref<Render::TextureView> m_skyboxCubeSRVView;
+	Ref<Render::TextureView> m_skyboxArraySRVView;
 	Ref<Render::TextureView> m_skyboxUAVView;
 
 	Ref<Render::Texture> m_irradiance;
@@ -115,6 +116,9 @@ private:
 
 	Ref<Render::Buffer> m_sceneCbuffer;
 	Ref<Render::BufferView> m_sceneCbufferView;
+
+	Ref<Render::Buffer> m_coeffBuffer;
+	Ref<Render::BufferView> m_coeffBufferView;
 
 	Ref<Render::Primitive> m_monkey;
 	Ref<Render::Primitive> m_floor;

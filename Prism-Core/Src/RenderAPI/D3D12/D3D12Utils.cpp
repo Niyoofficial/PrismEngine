@@ -21,7 +21,7 @@ bool VerifyHResult(HRESULT hr)
 			reinterpret_cast<LPWSTR>(&errorString), 0,
 			nullptr);
 
-		PE_CORE_LOG(Error, "{}", WStringToString(errorString));
+		PE_CORE_LOG(Error, "{} - {}", hr, WStringToString(errorString));
 
 		LocalFree(errorString);
 	}

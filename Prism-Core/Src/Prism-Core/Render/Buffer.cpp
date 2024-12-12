@@ -4,9 +4,9 @@
 
 namespace Prism::Render
 {
-Ref<Buffer> Buffer::Create(const BufferDesc& desc, RawData initData, Flags<ResourceStateFlags> initState)
+Ref<Buffer> Buffer::Create(const BufferDesc& desc, RawData initData)
 {
-	return Private::CreateBuffer(desc, initData, initState);
+	return Private::CreateBuffer(desc, initData);
 }
 
 Ref<BufferView> Buffer::CreateView(const BufferViewDesc& desc)
@@ -35,14 +35,15 @@ Ref<BufferView> Buffer::CreateDefaultSRVView(int64_t elementSize)
 	});
 }
 
-Ref<BufferView> Buffer::CreateDefaultUAVView(int64_t elementSize)
+Ref<BufferView> Buffer::CreateDefaultUAVView(int64_t elementSize, bool bNeedsCounter)
 {
 	auto desc = GetBufferDesc();
 	return CreateView({
 		.type = BufferViewType::UAV,
 		.offset = 0,
 		.size = desc.size,
-		.elementSize = elementSize
-		});
+		.elementSize = elementSize,
+		.flags = bNeedsCounter ? BufferViewFlags::NeedsCounter : BufferViewFlags::None
+	});
 }
 }

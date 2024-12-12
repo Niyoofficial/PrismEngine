@@ -1,31 +1,53 @@
 ﻿#include "pcpch.h"
 #include "D3D12Buffer.h"
 
+#include "Prism-Core/Render/RenderCommandQueue.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 
 
 namespace Prism::Render::D3D12
 {
-D3D12Buffer::D3D12Buffer(const BufferDesc& desc, RawData initData, Flags<ResourceStateFlags> initState)
+D3D12Buffer::D3D12Buffer(const BufferDesc& desc, RawData initData)
 	: m_originalDesc(desc)
 {
-	// TODO: Implement staging buffers
-	PE_ASSERT(desc.usage != ResourceUsage::Staging);
+	DISABLE_DESTRUCTION_SCOPE_GUARD(this);
 
 	// Dynamic buffers don't need to be created here, they will be automatically created when Map is called
 	if (desc.usage == ResourceUsage::Default)
 	{
 		auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
-		auto bufferDesc = CD3DX12_RESOURCE_DESC::Buffer(
+		auto bufferDesc = CD3DX12_RESOURCE_DESC1::Buffer(
 			m_originalDesc.size,
 			GetD3D12ResourceFlags(m_originalDesc.bindFlags));
-		PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource(
+		PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource3(
 			&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&bufferDesc,
-			GetD3D12ResourceStates(ResourceStateFlags::Common),
-			nullptr, IID_PPV_ARGS(&m_resource)));
+			D3D12_BARRIER_LAYOUT_UNDEFINED,
+			nullptr, nullptr,
+			0, nullptr,
+			IID_PPV_ARGS(&m_resource)));
+
+		PE_ASSERT_HR(m_resource->SetName(m_originalDesc.bufferName.c_str()));
+	}
+	else if (desc.usage == ResourceUsage::Staging)
+	{
+		PE_ASSERT(desc.cpuAccess != CPUAccess::None);
+
+		auto heapType = desc.cpuAccess == CPUAccess::Write ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_READBACK;
+		auto heapProps = CD3DX12_HEAP_PROPERTIES(heapType);
+		auto bufferDesc = CD3DX12_RESOURCE_DESC1::Buffer(
+			m_originalDesc.size,
+			GetD3D12ResourceFlags(m_originalDesc.bindFlags));
+		PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource3(
+			&heapProps,
+			D3D12_HEAP_FLAG_NONE,
+			&bufferDesc,
+			D3D12_BARRIER_LAYOUT_UNDEFINED,
+			nullptr, nullptr,
+			0, nullptr,
+			IID_PPV_ARGS(&m_resource)));
 
 		PE_ASSERT_HR(m_resource->SetName(m_originalDesc.bufferName.c_str()));
 	}
@@ -34,11 +56,10 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc, RawData initData, Flags<Resourc
 	{
 		if (desc.usage == ResourceUsage::Dynamic)
 		{
-			// TODO: Maybe add dynamic readback buffers?
 			PE_ASSERT(desc.cpuAccess == CPUAccess::Write, "Dynamic buffers must have only the CPUAccess::Write flag set");
 
-			void* data = D3D12Buffer::Map(CPUAccess::Write);
-			memcpy_s(data, m_originalDesc.size, initData.data, initData.sizeInBytes);
+			void* address = D3D12Buffer::Map(CPUAccess::Write);
+			memcpy_s(address, m_originalDesc.size, initData.data, initData.sizeInBytes);
 			D3D12Buffer::Unmap();
 		}
 		else if (desc.usage == ResourceUsage::Default)
@@ -47,22 +68,26 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc, RawData initData, Flags<Resourc
 
 			context->UpdateBuffer(this, initData);
 
-			/*context->Transition({
-				.resource = this,
-				.oldState = ResourceStateFlags::CopyDest,
-				.newState = initState
-			});*/
-
 			RenderDevice::Get().SubmitContext(context);
 
-			RenderDevice::Get().FlushCommandQueue();
+			RenderDevice::Get().GetRenderQueue()->Flush();
+		}
+		else if (desc.usage == ResourceUsage::Staging)
+		{
+			PE_ASSERT(desc.cpuAccess == CPUAccess::Write,
+				"Staging buffer must have CPUAccess::Write in order to initialize it with data from CPU");
+
+			void* address = D3D12Buffer::Map(CPUAccess::Write);
+			memcpy_s(address, m_originalDesc.size, initData.data, initData.sizeInBytes);
+			D3D12Buffer::Unmap();
 		}
 	}
 }
 
-D3D12Buffer::D3D12Buffer(ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage)
-	: m_resource(resource), m_originalDesc(D3D12::GetBufferDesc(resource->GetDesc(), name, usage))
+D3D12Buffer::D3D12Buffer(ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage, CPUAccess cpuAccess)
+	: m_resource(resource), m_originalDesc({.bufferName = name, .usage = usage, .cpuAccess = cpuAccess})
 {
+	m_originalDesc = D3D12Buffer::GetBufferDesc();
 }
 
 void* D3D12Buffer::Map(Flags<CPUAccess> access)
@@ -70,9 +95,10 @@ void* D3D12Buffer::Map(Flags<CPUAccess> access)
 	PE_ASSERT(
 		m_originalDesc.usage == ResourceUsage::Dynamic ||
 		m_originalDesc.usage == ResourceUsage::Staging,
-		"Buffer must be Dynamic or Staging!");
+		"Buffer must be Dynamic or Staging to be mapped!");
 
 	if (m_originalDesc.usage == ResourceUsage::Dynamic)
+		// TODO: Maybe add dynamic readback buffers?
 		PE_ASSERT(access == CPUAccess::Write, "Dynamic buffers can only be written to");
 	else if (m_originalDesc.usage == ResourceUsage::Staging)
 		PE_ASSERT(m_originalDesc.cpuAccess == access, "Map access doesn't match the one buffer was created with");
@@ -80,21 +106,41 @@ void* D3D12Buffer::Map(Flags<CPUAccess> access)
 	PE_ASSERT(!m_isMapped, "Can't map a buffer that is already mapped, unmap it first");
 
 	m_isMapped = true;
-	m_dynamicAllocation = D3D12RenderDevice::Get().AllocateDynamicBufferMemory(m_originalDesc.size);
 
-	return m_dynamicAllocation.cpuAddress;
+	if (m_originalDesc.usage == ResourceUsage::Dynamic)
+	{
+		m_dynamicAllocation = D3D12RenderDevice::Get().AllocateDynamicBufferMemory(m_originalDesc.size);
+
+		return m_dynamicAllocation.cpuAddress;
+	}
+	else if (m_originalDesc.usage == ResourceUsage::Staging)
+	{
+		void* address = nullptr;
+		PE_ASSERT_HR(m_resource->Map(0, nullptr, &address));
+
+		return address;
+	}
 }
 
 void D3D12Buffer::Unmap()
 {
 	m_isMapped = false;
+
+	if (m_originalDesc.usage == ResourceUsage::Staging)
+		m_resource->Unmap(0, nullptr);
 }
 
 BufferDesc D3D12Buffer::GetBufferDesc() const
 {
 	if (auto* d3d12Resource = GetD3D12Resource())
 	{
-		auto desc = D3D12::GetBufferDesc(d3d12Resource->GetDesc(), m_originalDesc.bufferName, m_originalDesc.usage);
+		BufferDesc desc = {
+			.bufferName = m_originalDesc.bufferName,
+			.size = (int32_t)d3d12Resource->GetDesc().Width,
+			.bindFlags = GetBindFlags(d3d12Resource->GetDesc().Flags),
+			.usage = m_originalDesc.usage,
+			.cpuAccess = m_originalDesc.cpuAccess
+		};
 		if (m_originalDesc.usage == ResourceUsage::Dynamic)
 			desc.size = m_originalDesc.size;
 

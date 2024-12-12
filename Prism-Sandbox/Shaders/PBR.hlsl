@@ -90,7 +90,7 @@ float3 CalcLight(float3 albedo, float metallic, float roughness, float3 lightCol
 	float3 numerator = distribution * geometry * fresnel;
 	float denominator = 4.f * max(dot(normal, toCamera), 0.f) * max(dot(normal, toLight), 0.f) + 0.0001f;
 	float3 specular = numerator / denominator;
-		
+
 	float3 kS = fresnel;
 	float3 kD = (1.f - kS) * (1.f - metallic);
 	
@@ -116,7 +116,7 @@ PixelInput vsmain(VertexInput vin)
 	PixelInput vout;
 	
 	float4 posWorld = mul(g_world, float4(vin.positionLocal, 1.f));
-	vout.positionWorld = (float3) posWorld;
+	vout.positionWorld = (float3)posWorld;
 	vout.positionClip = mul(g_camera.viewProj, posWorld);
 	
 	vout.normalWorld = mul((float3x3) g_world, vin.normalLocal);

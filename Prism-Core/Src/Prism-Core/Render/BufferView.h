@@ -11,6 +11,13 @@ enum class BufferViewType
 	UAV,
 };
 
+enum class BufferViewFlags
+{
+	None = 0,
+	// Can only be used on UAV
+	NeedsCounter = 1 << 0
+};
+
 struct BufferViewDesc
 {
 	BufferViewType type;
@@ -18,6 +25,7 @@ struct BufferViewDesc
 	int64_t size = 0;
 	// Used only for SRV and UAV, can be left as 0 for CBV
 	int64_t elementSize = 0;
+	Flags<BufferViewFlags> flags;
 };
 
 class BufferView : public RenderResourceView

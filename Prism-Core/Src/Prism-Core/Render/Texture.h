@@ -61,7 +61,7 @@ class Texture : public RenderResource
 {
 public:
 	static Ref<Texture> Create(const TextureDesc& desc, RawData initData = {},
-							   Flags<ResourceStateFlags> initState = ResourceStateFlags::Common);
+							   BarrierLayout initLayout = BarrierLayout::Common);
 	static Ref<Texture> Create(std::wstring filepath, bool loadAsCubemap = false);
 
 	Ref<TextureView> CreateView(const TextureViewDesc& desc = {});

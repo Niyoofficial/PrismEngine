@@ -17,4 +17,14 @@ PreservingObjectContainer& PreservingObjectContainer::operator=(PreservingObject
 
 	return *this;
 }
+
+void PreservingObjectContainer::MoveObjects(PreservingObjectContainer& containerToMoveFrom)
+{
+	m_preservedObjects.insert(m_preservedObjects.end(),
+							  std::make_move_iterator(containerToMoveFrom.m_preservedObjects.begin()),
+							  std::make_move_iterator(containerToMoveFrom.m_preservedObjects.end()));
+
+	containerToMoveFrom.m_preservedObjects.erase(containerToMoveFrom.m_preservedObjects.begin(),
+												 containerToMoveFrom.m_preservedObjects.end());
+}
 }

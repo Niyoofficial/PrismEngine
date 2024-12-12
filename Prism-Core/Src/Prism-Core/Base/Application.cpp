@@ -3,6 +3,7 @@
 
 #include "Prism-Core/Base/Platform.h"
 #include "Prism-Core/Render/Layer.h"
+#include "Prism-Core/Render/RenderCommandQueue.h"
 #include "Prism-Core/Render/RenderDevice.h"
 
 namespace Prism::Core
@@ -53,7 +54,7 @@ void Application::Run()
 	}
 
 	// Flush GPU work before exiting
-	Render::RenderDevice::Get().FlushCommandQueue();
+	Render::RenderDevice::Get().GetRenderQueue()->Flush();
 }
 
 void Application::PushLayer(Render::Layer* layer)

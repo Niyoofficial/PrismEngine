@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <unordered_set>
+#include "Prism-Core/Utilities/PreprocessorUtils.h"
 
 namespace Prism
 {
@@ -19,7 +20,7 @@ public:
 		s_references.erase(object);
 	}
 
-	static bool IsLive(RefCounted* object)
+	static bool IsAlive(RefCounted* object)
 	{
 		return s_references.contains(object);
 	}
@@ -28,6 +29,7 @@ private:
 	static std::unordered_set<RefCounted*> s_references;
 };
 
+// TODO: This class should probably have all their members private and Ref class as a friend
 class RefCounted
 {
 public:
@@ -52,9 +54,43 @@ public:
 
 	int32_t GetRefCount() const { return m_refCount.load(); }
 
+
+	// TODO: Instead of this there should be a custom function for creating RefCounted objects that guards them from not being destroyed during construction
+	void DisableDestruction(bool disable)
+	{
+		destructionDisabled = disable;
+	}
+
+	bool IsDestructionDisabled()
+	{
+		return destructionDisabled;
+	}
+
 private:
+	bool destructionDisabled = false;
 	std::atomic<int32_t> m_refCount = 0;
 };
+
+struct DisableDestructionScopeGuard
+{
+public:
+	explicit DisableDestructionScopeGuard(RefCounted* inObject)
+		: object(inObject)
+	{
+		PE_ASSERT(object);
+		object->DisableDestruction(true);
+	}
+
+	~DisableDestructionScopeGuard()
+	{
+		object->DisableDestruction(false);
+	}
+
+private:
+	RefCounted* object = nullptr;
+};
+
+#define DISABLE_DESTRUCTION_SCOPE_GUARD(object) DisableDestructionScopeGuard PREPROCESSOR_JOIN(_disableDestruction, __LINE__)(object)
 
 template<typename T>
 class Ref
@@ -67,10 +103,21 @@ public:
 		IncRefCount();
 	}
 
+	Ref(const Ref<T>& otherRef)
+		: Ref<T>(otherRef.m_object)
+	{
+	}
+
 	template<typename T2> requires std::is_base_of_v<T, T2>
 	Ref(const Ref<T2>& otherRef)
 		: Ref<T>(otherRef.m_object)
 	{
+	}
+
+	Ref(Ref<T>&& otherRef) noexcept
+		: m_object(std::move(otherRef.m_object))
+	{
+		otherRef.m_object = nullptr;
 	}
 
 	template<typename T2> requires std::is_base_of_v<T, T2>
@@ -99,10 +146,25 @@ public:
 		return *this;
 	}
 
+	Ref& operator=(const Ref<T>& otherRef)
+	{
+		*this = otherRef.m_object;
+		return *this;
+	}
+
 	template<typename T2> requires std::is_base_of_v<T, T2>
 	Ref& operator=(const Ref<T2>& otherRef)
 	{
-		return *this = static_cast<T*>(otherRef.m_object);
+		*this = static_cast<T*>(otherRef.m_object);
+		return *this;
+	}
+
+	Ref& operator=(Ref<T>&& otherRef)
+	{
+		if (m_object != otherRef.m_object)
+			Attach(otherRef.Detach());
+
+		return *this;
 	}
 
 	template<typename T2> requires std::is_base_of_v<T, T2>
@@ -153,7 +215,7 @@ private:
 		if (m_object)
 		{
 			m_object->RemoveRef();
-			if (m_object->GetRefCount() == 0)
+			if (m_object->GetRefCount() <= 0 && !m_object->IsDestructionDisabled())
 			{
 				delete m_object;
 				m_object = nullptr;
@@ -187,7 +249,7 @@ public:
 	T& operator*() { return *m_object; }
 	const T& operator*() const { return *m_object; }
 
-	bool IsValid() const { return m_object ? ReferenceManager::IsLive(m_object) : false; }
+	bool IsValid() const { return m_object ? ReferenceManager::IsAlive(m_object) : false; }
 	operator bool() const { return IsValid(); }
 
 private:

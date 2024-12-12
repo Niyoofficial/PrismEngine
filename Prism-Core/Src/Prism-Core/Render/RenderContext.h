@@ -1,88 +1,70 @@
 ﻿#pragma once
-#include "Prism-Core/Render/Buffer.h"
-#include "Prism-Core/Render/PipelineState.h"
+
+#include "Prism-Core/Render/DeferredCommandRecorder.h"
+#include "Prism-Core/Render/RenderCommandList.h"
 #include "Prism-Core/Utilities/PreservingObjectContainer.h"
 
 
 namespace Prism::Render
 {
-class Buffer;
-class BufferView;
-class Texture;
-class TextureView;
-
-struct DrawCommandDesc
-{
-	int64_t numVertices = 0;
-	int64_t numInstances = 1;
-	int64_t startVertexLocation = 0;
-};
-
-struct DrawIndexedCommandDesc
-{
-	int64_t numIndices = 0;
-	int64_t numInstances = 1;
-	int64_t startIndexLocation = 0;
-	int64_t baseVertexLocation = 0;
-};
-
-enum class IndexBufferFormat
-{
-	Uint16,
-	Uint32
-};
-
 class RenderContext : public RefCounted
 {
+	friend class RenderCommandQueue;
+	friend class RenderDevice;
+
 public:
-	static RenderContext* Create();
+	void Draw(DrawCommandDesc desc);
+	void DrawIndexed(DrawIndexedCommandDesc desc);
 
+	void Dispatch(int32_t threadGroupCountX, int32_t threadGroupCountY, int32_t threadGroupCountZ);
 
-	virtual void Draw(DrawCommandDesc desc) = 0;
-	virtual void DrawIndexed(DrawIndexedCommandDesc desc) = 0;
-
-	virtual void Dispatch(int32_t threadGroupCountX, int32_t threadGroupCountY, int32_t threadGroupCountZ) = 0;
-
-	virtual void SetPSO(GraphicsPipelineState* pso) = 0;
-	virtual void SetPSO(ComputePipelineState* pso) = 0;
+	void SetPSO(GraphicsPipelineState* pso);
+	void SetPSO(ComputePipelineState* pso);
 
 	void SetRenderTarget(TextureView* rtv, TextureView* dsv);
-	virtual void SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv) = 0;
+	void SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv);
 	void SetViewport(Viewport viewport);
-	virtual void SetViewports(std::vector<Viewport> viewports) = 0;
+	void SetViewports(std::vector<Viewport> viewports);
 	void SetScissor(Scissor scissor);
-	virtual void SetScissors(std::vector<Scissor> scissors) = 0;
+	void SetScissors(std::vector<Scissor> scissors);
 
-	virtual void SetVertexBuffer(Buffer* buffer, int64_t vertexSizeInBytes) = 0;
-	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) = 0;
+	void SetVertexBuffer(Buffer* buffer, int64_t vertexSizeInBytes);
+	void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format);
 
-	virtual void SetTexture(TextureView* textureView, const std::wstring& paramName, int32_t index = 0) = 0;
-	virtual void SetCBuffer(BufferView* bufferView, const std::wstring& paramName) = 0;
+	void SetTexture(TextureView* textureView, const std::wstring& paramName, int32_t index = 0);
+	void SetBuffer(BufferView* bufferView, const std::wstring& paramName);
 
-	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr) = 0;
-	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr) = 0;
+	void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr);
+	void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr);
 
-	virtual void Transition(StateTransitionDesc desc) = 0;
+	virtual void Barrier(BufferBarrier barrier);
+	virtual void Barrier(TextureBarrier barrier);
 
-	virtual void UpdateBuffer(Buffer* buffer, RawData data) = 0;
-	virtual void UpdateTexture(Texture* texture, RawData data, int32_t subresourceIndex) = 0;
+	void UpdateBuffer(Buffer* buffer, RawData data);
+	void UpdateTexture(Texture* texture, RawData data, int32_t subresourceIndex);
 
-	virtual void CopyBufferRegion(Buffer* dest, int32_t destOffset, Buffer* src, int32_t srcOffset, int32_t numBytes) = 0;
-	virtual void CopyTextureRegion(Texture* dest, int32_t x, int32_t y, int32_t z, int32_t subresourceIndex, Buffer* src, int64_t srcOffset = 0) = 0;
+	Buffer* ReadbackBuffer(Buffer* bufferToReadback);
+
+	void CopyBufferRegion(Buffer* dest, int64_t destOffset, Buffer* src, int64_t srcOffset, int64_t numBytes);
+	void CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex, Buffer* src, int64_t srcOffset);
+	void CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
+		Texture* src, int32_t srcSubresourceIndex = 0, glm::int3 srcLoc = {}, glm::int3 srcSize = { -1, -1, -1 });
 
 
-	// Objects MUST be std::move'd into this function
 	template<typename T>
-	void SafeReleaseResource(T&& resource) requires !std::is_lvalue_reference_v<T>
+	void SafeReleaseResource(T&& resource)
 	{
 		m_preservedResources.AddObject(std::move(resource));
 	}
 
+private:
+	RenderContext() = default;
 
-	// Called by RenderDevice before executing
-	virtual void CloseContext() = 0;
+	void CloseContext();
 
-protected:
+private:
+	DeferredCommandRecorder m_commandRecorder;
+
 	PreservingObjectContainer m_preservedResources;
 };
 }

@@ -763,6 +763,146 @@ enum class ClearFlags
 	ClearStencil = 1 << 1
 };
 
+struct SubresourceRange
+{
+	int32_t firstMipLevel = -1;
+	int32_t numMipLevels = -1;
+	int32_t firstArraySlice = -1;
+	int32_t numArraySlices = -1;
+};
+
+enum class BarrierSync
+{
+	None = 0,
+	All = 1 << 0,
+	Draw = 1 << 1,
+	IndexInput = 1 << 2,
+	VertexShading = 1 << 3,
+	PixelShading = 1 << 4,
+	DepthStencil = 1 << 5,
+	RenderTarget = 1 << 6,
+	ComputeShading = 1 << 7,
+	Raytracing = 1 << 8,
+	Copy = 1 << 9,
+	Resolve = 1 << 10,
+	ExecuteIndirect = 1 << 11,
+	Predication = 1 << 11, // Duplicate of ExecuteIndirect
+	AllShading = 1 << 12,
+	NonPixelShading = 1 << 13,
+	EmitRaytracingAccelerationStructurePostbuildInfo = 1 << 14,
+	ClearUnorderedAccessView = 1 << 15,
+	VideoDecode = 1 << 20,
+	VideoProcess = 1 << 21,
+	VideoEncode = 1 << 22,
+	BuildRaytracingAccelerationStructure = 1 << 23,
+	CopyRaytracingAccelerationStructure = 1 << 24,
+	Split = 1 << 31
+};
+
+enum class BarrierAccess
+{
+	Common = 0,
+	VertexBuffer = 1 << 0,
+	ConstantBuffer = 1 << 1,
+	IndexBuffer = 1 << 2,
+	RenderTarget = 1 << 3,
+	UnorderedAccess = 1 << 4,
+	DepthStencilWrite = 1 << 5,
+	DepthStencilRead = 1 << 6,
+	ShaderResource = 1 << 7,
+	StreamOutput = 1 << 8,
+	IndirectArgument = 1 << 9,
+	Predication = 1 << 9, // Duplicate of IndirectArgument
+	CopyDest = 1 << 10,
+	CopySource = 1 << 11,
+	ResolveDest = 1 << 12,
+	ResolveSource = 1 << 13,
+	RaytracingAccelerationStructureRead = 1 << 14,
+	RaytracingAccelerationStructureWrite = 1 << 15,
+	ShadingRateSource = 1 << 16,
+	VideoDecodeRead = 1 << 17,
+	VideoDecodeWrite = 1 << 18,
+	VideoProcessRead = 1 << 19,
+	VideoProcessWrite = 1 << 20,
+	VideoEncodeRead = 1 << 21,
+	VideoEncodeWrite = 1 << 22,
+	NoAccess = 1 << 31
+};
+
+enum class BarrierLayout
+{
+	Undefined = -1,
+	Common = 0,
+	Present = 0,
+	GenericRead = 1,
+	RenderTarget = 2,
+	UnorderedAccess = 3,
+	DepthStencilWrite = 4,
+	DepthStencilRead = 5,
+	ShaderResource = 6,
+	CopySource = 7,
+	CopyDest = 8,
+	ResolveSource = 9,
+	ResolveDest = 10,
+	ShadingRateSource = 11,
+	VideoDecodeRead = 12,
+	VideoDecodeWrite = 13,
+	VideoProcessRead = 14,
+	VideoProcessWrite = 15,
+	VideoEncodeRead = 16,
+	VideoEncodeWrite = 17,
+	DirectQueueCommon = 18,
+	DirectQueueGenericRead = 19,
+	DirectQueueUnorderedAccess = 20,
+	DirectQueueShaderResource = 21,
+	DirectQueueCopySource = 22,
+	DirectQueueCopyDest = 23,
+	ComputeQueueCommon = 24,
+	ComputeQueueGenericRead = 25,
+	ComputeQueueUnorderedAccess = 26,
+	ComputeQueueShaderResource = 27,
+	ComputeQueueCopySource = 28,
+	ComputeQueueCopyDest = 29,
+	VideoQueueCommon = 30
+};
+
+struct BufferBarrier
+{
+	class Buffer* buffer = nullptr;
+
+	Flags<BarrierSync> syncBefore;
+	Flags<BarrierSync> syncAfter;
+	Flags<BarrierAccess> accessBefore;
+	Flags<BarrierAccess> accessAfter;
+
+	int64_t offset = 0;
+	// size set to -1 means the barrier will affect the buffer from offset to the end
+	int64_t size = -1;
+};
+
+enum class TextureBarrierFlags
+{
+	None = 0,
+	Discard = 1 << 0
+};
+
+struct TextureBarrier
+{
+	class Texture* texture = nullptr;
+
+	Flags<BarrierSync> syncBefore;
+	Flags<BarrierSync> syncAfter;
+	Flags<BarrierAccess> accessBefore;
+	Flags<BarrierAccess> accessAfter;
+	BarrierLayout layoutBefore;
+	BarrierLayout layoutAfter;
+
+	// Leave default for all subresources
+	SubresourceRange subresourceRange;
+
+	Flags<TextureBarrierFlags> flags;
+};
+
 struct StateTransitionDesc
 {
 	class RenderResource* resource = nullptr;
@@ -785,6 +925,12 @@ struct Box
 	int32_t right;
 	int32_t bottom;
 	int32_t back;
+};
+
+enum class PipelineStateType
+{
+	Graphics,
+	Compute
 };
 }
 

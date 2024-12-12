@@ -23,12 +23,16 @@ D3D12BufferView::D3D12BufferView(const BufferViewDesc& desc, Buffer* buffer)
 		{
 		case BufferViewType::CBV:
 			{
+				PE_ASSERT(!m_viewDesc.flags.HasAllFlags(BufferViewFlags::NeedsCounter), "NeedsCounter flag can only be used on UAV");
+
 				auto d3d12ViewDesc = GetD3D12ConstantBufferViewDesc(m_owningBuffer, m_viewDesc);
 				D3D12RenderDevice::Get().GetD3D12Device()->CreateConstantBufferView(&d3d12ViewDesc, m_descriptor.GetCPUHandle());
 			}
 			break;
 		case BufferViewType::SRV:
 			{
+				PE_ASSERT(!m_viewDesc.flags.HasAllFlags(BufferViewFlags::NeedsCounter), "NeedsCounter flag can only be used on UAV");
+
 				auto d3d12ViewDesc = GetD3D12ShaderResourceViewDesc(m_viewDesc);
 				D3D12RenderDevice::Get().GetD3D12Device()->CreateShaderResourceView(
 					static_cast<D3D12Buffer*>(m_owningBuffer.Raw())->GetD3D12Resource(),
@@ -38,10 +42,29 @@ D3D12BufferView::D3D12BufferView(const BufferViewDesc& desc, Buffer* buffer)
 			break;
 		case BufferViewType::UAV:
 			{
+				if (m_viewDesc.flags.HasAllFlags(BufferViewFlags::NeedsCounter))
+				{
+					// Counter buffer
+					auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+					auto bufferDesc = CD3DX12_RESOURCE_DESC1::Buffer(
+						32,
+						D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS);
+					PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource3(
+						&heapProps,
+						D3D12_HEAP_FLAG_NONE,
+						&bufferDesc,
+						D3D12_BARRIER_LAYOUT_UNDEFINED,
+						nullptr, nullptr,
+						0, nullptr,
+						IID_PPV_ARGS(&m_counterBuffer)));
+
+					PE_ASSERT_HR(m_counterBuffer->SetName((buffer->GetBufferDesc().bufferName + L"_CounterBuffer").c_str()));
+				}
+
 				auto d3d12ViewDesc = GetD3D12UnorderedAccessViewDesc(m_viewDesc);
 				D3D12RenderDevice::Get().GetD3D12Device()->CreateUnorderedAccessView(
 					static_cast<D3D12Buffer*>(m_owningBuffer.Raw())->GetD3D12Resource(),
-					nullptr,
+					m_counterBuffer.Get(),
 					&d3d12ViewDesc,
 					m_descriptor.GetCPUHandle());
 			}
@@ -49,7 +72,6 @@ D3D12BufferView::D3D12BufferView(const BufferViewDesc& desc, Buffer* buffer)
 		default:
 			PE_ASSERT_NO_ENTRY();
 		}
-
 	}
 }
 
