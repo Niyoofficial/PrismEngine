@@ -12,7 +12,7 @@
 
 namespace Prism::Render::D3D12
 {
-D3D12Texture::D3D12Texture(const TextureDesc& desc, RawData initData, BarrierLayout initLayout)
+D3D12Texture::D3D12Texture(const TextureDesc& desc, BarrierLayout initLayout)
 	: m_originalDesc(desc)
 {
 	PE_ASSERT(desc.usage != ResourceUsage::Staging);
@@ -31,15 +31,6 @@ D3D12Texture::D3D12Texture(const TextureDesc& desc, RawData initData, BarrierLay
 		IID_PPV_ARGS(&m_resource)));
 
 	PE_ASSERT_HR(m_resource->SetName(m_originalDesc.textureName.c_str()));
-
-	if (initData.data && initData.sizeInBytes > 0)
-	{
-		auto context = D3D12RenderDevice::Get().AllocateContext();
-		context->UpdateTexture(this, initData, 0);
-
-		D3D12RenderDevice::Get().SubmitContext(context);
-		D3D12RenderDevice::Get().GetRenderQueue()->Flush();
-	}
 }
 
 D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap)
@@ -49,18 +40,13 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap)
 	std::wstring ext = filepath.substr(filepath.find_last_of('.', std::wstring::npos) + 1);
 	if (ext == L"hdr")
 	{
-		//stbi_set_flip_vertically_on_load(true);
-
 		int32_t width = -1;
 		int32_t height = -1;
 		int32_t channels = -1;
 
 		float* loadedData = stbi_loadf(WStringToString(filepath).c_str(), &width, &height, &channels, 4);
-		//stbi_set_flip_vertically_on_load(false);
-
 
 		PE_ASSERT(loadedData);
-
 
 		m_originalDesc = {
 			.textureName = filepath,

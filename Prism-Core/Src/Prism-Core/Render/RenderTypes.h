@@ -919,12 +919,8 @@ struct RawData
 
 struct Box
 {
-	int32_t left;
-	int32_t top;
-	int32_t front;
-	int32_t right;
-	int32_t bottom;
-	int32_t back;
+	glm::int3 location = {};
+	glm::int3 size = {-1, -1, -1};
 };
 
 enum class PipelineStateType

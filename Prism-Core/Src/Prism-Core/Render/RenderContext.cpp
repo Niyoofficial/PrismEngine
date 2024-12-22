@@ -103,7 +103,7 @@ Buffer* RenderContext::ReadbackBuffer(Buffer* bufferToReadback)
 
 	auto readbackBuffer = Buffer::Create({
 		.bufferName = bufferToReadback->GetBufferDesc().bufferName + L"_ReadbackBuffer",
-		.size = bufferToReadback->GetBufferDesc().size,
+		.size = RenderDevice::Get().GetAlignedSizeInBytes(bufferToReadback->GetBufferDesc()),
 		.bindFlags = BindFlags::None,
 		.usage = ResourceUsage::Staging,
 		.cpuAccess = CPUAccess::Read
@@ -117,23 +117,55 @@ Buffer* RenderContext::ReadbackBuffer(Buffer* bufferToReadback)
 	return readbackBuffer;
 }
 
+Buffer* RenderContext::ReadbackTexture(Texture* textureToReadback)
+{
+	PE_ASSERT(textureToReadback);
+	PE_ASSERT(textureToReadback->GetTextureDesc().usage == ResourceUsage::Default);
+
+	auto readbackBuffer = Buffer::Create({
+		.bufferName = textureToReadback->GetTextureDesc().textureName + L"_ReadbackBuffer",
+		.size = RenderDevice::Get().GetAlignedSizeInBytes(textureToReadback->GetTextureDesc()),
+		.bindFlags = BindFlags::None,
+		.usage = ResourceUsage::Staging,
+		.cpuAccess = CPUAccess::Read
+	});
+
+	int64_t bufferOffset = 0;
+	for (int32_t i = 0; i < textureToReadback->GetTextureDesc().GetSubresourceCount(); ++i)
+	{
+		CopyTextureRegion(readbackBuffer, bufferOffset, textureToReadback, i);
+		bufferOffset += RenderDevice::Get().GetAlignedSizeInBytes(textureToReadback->GetTextureDesc(), i, 1);
+	}
+
+	auto readbackBufferTemp = readbackBuffer;
+	SafeReleaseResource(readbackBufferTemp);
+
+	return readbackBuffer;
+}
+
 void RenderContext::CopyBufferRegion(Buffer* dest, int64_t destOffset, Buffer* src, int64_t srcOffset, int64_t numBytes)
 {
 	m_commandRecorder.AllocateCommand<Commands::CopyBufferRegionRenderCommand>(dest, destOffset, src, srcOffset, numBytes);
 }
 
-void RenderContext::CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex, Buffer* src, int64_t srcOffset)
+void RenderContext::CopyBufferRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex, Buffer* src, int64_t srcOffset)
 {
-	m_commandRecorder.AllocateCommand<Commands::CopyTextureRegionFromBufferRenderCommand>(dest, destLoc, destSubresourceIndex, src, srcOffset);
+	m_commandRecorder.AllocateCommand<Commands::CopyBufferRegionToTextureRenderCommand>(dest, destLoc, destSubresourceIndex, src, srcOffset);
+}
 
+void RenderContext::CopyTextureRegion(Buffer* dest, int64_t destOffset, Texture* src, int32_t srcSubresourceIndex, Box srcBox)
+{
+	m_commandRecorder.AllocateCommand<Commands::CopyTextureRegionToBufferRenderCommand>(
+		dest, destOffset,
+		src, srcSubresourceIndex, srcBox);
 }
 
 void RenderContext::CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
-									  Texture* src, int32_t srcSubresourceIndex, glm::int3 srcLoc, glm::int3 srcSize)
+									  Texture* src, int32_t srcSubresourceIndex, Box srcBox)
 {
-	m_commandRecorder.AllocateCommand<Commands::CopyTextureRegionFromTextureRenderCommand>(
+	m_commandRecorder.AllocateCommand<Commands::CopyTextureRegionToTextureRenderCommand>(
 		dest, destLoc, destSubresourceIndex,
-		src, srcSubresourceIndex, srcLoc, srcSize);
+		src, srcSubresourceIndex, srcBox);
 }
 
 void RenderContext::SetRenderTarget(TextureView* rtv, TextureView* dsv)

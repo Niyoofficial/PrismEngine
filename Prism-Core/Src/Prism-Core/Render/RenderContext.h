@@ -44,12 +44,13 @@ public:
 	void UpdateTexture(Texture* texture, RawData data, int32_t subresourceIndex);
 
 	Buffer* ReadbackBuffer(Buffer* bufferToReadback);
+	Buffer* ReadbackTexture(Texture* textureToReadback);
 
 	void CopyBufferRegion(Buffer* dest, int64_t destOffset, Buffer* src, int64_t srcOffset, int64_t numBytes);
-	void CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex, Buffer* src, int64_t srcOffset);
+	void CopyBufferRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex, Buffer* src, int64_t srcOffset);
+	void CopyTextureRegion(Buffer* dest, int64_t destOffset, Texture* src, int32_t srcSubresourceIndex = 0, Box srcBox = {});
 	void CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
-						   Texture* src, int32_t srcSubresourceIndex = 0,
-						   glm::int3 srcLoc = {}, glm::int3 srcSize = {-1, -1, -1});
+						   Texture* src, int32_t srcSubresourceIndex = 0, Box srcBox = {});
 
 
 	template<typename T>

@@ -620,6 +620,14 @@ D3D12InputLayout GetD3D12InputLayoutFromVertexShader(Shader* vertexShader)
 	return layout;
 }
 
+D3D12_RESOURCE_DESC1 GetD3D12ResourceDesc(const BufferDesc& bufferDesc)
+{
+	return CD3DX12_RESOURCE_DESC1::Buffer(
+		bufferDesc.size,
+		GetD3D12ResourceFlags(bufferDesc.bindFlags)
+	);
+}
+
 D3D12_RESOURCE_DESC1 GetD3D12ResourceDesc(const TextureDesc& textureDesc)
 {
 	return {
@@ -1382,15 +1390,15 @@ D3D12_RECT GetD3D12Rect(Scissor scissor)
 	};
 }
 
-D3D12_BOX GetD3D12Box(Box box)
+D3D12_BOX GetD3D12Box(Box box, Texture* texture)
 {
 	return {
-		.left = (UINT)box.left,
-		.top = (UINT)box.top,
-		.front = (UINT)box.front,
-		.right = (UINT)box.right,
-		.bottom = (UINT)box.bottom,
-		.back = (UINT)box.back
+		.left = (UINT)box.location.x,
+		.top = (UINT)box.location.y,
+		.front = (UINT)box.location.z,
+		.right = (UINT)(box.size.x == -1 ? texture->GetTextureDesc().GetWidth() - box.location.x : box.location.x + box.size.x),
+		.bottom = (UINT)(box.size.y == -1 ? texture->GetTextureDesc().GetHeight() - box.location.y : (UINT)box.location.y + box.size.y),
+		.back = (UINT)(box.size.z == -1 ? texture->GetTextureDesc().GetDepth() - box.location.z : (UINT)box.location.z + box.size.z)
 	};
 }
 

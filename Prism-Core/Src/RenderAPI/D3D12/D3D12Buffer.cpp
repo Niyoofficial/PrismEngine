@@ -51,36 +51,9 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc, RawData initData)
 
 		PE_ASSERT_HR(m_resource->SetName(m_originalDesc.bufferName.c_str()));
 	}
-
-	if (initData.data && initData.sizeInBytes > 0)
+	else if (desc.usage == ResourceUsage::Dynamic)
 	{
-		if (desc.usage == ResourceUsage::Dynamic)
-		{
-			PE_ASSERT(desc.cpuAccess == CPUAccess::Write, "Dynamic buffers must have only the CPUAccess::Write flag set");
-
-			void* address = D3D12Buffer::Map(CPUAccess::Write);
-			memcpy_s(address, m_originalDesc.size, initData.data, initData.sizeInBytes);
-			D3D12Buffer::Unmap();
-		}
-		else if (desc.usage == ResourceUsage::Default)
-		{
-			Ref context = RenderDevice::Get().AllocateContext();
-
-			context->UpdateBuffer(this, initData);
-
-			RenderDevice::Get().SubmitContext(context);
-
-			RenderDevice::Get().GetRenderQueue()->Flush();
-		}
-		else if (desc.usage == ResourceUsage::Staging)
-		{
-			PE_ASSERT(desc.cpuAccess == CPUAccess::Write,
-				"Staging buffer must have CPUAccess::Write in order to initialize it with data from CPU");
-
-			void* address = D3D12Buffer::Map(CPUAccess::Write);
-			memcpy_s(address, m_originalDesc.size, initData.data, initData.sizeInBytes);
-			D3D12Buffer::Unmap();
-		}
+		PE_ASSERT(desc.cpuAccess == CPUAccess::Write, "Dynamic buffers must have only the CPUAccess::Write flag set");
 	}
 }
 
@@ -119,6 +92,11 @@ void* D3D12Buffer::Map(Flags<CPUAccess> access)
 		PE_ASSERT_HR(m_resource->Map(0, nullptr, &address));
 
 		return address;
+	}
+	else
+	{
+		PE_ASSERT_NO_ENTRY();
+		return nullptr;
 	}
 }
 

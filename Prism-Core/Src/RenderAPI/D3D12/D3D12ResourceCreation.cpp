@@ -56,9 +56,9 @@ BufferView* CreateBufferView(const BufferViewDesc& desc, class Buffer* buffer)
 	return new D3D12::D3D12BufferView(desc, buffer);
 }
 
-Texture* CreateTexture(const TextureDesc& desc, RawData initData, BarrierLayout initLayout)
+Texture* CreateTexture(const TextureDesc& desc, BarrierLayout initLayout)
 {
-	return new D3D12::D3D12Texture(desc, initData, initLayout);
+	return new D3D12::D3D12Texture(desc, initLayout);
 }
 
 Texture* CreateTexture(std::wstring filepath, bool loadAsCubemap)

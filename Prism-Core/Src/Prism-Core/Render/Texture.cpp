@@ -1,6 +1,7 @@
 ﻿#include "pcpch.h"
 #include "Texture.h"
 
+#include "Prism-Core/Render/RenderCommandQueue.h"
 #include "Prism-Core/Render/RenderResourceCreation.h"
 
 namespace Prism::Render
@@ -82,7 +83,7 @@ bool TextureDesc::Is3D() const
 
 bool TextureDesc::IsArray() const
 {
-	return depthOrArraySize > 1;
+	return depthOrArraySize > 1 && !Is3D();
 }
 
 bool TextureDesc::IsCube() const
@@ -118,10 +119,62 @@ int32_t TextureDesc::GetDepthOrArraySize() const
 	return depthOrArraySize;
 }
 
-Ref<Texture> Texture::Create(const TextureDesc& desc, RawData initData,
-							 BarrierLayout initLayout)
+int32_t TextureDesc::GetMipLevels() const
 {
-	return Private::CreateTexture(desc, initData, initLayout);
+	return mipLevels >= 1 ? mipLevels : 1;
+}
+
+int32_t TextureDesc::GetSubresourceCount() const
+{
+	return (Is3D() ? 1 : GetArraySize()) * GetMipLevels();
+}
+
+Ref<Texture> Texture::Create(const TextureDesc& desc, BarrierLayout initLayout, RawData initData)
+{
+	Ref<Texture> texture = Private::CreateTexture(desc, initLayout);
+
+	if (initData.data && initData.sizeInBytes > 0)
+	{
+		// TODO: Add copy context
+		auto context = RenderDevice::Get().AllocateContext();
+		context->UpdateTexture(texture, initData, 0);
+
+		RenderDevice::Get().SubmitContext(context);
+		RenderDevice::Get().GetRenderQueue()->Flush();
+	}
+
+	return texture;
+}
+
+Ref<Texture> Texture::Create(const TextureDesc& desc, Buffer* initDataBuffer, BarrierLayout initLayout)
+{
+	PE_ASSERT(initDataBuffer);
+	PE_ASSERT(initDataBuffer->GetBufferDesc().size >= RenderDevice::Get().GetAlignedSizeInBytes(desc));
+
+	Ref<Texture> texture = Private::CreateTexture(desc, initLayout);
+
+	Ref<Buffer> uploadBuffer = initDataBuffer;
+	if (initDataBuffer->GetBufferDesc().cpuAccess == CPUAccess::Read)
+	{
+		auto uploadBufferDesc = initDataBuffer->GetBufferDesc();
+		uploadBufferDesc.bufferName = desc.textureName + L"_UploadBuffer";
+		uploadBufferDesc.usage = ResourceUsage::Staging;
+		uploadBufferDesc.cpuAccess = CPUAccess::Write;
+		uploadBufferDesc.bindFlags = BindFlags::None;
+
+		void* data = initDataBuffer->Map(CPUAccess::Read);
+		uploadBuffer = Buffer::Create(uploadBufferDesc, {.data = data, .sizeInBytes = initDataBuffer->GetBufferDesc().size});
+		initDataBuffer->Unmap();
+	}
+
+	// TODO: Add copy context
+	auto context = RenderDevice::Get().AllocateContext();
+	context->CopyBufferRegion(texture, {0, 0, 0}, 0, uploadBuffer, 0);
+
+	RenderDevice::Get().SubmitContext(context);
+	RenderDevice::Get().GetRenderQueue()->Flush();
+
+	return texture;
 }
 
 Ref<Texture> Texture::Create(std::wstring filepath, bool loadAsCubemap)

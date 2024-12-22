@@ -1,12 +1,39 @@
 ﻿#include "pcpch.h"
 #include "Buffer.h"
 #include "RenderResourceCreation.h"
+#include "Prism-Core/Render/RenderCommandQueue.h"
 
 namespace Prism::Render
 {
 Ref<Buffer> Buffer::Create(const BufferDesc& desc, RawData initData)
 {
-	return Private::CreateBuffer(desc, initData);
+	Ref<Buffer> buffer = Private::CreateBuffer(desc, initData);
+
+	if (initData.data && initData.sizeInBytes > 0)
+	{
+		if (desc.usage == ResourceUsage::Dynamic || desc.usage == ResourceUsage::Staging)
+		{
+			void* address = buffer->Map(CPUAccess::Write);
+			memcpy_s(address, desc.size, initData.data, initData.sizeInBytes);
+			buffer->Unmap();
+		}
+		else if (desc.usage == ResourceUsage::Default)
+		{
+			// TODO: Add copy context
+			Ref context = RenderDevice::Get().AllocateContext();
+
+			context->UpdateBuffer(buffer, initData);
+
+			RenderDevice::Get().SubmitContext(context);
+			RenderDevice::Get().GetRenderQueue()->Flush();
+		}
+		else
+		{
+			PE_ASSERT_NO_ENTRY();
+		}
+	}
+
+	return buffer;
 }
 
 Ref<BufferView> Buffer::CreateView(const BufferViewDesc& desc)

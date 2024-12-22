@@ -263,7 +263,7 @@ void D3D12RenderCommandList::UpdateTexture(Texture* texture, RawData data, int32
 	};
 	auto uploadBuffer = Buffer::Create(uploadBufferDesc, data);
 
-	CopyTextureRegion(texture, {0, 0, 0}, subresourceIndex, uploadBuffer, 0);
+	CopyBufferRegion(texture, {0, 0, 0}, subresourceIndex, uploadBuffer, 0);
 
 	SafeReleaseResource(std::move(uploadBuffer));
 }
@@ -280,8 +280,8 @@ void D3D12RenderCommandList::CopyBufferRegion(Buffer* dest, int64_t destOffset, 
 		d3d12Src->GetD3D12Resource(), d3d12Src->GetDefaultOffset() + srcOffset, numBytes);
 }
 
-void D3D12RenderCommandList::CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t subresourceIndex,
-											   Buffer* src, int64_t srcOffset)
+void D3D12RenderCommandList::CopyBufferRegion(Texture* dest, glm::int3 destLoc, int32_t subresourceIndex,
+											  Buffer* src, int64_t srcOffset)
 {
 	PE_ASSERT(dest && src);
 	PE_ASSERT(dest->GetResourceType() == ResourceType::Texture);
@@ -293,8 +293,8 @@ void D3D12RenderCommandList::CopyTextureRegion(Texture* dest, glm::int3 destLoc,
 	UINT64 rowSizeInBytes = 0;
 	UINT64 totalBytes = 0;
 	D3D12RenderDevice::Get().GetD3D12Device()->GetCopyableFootprints(&destDesc, subresourceIndex, 1, srcOffset,
-		&layout, &numRows,
-		&rowSizeInBytes, &totalBytes);
+																	 &layout, &numRows,
+																	 &rowSizeInBytes, &totalBytes);
 
 	CD3DX12_TEXTURE_COPY_LOCATION destTexLoc(static_cast<D3D12Texture*>(dest)->GetD3D12Resource(), subresourceIndex);
 	CD3DX12_TEXTURE_COPY_LOCATION srcTexLoc(static_cast<D3D12Buffer*>(src)->GetD3D12Resource(), layout);
@@ -302,8 +302,33 @@ void D3D12RenderCommandList::CopyTextureRegion(Texture* dest, glm::int3 destLoc,
 	m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, nullptr);
 }
 
+void D3D12RenderCommandList::CopyTextureRegion(Buffer* dest, int64_t destOffset,
+											   Texture* src, int32_t srcSubresourceIndex, Box srcBox)
+{
+	PE_ASSERT(dest && src);
+	PE_ASSERT(dest->GetResourceType() == ResourceType::Buffer);
+	PE_ASSERT(src->GetResourceType() == ResourceType::Texture);
+
+	auto* d3d12Texture = static_cast<D3D12Texture*>(src)->GetD3D12Resource();
+	auto d3d12TextureDesc = d3d12Texture->GetDesc();
+
+	D3D12_PLACED_SUBRESOURCE_FOOTPRINT bufferLayout;
+	UINT64 srcRowPitch;
+	D3D12RenderDevice::Get().GetD3D12Device()->GetCopyableFootprints(&d3d12TextureDesc, srcSubresourceIndex, 1, (UINT64)destOffset,
+																	 &bufferLayout,
+																	 nullptr,
+																	 &srcRowPitch,
+																	 nullptr);
+
+	CD3DX12_TEXTURE_COPY_LOCATION destTexLoc(static_cast<D3D12Buffer*>(dest)->GetD3D12Resource(), bufferLayout);
+	CD3DX12_TEXTURE_COPY_LOCATION srcTexLoc(static_cast<D3D12Texture*>(src)->GetD3D12Resource(), srcSubresourceIndex);
+
+	auto d3d12Box = GetD3D12Box(srcBox, src);
+	m_commandList->CopyTextureRegion(&destTexLoc, 0, 0, 0, &srcTexLoc, &d3d12Box);
+}
+
 void D3D12RenderCommandList::CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
-											   Texture* src, int32_t srcSubresourceIndex, glm::int3 srcLoc, glm::int3 srcSize)
+											   Texture* src, int32_t srcSubresourceIndex, Box srcBox)
 {
 	PE_ASSERT(dest && src);
 	PE_ASSERT(dest->GetResourceType() == ResourceType::Texture);
@@ -312,15 +337,8 @@ void D3D12RenderCommandList::CopyTextureRegion(Texture* dest, glm::int3 destLoc,
 	CD3DX12_TEXTURE_COPY_LOCATION destTexLoc(static_cast<D3D12Texture*>(dest)->GetD3D12Resource(), destSubresourceIndex);
 	CD3DX12_TEXTURE_COPY_LOCATION srcTexLoc(static_cast<D3D12Texture*>(src)->GetD3D12Resource(), srcSubresourceIndex);
 
-	D3D12_BOX box = {
-		.left = (UINT)srcLoc.x,
-		.top = (UINT)srcLoc.y,
-		.front = (UINT)srcLoc.z,
-		.right = (UINT)(srcSize.x == -1 ? src->GetTextureDesc().GetWidth() - srcLoc.x : srcLoc.x + srcSize.x),
-		.bottom = (UINT)(srcSize.y == -1 ? src->GetTextureDesc().GetHeight() - srcLoc.y : (UINT)srcLoc.y + srcSize.y),
-		.back = (UINT)(srcSize.z == -1 ? src->GetTextureDesc().GetDepth() - srcLoc.z : (UINT)srcLoc.z + srcSize.z)
-	};
-	m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, &box);
+	auto d3d12Box = GetD3D12Box(srcBox, src);
+	m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, &d3d12Box);
 }
 
 void D3D12RenderCommandList::Close()

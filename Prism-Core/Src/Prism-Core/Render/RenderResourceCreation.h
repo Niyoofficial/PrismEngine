@@ -16,7 +16,7 @@ GraphicsPipelineState* CreatePipelineState(const GraphicsPipelineStateDesc& desc
 ComputePipelineState* CreatePipelineState(const ComputePipelineStateDesc& desc);
 Buffer* CreateBuffer(const BufferDesc& desc, RawData initData);
 BufferView* CreateBufferView(const BufferViewDesc& desc, class Buffer* buffer);
-Texture* CreateTexture(const TextureDesc& desc, RawData initData, BarrierLayout initLayout);
+Texture* CreateTexture(const TextureDesc& desc, BarrierLayout initLayout);
 Texture* CreateTexture(std::wstring filepath, bool loadAsCubemap);
 TextureView* CreateTextureView(const TextureViewDesc& desc, Texture* texture);
 }

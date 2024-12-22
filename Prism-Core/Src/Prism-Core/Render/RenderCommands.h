@@ -349,16 +349,16 @@ DEFINE_RENDER_COMMAND(CopyBufferRegionRenderCommand)
 	int64_t numBytes = -1;
 };
 
-DEFINE_RENDER_COMMAND(CopyTextureRegionFromBufferRenderCommand)
+DEFINE_RENDER_COMMAND(CopyBufferRegionToTextureRenderCommand)
 {
-	CopyTextureRegionFromBufferRenderCommand(Texture* inDest, glm::int3 inDestLoc, int32_t inSubresourceIndex, Buffer* inSrc, int64_t inSrcOffset)
+	CopyBufferRegionToTextureRenderCommand(Texture* inDest, glm::int3 inDestLoc, int32_t inSubresourceIndex, Buffer* inSrc, int64_t inSrcOffset)
 		: dest(inDest), destLoc(inDestLoc), subresourceIndex(inSubresourceIndex), src(inSrc), srcOffset(inSrcOffset)
 	{
 	}
 
 	void Execute(RenderCommandList* cmdList)
 	{
-		cmdList->CopyTextureRegion(dest, destLoc, subresourceIndex, src, srcOffset);
+		cmdList->CopyBufferRegion(dest, destLoc, subresourceIndex, src, srcOffset);
 	}
 
 	Ref<Texture> dest;
@@ -368,18 +368,38 @@ DEFINE_RENDER_COMMAND(CopyTextureRegionFromBufferRenderCommand)
 	int64_t srcOffset = -1;
 };
 
-DEFINE_RENDER_COMMAND(CopyTextureRegionFromTextureRenderCommand)
+DEFINE_RENDER_COMMAND(CopyTextureRegionToBufferRenderCommand)
 {
-	CopyTextureRegionFromTextureRenderCommand(Texture* inDest, glm::int3 inDestLoc, int32_t inSubresourceIndex,
-											  Texture* inSrc, int32_t inSrcSubresourceIndex, glm::int3 inSrcLoc, glm::int3 inSrcSize)
-		: dest(inDest), destLoc(inDestLoc), destSubresourceIndex(inSubresourceIndex),
-		  src(inSrc), srcSubresourceIndex(inSrcSubresourceIndex), srcLoc(inSrcLoc), srcSize(inSrcSize)
+	CopyTextureRegionToBufferRenderCommand(Buffer* inDest, int64_t inDestOffset, Texture* inSrc, int32_t inSrcSubresourceIndex, Box inSrcBox)
+		: dest(inDest), dsetOffset(inDestOffset),
+		  src(inSrc), srcSubresourceIndex(inSrcSubresourceIndex), srcBox(inSrcBox)
 	{
 	}
 
 	void Execute(RenderCommandList* cmdList)
 	{
-		cmdList->CopyTextureRegion(dest, destLoc, destSubresourceIndex, src, srcSubresourceIndex, srcLoc, srcSize);
+		cmdList->CopyTextureRegion(dest, dsetOffset, src, srcSubresourceIndex, srcBox);
+	}
+
+	Ref<Buffer> dest;
+	int64_t dsetOffset;
+	Ref<Texture> src;
+	int32_t srcSubresourceIndex = -1;
+	Box srcBox;
+};
+
+DEFINE_RENDER_COMMAND(CopyTextureRegionToTextureRenderCommand)
+{
+	CopyTextureRegionToTextureRenderCommand(Texture* inDest, glm::int3 inDestLoc, int32_t inSubresourceIndex,
+											Texture* inSrc, int32_t inSrcSubresourceIndex, Box inSrcBox)
+		: dest(inDest), destLoc(inDestLoc), destSubresourceIndex(inSubresourceIndex),
+		  src(inSrc), srcSubresourceIndex(inSrcSubresourceIndex), srcBox(inSrcBox)
+	{
+	}
+
+	void Execute(RenderCommandList* cmdList)
+	{
+		cmdList->CopyTextureRegion(dest, destLoc, destSubresourceIndex, src, srcSubresourceIndex, srcBox);
 	}
 
 	Ref<Texture> dest;
@@ -387,7 +407,6 @@ DEFINE_RENDER_COMMAND(CopyTextureRegionFromTextureRenderCommand)
 	int32_t destSubresourceIndex = -1;
 	Ref<Texture> src;
 	int32_t srcSubresourceIndex = -1;
-	glm::int3 srcLoc;
-	glm::int3 srcSize;
+	Box srcBox;
 };
 }

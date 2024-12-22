@@ -47,6 +47,7 @@ D3D12_LOGIC_OP GetD3D12LogicOp(LogicOperation logicOperation);
 DXGI_FORMAT GetD3D12InputElementDescFormat(const D3D12_SIGNATURE_PARAMETER_DESC& paramDesc);
 D3D12InputLayout GetD3D12InputLayoutFromVertexShader(Shader* vertexShader);
 
+D3D12_RESOURCE_DESC1 GetD3D12ResourceDesc(const BufferDesc& bufferDesc);
 D3D12_RESOURCE_DESC1 GetD3D12ResourceDesc(const TextureDesc& textureDesc);
 D3D12_RESOURCE_STATES GetD3D12ResourceStates(Flags<ResourceStateFlags> states);
 D3D12_RESOURCE_DIMENSION GetD3D12ResourceDimension(ResourceDimension dimension);
@@ -75,7 +76,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC GetD3D12DepthStencilViewDesc(TextureViewDesc desc)
 
 D3D12_VIEWPORT GetD3D12Viewport(Viewport viewport);
 D3D12_RECT GetD3D12Rect(Scissor scissor);
-D3D12_BOX GetD3D12Box(Box box);
+D3D12_BOX GetD3D12Box(Box box, Texture* texture);
 D3D12_CLEAR_FLAGS GetD3D12ClearFlags(Flags<ClearFlags> clearFlags);
 
 DXGI_FORMAT GetIndexBufferDXGIFormat(IndexBufferFormat format);

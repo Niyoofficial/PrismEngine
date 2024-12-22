@@ -37,6 +37,8 @@ public:
 	int32_t GetArraySize() const;
 	int32_t GetDepth() const;
 	int32_t GetDepthOrArraySize() const;
+	int32_t GetMipLevels() const;
+	int32_t GetSubresourceCount() const;
 
 public:
 	std::wstring textureName;
@@ -60,7 +62,11 @@ public:
 class Texture : public RenderResource
 {
 public:
-	static Ref<Texture> Create(const TextureDesc& desc, RawData initData = {},
+	static Ref<Texture> Create(const TextureDesc& desc,
+							   BarrierLayout initLayout = BarrierLayout::Common,
+							   RawData initData = {});
+	static Ref<Texture> Create(const TextureDesc& desc,
+							   Buffer* initDataBuffer,
 							   BarrierLayout initLayout = BarrierLayout::Common);
 	static Ref<Texture> Create(std::wstring filepath, bool loadAsCubemap = false);
 
