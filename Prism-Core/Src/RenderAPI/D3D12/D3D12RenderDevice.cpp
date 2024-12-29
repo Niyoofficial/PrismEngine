@@ -139,7 +139,7 @@ void D3D12RenderDevice::ReleaseStaleResources()
 	m_dynamicBufferAllocator.ReleaseStaleAllocations(GetRenderQueue()->GetLastCompletedCmdListFenceValue());
 }
 
-int64_t D3D12RenderDevice::GetAlignedSizeInBytes(BufferDesc buffDesc) const
+int64_t D3D12RenderDevice::GetTotalSizeInBytes(BufferDesc buffDesc) const
 {
 	auto d3d12Desc = GetD3D12ResourceDesc(buffDesc);
 	UINT64 size;
@@ -147,7 +147,7 @@ int64_t D3D12RenderDevice::GetAlignedSizeInBytes(BufferDesc buffDesc) const
 	return (int64_t)size;
 }
 
-int64_t D3D12RenderDevice::GetAlignedSizeInBytes(TextureDesc texDesc, int32_t firstSubresource, int32_t numSubresources) const
+int64_t D3D12RenderDevice::GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource, int32_t numSubresources) const
 {
 	auto d3d12Desc = GetD3D12ResourceDesc(texDesc);
 	UINT64 size;
@@ -169,6 +169,11 @@ SubresourceFootprint D3D12RenderDevice::GetSubresourceFootprint(TextureDesc texD
 		.size = {layout.Footprint.Width, layout.Footprint.Height, layout.Footprint.Depth},
 		.rowPitch = layout.Footprint.RowPitch
 	};
+}
+
+int64_t D3D12RenderDevice::GetTexturePitchAlignment() const
+{
+	return D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
 }
 
 ID3D12Device10* D3D12RenderDevice::GetD3D12Device() const

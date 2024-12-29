@@ -45,13 +45,14 @@ public:
 	virtual void ReleaseStaleResources();
 
 	// Returns the actual resource size that it would occupy in memory
-	virtual int64_t GetAlignedSizeInBytes(BufferDesc buffDesc) const = 0;
+	virtual int64_t GetTotalSizeInBytes(BufferDesc buffDesc) const = 0;
 	/**
 	 * Returns the actual resource size that it would occupy in memory
 	 * @param numSubresources Return the size of the entire resource if this is set to -1
 	 */
-	virtual int64_t GetAlignedSizeInBytes(TextureDesc texDesc, int32_t firstSubresource = 0, int32_t numSubresources = -1) const = 0;
+	virtual int64_t GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource = 0, int32_t numSubresources = -1) const = 0;
 	virtual SubresourceFootprint GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex = 0) const = 0;
+	virtual int64_t GetTexturePitchAlignment() const = 0;
 	
 	virtual RenderCommandQueue* GetRenderQueue() const = 0;
 
@@ -72,6 +73,9 @@ public:
 	{
 		m_endFramePreservedObjects.AddObject(std::move(resource));
 	}
+
+protected:
+	void TransferEndFramePreservedObjectsToReleaseQueue();
 
 protected:
 	// Holds last frame's cmd list fence values for frames

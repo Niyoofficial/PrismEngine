@@ -17,11 +17,14 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 
 	++m_lastSubmittedCmdListFenceValue;
 	auto cmdList = RenderCommandList::Create(m_lastSubmittedCmdListFenceValue);
-	context->m_preservedResources.MoveObjects(cmdList->m_preservedResources);
 	Ref<RenderCommandList> cmdListCopy = cmdList;
 	context->SafeReleaseResource(cmdListCopy);
 
-	m_contextReleaseQueue.AddResource(context, m_lastSubmittedCmdListFenceValue);
+	m_submittedContexts.emplace_back(SubmittedRenderContext{
+		.fenceValue = m_lastSubmittedCmdListFenceValue,
+		.readyToBeReleased = false,
+		.renderContext = context
+	});
 	
 	m_cmdListsQueue.push(cmdList);
 
@@ -78,8 +81,31 @@ uint64_t RenderCommandQueue::GetLastQueuedCmdListFenceValue() const
 	return m_lastQueuedCmdListFenceValue;
 }
 
+void RenderCommandQueue::ExecuteGPUCompletionEvents()
+{
+	uint64_t completedFenceValue = GetLastCompletedCmdListFenceValue();
+	for (auto& submittedContext : m_submittedContexts)
+	{
+		if (!submittedContext.readyToBeReleased && submittedContext.fenceValue <= completedFenceValue)
+		{
+			submittedContext.renderContext->ExecuteGPUCompletionCallbacks();
+			submittedContext.readyToBeReleased = true;
+		}
+		else
+		{
+			break;
+		}
+	}
+}
+
 void RenderCommandQueue::ReleaseStaleResources()
 {
-	m_contextReleaseQueue.PurgeReleaseQueue(GetLastCompletedCmdListFenceValue());
+	while (!m_submittedContexts.empty())
+	{
+		if (m_submittedContexts.front().readyToBeReleased)
+			m_submittedContexts.pop_front();
+		else
+			break;
+	}
 }
 }

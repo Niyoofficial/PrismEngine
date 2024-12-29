@@ -110,6 +110,16 @@ enum class TextureFormat
 	NumFormats
 };
 
+enum class TextureModifier
+{
+	Float,
+	UInt,
+	SInt,
+	UNorm,
+	SNorm,
+	Typeless
+};
+
 enum class BlendFactor
 {
 	// Undefined blend factor

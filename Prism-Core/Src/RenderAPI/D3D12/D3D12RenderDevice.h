@@ -30,9 +30,10 @@ public:
 
 	virtual void ReleaseStaleResources() override;
 
-	virtual int64_t GetAlignedSizeInBytes(TextureDesc texDesc, int32_t firstSubresource, int32_t numSubresources) const override;
-	virtual int64_t GetAlignedSizeInBytes(BufferDesc buffDesc) const override;
+	virtual int64_t GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource, int32_t numSubresources) const override;
+	virtual int64_t GetTotalSizeInBytes(BufferDesc buffDesc) const override;
 	virtual SubresourceFootprint GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex) const override;
+	virtual int64_t GetTexturePitchAlignment() const override;
 
 	ID3D12Device10* GetD3D12Device() const;
 	IDXGIFactory2* GetDXGIFactory() const;

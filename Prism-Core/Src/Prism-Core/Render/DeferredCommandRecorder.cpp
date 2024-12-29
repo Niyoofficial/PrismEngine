@@ -18,6 +18,7 @@ void DeferredCommandRecorder::RecordCommands(RenderCommandList* commandList)
 {
 	PE_ASSERT(m_root);
 	PE_ASSERT(commandList);
+	PE_ASSERT(m_closed);
 
 	auto* current = m_root;
 	while (current)

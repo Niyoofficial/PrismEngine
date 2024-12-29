@@ -43,15 +43,19 @@ public:
 	void UpdateBuffer(Buffer* buffer, RawData data);
 	void UpdateTexture(Texture* texture, RawData data, int32_t subresourceIndex);
 
-	Buffer* ReadbackBuffer(Buffer* bufferToReadback);
-	Buffer* ReadbackTexture(Texture* textureToReadback);
-
 	void CopyBufferRegion(Buffer* dest, int64_t destOffset, Buffer* src, int64_t srcOffset, int64_t numBytes);
 	void CopyBufferRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex, Buffer* src, int64_t srcOffset);
 	void CopyTextureRegion(Buffer* dest, int64_t destOffset, Texture* src, int32_t srcSubresourceIndex = 0, Box srcBox = {});
 	void CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
 						   Texture* src, int32_t srcSubresourceIndex = 0, Box srcBox = {});
 
+	Buffer* ReadbackBuffer(Buffer* bufferToReadback);
+	void ReadbackTexture(Texture* textureToReadback, int32_t subresource,
+						 std::function<void(std::vector<glm::float4>)> callback);
+
+
+	/* Add a callback that will be executed when this context is finished by the GPU */
+	void AddGPUCompletionCallback(std::function<void()> callback);
 
 	template<typename T>
 	void SafeReleaseResource(T&& resource)
@@ -63,10 +67,13 @@ private:
 	RenderContext() = default;
 
 	void CloseContext();
+	void ExecuteGPUCompletionCallbacks();
 
 private:
 	DeferredCommandRecorder m_commandRecorder;
 
 	PreservingObjectContainer m_preservedResources;
+
+	std::vector<std::function<void()>> m_gpuCompletionCallbacks;
 };
 }

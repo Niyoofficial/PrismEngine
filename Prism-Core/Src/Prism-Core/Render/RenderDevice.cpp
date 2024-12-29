@@ -44,17 +44,19 @@ void RenderDevice::BeginRenderFrame()
 
 void RenderDevice::EndRenderFrame()
 {
+	// Add a new CPU prepared frame
 	m_cpuPreparedFrames.emplace(GetRenderQueue()->GetLastSubmittedCmdListFenceValue());
 
-	for (auto& res : m_endFramePreservedObjects.GetPreservedObjects())
-		m_releaseQueue.AddResource(std::move(res), GetRenderQueue()->GetLastSubmittedCmdListFenceValue());
-	m_endFramePreservedObjects.GetPreservedObjects().clear();
+	GetRenderQueue()->ExecuteGPUCompletionEvents();
 
+	TransferEndFramePreservedObjectsToReleaseQueue();
 	ReleaseStaleResources();
 
+	// Pop any completed CPU frames
 	while (!m_cpuPreparedFrames.empty() && GetRenderQueue()->GetLastCompletedCmdListFenceValue() >= m_cpuPreparedFrames.front())
 		m_cpuPreparedFrames.pop();
 
+	// If there is too many CPU prepared frames, wait for them to be completed by the GPU and pop them
 	while (m_cpuPreparedFrames.size() >= Constants::MAX_FRAMES_IN_FLIGHT)
 	{
 		GetRenderQueue()->WaitForCmdListToComplete(m_cpuPreparedFrames.front());
@@ -74,6 +76,14 @@ uint64_t RenderDevice::SubmitContext(RenderContext* context)
 
 void RenderDevice::ReleaseStaleResources()
 {
+	m_releaseQueue.PurgeReleaseQueue(GetRenderQueue()->GetLastCompletedCmdListFenceValue());
 	GetRenderQueue()->ReleaseStaleResources();
+}
+
+void RenderDevice::TransferEndFramePreservedObjectsToReleaseQueue()
+{
+	for (auto& res : m_endFramePreservedObjects.GetPreservedObjects())
+		m_releaseQueue.AddResource(std::move(res), GetRenderQueue()->GetLastSubmittedCmdListFenceValue());
+	m_endFramePreservedObjects.GetPreservedObjects().clear();
 }
 }

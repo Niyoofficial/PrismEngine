@@ -6,6 +6,7 @@
 #include "Prism-Core/Render/RenderCommandQueue.h"
 #include "Prism-Core/Render/RenderContext.h"
 #include "Prism-Core/Render/RenderDevice.h"
+#include "Prism-Core/Render/RenderUtils.h"
 #include "Prism-Core/Render/Texture.h"
 #include "Prism-Core/Render/TextureView.h"
 
@@ -68,7 +69,7 @@ SandboxLayer::SandboxLayer()
 		.height = 1024,
 		.depthOrArraySize = 6,
 		.dimension = ResourceDimension::TexCube,
-		.format = TextureFormat::RGBA16_Float,
+		.format = TextureFormat::RGBA32_Float,
 		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
 		.optimizedClearValue = {}
 	});
@@ -197,7 +198,18 @@ SandboxLayer::SandboxLayer()
 			renderContext->Dispatch(32, 32, 6);
 		}
 
-		// Generate SH coefficients
+		{
+			for (int32_t i = 0; i < 6; ++i)
+			{
+				renderContext->ReadbackTexture(m_skybox, i,
+											   [](std::vector<glm::float4> output)
+											   {
+												   PE_CORE_LOG(Warn, "Hello {}", output.size());
+											   });
+			}
+		}
+
+		/*// Generate SH coefficients
 		Ref<Buffer> shReadbackBuffer;
 		Ref<Buffer> weightsReadbackBuffer;
 		if (0)
@@ -252,15 +264,13 @@ SandboxLayer::SandboxLayer()
 			renderContext->SetTexture(m_irradianceUAVView, L"g_convSkybox");
 
 			renderContext->Dispatch(32, 32, 6);
-		}
+		}*/
 
 		RenderDevice::Get().SubmitContext(renderContext);
 		RenderDevice::Get().GetRenderQueue()->Flush();
 	}
 
-	
-#if 0
-	if (0)
+	/*if (0)
 	{
 		std::array<glm::float3, 9> sumCoeffs = {};
 		{
@@ -310,8 +320,7 @@ SandboxLayer::SandboxLayer()
 										   .usage = ResourceUsage::Default
 									   }, {.data = sumCoeffs.data(), .sizeInBytes = sumCoeffs.size() * sizeof(glm::float3)});
 		m_coeffBufferView = m_coeffBuffer->CreateDefaultCBVView();
-	}
-#endif
+	}*/
 }
 
 void SandboxLayer::Update(Duration delta)

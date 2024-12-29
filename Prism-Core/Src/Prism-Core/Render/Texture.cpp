@@ -149,7 +149,7 @@ Ref<Texture> Texture::Create(const TextureDesc& desc, BarrierLayout initLayout, 
 Ref<Texture> Texture::Create(const TextureDesc& desc, Buffer* initDataBuffer, BarrierLayout initLayout)
 {
 	PE_ASSERT(initDataBuffer);
-	PE_ASSERT(initDataBuffer->GetBufferDesc().size >= RenderDevice::Get().GetAlignedSizeInBytes(desc));
+	PE_ASSERT(initDataBuffer->GetBufferDesc().size >= RenderDevice::Get().GetTotalSizeInBytes(desc));
 
 	Ref<Texture> texture = Private::CreateTexture(desc, initLayout);
 
