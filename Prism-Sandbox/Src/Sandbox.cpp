@@ -134,7 +134,7 @@ SandboxLayer::SandboxLayer()
 	m_rustedIronNormal = Texture::Create(L"Textures/rustediron2_normal.png");
 	m_rustedIronNormalView = m_rustedIronNormal->CreateView();
 
-	m_environmentTexture = Texture::Create(L"Textures/tief_etz_4k.hdr");
+	m_environmentTexture = Texture::Create(L"Textures/testEqui.hdr");
 	m_environmentTextureView = m_environmentTexture->CreateView();
 
 
@@ -202,11 +202,89 @@ SandboxLayer::SandboxLayer()
 			for (int32_t i = 0; i < 6; ++i)
 			{
 				renderContext->ReadbackTexture(m_skybox, i,
-											   [](std::vector<glm::float4> output)
-											   {
-												   PE_CORE_LOG(Warn, "Hello {}", output.size());
-											   });
+					[i, this](std::vector<glm::float4> output)
+					{
+						for (int32_t j = 0; j < output.size(); ++j)
+						{
+							constexpr int32_t resolution = 1024;
+
+							glm::float3 color = output[j];
+
+							// 1 to -1
+							float x = (float)(j % resolution) / (resolution - 1) * 2.0f - 1.0f;
+							float y = (float)(j / resolution) / (resolution - 1) * 2.0f - 1.0f;
+
+							float temp = 1.0f + x * x + y * y;
+							float weight = 4.0f / (std::sqrt(temp) * temp);
+
+							glm::float3 normal;
+							{
+								switch (i)
+								{
+								case 0:
+									normal = glm::float3(1.f, y, -x);
+									break;
+								case 1:
+									normal = glm::float3(-1.f, y, x);
+									break;
+								case 2:
+									normal = glm::float3(x, 1.f, y);
+									break;
+								case 3:
+									normal = glm::float3(x, -1.f, -y);
+									break;
+								case 4:
+									normal = glm::float3(x, -y, 1.f);
+									break;
+								case 5:
+									normal = glm::float3(-x, -y, -1.f);
+									break;
+								default:
+									PE_ASSERT_NO_ENTRY();
+								}
+								normal = glm::normalize(normal);
+							}
+
+							{
+								std::array<glm::float3, 9> coeff;
+
+								// Band 0
+								coeff[0] = glm::float3(0.282095f) * color;
+
+								// Band 1
+								coeff[1] = glm::float3(0.488603f * normal.y) * color;
+								coeff[2] = glm::float3(0.488603f * normal.z) * color;
+								coeff[3] = glm::float3(0.488603f * normal.x) * color;
+
+								// Band 2
+								coeff[4] = glm::float3(1.092548f * normal.x * normal.y) * color;
+								coeff[5] = glm::float3(1.092548f * normal.y * normal.z) * color;
+								coeff[6] = glm::float3(0.315392f * (3.f * normal.z * normal.z - 1.f)) * color;
+								coeff[7] = glm::float3(1.092548f * normal.x * normal.z) * color;
+								coeff[8] = glm::float3(0.546274f * (normal.x * normal.x - normal.y * normal.y)) * color;
+
+								for (int32_t k = 0; k < coeff.size(); ++k)
+									m_skyboxCoeffs[k] += coeff[k] * weight;
+								m_coeffsWeightSum += weight;
+							}
+						}
+					});
 			}
+
+			renderContext->AddGPUCompletionCallback(
+				[this]()
+				{
+					for (auto& shCoeff : m_skyboxCoeffs)
+						shCoeff *= 4.f * glm::pi<float>() / m_coeffsWeightSum;
+
+					m_coeffBuffer = Buffer::Create({
+							   .bufferName = L"CoefficientsInput",
+							   .size = 256,
+							   .bindFlags = BindFlags::ConstantBuffer,
+							   .usage = ResourceUsage::Default
+						}, { .data = m_skyboxCoeffs.data(), .sizeInBytes = (int64_t)(m_skyboxCoeffs.size() * sizeof(glm::float3)) });
+					m_coeffBufferView = m_coeffBuffer->CreateDefaultCBVView();
+				});
 		}
 
 		/*// Generate SH coefficients
@@ -422,7 +500,7 @@ void SandboxLayer::Update(Duration delta)
 	}
 
 	// Skybox
-	if (0)
+	if (1)
 	{
 		auto* pso = GraphicsPipelineState::Create({
 			.vs = Shader::Create({
@@ -448,6 +526,7 @@ void SandboxLayer::Update(Duration delta)
 			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
 			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
 		});
+
 		renderContext->SetPSO(pso);
 
 		renderContext->SetTexture(m_skyboxCubeSRVView, L"g_skybox");

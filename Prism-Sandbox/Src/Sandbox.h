@@ -126,6 +126,9 @@ private:
 
 	float m_cameraSpeed = 0.05f;
 	float m_mouseSpeed = 0.005f;
+
+	std::array<glm::float3, 9> m_skyboxCoeffs = {};
+	float m_coeffsWeightSum = 0.f;
 };
 
 class SandboxApplication final : public Core::Application

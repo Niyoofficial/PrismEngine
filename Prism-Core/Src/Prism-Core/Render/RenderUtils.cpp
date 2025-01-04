@@ -265,7 +265,7 @@ float ReadBitsAsFloat(void* data, int32_t numBits)
 		} FP32 = {}, magic = { 113 << 23 };
 
 		FP32.u = (FP16 & 0x7fff) << 13;				// exponent/mantissa bits
-		uint32_t exp = shifted_exp & FP32.u;			// just the exponent
+		uint32_t exp = shifted_exp & FP32.u;		// just the exponent
 		FP32.u += uint32_t(127 - 15) << 23;			// exponent adjust
 
 		// handle exponent special cases

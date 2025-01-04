@@ -69,6 +69,7 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 void RenderCommandQueue::Flush()
 {
 	WaitForCmdListToComplete(GetLastSubmittedCmdListFenceValue());
+	ExecuteGPUCompletionEvents();
 }
 
 uint64_t RenderCommandQueue::GetLastSubmittedCmdListFenceValue() const
@@ -86,10 +87,13 @@ void RenderCommandQueue::ExecuteGPUCompletionEvents()
 	uint64_t completedFenceValue = GetLastCompletedCmdListFenceValue();
 	for (auto& submittedContext : m_submittedContexts)
 	{
-		if (!submittedContext.readyToBeReleased && submittedContext.fenceValue <= completedFenceValue)
+		if (submittedContext.fenceValue <= completedFenceValue)
 		{
-			submittedContext.renderContext->ExecuteGPUCompletionCallbacks();
-			submittedContext.readyToBeReleased = true;
+			if (!submittedContext.readyToBeReleased)
+			{
+				submittedContext.readyToBeReleased = true;
+				submittedContext.renderContext->ExecuteGPUCompletionCallbacks();
+			}
 		}
 		else
 		{

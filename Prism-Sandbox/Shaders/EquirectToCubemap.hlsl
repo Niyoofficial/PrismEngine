@@ -23,22 +23,22 @@ void main(int3 groupThreadID : SV_GroupThreadID,
 
 	float3 direction;
 	if (dispatchThreadID.z == 0)
-		direction = float3(1.f, y, -x);
+		direction = float3(1.f, -y, -x);
 	else if (dispatchThreadID.z == 1)
-		direction = float3(-1.f, y, x);
+		direction = float3(-1.f, -y, x);
 	else if (dispatchThreadID.z == 2)
-		direction = float3(x, -1.f, y);
+		direction = float3(x, 1.f, y);
 	else if (dispatchThreadID.z == 3)
-		direction = float3(x, 1.f, -y);
+		direction = float3(x, -1.f, -y);
 	else if (dispatchThreadID.z == 4)
-		direction = float3(x, y, 1.f);
+		direction = float3(x, -y, 1.f);
 	else if (dispatchThreadID.z == 5)
-		direction = float3(-x, y, -1.f);
+		direction = float3(-x, -y, -1.f);
 	
 	direction = normalize(direction);
     float phi = atan2(direction.z, direction.x);
-    float theta = asin(direction.y);
+    float theta = -asin(direction.y); // Inverted because in DirectX UV(0, 0) is in the _top_ left
     float2 uv = float2(phi / TwoPI, theta / PI) + 0.5f;
 
-	g_skybox[dispatchThreadID] = g_environment.SampleLevel(g_samLinearClamp, uv, 0);
+    g_skybox[dispatchThreadID] = clamp(g_environment.SampleLevel(g_samLinearClamp, uv, 0), 0, 1);
 }

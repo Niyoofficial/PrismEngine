@@ -176,8 +176,7 @@ void RenderContext::ReadbackTexture(Texture* textureToReadback, int32_t subresou
 		.cpuAccess = CPUAccess::Read
 	});
 
-	int64_t bufferOffset = 0;
-	CopyTextureRegion(readbackBuffer, bufferOffset, textureToReadback, subresource);
+	CopyTextureRegion(readbackBuffer, 0, textureToReadback, subresource);
 
 	AddGPUCompletionCallback(
 		[callback, readbackBuffer, textureDesc, subresource]()

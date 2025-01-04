@@ -67,9 +67,9 @@ float3 GetSamplingVector(int3 threadID)
 	else if (threadID.z == 1)
 		direction = float3(-1.f, y, x);
 	else if (threadID.z == 2)
-		direction = float3(x, -1.f, y);
+		direction = float3(x, 1.f, y);
 	else if (threadID.z == 3)
-		direction = float3(x, 1.f, -y);
+		direction = float3(x, -1.f, -y);
 	else if (threadID.z == 4)
 		direction = float3(x, y, 1.f);
 	else if (threadID.z == 5)
