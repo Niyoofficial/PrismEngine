@@ -33,7 +33,8 @@ workspace "PrismEngine"
 	}
 
 	filter "system:windows"
-		libDirs["dxc"] = path.normalize("%{wks.location}/Vendor/dxc/")
+		includeDirs["dxc"] = path.normalize("%{wks.location}/Vendor/dxc/inc/")
+		libDirs["dxc"] = path.normalize("%{wks.location}/Vendor/dxc/bin/x64/")
 		includeDirs["WinPixEventRuntime"] = path.normalize("%{wks.location}/Vendor/WinPixEventRuntime/Include/")
 		libDirs["WinPixEventRuntime"] = path.normalize("%{wks.location}/Vendor/WinPixEventRuntime/bin/x64/")
 		includeDirs["AgilitySDK"] = path.normalize("%{wks.location}/Vendor/AgilitySDK/include/")

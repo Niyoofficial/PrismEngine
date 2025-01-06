@@ -198,115 +198,15 @@ SandboxLayer::SandboxLayer()
 			renderContext->Dispatch(32, 32, 6);
 		}
 
+		// Generate SH coefficients
 		{
-			for (int32_t i = 0; i < 6; ++i)
-			{
-				renderContext->ReadbackTexture(m_skybox, i,
-					[i, this](std::vector<glm::float4> output)
-					{
-						for (int32_t j = 0; j < output.size(); ++j)
-						{
-							constexpr int32_t resolution = 1024;
-
-							glm::float3 color = output[j];
-
-							// 1 to -1
-							float x = (float)(j % resolution) / (resolution - 1) * 2.0f - 1.0f;
-							float y = (float)(j / resolution) / (resolution - 1) * 2.0f - 1.0f;
-
-							float temp = 1.0f + x * x + y * y;
-							float weight = 4.0f / (std::sqrt(temp) * temp);
-
-							glm::float3 normal;
-							{
-								switch (i)
-								{
-								case 0:
-									normal = glm::float3(1.f, y, -x);
-									break;
-								case 1:
-									normal = glm::float3(-1.f, y, x);
-									break;
-								case 2:
-									normal = glm::float3(x, 1.f, y);
-									break;
-								case 3:
-									normal = glm::float3(x, -1.f, -y);
-									break;
-								case 4:
-									normal = glm::float3(x, -y, 1.f);
-									break;
-								case 5:
-									normal = glm::float3(-x, -y, -1.f);
-									break;
-								default:
-									PE_ASSERT_NO_ENTRY();
-								}
-								normal = glm::normalize(normal);
-							}
-
-							{
-								std::array<glm::float3, 9> coeff;
-
-								// Band 0
-								coeff[0] = glm::float3(0.282095f) * color;
-
-								// Band 1
-								coeff[1] = glm::float3(0.488603f * normal.y) * color;
-								coeff[2] = glm::float3(0.488603f * normal.z) * color;
-								coeff[3] = glm::float3(0.488603f * normal.x) * color;
-
-								// Band 2
-								coeff[4] = glm::float3(1.092548f * normal.x * normal.y) * color;
-								coeff[5] = glm::float3(1.092548f * normal.y * normal.z) * color;
-								coeff[6] = glm::float3(0.315392f * (3.f * normal.z * normal.z - 1.f)) * color;
-								coeff[7] = glm::float3(1.092548f * normal.x * normal.z) * color;
-								coeff[8] = glm::float3(0.546274f * (normal.x * normal.x - normal.y * normal.y)) * color;
-
-								for (int32_t k = 0; k < coeff.size(); ++k)
-									m_skyboxCoeffs[k] += coeff[k] * weight;
-								m_coeffsWeightSum += weight;
-							}
-						}
-					});
-			}
-
-			renderContext->AddGPUCompletionCallback(
-				[this]()
-				{
-					for (auto& shCoeff : m_skyboxCoeffs)
-						shCoeff *= 4.f * glm::pi<float>() / m_coeffsWeightSum;
-
-					m_coeffBuffer = Buffer::Create({
-							   .bufferName = L"CoefficientsInput",
-							   .size = 256,
-							   .bindFlags = BindFlags::ConstantBuffer,
-							   .usage = ResourceUsage::Default
-						}, { .data = m_skyboxCoeffs.data(), .sizeInBytes = (int64_t)(m_skyboxCoeffs.size() * sizeof(glm::float3)) });
-					m_coeffBufferView = m_coeffBuffer->CreateDefaultCBVView();
-				});
-		}
-
-		/*// Generate SH coefficients
-		Ref<Buffer> shReadbackBuffer;
-		Ref<Buffer> weightsReadbackBuffer;
-		if (0)
-		{
-			Ref<Buffer> coeffBuffer = Buffer::Create({
+			m_coeffBuffer = Buffer::Create({
 				.bufferName = L"SHCoefficients",
-				.size = sizeof(glm::float3) * 9 * 64 * 64 * 6, // RGB channels * numOfCoefficients * threadGroupCountX * threadGroupCountY * threadGroupCountZ
+				.size = sizeof(glm::float3) * 9, // RGB channels * numOfCoefficients
 				.bindFlags = BindFlags::UnorderedAccess,
 				.usage = ResourceUsage::Default
 			});
-			Ref<BufferView> coeffBufferView = coeffBuffer->CreateDefaultUAVView(sizeof(float) * 3 * 9);
-
-			Ref<Buffer> weightsBuffer = Buffer::Create({
-				.bufferName = L"SHCoefficients",
-				.size = sizeof(float) * 64 * 64 * 6, // float * threadGroupCountX * threadGroupCountY * threadGroupCountZ
-				.bindFlags = BindFlags::UnorderedAccess,
-				.usage = ResourceUsage::Default
-			});
-			Ref<BufferView> weightsBufferView = weightsBuffer->CreateDefaultUAVView(sizeof(float));
+			m_coeffBufferView = m_coeffBuffer->CreateDefaultUAVView(sizeof(float) * 3 * 9);
 
 			renderContext->SetPSO(ComputePipelineState::Create({
 				.cs = Shader::Create({
@@ -317,122 +217,20 @@ SandboxLayer::SandboxLayer()
 			}));
 
 			renderContext->SetTexture(m_skyboxArraySRVView, L"g_skybox");
-			renderContext->SetBuffer(coeffBufferView, L"g_coefficients");
-			renderContext->SetBuffer(weightsBufferView, L"g_weights");
+			renderContext->SetBuffer(m_coeffBufferView, L"g_coefficients");
 
-			renderContext->Dispatch(64, 64, 6);
-
-			shReadbackBuffer = renderContext->ReadbackBuffer(coeffBuffer);
-			weightsReadbackBuffer = renderContext->ReadbackBuffer(weightsBuffer);
+			renderContext->Dispatch(1, 1, 1);
 		}
-
-		// Skybox convolution
-		if (0)
-		{
-			auto* pso = ComputePipelineState::Create({
-				.cs = Shader::Create({
-					.filepath = L"Shaders/CubemapConvolution.hlsl",
-					.entryName = L"main",
-					.shaderType = ShaderType::CS
-				}),
-			});
-			renderContext->SetPSO(pso);
-
-			renderContext->SetTexture(m_skyboxCubeSRVView, L"g_skybox");
-			renderContext->SetTexture(m_irradianceUAVView, L"g_convSkybox");
-
-			renderContext->Dispatch(32, 32, 6);
-		}*/
 
 		RenderDevice::Get().SubmitContext(renderContext);
 		RenderDevice::Get().GetRenderQueue()->Flush();
 	}
-
-	/*if (0)
-	{
-		std::array<glm::float3, 9> sumCoeffs = {};
-		{
-			auto* address = (glm::float3*)shReadbackBuffer->Map(CPUAccess::Read);
-			for (int32_t i = 0; i < shReadbackBuffer->GetBufferDesc().size / (int64_t)(sizeof(glm::float3) * 9); ++i)
-			{
-				for (int32_t j = 0; j < 9; ++j)
-				{
-					sumCoeffs[j] += *address;
-					++address;
-				}
-			}
-			for (int32_t j = 0; j < 9; ++j)
-			{
-				PE_RENDER_LOG(Info, "Coeff {}: R {}, G {}, B {}", j, sumCoeffs[j].x, sumCoeffs[j].y, sumCoeffs[j].z);
-			}
-		}
-		float sumWeight = 0.f;
-		{
-			auto* address = (float*)weightsReadbackBuffer->Map(CPUAccess::Read);
-			for (int32_t i = 0; i < weightsReadbackBuffer->GetBufferDesc().size / (int64_t)sizeof(float); ++i)
-			{
-				sumWeight += *address;
-				++address;
-			}
-			PE_RENDER_LOG(Info, "Weight: {}", 4.f * glm::pi<float>() / sumWeight);
-		}
-
-
-		for (int32_t j = 0; j < 9; ++j)
-		{
-			sumCoeffs[j].x *= 4.f * glm::pi<float>() / sumWeight;
-			sumCoeffs[j].y *= 4.f * glm::pi<float>() / sumWeight;
-			sumCoeffs[j].z *= 4.f * glm::pi<float>() / sumWeight;
-
-			PE_RENDER_LOG(Info, "Coeff {}: R {}, G {}, B {}", j,
-						  sumCoeffs[j].x,
-						  sumCoeffs[j].y,
-						  sumCoeffs[j].z);
-		}
-
-
-		m_coeffBuffer = Buffer::Create({
-										   .bufferName = L"CoefficientsInput",
-										   .size = 256,
-										   .bindFlags = BindFlags::ConstantBuffer,
-										   .usage = ResourceUsage::Default
-									   }, {.data = sumCoeffs.data(), .sizeInBytes = sumCoeffs.size() * sizeof(glm::float3)});
-		m_coeffBufferView = m_coeffBuffer->CreateDefaultCBVView();
-	}*/
 }
 
 void SandboxLayer::Update(Duration delta)
 {
 	using namespace Prism::Render;
 	Layer::Update(delta);
-
-	if (0)
-	{
-		auto renderContext = RenderDevice::Get().AllocateContext();
-
-		Ref<Buffer> coeffBuffer = Buffer::Create({
-			.bufferName = L"SHCoefficients",
-			.size = sizeof(glm::float3) * 9 * 64 * 64 * 6, // RGB channels * numOfCoefficients * threadGroupCountX * threadGroupCountY * threadGroupCountZ
-			.bindFlags = BindFlags::UnorderedAccess,
-			.usage = ResourceUsage::Default
-		});
-		Ref<BufferView> coeffBufferView = coeffBuffer->CreateDefaultUAVView(sizeof(float) * 3 * 9, false);
-
-		renderContext->SetPSO(ComputePipelineState::Create({
-			.cs = Shader::Create({
-				.filepath = L"Shaders/GenSHCoefficients.hlsl",
-				.entryName = L"main",
-				.shaderType = ShaderType::CS
-			}),
-		}));
-
-		renderContext->SetTexture(m_skyboxArraySRVView, L"g_skybox");
-		renderContext->SetBuffer(coeffBufferView, L"g_coefficients");
-
-		renderContext->Dispatch(64, 64, 6);
-
-		RenderDevice::Get().SubmitContext(renderContext);
-	}
 
 	if (Core::Platform::Get().IsKeyPressed(KeyCode::W))
 		m_camera->AddPosition(m_camera->GetForwardVector() * m_cameraSpeed);
@@ -500,7 +298,6 @@ void SandboxLayer::Update(Duration delta)
 	}
 
 	// Skybox
-	if (1)
 	{
 		auto* pso = GraphicsPipelineState::Create({
 			.vs = Shader::Create({
@@ -530,7 +327,7 @@ void SandboxLayer::Update(Duration delta)
 		renderContext->SetPSO(pso);
 
 		renderContext->SetTexture(m_skyboxCubeSRVView, L"g_skybox");
-		renderContext->SetBuffer(m_coeffBufferView, L"CoefficientsInput");
+		renderContext->SetBuffer(m_coeffBufferView, L"g_coeffs");
 
 		CBufferModel modelData = {
 			.world = glm::float4x4(1.f),

@@ -19,7 +19,7 @@ D3D12ShaderCompiler::D3D12ShaderCompiler()
 
 D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateInfo& createInfo)
 {
-	// dxc <shaderName>.hlsl -E <entryPoint> -T <shaderType>_6_0 -Zi -Od -Fo <outputName>.bin -Fd <outputName>.pdb -Qstrip_debug -Qstrip_reflect
+	// dxc <shaderName>.hlsl -E <entryPoint> -T <shaderType>_6_8 -Zi -Od -Fo <outputName>.bin -Fd <outputName>.pdb -Qstrip_debug -Qstrip_reflect
 
 	ComPtr<IDxcBlobEncoding> source = nullptr;
 	PE_ASSERT_HR(m_dxcUtils->LoadFile(createInfo.filepath.c_str(), nullptr, &source));
@@ -33,7 +33,7 @@ D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateI
 	std::wstring inputPathNoFile = createInfo.filepath.substr(0, createInfo.filepath.find_last_of('/') + 1);
 	std::wstring inputFilename = createInfo.filepath.substr(createInfo.filepath.find_last_of('/') + 1);
 	std::wstring inputFilenameNoExt = inputFilename.substr(0, inputFilename.find_last_of('.'));
-	std::wstring target = GetTargetStringForShader(createInfo.shaderType, 6, 6);
+	std::wstring target = GetTargetStringForShader(createInfo.shaderType, 6, 8);
 	std::wstring outputFilenameNoExt = inputFilenameNoExt + L"_" + target + L"_" + createInfo.entryName;
 	std::wstring binFilename = outputFilenameNoExt + L".bin";
 	std::wstring pdbFilename = outputFilenameNoExt + L".pdb";
@@ -47,7 +47,8 @@ D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateI
 		L"-Fd", pdbFilename.c_str(),			// PDB output file
 		L"-Qstrip_debug",						// Strip debug into a separate blob
 		L"-Qstrip_reflect",						// Strip reflection into a separate blob
-		L"-I", inputPathNoFile.c_str()			// Shader directory will be used as base director for include handler
+		L"-I", inputPathNoFile.c_str(),			// Shader directory will be used as base director for include handler
+		L"-enable-16bit-types"
 	};
 
 	// Compile

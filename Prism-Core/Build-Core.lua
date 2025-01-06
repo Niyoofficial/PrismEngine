@@ -63,6 +63,7 @@ project "Prism-Core"
 		includedirs
 		{
 			includeDirs["SDL"],
+			includeDirs["dxc"],
 			includeDirs["DirectXTK12"],
 			includeDirs["WinPixEventRuntime"],
 			includeDirs["AgilitySDK"]

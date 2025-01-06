@@ -1,3 +1,5 @@
+#include "SH.hlsl"
+
 #define CUBEMAP_RESOLUTION 1024
 #define THREADS_COUNT 16 * 16 * 1
 #define WARP_SIZE 32
@@ -19,8 +21,7 @@ struct Coefficients
 };
 
 Texture2DArray g_skybox : register(t0);
-RWStructuredBuffer<Coefficients> g_coefficients : register(u0);
-RWStructuredBuffer<float> g_weights : register(u1);
+RWStructuredBuffer<SH::L2_RGB> g_coefficients : register(u0);
 
 groupshared Coefficients g_groupResults[THREADS_COUNT / WARP_SIZE];
 groupshared float g_groupWeights[THREADS_COUNT / WARP_SIZE];
@@ -79,82 +80,27 @@ float3 GetSamplingVector(int3 threadID)
 	return direction;
 }
 
-[numthreads(16, 16, 1)]
+[numthreads(1, 1, 1)]
 void main(int3 groupID : SV_GroupID,
 		  int3 dispatchThreadID : SV_DispatchThreadID,
 		  int groupIndex : SV_GroupIndex)
 {
-    float3 light = g_skybox[dispatchThreadID].rgb;
-	float3 normal = GetSamplingVector(dispatchThreadID);
-	Coefficients coefficients;
-	GetSHCoefficients(normal, light, coefficients.sh);
- 
-	float u = (((float)dispatchThreadID.x + 0.5f) / (CUBEMAP_RESOLUTION)) * 2.f - 1.f;
-	float v = (((float)dispatchThreadID.y + 0.5f) / (CUBEMAP_RESOLUTION)) * 2.f - 1.f;
+	SH::L2_RGB radianceSH = SH::L2_RGB::Zero();
 
-	float temp = 1.f + u * u + v * v;
-	float weight = 1.f / (sqrt(temp) * temp);
-	
-	Coefficients sumCoefficients;
-	for (int i = 0; i < 9; ++i)
+	for (int z = 0; z < 6; ++z)
 	{
-        float3 c = coefficients.sh[i] * weight;
-        sumCoefficients.sh[i] = WaveActiveSum(c);
+		for (int y = 0; y < CUBEMAP_RESOLUTION; ++y)
+		{
+			for (int x = 0; x < CUBEMAP_RESOLUTION; ++x)
+			{
+				float3 normal = GetSamplingVector(int3(x, y, z));
+				float3 color = g_skybox[int3(x, y, z)].rgb;
+				radianceSH = radianceSH + SH::ProjectOntoL2(normal, color);
+			}
+		}
 	}
 	
-    float sumWeight = WaveActiveSum(weight);
+	radianceSH = radianceSH * (1.f / ((CUBEMAP_RESOLUTION * CUBEMAP_RESOLUTION * 6) * (1 / (4 * PI))));
 	
-    uint waveIndex = WaveGetLaneIndex();
-    if (WaveIsFirstLane())
-    {
-        uint waveID = groupIndex / WARP_SIZE;
-        for (int i = 0; i < 9; ++i)
-            g_groupResults[waveID].sh[i] = sumCoefficients.sh[i];
-		
-        g_groupWeights[waveID] = sumWeight;
-		
-        GroupMemoryBarrierWithGroupSync();
-
-        if (groupIndex == 0)
-        {
-            Coefficients coefGroupSum;
-            float groupSumWeights = 0.f;
-            for (int i = 0; i < THREADS_COUNT / WARP_SIZE; ++i)
-            {
-                for (int j = 0; j < 9; ++j)
-                {
-                    coefGroupSum.sh[j] += g_groupResults[i].sh[j];
-                }
-				
-                groupSumWeights += g_groupWeights[i];
-            }
-			
-            uint threadGroupIndex = groupID.z * THREAD_GROUP_COUNT_X * THREAD_GROUP_COUNT_Y + groupID.y * THREAD_GROUP_COUNT_Y + groupID.x;
-            g_coefficients[threadGroupIndex] = coefGroupSum;
-            g_weights[threadGroupIndex] = groupSumWeights;
-        }
-    }
-	
-	/*GroupMemoryBarrierWithGroupSync();
-
-	if (groupIndex == 0)
-	{
-		float3 result[9];
-		float weightSum = 0.f;
-		for (int i = 0; i < THREADS_COUNT; ++i)
-		{
-			for (int j = 0; j < 9; ++j)
-			{
-				result[j] += g_groupResults[i][j];
-			}
-			weightSum += g_weights[i];
-		}
-		
-		int coeffID = groupID.z * 64 * 64 + groupID.y * 64 + groupID.x;
-		for (int i = 0; i < 9; ++i)
-		{
-			result[i] *= 4.f * PI / weightSum;
-			g_coefficients[coeffID].sh[i] = result[i];
-		}
-	}*/
+	g_coefficients[0] = radianceSH;
 }
