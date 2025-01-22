@@ -262,6 +262,15 @@ void RenderContext::ReadbackTexture(Texture* textureToReadback, int32_t subresou
 		});
 }
 
+void RenderContext::RenderImGui()
+{
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+		[](RenderCommandList* cmdList)
+		{
+			cmdList->RenderImGui();
+		});
+}
+
 void RenderContext::AddGPUCompletionCallback(std::function<void()> callback)
 {
 	m_gpuCompletionCallbacks.emplace_back(callback);

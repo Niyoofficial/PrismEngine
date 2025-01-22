@@ -21,15 +21,39 @@ workspace "PrismEngine"
 	includeDirs["spdlog"] = path.normalize("%{wks.location}/Vendor/spdlog/include")
 	includeDirs["spdlog-fmt"] = path.normalize("%{wks.location}/Vendor/spdlog/dependencies/fmt-src/include")
 	includeDirs["boost"] = path.normalize("%{wks.location}/Vendor/boost_1_82")
+	includeDirs["ImGui"] = path.normalize("%{wks.location}/Vendor/ImGui")
 
 	libDirs = {}
 	libDirs["spdlog"] = path.normalize("%{wks.location}/Vendor/spdlog/Bin/" .. outputFolderName)
 	libDirs["spdlog-fmt"] = path.normalize("%{wks.location}/Vendor/spdlog/Bin/" .. outputFolderName)
+	libDirs["ImGui"] = path.normalize("%{wks.location}/Vendor/ImGui/Bin/" .. outputFolderName)
 
 	defines
 	{
 		"GLM_FORCE_DEPTH_ZERO_TO_ONE",
 		"GLM_FORCE_LEFT_HANDED"
+	}
+
+	includedirs
+	{
+		includeDirs["glm"],
+		includeDirs["ImGui"],
+		includeDirs["spdlog"],
+		includeDirs["spdlog-fmt"]
+	}
+
+	libdirs
+	{	
+		libDirs["ImGui"],
+		libDirs["spdlog"],
+		libDirs["spdlog-fmt"]
+	}
+
+	links
+	{
+		"ImGui.lib",
+		"spdlog.lib",
+		"fmt.lib"
 	}
 
 	filter "system:windows"
@@ -42,18 +66,22 @@ workspace "PrismEngine"
 
 		defines { "USE_PIX" }
 	filter {}
+	
+	group "Core"
+		include "Prism-Core/Build-Core.lua"
+	group ""
 
-group "Dependencies"
-	include "Vendor/glm/Build-glm.lua"
-	include "Vendor/spdlog/Build-spdlog.lua"
-group ""
+	include "Prism-Sandbox/Build-Sandbox.lua"
 
-group "Core"
-	include "Prism-Core/Build-Core.lua"
-group "Core/Dependencies"
-	include "Prism-Core/Vendor/assimp/Build-assimp.lua"
-	include "Prism-Core/Vendor/SDL/Build-SDL.lua"
-	include "Prism-Core/Vendor/DirectXTK12/Build-DirectXTK12.lua"
-group ""
+	group "Dependencies"
+		include "Vendor/glm/Build-glm.lua"
+		include "Vendor/spdlog/Build-spdlog.lua"
+		include "Vendor/boost_1_82/Build-boost.lua"
+		include "Vendor/ImGui/Build-ImGui.lua"
 
-include "Prism-Sandbox/Build-Sandbox.lua"
+		filter "system:windows"
+			include "Vendor/AgilitySDK/Build-AgilitySDK.lua"
+			include "Vendor/dxc/Build-dxc.lua"
+			include "Vendor/WinPixEventRuntime/Build-WinPixEventRuntime.lua"
+		filter {}
+	group ""

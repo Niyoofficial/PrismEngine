@@ -16,7 +16,8 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 	context->CloseContext();
 
 	++m_lastSubmittedCmdListFenceValue;
-	auto cmdList = RenderCommandList::Create(m_lastSubmittedCmdListFenceValue);
+
+	auto cmdList = RenderCommandList::Create();
 	Ref<RenderCommandList> cmdListCopy = cmdList;
 	context->SafeReleaseResource(cmdListCopy);
 
@@ -25,43 +26,33 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 		.readyToBeReleased = false,
 		.renderContext = context
 	});
-	
-	m_cmdListsQueue.push(cmdList);
+
+	m_cmdListsQueue.push({cmdList, m_lastSubmittedCmdListFenceValue});
 
 	auto func = [this, cmdRecorder = &context->m_commandRecorder, cmdList = cmdList.Raw()]()
 		{
 			cmdRecorder->RecordCommands(cmdList);
 			cmdList->Close();
 
-			{
-				std::lock_guard lock(m_cmdListsExecutingMutex);
-
-				if (m_isCurrentlyExecuting)
-					return;
-
-				m_isCurrentlyExecuting = true;
-			}
-
-			while (!m_cmdListsQueue.empty() && m_cmdListsQueue.front()->IsClosed())
-			{
-				auto* cmdListToExecute = m_cmdListsQueue.front();
-
-				// Check that makes sure that cmd lists are executed in order and that none are missing
-				PE_ASSERT(m_lastQueuedCmdListFenceValue + 1 == cmdListToExecute->GetFenceValue());
-
-				m_cmdListsQueue.pop();
-				Execute(cmdListToExecute);
-				++m_lastQueuedCmdListFenceValue;
-			}
-
-			{
-				std::lock_guard lock(m_cmdListsExecutingMutex);
-
-				m_isCurrentlyExecuting = false;
-			}
+			TryExecuteQueuedCmdListsAsync();
 		};
 
 	auto future = std::async(std::launch::async, func);
+
+	return GetLastSubmittedCmdListFenceValue();
+}
+
+uint64_t RenderCommandQueue::SubmitDirectly(RenderCommandList* cmdList)
+{
+	cmdList->Close();
+
+	++m_lastSubmittedCmdListFenceValue;
+
+	Ref<RenderCommandList> cmdListRef = cmdList;
+	RenderDevice::Get().AddResourceToReleaseQueue(cmdListRef, GetLastSubmittedCmdListFenceValue());
+
+	m_cmdListsQueue.push({ cmdList, m_lastSubmittedCmdListFenceValue });
+	auto future = std::async(std::launch::async, [this]() { TryExecuteQueuedCmdListsAsync(); });
 
 	return GetLastSubmittedCmdListFenceValue();
 }
@@ -104,12 +95,45 @@ void RenderCommandQueue::ExecuteGPUCompletionEvents()
 
 void RenderCommandQueue::ReleaseStaleResources()
 {
+	// Special treatment for RenderContexts
+	// This could also be done by transferring the context to RenderDevice release queue
+	// but since we know they can already be cleared we just do that
 	while (!m_submittedContexts.empty())
 	{
 		if (m_submittedContexts.front().readyToBeReleased)
 			m_submittedContexts.pop_front();
 		else
 			break;
+	}
+}
+
+void RenderCommandQueue::TryExecuteQueuedCmdListsAsync()
+{
+	{
+		std::lock_guard lock(m_cmdListsExecutingMutex);
+
+		if (m_isCurrentlyExecuting)
+			return;
+
+		m_isCurrentlyExecuting = true;
+	}
+
+	while (!m_cmdListsQueue.empty() && m_cmdListsQueue.front().cmdList->IsClosed())
+	{
+		auto cmdListToExecute = m_cmdListsQueue.front();
+
+		// Check that makes sure that cmd lists are executed in order and that none are missing
+		PE_ASSERT(m_lastQueuedCmdListFenceValue + 1 == cmdListToExecute.fenceValue);
+
+		m_cmdListsQueue.pop();
+		Execute(cmdListToExecute.cmdList, cmdListToExecute.fenceValue);
+		++m_lastQueuedCmdListFenceValue;
+	}
+
+	{
+		std::lock_guard lock(m_cmdListsExecutingMutex);
+
+		m_isCurrentlyExecuting = false;
 	}
 }
 }

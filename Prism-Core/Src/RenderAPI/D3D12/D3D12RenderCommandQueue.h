@@ -16,7 +16,7 @@ public:
 	ID3D12CommandQueue* GetD3D12CommandQueue() const;
 
 private:
-	virtual void Execute(RenderCommandList* cmdList) override;
+	virtual void Execute(RenderCommandList* cmdList, uint64_t fenceValue) override;
 
 private:
 	ComPtr<ID3D12CommandQueue> m_d3d12CommandQueue;

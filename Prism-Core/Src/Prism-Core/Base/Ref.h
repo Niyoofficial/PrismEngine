@@ -252,6 +252,8 @@ public:
 	bool IsValid() const { return m_object ? ReferenceManager::IsAlive(m_object) : false; }
 	operator bool() const { return IsValid(); }
 
+	T* Raw() const { return m_object; }
+
 private:
 	T* m_object = nullptr;
 };

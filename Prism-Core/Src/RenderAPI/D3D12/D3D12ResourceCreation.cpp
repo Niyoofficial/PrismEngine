@@ -21,9 +21,9 @@ void CreateRenderDevice(RenderDeviceParams params)
 	StaticPointerSingleton<RenderDevice>::Create<D3D12::D3D12RenderDevice>(params);
 }
 
-RenderCommandList* CreateRenderCommandList(uint64_t fenceValue)
+RenderCommandList* CreateRenderCommandList()
 {
-	return new D3D12::D3D12RenderCommandList(fenceValue);
+	return new D3D12::D3D12RenderCommandList();
 }
 
 Swapchain* CreateSwapchain(Core::Window* window, SwapchainDesc swapchainDesc)
@@ -46,9 +46,9 @@ ComputePipelineState* CreatePipelineState(const ComputePipelineStateDesc& desc)
 	return new D3D12::D3D12ComputePipelineState(desc);
 }
 
-Buffer* CreateBuffer(const BufferDesc& desc, RawData initData)
+Buffer* CreateBuffer(const BufferDesc& desc)
 {
-	return new D3D12::D3D12Buffer(desc, initData);
+	return new D3D12::D3D12Buffer(desc);
 }
 
 BufferView* CreateBufferView(const BufferViewDesc& desc, class Buffer* buffer)

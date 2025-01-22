@@ -12,7 +12,7 @@
 namespace Prism::Render::D3D12
 {
 D3D12Swapchain::D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc)
-	: m_owningWindow(window)
+	: m_owningWindow(window), m_swapchainDesc(swapchainDesc)
 {
 	// TODO: add viewport support https://www.reddit.com/r/vulkan/comments/vxxu1k/using_multiple_swapchains/
 	DXGI_SWAP_CHAIN_DESC1 dxgiSwapchainDesc = {
@@ -51,6 +51,7 @@ D3D12Swapchain::D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc
 	{
 		ID3D12Resource* swapchainTexture = nullptr;
 		PE_ASSERT_HR(m_swapchain->GetBuffer(i, IID_PPV_ARGS(&swapchainTexture)));
+		PE_ASSERT_HR(swapchainTexture->SetName(L"Backbuffer"));
 
 		m_backBuffers.push_back(new D3D12Texture(
 			swapchainTexture,
@@ -76,6 +77,11 @@ void D3D12Swapchain::Resize()
 {
 	//TODO: implement Resize
 	PE_ASSERT_NO_ENTRY();
+}
+
+SwapchainDesc D3D12Swapchain::GetSwapchainDesc() const
+{
+	return m_swapchainDesc;
 }
 
 TextureView* D3D12Swapchain::GetBackBufferRTV(int32_t index) const

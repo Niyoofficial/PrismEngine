@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -20,11 +20,11 @@
 */
 #include "SDL_internal.h"
 
-/* This file contains SDL replacements for functions in the C library */
+// This file contains SDL replacements for functions in the C library
 
 #if !defined(HAVE_LIBC) && !defined(SDL_STATIC_LIB)
 
-/* These are some C runtime intrinsics that need to be defined */
+// These are some C runtime intrinsics that need to be defined
 
 #ifdef _MSC_VER
 
@@ -33,43 +33,9 @@
 __declspec(selectany) int _fltused = 1;
 #endif
 
-/* The optimizer on Visual Studio 2005 and later generates memcpy() and memset() calls.
-   Always provide it for the SDL3 DLL, but skip it when building static lib w/ static runtime. */
-#if (_MSC_VER >= 1400) && (!defined(_MT) || defined(DLL_EXPORT))
-/* NOLINTNEXTLINE(readability-redundant-declaration) */
-extern void *memcpy(void *dst, const void *src, size_t len);
-#ifndef __INTEL_LLVM_COMPILER
-#pragma intrinsic(memcpy)
-#endif
-
-#ifndef __clang__
-#pragma function(memcpy)
-#endif
-/* NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name) */
-void *memcpy(void *dst, const void *src, size_t len)
-{
-    return SDL_memcpy(dst, src, len);
-}
-
-/* NOLINTNEXTLINE(readability-redundant-declaration) */
-extern void *memset(void *dst, int c, size_t len);
-#ifndef __INTEL_LLVM_COMPILER
-#pragma intrinsic(memset)
-#endif
-
-#ifndef __clang__
-#pragma function(memset)
-#endif
-/* NOLINTNEXTLINE(readability-inconsistent-declaration-parameter-name) */
-void *memset(void *dst, int c, size_t len)
-{
-    return SDL_memset(dst, c, len);
-}
-#endif /* (_MSC_VER >= 1400) && (!defined(_MT) || defined(DLL_EXPORT)) */
-
 #ifdef _M_IX86
 
-/* Float to long */
+// Float to long
 void __declspec(naked) _ftol()
 {
     /* *INDENT-OFF* */
@@ -129,7 +95,7 @@ void _ftol2()
     _ftol();
 }
 
-/* 64-bit math operators for 32-bit systems */
+// 64-bit math operators for 32-bit systems
 void __declspec(naked) _allmul()
 {
     /* *INDENT-OFF* */
@@ -760,17 +726,9 @@ void __declspec(naked) _alloca_probe_16(void)
     /* *INDENT-ON* */
 }
 
-#endif /* _M_IX86 */
+#endif // _M_IX86
 
-#ifdef _M_ARM64
-
-void __chkstk(void);
-void __chkstk() {
-}
-
-#endif
-
-#endif /* MSC_VER */
+#endif // MSC_VER
 
 #ifdef __ICL
 /* The classic Intel compiler generates calls to _intel_fast_memcpy
@@ -785,4 +743,4 @@ void *_intel_fast_memset(void *dst, int c, size_t len)
 }
 #endif
 
-#endif /* !HAVE_LIBC && !SDL_STATIC_LIB */
+#endif // !HAVE_LIBC && !SDL_STATIC_LIB

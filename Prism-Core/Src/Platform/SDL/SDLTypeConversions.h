@@ -4,10 +4,10 @@
 
 namespace Prism::SDL
 {
-KeyCode GetPrismKeyCode(SDL_KeyCode sdlKeyCode);
+KeyCode GetPrismKeyCode(SDL_Keycode sdlKeyCode);
 ScanCode GetPrismScanCode(SDL_Scancode sdlScanCode);
 KeyCode GetPrismKeyCodeFromMouseButton(uint8_t button);
 
-SDL_KeyCode GetSDLKeyCode(KeyCode keyCode);
+SDL_Keycode GetSDLKeyCode(KeyCode keyCode);
 SDL_Scancode GetSDLScanCode(ScanCode scanCode);
 }

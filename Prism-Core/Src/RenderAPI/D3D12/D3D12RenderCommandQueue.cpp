@@ -21,7 +21,6 @@ D3D12RenderCommandQueue::D3D12RenderCommandQueue()
 
 void D3D12RenderCommandQueue::WaitForCmdListToComplete(uint64_t fenceValue)
 {
-	auto test = m_cmdListFence->GetCompletedValue();
 	if (m_cmdListFence->GetCompletedValue() < fenceValue)
 	{
 		HANDLE eventHandle = CreateEventEx(nullptr, nullptr, 0, EVENT_ALL_ACCESS);
@@ -43,13 +42,13 @@ ID3D12CommandQueue* D3D12RenderCommandQueue::GetD3D12CommandQueue() const
 	return m_d3d12CommandQueue.Get();
 }
 
-void D3D12RenderCommandQueue::Execute(RenderCommandList* cmdList)
+void D3D12RenderCommandQueue::Execute(RenderCommandList* cmdList, uint64_t fenceValue)
 {
 	std::array<ID3D12CommandList*, 1> cmdListArray = {
 		static_cast<D3D12RenderCommandList*>(cmdList)->GetD3D12CommandList()
 	};
 	m_d3d12CommandQueue->ExecuteCommandLists(cmdListArray.size(), cmdListArray.data());
 
-	PE_ASSERT_HR(m_d3d12CommandQueue->Signal(m_cmdListFence.Get(), cmdList->GetFenceValue()));
+	PE_ASSERT_HR(m_d3d12CommandQueue->Signal(m_cmdListFence.Get(), fenceValue));
 }
 }

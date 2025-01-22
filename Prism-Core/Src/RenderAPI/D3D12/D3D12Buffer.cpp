@@ -1,19 +1,20 @@
 ﻿#include "pcpch.h"
 #include "D3D12Buffer.h"
 
-#include "Prism-Core/Render/RenderCommandQueue.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 
 
 namespace Prism::Render::D3D12
 {
-D3D12Buffer::D3D12Buffer(const BufferDesc& desc, RawData initData)
+D3D12Buffer::D3D12Buffer(const BufferDesc& desc)
 	: m_originalDesc(desc)
 {
 	DISABLE_DESTRUCTION_SCOPE_GUARD(this);
 
-	// Dynamic buffers don't need to be created here, they will be automatically created when Map is called
+	if (m_originalDesc.bindFlags.HasAllFlags(BindFlags::ConstantBuffer))
+		m_originalDesc.size = Align(m_originalDesc.size, Constants::CBUFFER_ALIGNMENT);
+
 	if (desc.usage == ResourceUsage::Default)
 	{
 		auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
@@ -53,6 +54,7 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc, RawData initData)
 	}
 	else if (desc.usage == ResourceUsage::Dynamic)
 	{
+		// Dynamic buffers don't need to be created here, they will be automatically created when Map is called
 		PE_ASSERT(desc.cpuAccess == CPUAccess::Write, "Dynamic buffers must have only the CPUAccess::Write flag set");
 	}
 }

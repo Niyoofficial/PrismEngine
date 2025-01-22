@@ -83,11 +83,13 @@ struct Vertex
 class SandboxLayer : public Render::Layer
 {
 public:
-	SandboxLayer();
+	SandboxLayer(Core::Window* owningWindow);
 
 	virtual void Update(Duration delta) override;
 
 private:
+	WeakRef<Core::Window> m_owningWindow;
+
 	Ref<Render::Camera> m_camera;
 
 	Ref<Render::Texture> m_depthStencil;
@@ -119,6 +121,8 @@ private:
 
 	Ref<Render::Buffer> m_coeffBuffer;
 	Ref<Render::BufferView> m_coeffBufferView;
+	Ref<Render::Buffer> m_irradianceSHBuffer;
+	Ref<Render::BufferView> m_irradianceSHBufferView;
 
 	Ref<Render::Primitive> m_monkey;
 	Ref<Render::Primitive> m_floor;
@@ -126,9 +130,6 @@ private:
 
 	float m_cameraSpeed = 0.05f;
 	float m_mouseSpeed = 0.005f;
-
-	std::array<glm::float3, 9> m_skyboxCoeffs = {};
-	float m_coeffsWeightSum = 0.f;
 };
 
 class SandboxApplication final : public Core::Application

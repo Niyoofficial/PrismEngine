@@ -15,8 +15,16 @@ struct SubmittedRenderContext
  */
 class RenderCommandQueue : public RefCounted
 {
+private:
+	struct CmdListWithFenceValue
+	{
+		class RenderCommandList* cmdList = nullptr;
+		uint64_t fenceValue = 0;
+	};
+
 public:
 	uint64_t Submit(RenderContext* context);
+	uint64_t SubmitDirectly(RenderCommandList* cmdList);
 
 	void Flush();
 	virtual void WaitForCmdListToComplete(uint64_t fenceValue) = 0;
@@ -30,13 +38,15 @@ public:
 	virtual void ReleaseStaleResources();
 
 private:
-	virtual void Execute(class RenderCommandList* cmdList) = 0;
+	virtual void Execute(RenderCommandList* cmdList, uint64_t fenceValue) = 0;
+
+	void TryExecuteQueuedCmdListsAsync();
 
 private:
 	uint64_t m_lastSubmittedCmdListFenceValue = 0;
 	uint64_t m_lastQueuedCmdListFenceValue = 0;
 
-	std::queue<RenderCommandList*> m_cmdListsQueue;
+	std::queue<CmdListWithFenceValue> m_cmdListsQueue;
 	std::mutex m_cmdListsExecutingMutex;
 	bool m_isCurrentlyExecuting = false;
 

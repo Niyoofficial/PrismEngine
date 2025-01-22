@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -43,7 +43,7 @@ typedef struct SDL_error
     SDL_free_func free_func;
 } SDL_error;
 
-/* Defined in SDL_thread.c */
-extern SDL_error *SDL_GetErrBuf(SDL_bool create);
+// Defined in SDL_thread.c
+extern SDL_error *SDL_GetErrBuf(bool create);
 
-#endif /* SDL_error_c_h_ */
+#endif // SDL_error_c_h_

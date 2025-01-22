@@ -7,7 +7,7 @@ namespace Prism::Render
 {
 Ref<Buffer> Buffer::Create(const BufferDesc& desc, RawData initData)
 {
-	Ref<Buffer> buffer = Private::CreateBuffer(desc, initData);
+	Ref<Buffer> buffer = Private::CreateBuffer(desc);
 
 	if (initData.data && initData.sizeInBytes > 0)
 	{

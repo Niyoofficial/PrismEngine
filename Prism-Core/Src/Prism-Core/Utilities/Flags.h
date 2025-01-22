@@ -79,17 +79,17 @@ public:
 		return m_mask;
 	}
 
-	constexpr bool HasAnyFlags(Flags<BitType> flags)
+	constexpr bool HasAnyFlags(Flags<BitType> flags) const
 	{
 		return (m_mask & flags.m_mask) != 0;
 	}
 
-	constexpr bool HasAllFlags(Flags<BitType> flags)
+	constexpr bool HasAllFlags(Flags<BitType> flags) const
 	{
 		return (m_mask & flags.m_mask) == flags.m_mask;
 	}
 
-	constexpr MaskType GetUnderlyingType()
+	constexpr MaskType GetUnderlyingType() const
 	{
 		return m_mask;
 	}

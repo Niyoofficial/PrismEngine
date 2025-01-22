@@ -44,20 +44,26 @@ public:
 	void CloseApplication();
 
 	Duration GetApplicationTime();
+	int64_t GetCurrentFrame() const { return m_frameCounter; }
 
+	const std::vector<WeakRef<Window>>& GetWindows() const { return m_windows; }
+
+protected:
 	virtual void BeginFrame();
 	virtual void EndFrame();
 
-	int64_t GetCurrentFrame() const { return m_frameCounter; }
+	virtual void ImGuiNewFrame();
 
-protected:
 	void InitPlatform();
 	void ShutdownPlatform();
 
 	void InitRenderer(const Render::RenderDeviceParams& params);
 	void ShutdownRenderer();
 
-	void OnQuit(AppEvent event);
+	void InitImGui(Window* window);
+	void ShutdownImGui();
+
+	void OnQuitEvent(AppEvent event);
 
 protected:
 	bool m_running = false;
@@ -68,5 +74,7 @@ protected:
 	std::vector<WeakRef<Render::Layer>> m_layerStack;
 
 	std::vector<WeakRef<Window>> m_windows;
+
+	bool initializedImGui = false;
 };
 }

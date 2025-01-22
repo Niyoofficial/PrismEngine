@@ -11,6 +11,9 @@
 #include "WinPixEventRuntime/pix3.h"
 #endif
 
+#include "backends/imgui_impl_dx12.h"
+#include "RenderAPI/D3D12/D3D12TextureView.h"
+
 // AgilitySDK
 extern "C"
 {
@@ -124,6 +127,11 @@ D3D12RenderDevice::~D3D12RenderDevice()
 	FreeLibrary(m_pixGpuCaptureModule);
 	FreeLibrary(m_pixTimingCaptureModule);
 #endif
+}
+
+void D3D12RenderDevice::ImGuiNewFrame()
+{
+	ImGui_ImplDX12_NewFrame();
 }
 
 RenderCommandQueue* D3D12RenderDevice::GetRenderQueue() const
@@ -266,5 +274,32 @@ uint32_t D3D12RenderDevice::GetDescriptorHandleSize(D3D12_DESCRIPTOR_HEAP_TYPE t
 DynamicGPURingBuffer::DynamicAllocation D3D12RenderDevice::AllocateDynamicBufferMemory(int64_t size)
 {
 	return m_dynamicBufferAllocator.Allocate(size);
+}
+
+void D3D12RenderDevice::InitializeImGui(Core::Window* window)
+{
+	D3D12_DESCRIPTOR_HEAP_DESC imGuiDescriptorHeapDesc = {};
+	imGuiDescriptorHeapDesc.NumDescriptors = 1;
+	imGuiDescriptorHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	imGuiDescriptorHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	imGuiDescriptorHeapDesc.NodeMask = 0;
+	PE_ASSERT_HR(m_d3dDevice->CreateDescriptorHeap(&imGuiDescriptorHeapDesc, IID_PPV_ARGS(&m_imGuiHeap)));
+
+	DXGI_FORMAT format = GetDXGIFormat(window->GetSwapchain()->GetSwapchainDesc().format);
+	ImGui_ImplDX12_Init(GetD3D12Device(), Constants::MAX_FRAMES_IN_FLIGHT, format,
+						m_imGuiHeap.Get(),
+						m_imGuiHeap->GetCPUDescriptorHandleForHeapStart(),
+						m_imGuiHeap->GetGPUDescriptorHandleForHeapStart());
+
+	initializedImGui = true;
+}
+
+void D3D12RenderDevice::ShutdownImGui()
+{
+	if (initializedImGui)
+	{
+		ImGui_ImplDX12_Shutdown();
+		initializedImGui = false;
+	}
 }
 }

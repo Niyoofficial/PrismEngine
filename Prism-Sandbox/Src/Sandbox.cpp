@@ -1,5 +1,6 @@
 ﻿#include "Sandbox.h"
 
+#include "imgui.h"
 #include "Prism-Core/Base/Base.h"
 #include "Prism-Core/Base/Platform.h"
 #include "Prism-Core/Base/Window.h"
@@ -12,7 +13,8 @@
 
 IMPLEMENT_APPLICATION(SandboxApplication);
 
-SandboxLayer::SandboxLayer()
+SandboxLayer::SandboxLayer(Core::Window* owningWindow)
+	: m_owningWindow(owningWindow)
 {
 	using namespace Prism::Render;
 	Layer::Attach();
@@ -27,9 +29,12 @@ SandboxLayer::SandboxLayer()
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseMotion>(
 		[this](Core::AppEvent event)
 		{
-			glm::float2 delta = std::get<Core::AppEvents::MouseMotion>(event).relPosition;
-			delta *= m_mouseSpeed;
-			m_camera->AddRotation({-delta.y, -delta.x, 0.f});
+			if (Core::Platform::Get().IsKeyPressed(KeyCode::RightMouseButton))
+			{
+				glm::float2 delta = std::get<Core::AppEvents::MouseMotion>(event).relPosition;
+				delta *= m_mouseSpeed;
+				m_camera->AddRotation({-delta.y, -delta.x, 0.f});
+			}
 		});
 
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseWheel>(
@@ -40,6 +45,19 @@ SandboxLayer::SandboxLayer()
 			constexpr float minMoveSpeed = 0.01f;
 			m_cameraSpeed += delta * moveSpeedChangeMult;
 			m_cameraSpeed = std::max(m_cameraSpeed, minMoveSpeed);
+		});
+
+	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseButtonDown>(
+		[this](Core::AppEvent event)
+		{
+			if (m_owningWindow.IsValid() && std::get<Core::AppEvents::MouseButtonDown>(event).keyCode == KeyCode::RightMouseButton)
+				Core::Platform::Get().SetMouseRelativeMode(m_owningWindow.Raw(), true);
+		});
+	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseButtonUp>(
+		[this](Core::AppEvent event)
+		{
+			if (m_owningWindow.IsValid() && std::get<Core::AppEvents::MouseButtonUp>(event).keyCode == KeyCode::RightMouseButton)
+				Core::Platform::Get().SetMouseRelativeMode(m_owningWindow.Raw(), false);
 		});
 
 	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
@@ -99,7 +117,7 @@ SandboxLayer::SandboxLayer()
 	});
 
 	m_irradiance = Texture::Create({
-		.textureName = L"irradiance",
+		.textureName = L"Irradiance",
 		.width = 1024,
 		.height = 1024,
 		.depthOrArraySize = 6,
@@ -134,7 +152,7 @@ SandboxLayer::SandboxLayer()
 	m_rustedIronNormal = Texture::Create(L"Textures/rustediron2_normal.png");
 	m_rustedIronNormalView = m_rustedIronNormal->CreateView();
 
-	m_environmentTexture = Texture::Create(L"Textures/testEqui.hdr");
+	m_environmentTexture = Texture::Create(L"Textures/tief_etz_4k.hdr");
 	m_environmentTextureView = m_environmentTexture->CreateView();
 
 
@@ -145,7 +163,7 @@ SandboxLayer::SandboxLayer()
 										.bindFlags = BindFlags::ConstantBuffer,
 										.usage = ResourceUsage::Dynamic,
 										.cpuAccess = CPUAccess::Write
-									}, {});
+									});
 	m_sceneCbufferView = m_sceneCbuffer->CreateDefaultCBVView();
 
 	// Load monkey
@@ -201,12 +219,12 @@ SandboxLayer::SandboxLayer()
 		// Generate SH coefficients
 		{
 			m_coeffBuffer = Buffer::Create({
-				.bufferName = L"SHCoefficients",
-				.size = sizeof(glm::float3) * 9, // RGB channels * numOfCoefficients
+				.bufferName = L"SHCoefficientsGeneration",
+				.size = sizeof(glm::float4) * 9, // RGB channels + one for padding * numOfCoefficients
 				.bindFlags = BindFlags::UnorderedAccess,
 				.usage = ResourceUsage::Default
 			});
-			m_coeffBufferView = m_coeffBuffer->CreateDefaultUAVView(sizeof(float) * 3 * 9);
+			m_coeffBufferView = m_coeffBuffer->CreateDefaultUAVView(sizeof(glm::float4) * 9); // Single element
 
 			renderContext->SetPSO(ComputePipelineState::Create({
 				.cs = Shader::Create({
@@ -220,6 +238,16 @@ SandboxLayer::SandboxLayer()
 			renderContext->SetBuffer(m_coeffBufferView, L"g_coefficients");
 
 			renderContext->Dispatch(1, 1, 1);
+
+			m_irradianceSHBuffer = Buffer::Create({
+				.bufferName = L"IrradianceSH",
+				.size = sizeof(glm::float3) * 9, // RGB channels * numOfCoefficients
+				.bindFlags = BindFlags::ConstantBuffer,
+				.usage = ResourceUsage::Default
+			});
+			m_irradianceSHBufferView = m_irradianceSHBuffer->CreateDefaultCBVView();
+
+			renderContext->CopyBufferRegion(m_irradianceSHBuffer, 0, m_coeffBuffer, 0, m_coeffBuffer->GetBufferDesc().size);
 		}
 
 		RenderDevice::Get().SubmitContext(renderContext);
@@ -232,23 +260,27 @@ void SandboxLayer::Update(Duration delta)
 	using namespace Prism::Render;
 	Layer::Update(delta);
 
-	if (Core::Platform::Get().IsKeyPressed(KeyCode::W))
-		m_camera->AddPosition(m_camera->GetForwardVector() * m_cameraSpeed);
-	if (Core::Platform::Get().IsKeyPressed(KeyCode::S))
-		m_camera->AddPosition(-m_camera->GetForwardVector() * m_cameraSpeed);
-	if (Core::Platform::Get().IsKeyPressed(KeyCode::A))
-		m_camera->AddPosition(-m_camera->GetRightVector() * m_cameraSpeed);
-	if (Core::Platform::Get().IsKeyPressed(KeyCode::D))
-		m_camera->AddPosition(m_camera->GetRightVector() * m_cameraSpeed);
-	if (Core::Platform::Get().IsKeyPressed(KeyCode::Q))
-		m_camera->AddPosition(-m_camera->GetUpVector() * m_cameraSpeed);
-	if (Core::Platform::Get().IsKeyPressed(KeyCode::E))
-		m_camera->AddPosition(m_camera->GetUpVector() * m_cameraSpeed);
+	ImGui::ShowDemoWindow();
+
+	if (Core::Platform::Get().IsKeyPressed(KeyCode::RightMouseButton))
+	{
+		if (Core::Platform::Get().IsKeyPressed(KeyCode::W))
+			m_camera->AddPosition(m_camera->GetForwardVector() * m_cameraSpeed);
+		if (Core::Platform::Get().IsKeyPressed(KeyCode::S))
+			m_camera->AddPosition(-m_camera->GetForwardVector() * m_cameraSpeed);
+		if (Core::Platform::Get().IsKeyPressed(KeyCode::A))
+			m_camera->AddPosition(-m_camera->GetRightVector() * m_cameraSpeed);
+		if (Core::Platform::Get().IsKeyPressed(KeyCode::D))
+			m_camera->AddPosition(m_camera->GetRightVector() * m_cameraSpeed);
+		if (Core::Platform::Get().IsKeyPressed(KeyCode::Q))
+			m_camera->AddPosition(-m_camera->GetUpVector() * m_cameraSpeed);
+		if (Core::Platform::Get().IsKeyPressed(KeyCode::E))
+			m_camera->AddPosition(m_camera->GetUpVector() * m_cameraSpeed);
+	}
 
 	Ref<RenderContext> renderContext = RenderDevice::Get().AllocateContext();
 
 	glm::float2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
-
 	auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
 
 	renderContext->Barrier({
@@ -297,6 +329,8 @@ void SandboxLayer::Update(Duration delta)
 		renderContext->SetBuffer(m_sceneCbufferView, L"SceneBuffer");
 	}
 
+	renderContext->SetBuffer(m_irradianceSHBufferView, L"SceneIrradiance");
+
 	// Skybox
 	{
 		auto* pso = GraphicsPipelineState::Create({
@@ -327,7 +361,6 @@ void SandboxLayer::Update(Duration delta)
 		renderContext->SetPSO(pso);
 
 		renderContext->SetTexture(m_skyboxCubeSRVView, L"g_skybox");
-		renderContext->SetBuffer(m_coeffBufferView, L"g_coeffs");
 
 		CBufferModel modelData = {
 			.world = glm::float4x4(1.f),
@@ -350,7 +383,6 @@ void SandboxLayer::Update(Duration delta)
 	renderContext->SetTexture(m_rustedIronMetallicView, L"g_metallicTexture");
 	renderContext->SetTexture(m_rustedIronRoughnessView, L"g_roughnessTexture");
 	renderContext->SetTexture(m_rustedIronNormalView, L"g_normalTexture");
-	renderContext->SetTexture(m_irradianceSRVView, L"g_irradianceMap");
 
 	// Monkey
 	{
@@ -436,6 +468,8 @@ void SandboxLayer::Update(Duration delta)
 		m_floor->DrawPrimitive(renderContext);
 	}
 
+	renderContext->RenderImGui();
+
 	renderContext->Barrier({
 		.texture = currentBackBuffer->GetTexture(),
 		.syncBefore = BarrierSync::RenderTarget,
@@ -447,8 +481,6 @@ void SandboxLayer::Update(Duration delta)
 	});
 
 	RenderDevice::Get().SubmitContext(renderContext);
-
-	SandboxApplication::Get().GetWindow()->GetSwapchain()->Present();
 }
 
 SandboxApplication& SandboxApplication::Get()
@@ -478,10 +510,11 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 		}
 	};
 	m_window = Core::Window::Create(windowParams, swapchainDesc);
+	//Core::Platform::Get().SetMouseRelativeMode(m_window, true);
 
-	Core::Platform::Get().SetMouseRelativeMode(true);
+	InitImGui(m_window);
 
-	m_sandboxLayer = new SandboxLayer();
+	m_sandboxLayer = new SandboxLayer(m_window);
 	PushLayer(m_sandboxLayer);
 }
 

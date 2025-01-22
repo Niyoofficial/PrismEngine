@@ -5,14 +5,9 @@
 
 namespace Prism::Render
 {
-RenderCommandList::RenderCommandList(uint64_t fenceValue)
-	: m_fenceValue(fenceValue)
+Ref<RenderCommandList> RenderCommandList::Create()
 {
-}
-
-Ref<RenderCommandList> RenderCommandList::Create(uint64_t fenceValue)
-{
-	return Private::CreateRenderCommandList(fenceValue);
+	return Private::CreateRenderCommandList();
 }
 
 void RenderCommandList::Close()

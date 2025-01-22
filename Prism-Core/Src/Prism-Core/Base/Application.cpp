@@ -1,6 +1,7 @@
 #include "pcpch.h"
 #include "Application.h"
 
+#include "imgui.h"
 #include "Prism-Core/Base/Platform.h"
 #include "Prism-Core/Render/Layer.h"
 #include "Prism-Core/Render/RenderCommandQueue.h"
@@ -10,6 +11,8 @@ namespace Prism::Core
 {
 Application::~Application()
 {
+	if (initializedImGui)
+		ShutdownImGui();
 	ShutdownPlatform();
 	ShutdownRenderer();
 }
@@ -26,7 +29,7 @@ void Application::Run()
 	Platform::Get().AddAppEventCallback<AppEvents::Quit>(
 		[this](AppEvent event)
 		{
-			OnQuit(event);
+			OnQuitEvent(event);
 		});
 
 	while (m_running)
@@ -98,11 +101,33 @@ Duration Application::GetApplicationTime()
 void Application::BeginFrame()
 {
 	Render::RenderDevice::Get().BeginRenderFrame();
+	if (initializedImGui)
+		ImGuiNewFrame();
 }
 
 void Application::EndFrame()
 {
+	for (auto window : m_windows)
+	{
+		PE_ASSERT(window.IsValid());
+
+		window->GetSwapchain()->Present();
+	}
+
+	if (initializedImGui)
+	{
+		ImGui::UpdatePlatformWindows();
+		ImGui::RenderPlatformWindowsDefault();
+	}
+
 	Render::RenderDevice::Get().EndRenderFrame();
+}
+
+void Application::ImGuiNewFrame()
+{
+	Render::RenderDevice::Get().ImGuiNewFrame();
+	Platform::Get().ImGuiNewFrame();
+	ImGui::NewFrame();
 }
 
 void Application::InitPlatform()
@@ -125,7 +150,37 @@ void Application::ShutdownRenderer()
 	Render::RenderDevice::TryDestroy();
 }
 
-void Application::OnQuit(AppEvent event)
+void Application::InitImGui(Window* window)
+{
+	// TODO: Implement ImGui as a separate layer maybe?
+	// Setup Dear ImGui context
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
+	io.FontGlobalScale = 1.5f;
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsLight();
+
+	Platform::Get().InitializeImGuiPlatform(window);
+	Render::RenderDevice::Get().InitializeImGui(window);
+
+	initializedImGui = true;
+}
+
+void Application::ShutdownImGui()
+{
+	Platform::Get().ShutdownImGuiPlatform();
+	Render::RenderDevice::Get().ShutdownImGui();
+	ImGui::DestroyContext();
+}
+
+void Application::OnQuitEvent(AppEvent event)
 {
 	CloseApplication();
 }

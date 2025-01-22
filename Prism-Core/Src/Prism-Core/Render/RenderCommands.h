@@ -38,6 +38,21 @@ struct RenderCommand : public RenderCommandBase
 	};																												\
 	struct commandName final : public RenderCommand<commandName, PREPROCESSOR_JOIN(commandName##String, __LINE__)>
 
+DEFINE_RENDER_COMMAND(CustomRenderCommand)
+{
+	explicit CustomRenderCommand(std::function<void(RenderCommandList*)> inFunc)
+		: func(inFunc)
+	{
+	}
+
+	void Execute(RenderCommandList* cmdList)
+	{
+		func(cmdList);
+	}
+
+	std::function<void(RenderCommandList*)> func;
+};
+
 DEFINE_RENDER_COMMAND(DrawRenderCommand)
 {
 	explicit DrawRenderCommand(DrawCommandDesc inDesc)

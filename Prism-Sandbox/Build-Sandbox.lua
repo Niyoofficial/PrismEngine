@@ -10,24 +10,12 @@ project "Prism-Sandbox"
 	{
 		"Src",
 
-		includeDirs["Prism-Core"],
-
-		includeDirs["glm"],
-		includeDirs["spdlog"],
-		includeDirs["spdlog-fmt"]
-	}
-
-	libdirs
-	{
-		libDirs["spdlog"],
-		libDirs["spdlog-fmt"]
+		includeDirs["Prism-Core"]
 	}
 
 	links
 	{
-		"Prism-Core",
-		"spdlog.lib",
-		"fmt.lib"
+		"Prism-Core"
 	}
 
 	filter "system:windows"

@@ -13,6 +13,8 @@ struct Duration;
 
 namespace Prism::Core
 {
+class Window;
+
 class Platform : public StaticPointerSingleton<Platform>
 {
 public:
@@ -34,10 +36,15 @@ public:
 
 	virtual bool IsKeyPressed(KeyCode keyCode) = 0;
 
-	virtual void SetMouseRelativeMode(bool bRelativeMode) = 0;
+	virtual void SetMouseRelativeMode(Window* window, bool bRelativeMode) = 0;
 
 	virtual Duration GetApplicationTime() = 0;
 	virtual uint64_t GetPerformanceTicksPerSecond() = 0;
+
+	virtual void InitializeImGuiPlatform(Window* window) = 0;
+	virtual void ShutdownImGuiPlatform() = 0;
+
+	virtual void ImGuiNewFrame() = 0;
 
 protected:
 	std::unordered_map<size_t, std::vector<std::function<void(AppEvent)>>> m_eventCallbacks;

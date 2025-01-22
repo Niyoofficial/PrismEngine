@@ -14,12 +14,19 @@ public:
 
 	virtual bool IsKeyPressed(KeyCode keyCode) override;
 
-	virtual void SetMouseRelativeMode(bool bRelativeMode) override;
+	virtual void SetMouseRelativeMode(Core::Window* window, bool bRelativeMode) override;
 
 	virtual Duration GetApplicationTime() override;
 	virtual uint64_t GetPerformanceTicksPerSecond() override;
 
+	virtual void InitializeImGuiPlatform(Core::Window* window) override;
+	virtual void ShutdownImGuiPlatform() override;
+
+	virtual void ImGuiNewFrame() override;
+
 private:
 	uint64_t m_ticksStart = 0;
+
+	bool initializedImGui = false;
 };
 }

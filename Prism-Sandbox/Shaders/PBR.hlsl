@@ -33,7 +33,7 @@ float3 FresnelSchlick(float cosTheta, float3 F0)
 
 float3 FresnelSchlickRoughness(float cosTheta, float3 F0, float roughness)
 {
-    return F0 + (max((float)(1.f - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+	return F0 + (max((float)(1.f - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
 }
 
 float DistributionGGX(float3 N, float3 H, float roughness)
@@ -107,8 +107,8 @@ float3 NormalSampleToWorldSpace(float3 normalSample, float3 normal, float3 tange
 	// Uncompress each component from [0,1] to [-1,1].
 	float3 normalSampleUncomp = 2.f * normalSample - 1.f;
 	
-    float3 biTan = cross(normal, tangent);
-    return normalize(biTan * normalSampleUncomp.x + tangent * normalSampleUncomp.y + normal * normalSampleUncomp.z);
+	float3 biTan = cross(normal, tangent);
+	return normalize(biTan * normalSampleUncomp.x + tangent * normalSampleUncomp.y + normal * normalSampleUncomp.z);
 }
 
 PixelInput vsmain(VertexInput vin)
@@ -119,8 +119,8 @@ PixelInput vsmain(VertexInput vin)
 	vout.positionWorld = (float3)posWorld;
 	vout.positionClip = mul(g_camera.viewProj, posWorld);
 	
-	vout.normalWorld = mul((float3x3) g_world, vin.normalLocal);
-	vout.tangentWorld = mul((float3x3) g_world, vin.tangentlLocal);
+	vout.normalWorld = mul((float3x3)g_world, vin.normalLocal);
+	vout.tangentWorld = mul((float3x3)g_world, vin.tangentlLocal);
 	
 	vout.texCoords = vin.texCoords;
 
@@ -148,8 +148,8 @@ float4 psmain(PixelInput pin) : SV_TARGET
 	if (g_useNormalTexture)
 		normal = NormalSampleToWorldSpace(g_normalTexture.Sample(g_samLinearClamp, pin.texCoords).rgb, normal, tangent);
 	
-    float3 F0 = 0.04f;
-    F0 = lerp(F0, albedo, metallic);
+	float3 F0 = 0.04f;
+	F0 = lerp(F0, albedo, metallic);
 	
 	float3 Lo = 0.f;
 	for (int i = 0; i < MAX_LIGHT_COUNT; ++i)
@@ -173,12 +173,12 @@ float4 psmain(PixelInput pin) : SV_TARGET
 		Lo += CalcLight(albedo, metallic, roughness, g_directionalLights[i].lightColor, toLight, toCamera, normal, 1.f, F0);
 	}
 	
-    float3 kS = FresnelSchlickRoughness(max(dot(normal, toCamera), 0.f), F0, roughness);
-    float3 kD = 1.f - kS;
-    kD *= 1.f - metallic;
-    float3 irradiance = g_irradianceMap.Sample(g_samLinearClamp, normal).rgb;
-    float3 diffuse = irradiance * albedo;
-    float3 ambient = kD * diffuse * ao;
+	float3 kS = FresnelSchlickRoughness(max(dot(normal, toCamera), 0.f), F0, roughness);
+	float3 kD = 1.f - kS;
+	kD *= 1.f - metallic;
+	float3 irradiance = SH::CalculateIrradiance(g_irradianceSH, normal) * (1.f / PI);
+	float3 diffuse = irradiance * albedo;
+	float3 ambient = kD * diffuse * ao;
 	
 	float3 color = ambient + Lo;
 	

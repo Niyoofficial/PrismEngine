@@ -26,7 +26,7 @@ std::any SDLWindow::GetNativeWindow() const
 
 std::any SDLWindow::GetPlatformNativeWindow() const
 {
-	return (HWND)SDL_GetProperty(SDL_GetWindowProperties(m_nativeWindow), "SDL.window.win32.hwnd", nullptr);
+	return (HWND)SDL_GetPointerProperty(SDL_GetWindowProperties(m_nativeWindow), SDL_PROP_WINDOW_WIN32_HWND_POINTER, nullptr);
 }
 
 Core::WindowDesc SDLWindow::GetWindowParams() const

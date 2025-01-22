@@ -26,6 +26,8 @@ public:
 	explicit D3D12RenderDevice(RenderDeviceParams params);
 	virtual ~D3D12RenderDevice() override;
 
+	virtual void ImGuiNewFrame() override;
+
 	RenderCommandQueue* GetRenderQueue() const override;
 
 	virtual void ReleaseStaleResources() override;
@@ -56,7 +58,11 @@ public:
 	D3D12RootSignatureCache& GetRootSignatureCache() { return m_rootSignatureCache; }
 
 	DynamicGPURingBuffer::DynamicAllocation AllocateDynamicBufferMemory(int64_t size);
-	
+
+	virtual void InitializeImGui(Core::Window* window) override;
+	virtual void ShutdownImGui() override;
+
+	ComPtr<ID3D12DescriptorHeap> GetImGuiDescriptorHeap() const { return m_imGuiHeap; }
 
 private:
 #if USE_PIX
@@ -79,5 +85,8 @@ private:
 	D3D12RootSignatureCache m_rootSignatureCache;
 
 	DynamicBufferAllocator m_dynamicBufferAllocator;
+
+	bool initializedImGui = false;
+	ComPtr<ID3D12DescriptorHeap> m_imGuiHeap;
 };
 }

@@ -27,7 +27,6 @@ namespace AppEvents
 	struct WindowFocusGained {};
 	struct WindowFocusLost {};
 	struct WindowCloseRequested {};
-	struct WindowTakeFocus {};
 	struct WindowHitTest {};
 	struct WindowIccProfChanged {};
 	struct WindowDisplayChanged {};
@@ -66,7 +65,11 @@ namespace AppEvents
 		glm::float2 position;
 		bool doubleClick = false;
 	};
-	struct MouseButtonUp {};
+	struct MouseButtonUp
+	{
+		KeyCode keyCode;
+		glm::float2 position;
+	};
 	struct MouseWheel
 	{
 		float x = 0.f;
@@ -109,7 +112,6 @@ using AppEvent = std::variant<
 	AppEvents::WindowFocusGained,
 	AppEvents::WindowFocusLost,
 	AppEvents::WindowCloseRequested,
-	AppEvents::WindowTakeFocus,
 	AppEvents::WindowHitTest,
 	AppEvents::WindowIccProfChanged,
 	AppEvents::WindowDisplayChanged,

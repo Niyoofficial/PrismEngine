@@ -9,7 +9,7 @@ namespace Prism::Render::D3D12
 class D3D12RenderCommandList : public RenderCommandList
 {
 public:
-	explicit D3D12RenderCommandList(uint64_t fenceValue);
+	explicit D3D12RenderCommandList();
 
 	virtual void Draw(DrawCommandDesc desc) override;
 	virtual void DrawIndexed(DrawIndexedCommandDesc desc) override;
@@ -43,6 +43,8 @@ public:
 								   Texture* src, int32_t srcSubresourceIndex, Box srcBox) override;
 	virtual void CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
 								   Texture* src, int32_t srcSubresourceIndex, Box srcBox) override;
+
+	virtual void RenderImGui() override;
 
 	virtual void Close() override;
 

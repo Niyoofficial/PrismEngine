@@ -1,6 +1,9 @@
 ﻿#include "pcpch.h"
 #include "D3D12RenderCommandList.h"
 
+#include "imgui.h"
+#include "backends/imgui_impl_dx12.h"
+#include "Prism-Core/Base/Application.h"
 #include "RenderAPI/D3D12/D3D12Buffer.h"
 #include "RenderAPI/D3D12/D3D12BufferView.h"
 #include "RenderAPI/D3D12/D3D12DescriptorHeapManager.h"
@@ -41,8 +44,7 @@ const CPUDescriptorHeapAllocation& GetDescriptorFromView(RenderResourceView* vie
 	return {};
 }
 
-D3D12RenderCommandList::D3D12RenderCommandList(uint64_t fenceValue)
-	: RenderCommandList(fenceValue)
+D3D12RenderCommandList::D3D12RenderCommandList()
 {
 	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommandAllocator(
 		D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator)));
@@ -339,6 +341,29 @@ void D3D12RenderCommandList::CopyTextureRegion(Texture* dest, glm::int3 destLoc,
 
 	auto d3d12Box = GetD3D12Box(srcBox, src);
 	m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, &d3d12Box);
+}
+
+void D3D12RenderCommandList::RenderImGui()
+{
+	ImGui::Render();
+
+	std::array heaps = {D3D12RenderDevice::Get().GetImGuiDescriptorHeap().Get()};
+	m_commandList->SetDescriptorHeaps(heaps.size(), heaps.data());
+
+	const auto& windows = Core::Application::Get().GetWindows();
+	if (!windows.empty())
+	{
+		PE_ASSERT(windows.front().IsValid());
+
+		// We don't have a concept of main window so we just get the first one for now
+		auto mainWindow = windows.front();
+		auto* currentBackBuffer = static_cast<D3D12TextureView*>(mainWindow->GetSwapchain()->GetCurrentBackBufferRTV());
+
+		auto descriptor = currentBackBuffer->GetDescriptor().GetCPUHandle();
+		m_commandList->OMSetRenderTargets(1, &descriptor, true, nullptr);
+	}
+
+	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
 }
 
 void D3D12RenderCommandList::Close()

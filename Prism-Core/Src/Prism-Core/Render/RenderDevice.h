@@ -6,6 +6,12 @@
 #include "Prism-Core/Utilities/StaticSingleton.h"
 
 
+namespace Prism::Core
+{
+class Application;
+class Window;
+}
+
 DECLARE_LOG_CATEGORY(PERender, "Prism-Render");
 #define PE_RENDER_LOG(verbosity, ...) PE_LOG(PERender, verbosity, __VA_ARGS__)
 
@@ -25,6 +31,7 @@ struct SubresourceFootprint
 
 class RenderDevice : public StaticPointerSingleton<RenderDevice>
 {
+	friend Core::Application;
 public:
 	static void Create(RenderDeviceParams params = {});
 	static void Destroy();
@@ -34,10 +41,6 @@ public:
 
 
 	explicit RenderDevice(RenderDeviceParams params);
-
-	// Called by Application
-	virtual void BeginRenderFrame();
-	virtual void EndRenderFrame();
 
 	Ref<RenderContext> AllocateContext();
 	virtual uint64_t SubmitContext(RenderContext* context);
@@ -74,7 +77,15 @@ public:
 		m_endFramePreservedObjects.AddObject(std::move(resource));
 	}
 
+	virtual void InitializeImGui(Core::Window* window) = 0;
+	virtual void ShutdownImGui() = 0;
+
 protected:
+	// Called by Application
+	virtual void BeginRenderFrame();
+	virtual void EndRenderFrame();
+	virtual void ImGuiNewFrame() = 0;
+
 	void TransferEndFramePreservedObjectsToReleaseQueue();
 
 protected:

@@ -13,6 +13,10 @@ class RenderContext : public RefCounted
 	friend class RenderDevice;
 
 public:
+	// TODO: Maybe instead of copying the render command functions from RenderCommandList
+	// we should have single SubmitCommand function taking a lambda with RenderCommandList parameter?
+	// It would allow for some render command related calculations to be automatically offloaded to a different thread
+
 	void Draw(DrawCommandDesc desc);
 	void DrawIndexed(DrawIndexedCommandDesc desc);
 
@@ -37,8 +41,8 @@ public:
 	void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr);
 	void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr);
 
-	virtual void Barrier(BufferBarrier barrier);
-	virtual void Barrier(TextureBarrier barrier);
+	void Barrier(BufferBarrier barrier);
+	void Barrier(TextureBarrier barrier);
 
 	void UpdateBuffer(Buffer* buffer, RawData data);
 	void UpdateTexture(Texture* texture, RawData data, int32_t subresourceIndex);
@@ -52,6 +56,8 @@ public:
 	Buffer* ReadbackBuffer(Buffer* bufferToReadback);
 	void ReadbackTexture(Texture* textureToReadback, int32_t subresource,
 						 std::function<void(std::vector<glm::float4>)> callback);
+
+	void RenderImGui();
 
 
 	/* Add a callback that will be executed when this context is finished by the GPU */

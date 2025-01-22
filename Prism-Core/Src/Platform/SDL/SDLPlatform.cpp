@@ -7,11 +7,16 @@
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_timer.h"
 
+#include "backends/imgui_impl_sdl3.h"
+#include "Prism-Core/Base/Window.h"
+
+
 namespace Prism::SDL
 {
 SDLPlatform::SDLPlatform()
 {
-	SDL_Init(SDL_INIT_EVERYTHING);
+	bool success = SDL_Init(SDL_INIT_AUDIO | SDL_INIT_VIDEO | SDL_INIT_EVENTS | SDL_INIT_JOYSTICK | SDL_INIT_GAMEPAD);
+	PE_ASSERT(success, SDL_GetError());
 
 	m_ticksStart = SDL_GetPerformanceCounter();
 }
@@ -27,6 +32,9 @@ void SDLPlatform::PumpEvents()
 	SDL_Event sdlEvent;
 	while (SDL_PollEvent(&sdlEvent))
 	{
+		if (initializedImGui)
+			ImGui_ImplSDL3_ProcessEvent(&sdlEvent);
+
 		auto executeCallbacks =
 			[this]<typename T>(T event)
 			{
@@ -100,12 +108,18 @@ void SDLPlatform::PumpEvents()
 			break;
 		case SDL_EVENT_WINDOW_MOUSE_ENTER:
 			{
+				if (ImGui::GetIO().WantCaptureMouse)
+					break;
+
 				AppEvents::WindowMouseEnter event;
 				executeCallbacks(event);
 			}
 			break;
 		case SDL_EVENT_WINDOW_MOUSE_LEAVE:
 			{
+				if (ImGui::GetIO().WantCaptureMouse)
+					break;
+
 				AppEvents::WindowMouseLeave event;
 				executeCallbacks(event);
 			}
@@ -125,12 +139,6 @@ void SDLPlatform::PumpEvents()
 		case SDL_EVENT_WINDOW_CLOSE_REQUESTED:
 			{
 				AppEvents::WindowCloseRequested event;
-				executeCallbacks(event);
-			}
-			break;
-		case SDL_EVENT_WINDOW_TAKE_FOCUS:
-			{
-				AppEvents::WindowTakeFocus event;
 				executeCallbacks(event);
 			}
 			break;
@@ -186,9 +194,12 @@ void SDLPlatform::PumpEvents()
 		/* Keyboard events */
 		case SDL_EVENT_KEY_DOWN:
 			{
+				if (ImGui::GetIO().WantCaptureKeyboard)
+					break;
+
 				AppEvents::KeyDown event = {
-					.scanCode = (ScanCode)sdlEvent.key.keysym.scancode,
-					.keyCode = (KeyCode)sdlEvent.key.keysym.sym,
+					.scanCode = (ScanCode)sdlEvent.key.scancode,
+					.keyCode = (KeyCode)sdlEvent.key.key,
 					.repeat = (bool)sdlEvent.key.repeat
 				};
 				executeCallbacks(event);
@@ -196,9 +207,12 @@ void SDLPlatform::PumpEvents()
 			break;
 		case SDL_EVENT_KEY_UP:
 			{
+				if (ImGui::GetIO().WantCaptureKeyboard)
+					break;
+
 				AppEvents::KeyUp event = {
-					.scanCode = (ScanCode)sdlEvent.key.keysym.scancode,
-					.keyCode = (KeyCode)sdlEvent.key.keysym.sym,
+					.scanCode = (ScanCode)sdlEvent.key.scancode,
+					.keyCode = (KeyCode)sdlEvent.key.key,
 					.repeat = (bool)sdlEvent.key.repeat
 				};
 				executeCallbacks(event);
@@ -226,6 +240,9 @@ void SDLPlatform::PumpEvents()
 		/* Mouse events */
 		case SDL_EVENT_MOUSE_MOTION:
 			{
+				if (ImGui::GetIO().WantCaptureMouse)
+					break;
+
 				AppEvents::MouseMotion event = {
 					.position = {sdlEvent.motion.x, sdlEvent.motion.y},
 					.relPosition = {sdlEvent.motion.xrel, sdlEvent.motion.yrel}
@@ -235,6 +252,9 @@ void SDLPlatform::PumpEvents()
 			break;
 		case SDL_EVENT_MOUSE_BUTTON_DOWN:
 			{
+				if (ImGui::GetIO().WantCaptureMouse)
+					break;
+
 				AppEvents::MouseButtonDown event = {
 					.keyCode = GetPrismKeyCodeFromMouseButton(sdlEvent.button.button),
 					.position = {sdlEvent.button.x, sdlEvent.button.y},
@@ -245,12 +265,21 @@ void SDLPlatform::PumpEvents()
 			break;
 		case SDL_EVENT_MOUSE_BUTTON_UP:
 			{
-				AppEvents::MouseButtonUp event;
+				if (ImGui::GetIO().WantCaptureMouse)
+					break;
+
+				AppEvents::MouseButtonUp event = {
+					.keyCode = GetPrismKeyCodeFromMouseButton(sdlEvent.button.button),
+					.position = {sdlEvent.button.x, sdlEvent.button.y}
+				};
 				executeCallbacks(event);
 			}
 			break;
 		case SDL_EVENT_MOUSE_WHEEL:
 			{
+				if (ImGui::GetIO().WantCaptureMouse)
+					break;
+
 				AppEvents::MouseWheel event = {
 					.x = sdlEvent.wheel.x,
 					.y = sdlEvent.wheel.y
@@ -349,17 +378,21 @@ void SDLPlatform::PumpEvents()
 bool SDLPlatform::IsKeyPressed(KeyCode keyCode)
 {
 	int32_t numKeys = 0;
-	const uint8_t* keyboardState = SDL_GetKeyboardState(&numKeys);
-	SDL_Scancode scanCode = SDL_GetScancodeFromKey(GetSDLKeyCode(keyCode));
+	const bool* keyboardState = SDL_GetKeyboardState(&numKeys);
+	SDL_Scancode scanCode = SDL_GetScancodeFromKey(GetSDLKeyCode(keyCode), nullptr);
 
 	PE_ASSERT(scanCode >= 0 && scanCode < numKeys);
 
-	return keyboardState[scanCode];
+	constexpr int32_t LAST_KEYBOARD_KEY = 290;
+	if (scanCode > LAST_KEYBOARD_KEY)
+		return SDL_GetMouseState(nullptr, nullptr) & (1 << (scanCode - (LAST_KEYBOARD_KEY + 1)));
+	else
+		return keyboardState[scanCode];
 }
 
-void SDLPlatform::SetMouseRelativeMode(bool bRelativeMode)
+void SDLPlatform::SetMouseRelativeMode(Core::Window* window, bool bRelativeMode)
 {
-	SDL_SetRelativeMouseMode(bRelativeMode ? SDL_TRUE : SDL_FALSE);
+	SDL_SetWindowRelativeMouseMode(std::any_cast<SDL_Window*>(window->GetNativeWindow()), bRelativeMode);
 }
 
 Duration SDLPlatform::GetApplicationTime()
@@ -370,5 +403,25 @@ Duration SDLPlatform::GetApplicationTime()
 uint64_t SDLPlatform::GetPerformanceTicksPerSecond()
 {
 	return SDL_GetPerformanceFrequency();
+}
+
+void SDLPlatform::InitializeImGuiPlatform(Core::Window* window)
+{
+	ImGui_ImplSDL3_InitForD3D(std::any_cast<SDL_Window*>(window->GetNativeWindow()));
+	initializedImGui = true;
+}
+
+void SDLPlatform::ShutdownImGuiPlatform()
+{
+	if (initializedImGui)
+	{
+		ImGui_ImplSDL3_Shutdown();
+		initializedImGui = false;
+	}
+}
+
+void SDLPlatform::ImGuiNewFrame()
+{
+	ImGui_ImplSDL3_NewFrame();
 }
 }

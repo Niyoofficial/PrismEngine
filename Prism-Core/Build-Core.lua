@@ -19,16 +19,16 @@ project "Prism-Core"
 	{
 		"Src/Prism-Core/**",
 		"Src/pcpch.h",
-		"Src/pcpch.cpp"
+		"Src/pcpch.cpp",
+
+		"Src/Platform/SDL/**"
 	}
 
 	includedirs
 	{
 		"Src",
 
-		includeDirs["glm"],
-		includeDirs["spdlog"],
-		includeDirs["spdlog-fmt"],
+		includeDirs["SDL"],
 		includeDirs["assimp"],
 		includeDirs["stb"],
 		includeDirs["AgilitySDK"],
@@ -37,15 +37,13 @@ project "Prism-Core"
 
 	libdirs
 	{	
-		libDirs["spdlog"],
-		libDirs["spdlog-fmt"],
+		libDirs["SDL"],
 		libDirs["assimp"]
 	}
 
 	links
 	{
-		"spdlog.lib",
-		"fmt.lib",
+		"SDL3.lib",
 		"assimp.lib",
 		"zlibstatic.lib"
 	}
@@ -56,13 +54,11 @@ project "Prism-Core"
 
 		files
 		{
-			"Src/Platform/SDL/**",
 			"Src/RenderAPI/D3D12/**"
 		}
 
 		includedirs
 		{
-			includeDirs["SDL"],
 			includeDirs["dxc"],
 			includeDirs["DirectXTK12"],
 			includeDirs["WinPixEventRuntime"],
@@ -71,7 +67,6 @@ project "Prism-Core"
 
 		libdirs
 		{
-			libDirs["SDL"],
 			libDirs["DirectXTK12"],
 			libDirs["WinPixEventRuntime"],
 		}
@@ -82,7 +77,6 @@ project "Prism-Core"
 			"dxguid.lib",
 			"d3d12.lib",
 			"dxcompiler.lib",
-			"SDL3.lib",
 			"WinPixEventRuntime.lib",
 			"DirectXTK12.lib"
 		}
@@ -105,3 +99,12 @@ project "Prism-Core"
 		optimize "Full"
 		symbols "Off"
 	filter {}
+
+	group "Core/Dependencies"
+		include "Prism-Core/Vendor/assimp/Build-assimp.lua"
+		include "Prism-Core/Vendor/SDL/Build-SDL.lua"
+		filter "system:windows"
+			include "Prism-Core/Vendor/DirectXTK12/Build-DirectXTK12.lua"
+			include "Prism-Core/Vendor/stb/Build-stb.lua"
+		filter {}
+	group ""

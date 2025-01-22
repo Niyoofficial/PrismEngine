@@ -630,10 +630,10 @@ enum class ResourceUsage
 	Dynamic,
 
 	// A resource that facilitates transferring data between GPU and CPU.
-    // D3D11 Counterpart: D3D11_USAGE_STAGING. OpenGL counterpart: GL_STATIC_READ or
-    // GL_STATIC_COPY depending on the CPU access flags.
-    // Staging buffers must use exactly one of CPUAccess::Write or CPUAccess::Read flags.
-    Staging
+	// D3D11 Counterpart: D3D11_USAGE_STAGING. OpenGL counterpart: GL_STATIC_READ or
+	// GL_STATIC_COPY depending on the CPU access flags.
+	// Staging buffers must use exactly one of CPUAccess::Write or CPUAccess::Read flags.
+	Staging
 };
 
 enum class ResourceStateFlags : uint32_t

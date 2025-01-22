@@ -35,6 +35,9 @@ class RenderCommandList : public RefCounted
 	friend class RenderCommandQueue;
 
 public:
+	// Usually only created by RenderCommandQueue
+	static Ref<RenderCommandList> Create();
+
 	virtual void Draw(DrawCommandDesc desc) = 0;
 	virtual void DrawIndexed(DrawIndexedCommandDesc desc) = 0;
 
@@ -69,7 +72,7 @@ public:
 	virtual void CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
 								   Texture* src, int32_t srcSubresourceIndex, Box srcBox) = 0;
 
-	uint64_t GetFenceValue() const { return m_fenceValue; }
+	virtual void RenderImGui() = 0;
 
 	template<typename T>
 	void SafeReleaseResource(T&& resource)
@@ -78,9 +81,7 @@ public:
 	}
 
 protected:
-	explicit RenderCommandList(uint64_t fenceValue);
-
-	static Ref<RenderCommandList> Create(uint64_t fenceValue);
+	RenderCommandList() = default;
 
 	virtual void Close();
 	bool IsClosed() const;
@@ -88,6 +89,5 @@ protected:
 private:
 	PreservingObjectContainer m_preservedResources;
 	std::atomic<bool> m_closed = false;
-	uint64_t m_fenceValue = 0;
 };
 }

@@ -1,4 +1,8 @@
+#include "SH.hlsl"
+
 #define MAX_LIGHT_COUNT 16
+
+static const float PI = 3.14159265359f;
 
 SamplerState g_samPointWrap : register(s0);
 SamplerState g_samPointClamp : register(s1);
@@ -29,13 +33,18 @@ struct PointLight
     float3 lightColor;
 };
 
-cbuffer SceneBuffer : register(b0)
+cbuffer SceneBuffer : register(b0, space1)
 {
     CameraInfo g_camera;
 
     DirectionalLight g_directionalLights[MAX_LIGHT_COUNT];
     PointLight g_pointLights[MAX_LIGHT_COUNT];
 };
+
+cbuffer SceneIrradiance : register(b1, space1)
+{
+	SH::L2_RGB g_irradianceSH;
+}
 
 struct Material
 {
@@ -45,7 +54,7 @@ struct Material
     float ao;
 };
 
-cbuffer ModelBuffer : register(b1)
+cbuffer ModelBuffer : register(b2, space1)
 {
     float4x4 g_world;
 	

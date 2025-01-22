@@ -1,6 +1,6 @@
 /*
   Simple DirectMedia Layer
-  Copyright (C) 1997-2023 Sam Lantinga <slouken@libsdl.org>
+  Copyright (C) 1997-2025 Sam Lantinga <slouken@libsdl.org>
 
   This software is provided 'as-is', without any express or implied
   warranty.  In no event will the authors be held liable for any damages
@@ -23,7 +23,7 @@
 #include "SDL_joystick_c.h"
 #include "SDL_steam_virtual_gamepad.h"
 
-#ifdef __WIN32__
+#ifdef SDL_PLATFORM_WIN32
 #include "../core/windows/SDL_windows.h"
 #else
 #include <sys/types.h>
@@ -43,7 +43,7 @@ static Uint64 GetFileModificationTime(const char *file)
 {
     Uint64 modification_time = 0;
 
-#ifdef __WIN32__
+#ifdef SDL_PLATFORM_WIN32
     WCHAR *wFile = WIN_UTF8ToStringW(file);
     if (wFile) {
         HANDLE hFile = CreateFileW(wFile, GENERIC_READ, FILE_SHARE_READ, NULL, OPEN_EXISTING, 0, NULL);
@@ -108,7 +108,7 @@ static void AddVirtualGamepadInfo(int slot, SDL_SteamVirtualGamepadInfo *info)
     }
 
     if (SDL_steam_virtual_gamepad_info[slot]) {
-        /* We already have this slot info */
+        // We already have this slot info
         return;
     }
 
@@ -127,6 +127,11 @@ void SDL_InitSteamVirtualGamepadInfo(void)
 
     SDL_AssertJoysticksLocked();
 
+    // The file isn't available inside the macOS sandbox
+    if (SDL_GetSandbox() == SDL_SANDBOX_MACOS) {
+        return;
+    }
+
     file = SDL_GetHint(SDL_HINT_STEAM_VIRTUAL_GAMEPAD_INFO_FILE);
     if (file && *file) {
         SDL_steam_virtual_gamepad_info_file = SDL_strdup(file);
@@ -134,14 +139,14 @@ void SDL_InitSteamVirtualGamepadInfo(void)
     SDL_UpdateSteamVirtualGamepadInfo();
 }
 
-SDL_bool SDL_SteamVirtualGamepadEnabled(void)
+bool SDL_SteamVirtualGamepadEnabled(void)
 {
     SDL_AssertJoysticksLocked();
 
     return (SDL_steam_virtual_gamepad_info != NULL);
 }
 
-SDL_bool SDL_UpdateSteamVirtualGamepadInfo(void)
+bool SDL_UpdateSteamVirtualGamepadInfo(void)
 {
     const int UPDATE_CHECK_INTERVAL_MS = 3000;
     Uint64 now;
@@ -154,24 +159,24 @@ SDL_bool SDL_UpdateSteamVirtualGamepadInfo(void)
     SDL_AssertJoysticksLocked();
 
     if (!SDL_steam_virtual_gamepad_info_file) {
-        return SDL_FALSE;
+        return false;
     }
 
     now = SDL_GetTicks();
     if (SDL_steam_virtual_gamepad_info_check_time &&
         now < (SDL_steam_virtual_gamepad_info_check_time + UPDATE_CHECK_INTERVAL_MS)) {
-        return SDL_FALSE;
+        return false;
     }
     SDL_steam_virtual_gamepad_info_check_time = now;
 
     mtime = GetFileModificationTime(SDL_steam_virtual_gamepad_info_file);
     if (mtime == 0 || mtime == SDL_steam_virtual_gamepad_info_file_mtime) {
-        return SDL_FALSE;
+        return false;
     }
 
     data = (char *)SDL_LoadFile(SDL_steam_virtual_gamepad_info_file, &size);
     if (!data) {
-        return SDL_FALSE;
+        return false;
     }
 
     SDL_FreeSteamVirtualGamepadInfo();
@@ -211,7 +216,7 @@ SDL_bool SDL_UpdateSteamVirtualGamepadInfo(void)
                 } else if (SDL_strcmp(line, "type") == 0) {
                     info.type = SDL_GetGamepadTypeFromString(value);
                 } else if (SDL_strcmp(line, "handle") == 0) {
-                    info.handle = SDL_strtoull(value, NULL, 0);
+                    info.handle = (Uint64)SDL_strtoull(value, NULL, 0);
                 }
             }
         }
@@ -219,11 +224,12 @@ SDL_bool SDL_UpdateSteamVirtualGamepadInfo(void)
     if (slot >= 0) {
         AddVirtualGamepadInfo(slot, &info);
     }
+    SDL_free(info.name);
     SDL_free(data);
 
     SDL_steam_virtual_gamepad_info_file_mtime = mtime;
 
-    return SDL_TRUE;
+    return true;
 }
 
 const SDL_SteamVirtualGamepadInfo *SDL_GetSteamVirtualGamepadInfo(int slot)

@@ -21,7 +21,7 @@ struct Coefficients
 };
 
 Texture2DArray g_skybox : register(t0);
-RWStructuredBuffer<SH::L2_RGB> g_coefficients : register(u0);
+RWStructuredBuffer<float4> g_coefficients : register(u0);
 
 groupshared Coefficients g_groupResults[THREADS_COUNT / WARP_SIZE];
 groupshared float g_groupWeights[THREADS_COUNT / WARP_SIZE];
@@ -102,5 +102,6 @@ void main(int3 groupID : SV_GroupID,
 	
 	radianceSH = radianceSH * (1.f / ((CUBEMAP_RESOLUTION * CUBEMAP_RESOLUTION * 6) * (1 / (4 * PI))));
 	
-	g_coefficients[0] = radianceSH;
+	for (int i = 0; i < 9; ++i)
+		g_coefficients[i] = float4(radianceSH.C[i], 0.f);
 }
