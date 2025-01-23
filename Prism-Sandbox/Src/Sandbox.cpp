@@ -63,7 +63,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
 	m_camera = new Camera(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
-	m_camera->SetPosition({0.f, 0.f, -5.f});
+	m_camera->SetPosition({0.f, 2.f, -5.f});
 
 	m_depthStencil = Texture::Create({
 										 .textureName = L"DepthStencil",
@@ -260,7 +260,54 @@ void SandboxLayer::Update(Duration delta)
 	using namespace Prism::Render;
 	Layer::Update(delta);
 
-	ImGui::ShowDemoWindow();
+	//bool showDemo = true;
+	//ImGui::ShowDemoWindow(&showDemo);
+
+	// Menu bar
+	{
+		ImGui::BeginMainMenuBar();
+
+		if (ImGui::BeginMenu("Show"))
+		{
+			ImGui::MenuItem("Show stat window", nullptr, &m_showStatWindow);
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMainMenuBar();
+	}
+
+	// Stats overlay
+	if (m_showStatWindow)
+	{
+		ImGuiWindowFlags window_flags =
+			ImGuiWindowFlags_NoDecoration |
+			ImGuiWindowFlags_NoDocking |
+			ImGuiWindowFlags_NoSavedSettings |
+			ImGuiWindowFlags_NoFocusOnAppearing |
+			ImGuiWindowFlags_NoNav |
+			ImGuiWindowFlags_NoMove;
+
+		constexpr float padding = 10.0f;
+		const ImGuiViewport* viewport = ImGui::GetMainViewport();
+		ImVec2 workPos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+		ImVec2 workSize = viewport->WorkSize;
+		ImVec2 windowPos;
+		windowPos.x = workPos.x + workSize.x - padding;
+		windowPos.y = workPos.y + padding;
+		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, {1.f, 0.f});
+		ImGui::SetNextWindowViewport(viewport->ID);
+
+		ImGui::SetNextWindowBgAlpha(0.55f); // Transparent background
+
+		if (ImGui::Begin("Stats overlay", nullptr, window_flags))
+		{
+			auto& io = ImGui::GetIO();
+			ImGui::Text("FPS: %.1f", io.Framerate);
+			ImGui::Text("Frame time: %.2f ms", delta.GetMilliseconds());
+		}
+		ImGui::End();
+	}
 
 	if (Core::Platform::Get().IsKeyPressed(KeyCode::RightMouseButton))
 	{

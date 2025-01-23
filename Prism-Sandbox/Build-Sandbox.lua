@@ -15,7 +15,8 @@ project "Prism-Sandbox"
 
 	links
 	{
-		"Prism-Core"
+		"Prism-Core",
+		"ImGui"
 	}
 
 	filter "system:windows"

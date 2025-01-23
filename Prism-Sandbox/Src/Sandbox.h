@@ -90,6 +90,8 @@ public:
 private:
 	WeakRef<Core::Window> m_owningWindow;
 
+	bool m_showStatWindow = true;
+
 	Ref<Render::Camera> m_camera;
 
 	Ref<Render::Texture> m_depthStencil;
@@ -129,7 +131,7 @@ private:
 	Ref<Render::Primitive> m_cube;
 
 	float m_cameraSpeed = 0.05f;
-	float m_mouseSpeed = 0.005f;
+	float m_mouseSpeed = 0.003f;
 };
 
 class SandboxApplication final : public Core::Application

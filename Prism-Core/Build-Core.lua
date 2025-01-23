@@ -43,6 +43,7 @@ project "Prism-Core"
 
 	links
 	{
+		"ImGui",
 		"SDL3.lib",
 		"assimp.lib",
 		"zlibstatic.lib"
