@@ -9,19 +9,23 @@ class D3D12RenderCommandQueue : public RenderCommandQueue
 public:
 	D3D12RenderCommandQueue();
 
-	virtual void WaitForCmdListToComplete(uint64_t fenceValue) override;
+	uint64_t GetFenceValue() override;
+	void IncreaseFenceValue() override;
+	void SignalFence(uint64_t fenceValue) override;
+	virtual uint64_t IncreaseAndSignalFence() override;
+	virtual uint64_t GetCompletedFenceValue() const override;
 
-	virtual uint64_t GetLastCompletedCmdListFenceValue() const override;
+	virtual void WaitForCmdListToComplete(uint64_t fenceValue) override;
 
 	ID3D12CommandQueue* GetD3D12CommandQueue() const;
 
 private:
-	virtual void Execute(RenderCommandList* cmdList, uint64_t fenceValue) override;
+	virtual void Execute(RenderCommandList* cmdList) override;
 
 private:
 	ComPtr<ID3D12CommandQueue> m_d3d12CommandQueue;
 
-	uint64_t m_lastExecutedCmdListFenceValue = 0;
+	uint64_t m_fenceValue = 0;
 	ComPtr<ID3D12Fence> m_cmdListFence;
 };
 }

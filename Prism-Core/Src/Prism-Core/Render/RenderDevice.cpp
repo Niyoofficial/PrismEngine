@@ -53,7 +53,7 @@ void RenderDevice::EndRenderFrame()
 	ReleaseStaleResources();
 
 	// Pop any completed CPU frames
-	while (!m_cpuPreparedFrames.empty() && GetRenderQueue()->GetLastCompletedCmdListFenceValue() >= m_cpuPreparedFrames.front())
+	while (!m_cpuPreparedFrames.empty() && GetRenderQueue()->GetCompletedFenceValue() >= m_cpuPreparedFrames.front())
 		m_cpuPreparedFrames.pop();
 
 	// If there is too many CPU prepared frames, wait for them to be completed by the GPU and pop them
@@ -76,7 +76,7 @@ uint64_t RenderDevice::SubmitContext(RenderContext* context)
 
 void RenderDevice::ReleaseStaleResources()
 {
-	m_releaseQueue.PurgeReleaseQueue(GetRenderQueue()->GetLastCompletedCmdListFenceValue());
+	m_releaseQueue.PurgeReleaseQueue(GetRenderQueue()->GetCompletedFenceValue());
 	GetRenderQueue()->ReleaseStaleResources();
 }
 

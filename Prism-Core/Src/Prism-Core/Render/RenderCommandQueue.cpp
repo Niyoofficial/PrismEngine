@@ -15,7 +15,8 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 
 	context->CloseContext();
 
-	++m_lastSubmittedCmdListFenceValue;
+	IncreaseFenceValue();
+	m_lastSubmittedCmdListFenceValue = GetFenceValue();
 
 	auto cmdList = RenderCommandList::Create();
 	Ref<RenderCommandList> cmdListCopy = cmdList;
@@ -42,25 +43,10 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 	return GetLastSubmittedCmdListFenceValue();
 }
 
-uint64_t RenderCommandQueue::SubmitDirectly(RenderCommandList* cmdList)
-{
-	cmdList->Close();
-
-	++m_lastSubmittedCmdListFenceValue;
-
-	Ref<RenderCommandList> cmdListRef = cmdList;
-	RenderDevice::Get().AddResourceToReleaseQueue(cmdListRef, GetLastSubmittedCmdListFenceValue());
-
-	m_cmdListsQueue.push({ cmdList, m_lastSubmittedCmdListFenceValue });
-	auto future = std::async(std::launch::async, [this]() { TryExecuteQueuedCmdListsAsync(); });
-
-	return GetLastSubmittedCmdListFenceValue();
-}
-
 void RenderCommandQueue::Flush()
 {
-	WaitForCmdListToComplete(GetLastSubmittedCmdListFenceValue());
-	ExecuteGPUCompletionEvents();
+	uint64_t fenceValue = IncreaseAndSignalFence();
+	WaitForCmdListToComplete(fenceValue);
 }
 
 uint64_t RenderCommandQueue::GetLastSubmittedCmdListFenceValue() const
@@ -75,7 +61,7 @@ uint64_t RenderCommandQueue::GetLastQueuedCmdListFenceValue() const
 
 void RenderCommandQueue::ExecuteGPUCompletionEvents()
 {
-	uint64_t completedFenceValue = GetLastCompletedCmdListFenceValue();
+	uint64_t completedFenceValue = GetCompletedFenceValue();
 	for (auto& submittedContext : m_submittedContexts)
 	{
 		if (submittedContext.fenceValue <= completedFenceValue)
@@ -122,12 +108,10 @@ void RenderCommandQueue::TryExecuteQueuedCmdListsAsync()
 	{
 		auto cmdListToExecute = m_cmdListsQueue.front();
 
-		// Check that makes sure that cmd lists are executed in order and that none are missing
-		PE_ASSERT(m_lastQueuedCmdListFenceValue + 1 == cmdListToExecute.fenceValue);
-
 		m_cmdListsQueue.pop();
-		Execute(cmdListToExecute.cmdList, cmdListToExecute.fenceValue);
-		++m_lastQueuedCmdListFenceValue;
+		Execute(cmdListToExecute.cmdList);
+		SignalFence(cmdListToExecute.fenceValue);
+		m_lastQueuedCmdListFenceValue = cmdListToExecute.fenceValue;
 	}
 
 	{

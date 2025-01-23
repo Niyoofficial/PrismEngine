@@ -24,21 +24,26 @@ private:
 
 public:
 	uint64_t Submit(RenderContext* context);
-	uint64_t SubmitDirectly(RenderCommandList* cmdList);
+
+	// Not thread safe
+	virtual uint64_t GetFenceValue() = 0;
+	virtual void IncreaseFenceValue() = 0;
+	virtual void SignalFence(uint64_t fenceValue) = 0;
+	virtual uint64_t IncreaseAndSignalFence() = 0;
+	virtual uint64_t GetCompletedFenceValue() const = 0;
 
 	void Flush();
 	virtual void WaitForCmdListToComplete(uint64_t fenceValue) = 0;
 
 	uint64_t GetLastSubmittedCmdListFenceValue() const;
 	uint64_t GetLastQueuedCmdListFenceValue() const;
-	virtual uint64_t GetLastCompletedCmdListFenceValue() const = 0;
 
 	void ExecuteGPUCompletionEvents();
 
 	virtual void ReleaseStaleResources();
 
 private:
-	virtual void Execute(RenderCommandList* cmdList, uint64_t fenceValue) = 0;
+	virtual void Execute(RenderCommandList* cmdList) = 0;
 
 	void TryExecuteQueuedCmdListsAsync();
 

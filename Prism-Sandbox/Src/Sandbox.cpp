@@ -19,6 +19,30 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	using namespace Prism::Render;
 	Layer::Attach();
 
+	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::WindowResized>(
+		[this](Core::AppEvent event)
+		{
+			m_depthStencil = Texture::Create({
+												 .textureName = L"DepthStencil",
+												 .width = m_owningWindow->GetSize().x,
+												 .height = m_owningWindow->GetSize().y,
+												 .dimension = ResourceDimension::Tex2D,
+												 .format = TextureFormat::D24_UNorm_S8_UInt,
+												 .bindFlags = BindFlags::DepthStencil,
+												 .optimizedClearValue = DepthStencilClearValue{
+													 .format = TextureFormat::D24_UNorm_S8_UInt
+												 }
+											 }, BarrierLayout::DepthStencilWrite);
+			m_depthStencilView = m_depthStencil->CreateView({
+				.type = TextureViewType::DSV,
+				.dimension = ResourceDimension::Tex2D,
+			});
+
+			m_camera->SetPerspective(45.f,
+									 (float)m_owningWindow->GetSize().x / (float)m_owningWindow->GetSize().y,
+									 0.1f, 10000.f);
+		});
+
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::KeyDown>(
 		[](Core::AppEvent event)
 		{

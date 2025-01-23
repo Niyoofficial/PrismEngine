@@ -27,6 +27,9 @@ public:
 	virtual int32_t GetCurrentBackBufferIndex() const override;
 
 private:
+	void GatherBackbuffersAndCreateRTVs();
+
+private:
 	WeakRef<Core::Window> m_owningWindow;
 	SwapchainDesc m_swapchainDesc;
 

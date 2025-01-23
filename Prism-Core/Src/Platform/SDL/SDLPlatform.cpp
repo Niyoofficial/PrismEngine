@@ -78,7 +78,10 @@ void SDLPlatform::PumpEvents()
 			break;
 		case SDL_EVENT_WINDOW_RESIZED:
 			{
-				AppEvents::WindowResized event;
+				// TODO: Pass window handle to the event, use SDL_GetWindowFromID
+				AppEvents::WindowResized event = {
+					.newSize = {sdlEvent.window.data1, sdlEvent.window.data2}
+				};
 				executeCallbacks(event);
 			}
 			break;

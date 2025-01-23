@@ -17,7 +17,10 @@ namespace AppEvents
 	struct WindowHidden {};
 	struct WindowExposed {};
 	struct WindowMoved {};
-	struct WindowResized {};
+	struct WindowResized
+	{
+		glm::int2 newSize;
+	};
 	struct WindowPixelSizeChanged {};
 	struct WindowMinimized {};
 	struct WindowMaximized {};

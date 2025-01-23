@@ -19,6 +19,33 @@ D3D12RenderCommandQueue::D3D12RenderCommandQueue()
 	PE_ASSERT_HR(m_cmdListFence->SetName(L"Cmd List Fence"));
 }
 
+uint64_t D3D12RenderCommandQueue::GetFenceValue()
+{
+	return m_fenceValue;
+}
+
+void D3D12RenderCommandQueue::IncreaseFenceValue()
+{
+	++m_fenceValue;
+}
+
+void D3D12RenderCommandQueue::SignalFence(uint64_t fenceValue)
+{
+	PE_ASSERT_HR(m_d3d12CommandQueue->Signal(m_cmdListFence.Get(), fenceValue));
+}
+
+uint64_t D3D12RenderCommandQueue::IncreaseAndSignalFence()
+{
+	IncreaseFenceValue();
+	SignalFence(m_fenceValue);
+	return GetFenceValue();
+}
+
+uint64_t D3D12RenderCommandQueue::GetCompletedFenceValue() const
+{
+	return m_cmdListFence->GetCompletedValue();
+}
+
 void D3D12RenderCommandQueue::WaitForCmdListToComplete(uint64_t fenceValue)
 {
 	if (m_cmdListFence->GetCompletedValue() < fenceValue)
@@ -30,11 +57,8 @@ void D3D12RenderCommandQueue::WaitForCmdListToComplete(uint64_t fenceValue)
 		WaitForSingleObject(eventHandle, INFINITE);
 		CloseHandle(eventHandle);
 	}
-}
 
-uint64_t D3D12RenderCommandQueue::GetLastCompletedCmdListFenceValue() const
-{
-	return m_cmdListFence->GetCompletedValue();
+	ExecuteGPUCompletionEvents();
 }
 
 ID3D12CommandQueue* D3D12RenderCommandQueue::GetD3D12CommandQueue() const
@@ -42,13 +66,11 @@ ID3D12CommandQueue* D3D12RenderCommandQueue::GetD3D12CommandQueue() const
 	return m_d3d12CommandQueue.Get();
 }
 
-void D3D12RenderCommandQueue::Execute(RenderCommandList* cmdList, uint64_t fenceValue)
+void D3D12RenderCommandQueue::Execute(RenderCommandList* cmdList)
 {
 	std::array<ID3D12CommandList*, 1> cmdListArray = {
 		static_cast<D3D12RenderCommandList*>(cmdList)->GetD3D12CommandList()
 	};
 	m_d3d12CommandQueue->ExecuteCommandLists(cmdListArray.size(), cmdListArray.data());
-
-	PE_ASSERT_HR(m_d3d12CommandQueue->Signal(m_cmdListFence.Get(), fenceValue));
 }
 }

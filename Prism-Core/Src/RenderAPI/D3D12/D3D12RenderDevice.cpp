@@ -121,7 +121,7 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 D3D12RenderDevice::~D3D12RenderDevice()
 {
 	m_dynamicBufferAllocator.CloseCmdListAllocations(D3D12RenderDevice::GetRenderQueue()->GetLastSubmittedCmdListFenceValue());
-	m_dynamicBufferAllocator.ReleaseStaleAllocations(D3D12RenderDevice::GetRenderQueue()->GetLastCompletedCmdListFenceValue());
+	m_dynamicBufferAllocator.ReleaseStaleAllocations(D3D12RenderDevice::GetRenderQueue()->GetCompletedFenceValue());
 
 #if USE_PIX
 	FreeLibrary(m_pixGpuCaptureModule);
@@ -144,7 +144,7 @@ void D3D12RenderDevice::ReleaseStaleResources()
 	RenderDevice::ReleaseStaleResources();
 
 	m_dynamicBufferAllocator.CloseCmdListAllocations(GetRenderQueue()->GetLastSubmittedCmdListFenceValue());
-	m_dynamicBufferAllocator.ReleaseStaleAllocations(GetRenderQueue()->GetLastCompletedCmdListFenceValue());
+	m_dynamicBufferAllocator.ReleaseStaleAllocations(GetRenderQueue()->GetCompletedFenceValue());
 }
 
 int64_t D3D12RenderDevice::GetTotalSizeInBytes(BufferDesc buffDesc) const

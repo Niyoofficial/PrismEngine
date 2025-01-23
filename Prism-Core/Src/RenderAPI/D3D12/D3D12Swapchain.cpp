@@ -1,7 +1,10 @@
 ﻿#include "pcpch.h"
 #include "D3D12Swapchain.h"
 
+#include "Prism-Core/Base/AppEvents.h"
+#include "Prism-Core/Base/Platform.h"
 #include "Prism-Core/Base/Window.h"
+#include "Prism-Core/Render/RenderCommandQueue.h"
 #include "RenderAPI/D3D12/D3D12Base.h"
 
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
@@ -47,25 +50,14 @@ D3D12Swapchain::D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc
 	PE_ASSERT_HR(factory->MakeWindowAssociation(hwnd, DXGI_MWA_NO_WINDOW_CHANGES));
 
 	m_backBuffers.reserve(swapchainDesc.bufferCount);
-	for (int32_t i = 0; i < swapchainDesc.bufferCount; ++i)
-	{
-		ID3D12Resource* swapchainTexture = nullptr;
-		PE_ASSERT_HR(m_swapchain->GetBuffer(i, IID_PPV_ARGS(&swapchainTexture)));
-		PE_ASSERT_HR(swapchainTexture->SetName(L"Backbuffer"));
+	m_backBufferRTVs.reserve(swapchainDesc.bufferCount);
+	GatherBackbuffersAndCreateRTVs();
 
-		m_backBuffers.push_back(new D3D12Texture(
-			swapchainTexture,
-			L"",
-			ResourceUsage::Default,
-			RenderTargetClearValue{swapchainDesc.format, {0.f, 0.f, 0.f, 0.f}}));
-
-		TextureViewDesc viewDesc = {
-			.type = TextureViewType::RTV,
-			.format = swapchainDesc.format,
-			.dimension = ResourceDimension::Tex2D
-		};
-		m_backBufferRTVs.push_back(m_backBuffers.back()->CreateView(viewDesc));
-	}
+	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::WindowResized>(
+		[this](Core::AppEvent event)
+		{
+			Resize();
+		});
 }
 
 void D3D12Swapchain::Present()
@@ -75,8 +67,17 @@ void D3D12Swapchain::Present()
 
 void D3D12Swapchain::Resize()
 {
-	//TODO: implement Resize
-	PE_ASSERT_NO_ENTRY();
+	RenderDevice::Get().GetRenderQueue()->Flush();
+
+	m_backBuffers.clear();
+	m_backBufferRTVs.clear();
+
+	SwapchainDesc swapchainDesc = GetSwapchainDesc();
+	PE_ASSERT_HR(m_swapchain->ResizeBuffers(swapchainDesc.bufferCount,
+		m_owningWindow->GetSize().x, m_owningWindow->GetSize().y,
+		GetDXGIFormat(swapchainDesc.format), DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
+
+	GatherBackbuffersAndCreateRTVs();
 }
 
 SwapchainDesc D3D12Swapchain::GetSwapchainDesc() const
@@ -97,5 +98,29 @@ TextureView* D3D12Swapchain::GetCurrentBackBufferRTV() const
 int32_t D3D12Swapchain::GetCurrentBackBufferIndex() const
 {
 	return (int32_t)m_swapchain->GetCurrentBackBufferIndex();
+}
+
+void D3D12Swapchain::GatherBackbuffersAndCreateRTVs()
+{
+	SwapchainDesc swapchainDesc = GetSwapchainDesc();
+
+	for (int32_t i = 0; i < swapchainDesc.bufferCount; ++i)
+	{
+		ID3D12Resource* swapchainTexture = nullptr;
+		PE_ASSERT_HR(m_swapchain->GetBuffer(i, IID_PPV_ARGS(&swapchainTexture)));
+
+		m_backBuffers.push_back(new D3D12Texture(
+			swapchainTexture,
+			std::wstring(L"Backbuffer_") + std::to_wstring(i + 1),
+			ResourceUsage::Default,
+			RenderTargetClearValue{swapchainDesc.format, {0.f, 0.f, 0.f, 0.f}}));
+
+		TextureViewDesc viewDesc = {
+			.type = TextureViewType::RTV,
+			.format = swapchainDesc.format,
+			.dimension = ResourceDimension::Tex2D
+		};
+		m_backBufferRTVs.push_back(m_backBuffers.back()->CreateView(viewDesc));
+	}
 }
 }

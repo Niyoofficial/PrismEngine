@@ -103,6 +103,8 @@ D3D12Texture::D3D12Texture(ID3D12Resource* resource, const std::wstring& name, R
 	: m_originalDesc(D3D12::GetTextureDesc(resource->GetDesc(), name, usage, optimizedClearValue, isCubeTexture)),
 	  m_resource(resource)
 {
+	// Release here because assigning to a ComPtr will add another ref
+	resource->Release();
 	PE_ASSERT_HR(m_resource->SetName(m_originalDesc.textureName.c_str()));
 }
 
