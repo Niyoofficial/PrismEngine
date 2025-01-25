@@ -46,7 +46,7 @@ uint64_t D3D12RenderCommandQueue::GetCompletedFenceValue() const
 	return m_cmdListFence->GetCompletedValue();
 }
 
-void D3D12RenderCommandQueue::WaitForCmdListToComplete(uint64_t fenceValue)
+void D3D12RenderCommandQueue::WaitForFenceToComplete(uint64_t fenceValue)
 {
 	if (m_cmdListFence->GetCompletedValue() < fenceValue)
 	{

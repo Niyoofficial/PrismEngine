@@ -355,7 +355,7 @@ void D3D12RenderCommandList::RenderImGui()
 	{
 		PE_ASSERT(windows.front().IsValid());
 
-		// We don't have a concept of main window so we just get the first one for now
+		// TODO: We don't have a concept of main window so we just get the first one for now
 		auto mainWindow = windows.front();
 		auto* currentBackBuffer = static_cast<D3D12TextureView*>(mainWindow->GetSwapchain()->GetCurrentBackBufferRTV());
 

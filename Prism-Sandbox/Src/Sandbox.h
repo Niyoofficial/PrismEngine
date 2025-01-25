@@ -85,6 +85,7 @@ class SandboxLayer : public Render::Layer
 public:
 	SandboxLayer(Core::Window* owningWindow);
 
+	void UpdateImGui(Duration delta) override;
 	virtual void Update(Duration delta) override;
 
 private:

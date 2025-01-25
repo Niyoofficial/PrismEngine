@@ -279,13 +279,11 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	}
 }
 
-void SandboxLayer::Update(Duration delta)
+void SandboxLayer::UpdateImGui(Duration delta)
 {
-	using namespace Prism::Render;
-	Layer::Update(delta);
+	Layer::UpdateImGui(delta);
 
-	//bool showDemo = true;
-	//ImGui::ShowDemoWindow(&showDemo);
+	ImGui::ShowDemoWindow();
 
 	// Menu bar
 	{
@@ -319,7 +317,7 @@ void SandboxLayer::Update(Duration delta)
 		ImVec2 windowPos;
 		windowPos.x = workPos.x + workSize.x - padding;
 		windowPos.y = workPos.y + padding;
-		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, {1.f, 0.f});
+		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, { 1.f, 0.f });
 		ImGui::SetNextWindowViewport(viewport->ID);
 
 		ImGui::SetNextWindowBgAlpha(0.55f); // Transparent background
@@ -332,6 +330,12 @@ void SandboxLayer::Update(Duration delta)
 		}
 		ImGui::End();
 	}
+}
+
+void SandboxLayer::Update(Duration delta)
+{
+	using namespace Prism::Render;
+	Layer::Update(delta);
 
 	if (Core::Platform::Get().IsKeyPressed(KeyCode::RightMouseButton))
 	{
@@ -353,17 +357,6 @@ void SandboxLayer::Update(Duration delta)
 
 	glm::float2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 	auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
-
-	renderContext->Barrier({
-		.texture = currentBackBuffer->GetTexture(),
-		.syncBefore = BarrierSync::None,
-		.syncAfter = BarrierSync::RenderTarget,
-		.accessBefore = BarrierAccess::NoAccess,
-		.accessAfter = BarrierAccess::RenderTarget,
-		.layoutBefore = BarrierLayout::Present,
-		.layoutAfter = BarrierLayout::RenderTarget
-	});
-
 
 	renderContext->SetViewport({{0.f, 0.f}, windowSize, {0.f, 1.f}});
 	renderContext->SetScissor({{0.f, 0.f}, windowSize});
@@ -539,18 +532,6 @@ void SandboxLayer::Update(Duration delta)
 		m_floor->DrawPrimitive(renderContext);
 	}
 
-	renderContext->RenderImGui();
-
-	renderContext->Barrier({
-		.texture = currentBackBuffer->GetTexture(),
-		.syncBefore = BarrierSync::RenderTarget,
-		.syncAfter = BarrierSync::None,
-		.accessBefore = BarrierAccess::RenderTarget,
-		.accessAfter = BarrierAccess::NoAccess,
-		.layoutBefore = BarrierLayout::RenderTarget,
-		.layoutAfter = BarrierLayout::Present
-	});
-
 	RenderDevice::Get().SubmitContext(renderContext);
 }
 
@@ -581,7 +562,6 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 		}
 	};
 	m_window = Core::Window::Create(windowParams, swapchainDesc);
-	//Core::Platform::Get().SetMouseRelativeMode(m_window, true);
 
 	InitImGui(m_window);
 

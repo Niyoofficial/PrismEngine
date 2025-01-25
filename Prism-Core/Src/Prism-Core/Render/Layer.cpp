@@ -11,6 +11,10 @@ void Layer::Detach()
 {
 }
 
+void Layer::UpdateImGui(Duration delta)
+{
+}
+
 void Layer::Update(Duration delta)
 {
 }

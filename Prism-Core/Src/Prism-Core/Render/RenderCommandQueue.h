@@ -33,7 +33,7 @@ public:
 	virtual uint64_t GetCompletedFenceValue() const = 0;
 
 	void Flush();
-	virtual void WaitForCmdListToComplete(uint64_t fenceValue) = 0;
+	virtual void WaitForFenceToComplete(uint64_t fenceValue) = 0;
 
 	uint64_t GetLastSubmittedCmdListFenceValue() const;
 	uint64_t GetLastQueuedCmdListFenceValue() const;

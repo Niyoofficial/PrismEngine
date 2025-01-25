@@ -38,6 +38,7 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 			TryExecuteQueuedCmdListsAsync();
 		};
 
+	//func();
 	auto future = std::async(std::launch::async, func);
 
 	return GetLastSubmittedCmdListFenceValue();
@@ -46,7 +47,7 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 void RenderCommandQueue::Flush()
 {
 	uint64_t fenceValue = IncreaseAndSignalFence();
-	WaitForCmdListToComplete(fenceValue);
+	WaitForFenceToComplete(fenceValue);
 }
 
 uint64_t RenderCommandQueue::GetLastSubmittedCmdListFenceValue() const

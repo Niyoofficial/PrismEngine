@@ -65,6 +65,9 @@ protected:
 
 	void OnQuitEvent(AppEvent event);
 
+	void TransitionBackBuffersToRenderTarget();
+	void TransitionBackBuffersToPresent();
+
 protected:
 	bool m_running = false;
 	int64_t m_frameCounter = 0;
@@ -72,9 +75,10 @@ protected:
 	Duration m_previousFrameTime;
 
 	std::vector<WeakRef<Render::Layer>> m_layerStack;
+	Ref<Render::Layer> m_imguiLayer;
 
 	std::vector<WeakRef<Window>> m_windows;
 
-	bool initializedImGui = false;
+	bool m_imguiInitialized = false;
 };
 }

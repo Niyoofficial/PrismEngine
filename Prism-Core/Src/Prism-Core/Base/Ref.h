@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include <unordered_set>
+
 #include "Prism-Core/Utilities/PreprocessorUtils.h"
 
 namespace Prism

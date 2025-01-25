@@ -59,7 +59,7 @@ void RenderDevice::EndRenderFrame()
 	// If there is too many CPU prepared frames, wait for them to be completed by the GPU and pop them
 	while (m_cpuPreparedFrames.size() >= Constants::MAX_FRAMES_IN_FLIGHT)
 	{
-		GetRenderQueue()->WaitForCmdListToComplete(m_cpuPreparedFrames.front());
+		GetRenderQueue()->WaitForFenceToComplete(m_cpuPreparedFrames.front());
 		m_cpuPreparedFrames.pop();
 	}
 }

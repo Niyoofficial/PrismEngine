@@ -11,7 +11,7 @@ namespace Prism::Core
 {
 Application::~Application()
 {
-	if (initializedImGui)
+	if (m_imguiInitialized)
 		ShutdownImGui();
 	ShutdownPlatform();
 	ShutdownRenderer();
@@ -42,15 +42,23 @@ void Application::Run()
 
 			BeginFrame();
 
-			for (auto& layer : m_layerStack)
-			{
-				auto currTime = GetApplicationTime();
-				auto delta = currTime - m_previousFrameTime;
+			auto currTime = GetApplicationTime();
+			auto delta = currTime - m_previousFrameTime;
+			m_previousFrameTime = currTime;
 
+			if (m_imguiInitialized)
+			{
+				ImGuiNewFrame();
+				for (auto& layer : m_layerStack)
+					layer->UpdateImGui(delta);
+				ImGui::EndFrame();
+			}
+
+			for (auto& layer : m_layerStack)
 				layer->Update(delta);
 
-				m_previousFrameTime = currTime;
-			}
+			if (m_imguiInitialized)
+				m_imguiLayer->Update(delta);
 
 			EndFrame();
 		}
@@ -101,12 +109,14 @@ Duration Application::GetApplicationTime()
 void Application::BeginFrame()
 {
 	Render::RenderDevice::Get().BeginRenderFrame();
-	if (initializedImGui)
-		ImGuiNewFrame();
+
+	TransitionBackBuffersToRenderTarget();
 }
 
 void Application::EndFrame()
 {
+	TransitionBackBuffersToPresent();
+
 	for (auto window : m_windows)
 	{
 		PE_ASSERT(window.IsValid());
@@ -114,7 +124,7 @@ void Application::EndFrame()
 		window->GetSwapchain()->Present();
 	}
 
-	if (initializedImGui)
+	if (m_imguiInitialized)
 	{
 		ImGui::UpdatePlatformWindows();
 		ImGui::RenderPlatformWindowsDefault();
@@ -170,7 +180,19 @@ void Application::InitImGui(Window* window)
 	Platform::Get().InitializeImGuiPlatform(window);
 	Render::RenderDevice::Get().InitializeImGui(window);
 
-	initializedImGui = true;
+	class ImGuiLayer : public Render::Layer
+	{
+		void Update(Duration delta) override
+		{
+			auto context = Render::RenderDevice::Get().AllocateContext();
+			context->RenderImGui();
+			Render::RenderDevice::Get().SubmitContext(context);
+		}
+	};
+
+	m_imguiLayer = new ImGuiLayer;
+
+	m_imguiInitialized = true;
 }
 
 void Application::ShutdownImGui()
@@ -183,5 +205,45 @@ void Application::ShutdownImGui()
 void Application::OnQuitEvent(AppEvent event)
 {
 	CloseApplication();
+}
+
+void Application::TransitionBackBuffersToRenderTarget()
+{
+	auto context = Render::RenderDevice::Get().AllocateContext();
+	for (auto window : m_windows)
+	{
+		PE_ASSERT(window.IsValid());
+		auto* backBuffer = window->GetSwapchain()->GetCurrentBackBufferRTV();
+		context->Barrier({
+			.texture = backBuffer->GetTexture(),
+			.syncBefore = Render::BarrierSync::None,
+			.syncAfter = Render::BarrierSync::None,
+			.accessBefore = Render::BarrierAccess::NoAccess,
+			.accessAfter = Render::BarrierAccess::NoAccess,
+			.layoutBefore = Render::BarrierLayout::Present,
+			.layoutAfter = Render::BarrierLayout::RenderTarget
+		});
+	}
+	Render::RenderDevice::Get().SubmitContext(context);
+}
+
+void Application::TransitionBackBuffersToPresent()
+{
+	auto context = Render::RenderDevice::Get().AllocateContext();
+	for (auto window : m_windows)
+	{
+		PE_ASSERT(window.IsValid());
+		auto* backBuffer = window->GetSwapchain()->GetCurrentBackBufferRTV();
+		context->Barrier({
+			.texture = backBuffer->GetTexture(),
+			.syncBefore = Render::BarrierSync::None,
+			.syncAfter = Render::BarrierSync::None,
+			.accessBefore = Render::BarrierAccess::NoAccess,
+			.accessAfter = Render::BarrierAccess::NoAccess,
+			.layoutBefore = Render::BarrierLayout::RenderTarget,
+			.layoutAfter = Render::BarrierLayout::Present
+		});
+	}
+	Render::RenderDevice::Get().SubmitContext(context);
 }
 }

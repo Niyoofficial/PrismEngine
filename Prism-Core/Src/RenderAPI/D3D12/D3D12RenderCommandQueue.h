@@ -15,7 +15,7 @@ public:
 	virtual uint64_t IncreaseAndSignalFence() override;
 	virtual uint64_t GetCompletedFenceValue() const override;
 
-	virtual void WaitForCmdListToComplete(uint64_t fenceValue) override;
+	virtual void WaitForFenceToComplete(uint64_t fenceValue) override;
 
 	ID3D12CommandQueue* GetD3D12CommandQueue() const;
 
