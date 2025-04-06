@@ -1,0 +1,32 @@
+﻿#pragma once
+#include "Prism/Base/Platform.h"
+
+
+namespace Prism::SDL
+{
+class SDLPlatform : public Core::Platform
+{
+public:
+	SDLPlatform();
+	virtual ~SDLPlatform() override;
+
+	virtual void PumpEvents() override;
+
+	virtual bool IsKeyPressed(KeyCode keyCode) override;
+
+	virtual void SetMouseRelativeMode(Core::Window* window, bool bRelativeMode) override;
+
+	virtual Duration GetApplicationTime() override;
+	virtual uint64_t GetPerformanceTicksPerSecond() override;
+
+	virtual void InitializeImGuiPlatform(Core::Window* window) override;
+	virtual void ShutdownImGuiPlatform() override;
+
+	virtual void ImGuiNewFrame() override;
+
+private:
+	uint64_t m_ticksStart = 0;
+
+	bool initializedImGui = false;
+};
+}

@@ -1,0 +1,26 @@
+{
+	"name": "prismengine",
+	"version": "0.0.1",
+	"dependencies": [
+		"glm",
+		"sdl3",
+		"assimp",
+		"directx12-agility",
+		"directxtk12",
+		"directx-dxc",
+		{
+			"name": "spdlog",
+			"features": [
+				"wchar"
+			]
+		},
+		{
+			"name": "imgui",
+			"features": [
+				"docking-experimental",
+				"dx12-binding",
+				"sdl3-binding"
+			]
+		}
+	]
+}

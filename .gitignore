@@ -1,0 +1,24 @@
+# Binaries
+**/bin/
+*.log
+*.tlog
+*.obj
+*.recipe
+**/tmp/
+
+# Intermediate
+**/int/
+**/logs/
+
+# Visual Studio files and folder
+.vs/
+**.sln
+**.vcxproj
+**.vcxproj.filters
+**.vcxproj.user
+**.csproj
+**.nsight-gfxproj
+**.DotSettings
+**.DotSettings.user
+**.user
+out/
