@@ -125,7 +125,7 @@ private:
 	Ref<Render::Buffer> m_sceneCbuffer;
 	Ref<Render::BufferView> m_sceneCbufferView;
 
-	Ref<Render::Buffer> m_coeffBuffer;
+	Ref<Render::Buffer> m_coeffGenerationBuffer;
 	Ref<Render::BufferView> m_coeffBufferView;
 	Ref<Render::Buffer> m_irradianceSHBuffer;
 	Ref<Render::BufferView> m_irradianceSHBufferView;

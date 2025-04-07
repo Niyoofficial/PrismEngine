@@ -21,6 +21,7 @@
 				"dx12-binding",
 				"sdl3-binding"
 			]
-		}
+		},
+		"winpixevent"
 	]
 }

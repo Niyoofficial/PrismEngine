@@ -86,7 +86,7 @@ float3 HemisphereSample_GGX(float2 Xi, float roughness, float3 normal)
 
 	float3 tangent, bitangent;
 	ComputeBasisVectors(normal, tangent, bitangent);
-	return TangentToWorldSpace(sample);
+	return TangentToWorldSpace(sample, normal, tangent, bitangent);
 }
 
 float CalcAttenuation(float distance)

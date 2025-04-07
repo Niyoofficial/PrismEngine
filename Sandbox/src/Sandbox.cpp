@@ -294,13 +294,13 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 		// Generate env diffuse irradiance
 		{
-			m_coeffBuffer = Buffer::Create({
+			m_coeffGenerationBuffer = Buffer::Create({
 				.bufferName = L"SHCoefficientsGeneration",
 				.size = sizeof(glm::float4) * 9, // RGB channels + one for padding * numOfCoefficients
 				.bindFlags = BindFlags::UnorderedAccess,
 				.usage = ResourceUsage::Default
 			});
-			m_coeffBufferView = m_coeffBuffer->CreateDefaultUAVView(sizeof(glm::float4) * 9); // Single element
+			m_coeffBufferView = m_coeffGenerationBuffer->CreateDefaultUAVView(sizeof(glm::float4)); // Single element
 
 			renderContext->SetPSO(ComputePipelineState::Create({
 				.cs = Shader::Create({
@@ -310,7 +310,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 				}),
 			}));
 
-			renderContext->SetTexture(m_skyboxArraySRVView, L"g_skybox");
+			renderContext->SetTexture(m_skyboxCubeSRVView, L"g_skybox");
 			renderContext->SetBuffer(m_coeffBufferView, L"g_coefficients");
 
 			renderContext->Dispatch(1, 1, 1);
@@ -323,10 +323,19 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			});
 			m_irradianceSHBufferView = m_irradianceSHBuffer->CreateDefaultCBVView();
 
-			renderContext->CopyBufferRegion(m_irradianceSHBuffer, 0, m_coeffBuffer, 0, m_coeffBuffer->GetBufferDesc().size);
+			renderContext->Barrier(BufferBarrier{
+				.buffer = m_coeffGenerationBuffer,
+				.syncBefore = BarrierSync::ComputeShading,
+				.syncAfter = BarrierSync::Copy,
+				.accessBefore = BarrierAccess::UnorderedAccess,
+				.accessAfter = BarrierAccess::CopySource
+			});
+
+			renderContext->CopyBufferRegion(m_irradianceSHBuffer, 0, m_coeffGenerationBuffer, 0, m_coeffGenerationBuffer->GetBufferDesc().size);
 		}
 
 		// Generate env specular irradiance
+		if (0)
 		{
 			renderContext->SetPSO(ComputePipelineState::Create({
 				.cs = Shader::Create({
@@ -434,23 +443,6 @@ void SandboxLayer::Update(Duration delta)
 	glm::float4 clearColor = {0.8f, 0.2f, 0.3f, 1.f};
 	renderContext->ClearRenderTargetView(currentBackBuffer, &clearColor);
 	renderContext->ClearDepthStencilView(m_depthStencilView, Flags(ClearFlags::ClearDepth) | Flags(ClearFlags::ClearStencil));
-
-	// HDRI to cubemap skybox
-	{
-		auto* pso = ComputePipelineState::Create({
-			.cs = Shader::Create({
-				.filepath = L"shaders/EquirectToCubemap.hlsl",
-				.entryName = L"main",
-				.shaderType = ShaderType::CS
-			}),
-		});
-		renderContext->SetPSO(pso);
-
-		renderContext->SetTexture(m_environmentTextureView, L"g_environment");
-		renderContext->SetTexture(m_skyboxUAVView, L"g_skybox");
-
-		renderContext->Dispatch(32, 32, 6);
-	}
 
 	// Scene cbuffer
 	{
@@ -614,7 +606,6 @@ void SandboxLayer::Update(Duration delta)
 		};
 		m_sphere->Draw(renderContext, &modelData, sizeof(CBufferModel));
 	}
-
 
 	RenderDevice::Get().SubmitContext(renderContext);
 }

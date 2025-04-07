@@ -8,7 +8,7 @@
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 
 #if USE_PIX
-#include "WinPixEventRuntime/pix3.h"
+#include "pix3.h"
 #endif
 
 #include "imgui_impl_dx12.h"
@@ -47,13 +47,13 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 #if USE_PIX
 	if (params.initPixLibrary)
 	{
-		// In order to use pix library include wrl/client.h and WinPixEventRuntime/pix3.h after it
+		// In order to use pix library include wrl/client.h and pix3.h after it
 		m_pixGpuCaptureModule = PIXLoadLatestWinPixGpuCapturerLibrary();
 		m_pixTimingCaptureModule = PIXLoadLatestWinPixTimingCapturerLibrary();
 	}
 #endif
 
-#ifdef PE_BUILD_DEBUG || PE_BUILD_PROFILE
+#if PE_BUILD_DEBUG || PE_BUILD_PROFILE
 	if (params.enableDebugLayer)
 	{
 		ComPtr<ID3D12Debug> debugController;
@@ -65,7 +65,7 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	g_renderDevice = this;
 
 	uint32_t dxgiFactoryFlags = 0;
-#ifdef PE_BUILD_DEBUG || PE_BUILD_PROFILE
+#if PE_BUILD_DEBUG || PE_BUILD_PROFILE
 	if (params.enableDebugLayer)
 		dxgiFactoryFlags |= DXGI_CREATE_FACTORY_DEBUG;
 #endif
@@ -80,7 +80,7 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 
 	PE_ASSERT(requiredFeatureSet.EnhancedBarriersSupported == TRUE);
 
-#ifdef PE_BUILD_DEBUG || PE_BUILD_PROFILE
+#if PE_BUILD_DEBUG || PE_BUILD_PROFILE
 	if (params.enableDebugLayer)
 	{
 		ComPtr<IDXGIInfoQueue> dxgiInfoQueue;

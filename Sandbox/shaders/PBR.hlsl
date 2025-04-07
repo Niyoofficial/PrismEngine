@@ -109,7 +109,7 @@ float4 psmain(PixelInput pin) : SV_TARGET
 		Texture2D aoTexture = ResourceDescriptorHeap[g_aoTexture];
 		ao *= aoTexture.Sample(g_samLinearWrap, pin.texCoords).r;
 	}
-	if (g_normalTexture != -1)
+	if (g_normalTexture != -1 && false)
 	{
 		Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
 		normal = NormalSampleToWorldSpace(normalTexture.Sample(g_samLinearWrap, pin.texCoords).rgb, modelBuffer.normalMatrix, normal, tangent, bitangent);
@@ -143,12 +143,14 @@ float4 psmain(PixelInput pin) : SV_TARGET
 	}
 	
 	float3 irradiance = SH::CalculateIrradiance(sceneIrradiance.irradianceSH, normal); // Does the cosine lobe scale
-	float3 envLight = EnvironmentBRDF(surface, toCamera) * irradiance * sceneBuffer.environmentDiffuseScale;
+	float avg = (irradiance.x + irradiance.y + irradiance.z) / 3.f;
+	irradiance = lerp(float3(avg, avg, avg), irradiance, sceneBuffer.environmentDiffuseScale);
+	float3 envLight = EnvironmentBRDF(surface, toCamera) * irradiance;
 	
 	float3 Lo = analyticLight + envLight;
 	
 	float3 color = Lo;
-	
+
 	//float3 kS = FresnelSchlick(max(dot(normal, toCamera), 0.f), F0);
 	//float3 kD = 1.f - kS; // TODO: More accurate energy conservation http://jbit.net/~sparky/academic/mm_brdf.pdf
 	//float3 diffuse = irradiance * albedo;

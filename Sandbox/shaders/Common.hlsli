@@ -90,13 +90,11 @@ float RadicalInverse_VdC(uint bits)
 }
 
 // http://holger.dammertz.org:80/stuff/notes_HammersleyOnHemisphere.html
-float2 Hammersley(uint i, uint N)
+float2 Hammersley(uint i, uint total)
 {
-	return float2(float(i) / float(N), RadicalInverse_VdC(i));
+	return float2(float(i) / float(total), RadicalInverse_VdC(i));
 }
 
-// Hammersley sequence for sampling a hemisphere
-// http://holger.dammertz.org:80/stuff/notes_HammersleyOnHemisphere.html
 float3 HemisphereSample(float2 Xi, float3 normal)
 {
 	float phi = Xi.y * 2.f * PI;
@@ -106,5 +104,5 @@ float3 HemisphereSample(float2 Xi, float3 normal)
 	
 	float3 tangent, bitangent;
 	ComputeBasisVectors(normal, tangent, bitangent);
-	return TangentToWorldSpace(sample);
+	return TangentToWorldSpace(sample, normal, tangent, bitangent);
 }

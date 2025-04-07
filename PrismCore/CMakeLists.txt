@@ -72,3 +72,6 @@ find_package(directx-dxc CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectXShaderCompiler)
 
 target_link_libraries(${PROJECT_NAME} PRIVATE dxgi.lib)
+
+find_package(winpixevent CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::WinPixEventRuntime)

@@ -1,6 +1,5 @@
 ﻿#pragma once
-
-#include <span>
+#define USE_PIX 1
 
 #include "Prism/Render/RenderDevice.h"
 
