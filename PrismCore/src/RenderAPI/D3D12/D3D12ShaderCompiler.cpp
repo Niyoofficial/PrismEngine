@@ -24,7 +24,14 @@ D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateI
 	// dxc <shaderName>.hlsl -E <entryPoint> -T <shaderType>_6_8 -Zi -Od -Fo <outputName>.bin -Fd <outputName>.pdb -I -enable-16bit-types
 
 	ComPtr<IDxcBlobEncoding> source = nullptr;
-	PE_ASSERT_HR(m_dxcUtils->LoadFile(createInfo.filepath.c_str(), nullptr, &source));
+	HRESULT result = m_dxcUtils->LoadFile(createInfo.filepath.c_str(), nullptr, &source);
+	if (FAILED(result))
+	{
+		// If shader wasn't found in the project directory, try to load it from the engine directory
+		result = m_dxcUtils->LoadFile((Core::Paths::Get().GetEngineDir() + L"/" + createInfo.filepath).c_str(), nullptr, &source);
+	}
+
+	PE_ASSERT(SUCCEEDED(result) && source, "Shader file not found: {}", createInfo.filepath);
 
 	// Open file
 	DxcBuffer sourceBuffer;
@@ -61,12 +68,8 @@ D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateI
 	{
 		ComPtr<IDxcBlobUtf8> errors;
 		PE_ASSERT_HR(results->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr));
-		if (errors != nullptr && errors->GetStringLength() != 0)
-		{
-			PE_RENDER_LOG(Error, "{}", errors->GetStringPointer());
-			PE_ASSERT(false, "Shader compilation failed!");
-			return {};
-		}
+
+		PE_ASSERT(!errors && errors->GetStringLength() == 0, "Shader compilation failed! Filename: {} Entryname: {}\n{}", createInfo.filepath, createInfo.entryName, errors->GetStringPointer());
 	}
 
 	D3D12ShaderCompilerOutput output;

@@ -1,10 +1,10 @@
 ﻿#pragma once
 
-#define WIDE_STRING(x) L ## #x
-
 // Turns an preprocessor token into a real string
 #define PREPROCESSOR_TO_STRING(x) PREPROCESSOR_TO_STRING_INNER(x)
 #define PREPROCESSOR_TO_STRING_INNER(x) #x
+#define PREPROCESSOR_TO_WIDE_STRING(x) PREPROCESSOR_TO_WIDE_STRING_INNER(x)
+#define PREPROCESSOR_TO_WIDE_STRING_INNER(x) L ## #x
 
 // Concatenates two preprocessor tokens, performing macro expansion on them first
 #define PREPROCESSOR_JOIN(x, y) PREPROCESSOR_JOIN_INNER(x, y)

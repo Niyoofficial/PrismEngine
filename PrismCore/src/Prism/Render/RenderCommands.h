@@ -34,7 +34,7 @@ struct RenderCommand : public RenderCommandBase
 #define DEFINE_RENDER_COMMAND(commandName)																			\
 	struct PREPROCESSOR_JOIN(commandName##String, __LINE__) 														\
 	{																												\
-		static const wchar_t* GetCommandString() { return WIDE_STRING(commandName); }								\
+		static const wchar_t* GetCommandString() { return PREPROCESSOR_TO_WIDE_STRING(commandName); }				\
 	};																												\
 	struct commandName final : public RenderCommand<commandName, PREPROCESSOR_JOIN(commandName##String, __LINE__)>
 
