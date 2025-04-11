@@ -1,6 +1,8 @@
 ﻿#include "pcpch.h"
 #include "Logging.h"
 
+#include "Prism/Base/Paths.h"
+#include "Prism/Base/Platform.h"
 #include "Prism/Utilities/LazySingleton.h"
 
 
@@ -34,7 +36,7 @@ void LogsRegistry::DestroyRegistry()
 LogsRegistry::LogsRegistry()
 	: m_stdOutSink(std::make_shared<spdlog::sinks::stdout_color_sink_mt>()),
 	  m_stdErrSink(std::make_shared<spdlog::sinks::stderr_color_sink_mt>()),
-	  m_fileSink(std::make_shared<spdlog::sinks::rotating_file_sink_mt>("logs/PrismLog.log", -1, 10, true))
+	  m_fileSink(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(WStringToString(Core::Paths::Get().MakePathRelative(Core::Paths::Get().GetLogsDir() + L"/PrismLog.log", Core::Paths::Get().GetProjectDir())), -1, 10, true))
 {
 	/*auto tp = std::chrono::system_clock::now();
 	time_t tnow = std::chrono::system_clock::to_time_t(tp);

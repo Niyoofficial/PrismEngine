@@ -6,6 +6,8 @@
 #include <fstream>
 #include <filesystem>
 
+#include "Prism/Base/Paths.h"
+
 
 namespace Prism::Render::D3D12
 {
@@ -74,9 +76,9 @@ D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateI
 		ComPtr<IDxcBlobUtf16> shaderName;
 		PE_ASSERT_HR(results->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&output.bytecode), &shaderName));
 
-		std::filesystem::create_directory("int/");
+		std::filesystem::create_directory(Core::Paths::Get().GetIntermediateDir());
 
-		std::wstring outputFilepath = L"int/";
+		std::wstring outputFilepath = Core::Paths::Get().GetIntermediateDir() + L"/";
 		outputFilepath.append(shaderName->GetStringPointer());
 		std::ofstream file(outputFilepath, std::ios::out | std::ios::binary);
 		file.write((char*)output.bytecode->GetBufferPointer(), (int64_t)output.bytecode->GetBufferSize());
@@ -89,9 +91,9 @@ D3D12ShaderCompilerOutput D3D12ShaderCompiler::CompileShader(const ShaderCreateI
 		ComPtr<IDxcBlobUtf16> pdbName;
 		PE_ASSERT_HR(results->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pdb), &pdbName));
 
-		std::filesystem::create_directory("int/");
+		std::filesystem::create_directory(Core::Paths::Get().GetIntermediateDir());
 
-		std::wstring outputFilepath = L"int/";
+		std::wstring outputFilepath = Core::Paths::Get().GetIntermediateDir() + L"/";
 		outputFilepath.append(pdbName->GetStringPointer());
 		std::ofstream file(outputFilepath, std::ios::out | std::ios::binary);
 		file.write((char*)pdb->GetBufferPointer(), (int64_t)pdb->GetBufferSize());

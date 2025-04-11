@@ -23,6 +23,8 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 	$<$<CONFIG:Release>:PE_BUILD_RELEASE=1>
 )
 
+target_compile_definitions(${PROJECT_NAME} PUBLIC PE_ENGINE_DIR=${PROJECT_SOURCE_DIR})
+
 if (WIN32)
 	target_compile_options(${PROJECT_NAME} PUBLIC "$<$<C_COMPILER_ID:MSVC>:/utf-8>")
 	target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
