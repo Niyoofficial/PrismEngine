@@ -22,8 +22,8 @@ public:
 
 	void Dispatch(int32_t threadGroupCountX, int32_t threadGroupCountY, int32_t threadGroupCountZ);
 
-	void SetPSO(GraphicsPipelineState* pso);
-	void SetPSO(ComputePipelineState* pso);
+	void SetPSO(const GraphicsPipelineStateDesc& pso);
+	void SetPSO(const ComputePipelineStateDesc& pso);
 
 	void SetRenderTarget(TextureView* rtv, TextureView* dsv);
 	void SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv);

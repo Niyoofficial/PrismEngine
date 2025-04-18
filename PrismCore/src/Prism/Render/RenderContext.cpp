@@ -22,12 +22,12 @@ void RenderContext::Dispatch(int32_t threadGroupCountX, int32_t threadGroupCount
 	m_commandRecorder.AllocateCommand<Commands::DispatchRenderCommand>(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
 }
 
-void RenderContext::SetPSO(GraphicsPipelineState* pso)
+void RenderContext::SetPSO(const GraphicsPipelineStateDesc& pso)
 {
 	m_commandRecorder.AllocateCommand<Commands::SetGraphicsPSORenderCommand>(pso);
 }
 
-void RenderContext::SetPSO(ComputePipelineState* pso)
+void RenderContext::SetPSO(const ComputePipelineStateDesc& pso)
 {
 	m_commandRecorder.AllocateCommand<Commands::SetComputePSORenderCommand>(pso);
 }

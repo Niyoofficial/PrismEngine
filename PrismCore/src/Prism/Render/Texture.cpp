@@ -140,7 +140,7 @@ Ref<Texture> Texture::Create(const TextureDesc& desc, BarrierLayout initLayout, 
 		context->UpdateTexture(texture, initData, 0);
 
 		RenderDevice::Get().SubmitContext(context);
-		RenderDevice::Get().GetRenderQueue()->Flush();
+		RenderDevice::Get().GetRenderCommandQueue()->Flush();
 	}
 
 	return texture;
@@ -172,7 +172,7 @@ Ref<Texture> Texture::Create(const TextureDesc& desc, Buffer* initDataBuffer, Ba
 	context->CopyBufferRegion(texture, {0, 0, 0}, 0, uploadBuffer, 0);
 
 	RenderDevice::Get().SubmitContext(context);
-	RenderDevice::Get().GetRenderQueue()->Flush();
+	RenderDevice::Get().GetRenderCommandQueue()->Flush();
 
 	return texture;
 }
@@ -185,5 +185,64 @@ Ref<Texture> Texture::Create(std::wstring filepath, bool loadAsCubemap, bool wai
 Ref<TextureView> Texture::CreateView(const TextureViewDesc& desc)
 {
 	return TextureView::Create(desc, this);
+}
+
+void Texture::GenerateMipMaps(class RenderContext* context)
+{
+	Ref<RenderContext> renderContext;
+	if (context)
+		renderContext = context;
+	else
+		renderContext = RenderDevice::Get().AllocateContext();
+
+	auto linear = ShaderDesc{
+			.filepath = L"shaders/GenerateMipsLinear.hlsl",
+			.entryName = L"main",
+			.shaderType = ShaderType::CS
+		};
+	auto linearOddX = ShaderDesc{
+			.filepath = L"shaders/GenerateMipsLinearOddX.hlsl",
+			.entryName = L"main",
+			.shaderType = ShaderType::CS
+		};
+	auto linearOddY = ShaderDesc{
+			.filepath = L"shaders/GenerateMipsLinearOddY.hlsl",
+			.entryName = L"main",
+			.shaderType = ShaderType::CS
+		};
+	auto linearOddXY = ShaderDesc{
+			.filepath = L"shaders/GenerateMipsLinearOddXY.hlsl",
+			.entryName = L"main",
+			.shaderType = ShaderType::CS
+		};
+
+	auto gamma = ShaderDesc{
+			.filepath = L"shaders/GenerateMipsGamma.hlsl",
+			.entryName = L"main",
+			.shaderType = ShaderType::CS
+		};
+	auto gammaOddX = ShaderDesc{
+			.filepath = L"shaders/GenerateMipsGammaOddX.hlsl",
+			.entryName = L"main",
+			.shaderType = ShaderType::CS
+		};
+	auto gammaOddY = ShaderDesc{
+			.filepath = L"shaders/GenerateMipsGammaOddY.hlsl",
+			.entryName = L"main",
+			.shaderType = ShaderType::CS
+		};
+	auto gammaOddXY = ShaderDesc{
+			.filepath = L"shaders/GenerateMipsGammaOddXY.hlsl",
+			.entryName = L"main",
+			.shaderType = ShaderType::CS
+		};
+
+	//renderContext->SetPSO(ComputePipelineState::Create({
+	//	.cs = 
+	//}));
+
+	// If the context was passed from the outside, we don't want to flush it but give the control back to the caller
+	if (!context)
+		RenderDevice::Get().GetRenderCommandQueue()->Flush();
 }
 }

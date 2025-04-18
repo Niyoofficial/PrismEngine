@@ -43,8 +43,8 @@ public:
 
 	virtual void Dispatch(int32_t threadGroupCountX, int32_t threadGroupCountY, int32_t threadGroupCountZ) = 0;
 
-	virtual void SetPSO(GraphicsPipelineState* pso) = 0;
-	virtual void SetPSO(ComputePipelineState* pso) = 0;
+	virtual void SetPSO(const GraphicsPipelineStateDesc& desc) = 0;
+	virtual void SetPSO(const ComputePipelineStateDesc& desc) = 0;
 
 	virtual void SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv) = 0;
 	virtual void SetViewports(std::vector<Viewport> viewports) = 0;

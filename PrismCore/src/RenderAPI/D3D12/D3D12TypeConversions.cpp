@@ -5,7 +5,6 @@
 #include "RenderAPI/D3D12/D3D12Buffer.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12RootSignature.h"
-#include "RenderAPI/D3D12/D3D12ShaderImpl.h"
 #include "RenderAPI/D3D12/D3D12Texture.h"
 
 namespace Prism::Render::D3D12
@@ -162,7 +161,7 @@ DXGI_RATIONAL GetDXGIRational(int32_t numerator, int32_t denominator)
 	};
 }
 
-D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc)
+D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc, const D3D12ShaderCompilerOutput& vs, const D3D12ShaderCompilerOutput& ps)
 {
 	PE_ASSERT(
 		desc.primitiveTopologyType != Render::TopologyType::LineStrip &&
@@ -179,12 +178,12 @@ D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineS
 	for (int32_t i = 0; i < desc.numRenderTargets; ++i)
 		rtvFormats[i] = GetDXGIFormat(desc.renderTargetFormats[i]);
 
-	D3D12InputLayout inputLayout = GetD3D12InputLayoutFromVertexShader(desc.vs);
+	D3D12InputLayout inputLayout = GetD3D12InputLayoutFromVertexShader(vs);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC d3d12Desc = {
 		.pRootSignature = D3D12RenderDevice::Get().GetGlobalRootSignature(PipelineStateType::Graphics)->GetD3D12RootSignature(),
-		.VS = GetD3D12ShaderBytecode(desc.vs),
-		.PS = GetD3D12ShaderBytecode(desc.ps),
+		.VS = GetD3D12ShaderBytecode(vs.bytecode.Get()),
+		.PS = GetD3D12ShaderBytecode(ps.bytecode.Get()),
 		.DS = {}, // We don't support this shader for now
 		.HS = {}, // We don't support this shader for now
 		.GS = {}, // We don't support this shader for now
@@ -240,19 +239,18 @@ D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineS
 	};
 }
 
-D3D12_COMPUTE_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const ComputePipelineStateDesc& desc)
+D3D12_COMPUTE_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const ComputePipelineStateDesc& desc, const D3D12ShaderCompilerOutput& cs)
 {
 	return {
 		.pRootSignature = D3D12RenderDevice::Get().GetGlobalRootSignature(PipelineStateType::Compute)->GetD3D12RootSignature(),
-		.CS = GetD3D12ShaderBytecode(desc.cs)
+		.CS = GetD3D12ShaderBytecode(cs.bytecode.Get())
 	};
 }
 
-CD3DX12_SHADER_BYTECODE GetD3D12ShaderBytecode(Shader* shader)
+CD3DX12_SHADER_BYTECODE GetD3D12ShaderBytecode(IDxcBlob* shaderBytecode)
 {
-	PE_ASSERT(shader);
-	auto& compilerOutput = static_cast<D3D12Shader*>(shader)->GetCompilerOutput();
-	return {compilerOutput.bytecode->GetBufferPointer(), compilerOutput.bytecode->GetBufferSize()};
+	PE_ASSERT(shaderBytecode);
+	return {shaderBytecode->GetBufferPointer(), shaderBytecode->GetBufferSize()};
 }
 
 D3D12_SHADER_VISIBILITY GetD3D12ShaderVisibility(ShaderType shaderType)
@@ -613,12 +611,12 @@ DXGI_FORMAT GetD3D12InputElementDescFormat(const D3D12_SIGNATURE_PARAMETER_DESC&
 	return {};
 }
 
-D3D12InputLayout GetD3D12InputLayoutFromVertexShader(Shader* vertexShader)
+D3D12InputLayout GetD3D12InputLayoutFromVertexShader(const D3D12ShaderCompilerOutput& vertexShader)
 {
 	// TODO: Add a check for shader type
 	D3D12InputLayout layout;
 
-	auto* reflection = static_cast<D3D12Shader*>(vertexShader)->GetCompilerOutput().reflection.Get();
+	auto* reflection = vertexShader.reflection.Get();
 	D3D12_SHADER_DESC shaderDesc;
 	PE_ASSERT_HR(reflection->GetDesc(&shaderDesc));
 
@@ -994,7 +992,6 @@ D3D12_BARRIER_SUBRESOURCE_RANGE GetD3D12BarrierSubresourceRange(SubresourceRange
 	{
 		return {
 			.IndexOrFirstMipLevel = 0xffffffff
-		
 		};
 	}
 	else
@@ -1005,7 +1002,12 @@ D3D12_BARRIER_SUBRESOURCE_RANGE GetD3D12BarrierSubresourceRange(SubresourceRange
 				subresourceRange.firstArraySlice,
 				0,
 				subresourceRange.numMipLevels,
-				subresourceRange.numArraySlices)
+				subresourceRange.numArraySlices),
+			.NumMipLevels = (UINT)subresourceRange.numMipLevels,
+			.FirstArraySlice = (UINT)subresourceRange.firstArraySlice,
+			.NumArraySlices = (UINT)subresourceRange.numArraySlices,
+			.FirstPlane = 0,
+			.NumPlanes = 0 
 		};
 	}
 }

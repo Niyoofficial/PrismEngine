@@ -1,8 +1,10 @@
 ﻿#pragma once
 
+#include "yaml-cpp/yaml.h"
+
 namespace Prism::Render
 {
-enum class ShaderType
+enum class ShaderType : uint8_t
 {
 	VertexShader,
 	PixelShader,
@@ -23,34 +25,23 @@ enum class ShaderType
 	CS = ComputeShader
 };
 
-struct ShaderCreateInfo
+struct ShaderDesc
 {
-	bool operator==(const ShaderCreateInfo& other) const;
+	bool IsValid() const;
+	bool operator==(const ShaderDesc& other) const;
 
 	std::wstring filepath;
 	std::wstring entryName;
 	ShaderType shaderType;
 };
 
-class Shader : public RefCounted
-{
-public:
-	static Shader* Create(const ShaderCreateInfo& createInfo);
-
-	const ShaderCreateInfo& GetCreateInfo() const { return m_createInfo; }
-
-protected:
-	explicit Shader(const ShaderCreateInfo& createInfo);
-
-protected:
-	ShaderCreateInfo m_createInfo;
-};
+YAML::Emitter& operator<<(YAML::Emitter& out, const ShaderDesc& shaderCreateInfo);
 }
 
 template<>
-struct std::hash<Prism::Render::ShaderCreateInfo>
+struct std::hash<Prism::Render::ShaderDesc>
 {
-	size_t operator()(const Prism::Render::ShaderCreateInfo& shaderCreateInfo) const noexcept
+	size_t operator()(const Prism::Render::ShaderDesc& shaderCreateInfo) const noexcept
 	{
 		return
 			std::hash<std::wstring>()(shaderCreateInfo.filepath) ^

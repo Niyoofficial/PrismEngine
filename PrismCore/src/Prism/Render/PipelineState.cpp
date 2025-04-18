@@ -2,10 +2,14 @@
 #include "PipelineState.h"
 
 #include "Prism/Render/RenderDevice.h"
-#include "Prism/Render/PipelineStateCache.h"
 
 namespace Prism::Render
 {
+bool GraphicsPipelineStateDesc::IsValid() const
+{
+	return vs.IsValid() && ps.IsValid();
+}
+
 bool GraphicsPipelineStateDesc::operator==(const GraphicsPipelineStateDesc& other) const
 {
 	return
@@ -22,28 +26,13 @@ bool GraphicsPipelineStateDesc::operator==(const GraphicsPipelineStateDesc& othe
 		other.sampleDesc == sampleDesc;
 }
 
-GraphicsPipelineState* GraphicsPipelineState::Create(const GraphicsPipelineStateDesc& desc)
+bool ComputePipelineStateDesc::IsValid() const
 {
-	return RenderDevice::Get().GetPipelineStateCache().GetOrCreatePipelineState(desc);
-}
-
-GraphicsPipelineState::GraphicsPipelineState(const GraphicsPipelineStateDesc& desc)
-	: m_desc(desc)
-{
+	return cs.IsValid();
 }
 
 bool ComputePipelineStateDesc::operator==(const ComputePipelineStateDesc& other) const
 {
 	return other.cs == cs;
-}
-
-ComputePipelineState* ComputePipelineState::Create(const ComputePipelineStateDesc& desc)
-{
-	return RenderDevice::Get().GetPipelineStateCache().GetOrCreatePipelineState(desc);
-}
-
-ComputePipelineState::ComputePipelineState(const ComputePipelineStateDesc& desc)
-	: m_desc(desc)
-{
 }
 }

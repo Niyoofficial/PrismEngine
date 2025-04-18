@@ -3,6 +3,7 @@
 #include "Prism/Render/RenderResourceView.h"
 #include "RenderAPI/D3D12/D3D12Base.h"
 #include "RenderAPI/D3D12/D3D12DescriptorHeapManager.h"
+#include "RenderAPI/D3D12/D3D12PipelineStateCache.h"
 
 namespace Prism::Render::D3D12
 {
@@ -15,8 +16,8 @@ public:
 	virtual void DrawIndexed(DrawIndexedCommandDesc desc) override;
 	virtual void Dispatch(int32_t threadGroupCountX, int32_t threadGroupCountY, int32_t threadGroupCountZ) override;
 
-	virtual void SetPSO(GraphicsPipelineState* pso) override;
-	virtual void SetPSO(ComputePipelineState* pso) override;
+	virtual void SetPSO(const GraphicsPipelineStateDesc& desc) override;
+	virtual void SetPSO(const ComputePipelineStateDesc& desc) override;
 
 	virtual void SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv) override;
 
@@ -58,10 +59,13 @@ private:
 	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
 	ComPtr<ID3D12GraphicsCommandList7> m_commandList;
 
-	WeakRef<GraphicsPipelineState> m_currentGraphicsPSO;
-	WeakRef<ComputePipelineState> m_currentComputePSO;
+	D3D12PipelineStateCache m_pipelineStateCache;
+
+	GraphicsPipelineStateDesc m_currentGraphicsPSO = {};
+	ComputePipelineStateDesc m_currentComputePSO = {};
 
 	std::unordered_map<std::wstring, Ref<RenderResourceView>> m_rootResources;
+	std::vector<Ref<RenderResourceView>> m_overriddenRootResources;
 	std::vector<DescriptorHeapAllocation> m_dynamicDescriptors;
 };
 }

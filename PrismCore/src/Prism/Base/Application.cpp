@@ -65,7 +65,7 @@ void Application::Run()
 	}
 
 	// Flush GPU work before exiting
-	Render::RenderDevice::Get().GetRenderQueue()->Flush();
+	Render::RenderDevice::Get().GetRenderCommandQueue()->Flush();
 }
 
 void Application::PushLayer(Render::Layer* layer)

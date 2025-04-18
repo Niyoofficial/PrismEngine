@@ -36,6 +36,8 @@ RenderDevice* RenderDevice::TryGet()
 RenderDevice::RenderDevice(RenderDeviceParams params)
 {
 	MeshUtils::InitMeshLoading();
+
+	m_shaderCompiler.reset(Private::CreateShaderCompiler());
 }
 
 void RenderDevice::BeginRenderFrame()
@@ -45,21 +47,21 @@ void RenderDevice::BeginRenderFrame()
 void RenderDevice::EndRenderFrame()
 {
 	// Add a new CPU prepared frame
-	m_cpuPreparedFrames.emplace(GetRenderQueue()->GetLastSubmittedCmdListFenceValue());
+	m_cpuPreparedFrames.emplace(GetRenderCommandQueue()->GetLastSubmittedCmdListFenceValue());
 
-	GetRenderQueue()->ExecuteGPUCompletionEvents();
+	GetRenderCommandQueue()->ExecuteGPUCompletionEvents();
 
 	TransferEndFramePreservedObjectsToReleaseQueue();
 	ReleaseStaleResources();
 
 	// Pop any completed CPU frames
-	while (!m_cpuPreparedFrames.empty() && GetRenderQueue()->GetCompletedFenceValue() >= m_cpuPreparedFrames.front())
+	while (!m_cpuPreparedFrames.empty() && GetRenderCommandQueue()->GetCompletedFenceValue() >= m_cpuPreparedFrames.front())
 		m_cpuPreparedFrames.pop();
 
 	// If there is too many CPU prepared frames, wait for them to be completed by the GPU and pop them
 	while (m_cpuPreparedFrames.size() >= Constants::MAX_FRAMES_IN_FLIGHT)
 	{
-		GetRenderQueue()->WaitForFenceToComplete(m_cpuPreparedFrames.front());
+		GetRenderCommandQueue()->WaitForFenceToComplete(m_cpuPreparedFrames.front());
 		m_cpuPreparedFrames.pop();
 	}
 }
@@ -71,19 +73,19 @@ Ref<RenderContext> RenderDevice::AllocateContext()
 
 uint64_t RenderDevice::SubmitContext(RenderContext* context)
 {
-	return GetRenderQueue()->Submit(context);
+	return GetRenderCommandQueue()->Submit(context);
 }
 
 void RenderDevice::ReleaseStaleResources()
 {
-	m_releaseQueue.PurgeReleaseQueue(GetRenderQueue()->GetCompletedFenceValue());
-	GetRenderQueue()->ReleaseStaleResources();
+	m_releaseQueue.PurgeReleaseQueue(GetRenderCommandQueue()->GetCompletedFenceValue());
+	GetRenderCommandQueue()->ReleaseStaleResources();
 }
 
 void RenderDevice::TransferEndFramePreservedObjectsToReleaseQueue()
 {
 	for (auto& res : m_endFramePreservedObjects.GetPreservedObjects())
-		m_releaseQueue.AddResource(std::move(res), GetRenderQueue()->GetLastSubmittedCmdListFenceValue());
+		m_releaseQueue.AddResource(std::move(res), GetRenderCommandQueue()->GetLastSubmittedCmdListFenceValue());
 	m_endFramePreservedObjects.GetPreservedObjects().clear();
 }
 }

@@ -77,3 +77,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE dxgi.lib)
 
 find_package(winpixevent CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::WinPixEventRuntime)
+
+find_package(xxHash CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE xxHash::xxhash)
+
+find_package(yaml-cpp CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE yaml-cpp::yaml-cpp)

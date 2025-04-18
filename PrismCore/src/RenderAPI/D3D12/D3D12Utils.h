@@ -4,7 +4,7 @@
 
 namespace Prism::Render
 {
-enum class ShaderType;
+enum class ShaderType : uint8_t;
 enum class TextureFormat;
 }
 

@@ -46,7 +46,7 @@ struct SceneBuffer
 {
 	float environmentDiffuseScale;
 	CameraInfo camera;
-
+	
 	DirectionalLight directionalLights[MAX_LIGHT_COUNT];
 	PointLight pointLights[MAX_LIGHT_COUNT];
 };
@@ -60,6 +60,8 @@ struct ModelBuffer
 {
 	float4x4 world;
 	float4x4 normalMatrix;
+	
+	float mipLevel;
 
 	Material material;
 };

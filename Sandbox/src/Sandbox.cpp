@@ -107,8 +107,8 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 	m_skybox = Texture::Create({
 		.textureName = L"Skybox",
-		.width = 1024,
-		.height = 1024,
+		.width = 4096,
+		.height = 4096,
 		.depthOrArraySize = 6,
 		.dimension = ResourceDimension::TexCube,
 		.format = TextureFormat::RGBA32_Float,
@@ -147,7 +147,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		.depthOrArraySize = 6,
 		.mipLevels = 6,
 		.dimension = ResourceDimension::TexCube,
-		.format = TextureFormat::RGBA16_Float,
+		.format = TextureFormat::RGBA32_Float,
 		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
 		.optimizedClearValue = {}
 	});
@@ -168,33 +168,6 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		.arrayOrDepthSlicesCount = 6
 	});
 
-	m_irradiance = Texture::Create({
-		.textureName = L"Irradiance",
-		.width = 1024,
-		.height = 1024,
-		.depthOrArraySize = 6,
-		.dimension = ResourceDimension::TexCube,
-		.format = TextureFormat::RGBA16_Float,
-		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
-		.optimizedClearValue = {}
-	});
-	m_irradianceSRVView = m_irradiance->CreateView({
-		.type = TextureViewType::SRV,
-		.dimension = ResourceDimension::TexCube,
-		.firstMipLevel = 0,
-		.numMipLevels = 1,
-		.firstArrayOrDepthSlice = 0,
-		.arrayOrDepthSlicesCount = 6
-	});
-	m_irradianceUAVView = m_irradiance->CreateView({
-		.type = TextureViewType::UAV,
-		.dimension = ResourceDimension::TexCube,
-		.firstMipLevel = 0,
-		.numMipLevels = 1,
-		.firstArrayOrDepthSlice = 0,
-		.arrayOrDepthSlicesCount = 6
-	});
-
 	m_rustedIronAlbedo = Texture::Create(L"textures/rustediron2_basecolor.png");
 	m_rustedIronAlbedoView = m_rustedIronAlbedo->CreateView();
 	m_rustedIronMetallic = Texture::Create(L"textures/rustediron2_metallic.png");
@@ -204,7 +177,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	m_rustedIronNormal = Texture::Create(L"textures/rustediron2_normal.png");
 	m_rustedIronNormalView = m_rustedIronNormal->CreateView();
 
-	m_environmentTexture = Texture::Create(L"textures/tief_etz_4k.hdr");
+	m_environmentTexture = Texture::Create(L"textures/pisa.hdr");
 	m_environmentTextureView = m_environmentTexture->CreateView();
 
 
@@ -260,16 +233,19 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	}
 
 	// Load sphere
-	m_sphere = new PrimitiveBatch(L"Sphere", L"g_modelBuffer", sizeof(CBufferModel));
-
-	auto sphereData = MeshUtils::LoadMeshFromFile(L"meshes/Sphere.gltf");
-	auto sphereMesh = SandboxApplication::ConvertMeshToSandboxFormat(sphereData);
-
-	for (auto& primitiveData : sphereMesh.primitives)
+	for (int32_t i = 0; i < 6; ++i)
 	{
-		m_sphere->AddPrimitive(sizeof(Vertex), IndexBufferFormat::Uint32,
-			primitiveData.vertices.data(), (int64_t)primitiveData.vertices.size(),
-			primitiveData.indices.data(), (int64_t)primitiveData.indices.size());
+		m_spheres.push_back(new PrimitiveBatch(L"Sphere", L"g_modelBuffer", sizeof(CBufferModel)));
+
+		auto sphereData = MeshUtils::LoadMeshFromFile(L"meshes/Sphere.gltf");
+		auto sphereMesh = SandboxApplication::ConvertMeshToSandboxFormat(sphereData);
+
+		for (auto& primitiveData : sphereMesh.primitives)
+		{
+			m_spheres.back()->AddPrimitive(sizeof(Vertex), IndexBufferFormat::Uint32,
+				primitiveData.vertices.data(), (int64_t)primitiveData.vertices.size(),
+				primitiveData.indices.data(), (int64_t)primitiveData.indices.size());
+		}
 	}
 
 	{
@@ -277,19 +253,18 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 		// HDRI to cubemap skybox
 		{
-			auto* pso = ComputePipelineState::Create({
-				.cs = Shader::Create({
+			renderContext->SetPSO({
+				.cs = {
 					.filepath = L"shaders/EquirectToCubemap.hlsl",
 					.entryName = L"main",
 					.shaderType = ShaderType::CS
-				}),
+				},
 			});
-			renderContext->SetPSO(pso);
 
 			renderContext->SetTexture(m_environmentTextureView, L"g_environment");
 			renderContext->SetTexture(m_skyboxUAVView, L"g_skybox");
 
-			renderContext->Dispatch(32, 32, 6);
+			renderContext->Dispatch(128, 128, 6);
 		}
 
 		// Generate env diffuse irradiance
@@ -302,13 +277,23 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			});
 			m_coeffBufferView = m_coeffGenerationBuffer->CreateDefaultUAVView(sizeof(glm::float4)); // Single element
 
-			renderContext->SetPSO(ComputePipelineState::Create({
-				.cs = Shader::Create({
+			renderContext->SetPSO({
+				.cs = {
 					.filepath = L"shaders/DiffuseIrradianceIntegration.hlsl",
 					.entryName = L"main",
 					.shaderType = ShaderType::CS
-				}),
-			}));
+				},
+			});
+
+			renderContext->Barrier(TextureBarrier{
+				.texture = m_skybox,
+				.syncBefore = BarrierSync::ComputeShading,
+				.syncAfter = BarrierSync::ComputeShading,
+				.accessBefore = BarrierAccess::Common,
+				.accessAfter = BarrierAccess::ShaderResource,
+				.layoutBefore = BarrierLayout::Common,
+				.layoutAfter = BarrierLayout::ShaderResource
+			});
 
 			renderContext->SetTexture(m_skyboxCubeSRVView, L"g_skybox");
 			renderContext->SetBuffer(m_coeffBufferView, L"g_coefficients");
@@ -335,19 +320,96 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		}
 
 		// Generate env specular irradiance
-		if (0)
 		{
-			renderContext->SetPSO(ComputePipelineState::Create({
-				.cs = Shader::Create({
+			renderContext->Barrier(TextureBarrier{
+				.texture = m_skybox,
+				.syncBefore = BarrierSync::ComputeShading,
+				.syncAfter = BarrierSync::Copy,
+				.accessBefore = BarrierAccess::ShaderResource,
+				.accessAfter = BarrierAccess::CopySource,
+				.layoutBefore = BarrierLayout::ShaderResource,
+				.layoutAfter = BarrierLayout::CopySource
+			});
+
+			for (int32_t i = 0; i < 6; ++i)
+				renderContext->CopyTextureRegion(m_prefilteredEnvMap, {},
+					GetSubresourceIndex(0, m_prefilteredEnvMap->GetTextureDesc().GetMipLevels(), i, 6),
+					m_skybox, GetSubresourceIndex(0, m_skybox->GetTextureDesc().GetMipLevels(), i, 6));
+
+			renderContext->Barrier(TextureBarrier{
+				.texture = m_skybox,
+				.syncBefore = BarrierSync::Copy,
+				.syncAfter = BarrierSync::ComputeShading,
+				.accessBefore = BarrierAccess::CopySource,
+				.accessAfter = BarrierAccess::ShaderResource,
+				.layoutBefore = BarrierLayout::CopySource,
+				.layoutAfter = BarrierLayout::ShaderResource
+			});
+
+			renderContext->Barrier(TextureBarrier{
+				.texture = m_prefilteredEnvMap,
+				.syncBefore = BarrierSync::Copy,
+				.syncAfter = BarrierSync::ComputeShading,
+				.accessBefore = BarrierAccess::Common,
+				.accessAfter = BarrierAccess::UnorderedAccess,
+				.layoutBefore = BarrierLayout::Common,
+				.layoutAfter = BarrierLayout::UnorderedAccess
+			});
+
+			renderContext->SetPSO({
+				.cs = {
 					.filepath = L"shaders/SpecularIrradianceIntegration.hlsl",
 					.entryName = L"main",
 					.shaderType = ShaderType::CS
-				}),
-			}));
+				},
+			});
+
+			renderContext->SetTexture(m_skyboxCubeSRVView, L"g_skybox");
+
+			struct alignas(Constants::CBUFFER_ALIGNMENT) IntegrationData
+			{
+				float roughness = 0.f;
+				int32_t resolution = 0;
+			};
+
+			for (int32_t i = 1; i < m_prefilteredEnvMap->GetTextureDesc().GetMipLevels(); ++i)
+			{
+				int32_t threadGroupSize = m_prefilteredEnvMap->GetTextureDesc().GetWidth() / (int32_t)std::pow(2, i) / 32;
+
+				renderContext->SetTexture(m_prefilteredEnvMap->CreateView({
+					.type = TextureViewType::UAV,
+					.dimension = ResourceDimension::TexCube,
+					.firstMipLevel = i,
+					.numMipLevels = 1,
+					.firstArrayOrDepthSlice = 0,
+					.arrayOrDepthSlicesCount = 6
+				}), L"g_outputTexture");
+
+				IntegrationData data = {
+					.roughness = (float)i / (float)m_prefilteredEnvMap->GetTextureDesc().GetMipLevels(),
+					.resolution = m_prefilteredEnvMap->GetTextureDesc().GetWidth() / (int32_t)std::pow(2, i)
+				};
+
+				auto integrationBuffer = Buffer::Create({
+															.bufferName = std::wstring(L"IntegrationBuffer_") + std::to_wstring(data.resolution),
+															.size = sizeof(IntegrationData),
+															.bindFlags = BindFlags::ConstantBuffer,
+															.usage = ResourceUsage::Default,
+															.cpuAccess = CPUAccess::None
+														},
+														{
+															.data = &data,
+															.sizeInBytes = sizeof(data)
+														});
+
+				renderContext->SetBuffer(integrationBuffer->CreateDefaultCBVView(), L"g_integrationData");
+
+				renderContext->Dispatch(threadGroupSize, threadGroupSize, 6);
+			}
 		}
 
 		RenderDevice::Get().SubmitContext(renderContext);
-		RenderDevice::Get().GetRenderQueue()->Flush();
+		RenderDevice::Get().GetRenderCommandQueue()->Flush();
 	}
 }
 
@@ -405,6 +467,8 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		ImGui::Begin("Debug");
 
 		ImGui::SliderFloat("Environment diffuse scale", &m_environmentDiffuseScale, 0.f, 1.f);
+		if (ImGui::Button("Recompile Shaders"))
+			Render::RenderDevice::Get().GetShaderCompiler()->RecompileCachedShaders();
 
 		ImGui::End();
 	}
@@ -476,17 +540,17 @@ void SandboxLayer::Update(Duration delta)
 
 	// Skybox
 	{
-		auto* pso = GraphicsPipelineState::Create({
-			.vs = Shader::Create({
+		renderContext->SetPSO({
+			.vs = {
 				.filepath = L"shaders/Skybox.hlsl",
 				.entryName = L"vsmain",
 				.shaderType = ShaderType::VS
-			}),
-			.ps = Shader::Create({
+			},
+			.ps = {
 				.filepath = L"shaders/Skybox.hlsl",
 				.entryName = L"psmain",
 				.shaderType = ShaderType::PS
-			}),
+			},
 			.rasterizerState = {
 				.cullMode = CullMode::Front
 			},
@@ -499,11 +563,9 @@ void SandboxLayer::Update(Duration delta)
 			.numRenderTargets = 1,
 			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
 			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
-		});
+			});
 
-		renderContext->SetPSO(pso);
-
-		renderContext->SetTexture(m_skyboxCubeSRVView, L"g_skybox");
+		renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_skybox");
 
 		CBufferModel modelData = {
 			.world = glm::float4x4(1.f),
@@ -519,24 +581,19 @@ void SandboxLayer::Update(Duration delta)
 		m_cube->Draw(renderContext, &modelData, sizeof(CBufferModel));
 	}
 
-	renderContext->SetTexture(m_rustedIronAlbedoView, L"g_albedoTexture");
-	renderContext->SetTexture(m_rustedIronMetallicView, L"g_metallicTexture");
-	renderContext->SetTexture(m_rustedIronRoughnessView, L"g_roughnessTexture");
-	renderContext->SetTexture(m_rustedIronNormalView, L"g_normalTexture");
-
-	// Sponza
+	// Sphere
 	{
-		auto* pso = GraphicsPipelineState::Create({
-			.vs = Shader::Create({
+		renderContext->SetPSO({
+			.vs = {
 				.filepath = L"shaders/PBR.hlsl",
 				.entryName = L"vsmain",
 				.shaderType = ShaderType::VS
-			}),
-			.ps = Shader::Create({
+			},
+			.ps = {
 				.filepath = L"shaders/PBR.hlsl",
-				.entryName = L"psmain",
+				.entryName = L"spheremain",
 				.shaderType = ShaderType::PS
-			}),
+			},
 			.rasterizerState = {
 				.cullMode = CullMode::Back
 			},
@@ -548,8 +605,59 @@ void SandboxLayer::Update(Duration delta)
 			.numRenderTargets = 1,
 			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
 			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
-		});
-		renderContext->SetPSO(pso);
+			});
+
+		CBufferModel modelData = {
+			.world = glm::translate(glm::float4x4(1.f), glm::float3(0.f, -5.f, 0.f)),
+			.normalMatrix = glm::transpose(glm::inverse(glm::float3x3(modelData.world))),
+
+			.mipLevel = -1.f,
+
+			.material = {
+				.albedo = glm::float3(1.f, 1.f, 1.f),
+				.metallic = 0.f,
+				.roughness = 0.1f,
+				.ao = 0.3f
+			}
+		};
+
+		renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_envMap");
+
+		for (Ref<Render::PrimitiveBatch> sphere : m_spheres)
+		{
+			modelData.world = glm::translate(modelData.world, glm::float3(2.f, 0.f, 0.f));
+			modelData.mipLevel += 1.f;
+			
+			sphere->Draw(renderContext, &modelData, sizeof(CBufferModel));
+		}
+	}
+
+	// Sponza
+	if (0)
+	{
+		renderContext->SetPSO({
+			.vs = {
+				.filepath = L"shaders/PBR.hlsl",
+				.entryName = L"vsmain",
+				.shaderType = ShaderType::VS
+			},
+			.ps = {
+				.filepath = L"shaders/PBR.hlsl",
+				.entryName = L"psmain",
+				.shaderType = ShaderType::PS
+			},
+			.rasterizerState = {
+				.cullMode = CullMode::Back
+			},
+			.depthStencilState = {
+				.depthEnable = true,
+				.depthWriteEnable = true
+			},
+			.primitiveTopologyType = TopologyType::TriangleList,
+			.numRenderTargets = 1,
+			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
+			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
+			});
 
 		CBufferModel modelData = {
 			.world = glm::scale(glm::float4x4(1.f), glm::float3(1.f, 1.f, 1.f)),
@@ -563,48 +671,6 @@ void SandboxLayer::Update(Duration delta)
 			}
 		};
 		m_sponza->Draw(renderContext, &modelData, sizeof(CBufferModel));
-	}
-
-
-	// Sphere
-	{
-		auto* pso = GraphicsPipelineState::Create({
-			.vs = Shader::Create({
-				.filepath = L"shaders/PBR.hlsl",
-				.entryName = L"vsmain",
-				.shaderType = ShaderType::VS
-			}),
-			.ps = Shader::Create({
-				.filepath = L"shaders/PBR.hlsl",
-				.entryName = L"psmain",
-				.shaderType = ShaderType::PS
-			}),
-			.rasterizerState = {
-				.cullMode = CullMode::Back
-			},
-			.depthStencilState = {
-				.depthEnable = true,
-				.depthWriteEnable = true
-			},
-			.primitiveTopologyType = TopologyType::TriangleList,
-			.numRenderTargets = 1,
-			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
-			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
-			});
-		renderContext->SetPSO(pso);
-
-		CBufferModel modelData = {
-			.world = glm::translate(glm::float4x4(1.f), glm::float3(0.f, -5.f, 0.f)),
-			.normalMatrix = glm::transpose(glm::inverse(glm::float3x3(modelData.world))),
-
-			.material = {
-				.albedo = glm::float3(1.f, 1.f, 1.f),
-				.metallic = 0.f,
-				.roughness = 0.1f,
-				.ao = 0.3f
-			}
-		};
-		m_sphere->Draw(renderContext, &modelData, sizeof(CBufferModel));
 	}
 
 	RenderDevice::Get().SubmitContext(renderContext);

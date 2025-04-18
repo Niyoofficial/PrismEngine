@@ -12,9 +12,7 @@
 #include "RenderAPI/D3D12/D3D12TextureView.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 #include "Prism/Render/RenderTypes.h"
-#include "RenderAPI/D3D12/D3D12PipelineState.h"
 #include "RenderAPI/D3D12/D3D12RootSignature.h"
-#include "RenderAPI/D3D12/D3D12ShaderImpl.h"
 
 namespace Prism::Render::D3D12
 {
@@ -96,23 +94,23 @@ void D3D12RenderCommandList::Dispatch(int32_t threadGroupCountX, int32_t threadG
 	m_commandList->Dispatch((UINT)threadGroupCountX, (UINT)threadGroupCountY, (UINT)threadGroupCountZ);
 }
 
-void D3D12RenderCommandList::SetPSO(GraphicsPipelineState* pso)
+void D3D12RenderCommandList::SetPSO(const GraphicsPipelineStateDesc& desc)
 {
-	m_currentGraphicsPSO = pso;
+	m_currentGraphicsPSO = desc;
 
-	auto* graphicsPSO = static_cast<D3D12GraphicsPipelineState*>(pso);
+	auto* pso = m_pipelineStateCache.GetOrCreatePipelineState(desc);
 
-	m_commandList->SetPipelineState(graphicsPSO->GetD3D12PipelineState());
-	m_commandList->IASetPrimitiveTopology(GetD3D12PrimitiveTopology(pso->GetDesc().primitiveTopologyType));
+	m_commandList->SetPipelineState(pso);
+	m_commandList->IASetPrimitiveTopology(GetD3D12PrimitiveTopology(desc.primitiveTopologyType));
 }
 
-void D3D12RenderCommandList::SetPSO(ComputePipelineState* pso)
+void D3D12RenderCommandList::SetPSO(const ComputePipelineStateDesc& desc)
 {
-	m_currentComputePSO = pso;
+	m_currentComputePSO = desc;
 
-	auto* computePSO = static_cast<D3D12ComputePipelineState*>(pso);
+	auto* pso = m_pipelineStateCache.GetOrCreatePipelineState(desc);
 
-	m_commandList->SetPipelineState(computePSO->GetD3D12PipelineState());
+	m_commandList->SetPipelineState(pso);
 }
 
 void D3D12RenderCommandList::SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv)
@@ -178,6 +176,12 @@ void D3D12RenderCommandList::SetTexture(TextureView* textureView, const std::wst
 {
 	PE_ASSERT(textureView);
 	PE_ASSERT(!paramName.empty(), "Param name cannot be empty");
+
+	// We need to save the previous resource descriptor because GPU might still be using it
+	auto it = m_rootResources.find(paramName);
+	if (it != m_rootResources.end() && it->second)
+		m_overriddenRootResources.push_back(it->second);
+
 	m_rootResources[paramName] = textureView;
 }
 
@@ -185,6 +189,12 @@ void D3D12RenderCommandList::SetBuffer(BufferView* bufferView, const std::wstrin
 {
 	PE_ASSERT(bufferView);
 	PE_ASSERT(!paramName.empty(), "Param name cannot be empty");
+
+	// We need to save the previous resource descriptor because GPU might still be using it
+	auto it = m_rootResources.find(paramName);
+	if (it != m_rootResources.end() && it->second)
+		m_overriddenRootResources.push_back(it->second);
+
 	m_rootResources[paramName] = bufferView;
 }
 
@@ -391,44 +401,43 @@ void D3D12RenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
 		type == PipelineStateType::Graphics && m_currentGraphicsPSO.IsValid() ||
 		type == PipelineStateType::Compute && m_currentComputePSO.IsValid());
 
-	auto setupDescriptors = [this]<typename T>(T* pso) requires std::is_same_v<T, GraphicsPipelineState> || std::is_same_v<T, ComputePipelineState>
+	auto setupDescriptors = [this]<typename T>(const T& pso) requires std::is_same_v<T, GraphicsPipelineStateDesc> || std::is_same_v<T, ComputePipelineStateDesc>
 	{
-		using ShaderArray = std::conditional_t<std::is_same_v<T, GraphicsPipelineState>,
-		   std::array<D3D12Shader*, 2>,
-		   std::array<D3D12Shader*, 1>
+		using ShaderArray = std::conditional_t<std::is_same_v<T, GraphicsPipelineStateDesc>,
+		   std::array<const ShaderDesc*, 2>,
+		   std::array<const ShaderDesc*, 1>
 		>;
 
 		ShaderArray shaders;
-		if constexpr (std::is_same_v<T, GraphicsPipelineState>)
+		if constexpr (std::is_same_v<T, GraphicsPipelineStateDesc>)
 		{
-			shaders = {
-				static_cast<D3D12Shader*>(pso->GetDesc().vs),
-				static_cast<D3D12Shader*>(pso->GetDesc().ps)
-			};
+			shaders[0] = &pso.vs;
+			shaders[1] = &pso.ps;
 		}
 		else
 		{
-			shaders = {
-				static_cast<D3D12Shader*>(pso->GetDesc().cs)
-			};
+			shaders[0] = &pso.cs;
 		}
 
 		std::vector<D3D12_ROOT_PARAMETER> rootParams;
 
-		for (D3D12Shader* shader : shaders)
+		for (const ShaderDesc* shader : shaders)
 		{
 			int32_t rootParamIndex = -1;
-			if constexpr (std::is_same_v<T, GraphicsPipelineState>)
-				rootParamIndex = D3D12RenderDevice::Get().GetGlobalRootSignature(PipelineStateType::Graphics)->GetRootParamIndexForShader(shader->GetCreateInfo().shaderType);
-			else if constexpr (std::is_same_v<T, ComputePipelineState>)
-				rootParamIndex = D3D12RenderDevice::Get().GetGlobalRootSignature(PipelineStateType::Compute)->GetRootParamIndexForShader(shader->GetCreateInfo().shaderType);
+			if constexpr (std::is_same_v<T, GraphicsPipelineStateDesc>)
+				rootParamIndex = D3D12RenderDevice::Get().GetGlobalRootSignature(PipelineStateType::Graphics)->GetRootParamIndexForShader(shader->shaderType);
+			else if constexpr (std::is_same_v<T, ComputePipelineStateDesc>)
+				rootParamIndex = D3D12RenderDevice::Get().GetGlobalRootSignature(PipelineStateType::Compute)->GetRootParamIndexForShader(shader->shaderType);
 
-			ID3D12ShaderReflection* reflection = shader->GetCompilerOutput().reflection.Get();
+			ComPtr<ID3D12ShaderReflection> reflection = D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetOrCreateShader(*shader).reflection;
 
 			D3D12_SHADER_DESC shaderDesc;
 			PE_ASSERT_HR(reflection->GetDesc(&shaderDesc));
 
-			PE_ASSERT(shaderDesc.ConstantBuffers == 1, "You are only supposed to use 1 constant buffer to get indices to a descriptor heap");
+			PE_ASSERT(shaderDesc.ConstantBuffers <= 1, "You are only supposed to use 1 constant buffer to get indices to a descriptor heap");
+
+			if (shaderDesc.ConstantBuffers == 0)
+				continue;
 
 			ID3D12ShaderReflectionConstantBuffer* cbReflection = reflection->GetConstantBufferByIndex(0);
 			PE_ASSERT(cbReflection);
@@ -479,21 +488,22 @@ void D3D12RenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
 					//PE_RENDER_LOG(Info, "{} resource wasn't set in shader {} with entry name \"{}\", index will be set to -1",
 					//	varDesc.Name, shader->GetCreateInfo().filepath, shader->GetCreateInfo().entryName);
 
+					// We set the handle to -1 to indicate that nothing is bound to it
 					int32_t handleIndex = -1;
 					data = std::bit_cast<UINT>(handleIndex);
 				}
 
-				if constexpr (std::is_same_v<T, GraphicsPipelineState>)
+				if constexpr (std::is_same_v<T, GraphicsPipelineStateDesc>)
 					m_commandList->SetGraphicsRoot32BitConstant(rootParamIndex, data, i);
-				else if constexpr (std::is_same_v<T, ComputePipelineState>)
+				else if constexpr (std::is_same_v<T, ComputePipelineStateDesc>)
 					m_commandList->SetComputeRoot32BitConstant(rootParamIndex, data, i);
 			}
 		}
 	};
 
 	if (type == PipelineStateType::Graphics)
-		setupDescriptors(m_currentGraphicsPSO.Raw());
+		setupDescriptors(m_currentGraphicsPSO);
 	else if (type == PipelineStateType::Compute)
-		setupDescriptors(m_currentComputePSO.Raw());
+		setupDescriptors(m_currentComputePSO);
 }
 }

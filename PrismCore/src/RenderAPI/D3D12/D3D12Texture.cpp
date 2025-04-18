@@ -78,8 +78,10 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 		auto context = D3D12RenderDevice::Get().AllocateContext();
 		context->UpdateTexture(this, {.data = loadedData, .sizeInBytes = (int64_t)(width * height * 4 * 4)}, 0);
 
+		//GenerateMipMaps(context);
+
 		D3D12RenderDevice::Get().SubmitContext(context);
-		D3D12RenderDevice::Get().GetRenderQueue()->Flush();
+		D3D12RenderDevice::Get().GetRenderCommandQueue()->Flush();
 
 		PE_ASSERT(m_resource);
 
@@ -92,7 +94,6 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 	{
 		m_originalDesc = {
 			.textureName = filepath,
-			.mipLevels = 1,
 			.format = TextureFormat::RGBA32_Float,
 			.bindFlags = BindFlags::ShaderResource,
 			.usage = ResourceUsage::Default
@@ -120,7 +121,7 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 		if (waitForLoadFinish)
 			func();
 		else
-			m_cpuLoadFuture = std::async(std::launch::async, func);
+			m_loadFuture = std::async(std::launch::async, func);
 	}
 }
 
@@ -136,15 +137,10 @@ D3D12Texture::D3D12Texture(ID3D12Resource* resource, const std::wstring& name, R
 
 void D3D12Texture::WaitForLoadFinish()
 {
-	if (m_cpuLoadFuture.valid())
+	if (m_loadFuture.valid())
 	{
-		m_cpuLoadFuture.wait_for(std::chrono::seconds(0));
-		m_cpuLoadFuture = {};
-	}
-	if (m_gpuLoadFuture.valid())
-	{
-		m_gpuLoadFuture.wait_for(std::chrono::seconds(0));
-		m_gpuLoadFuture = {};
+		m_loadFuture.wait_for(std::chrono::seconds(0));
+		m_loadFuture = {};
 	}
 }
 

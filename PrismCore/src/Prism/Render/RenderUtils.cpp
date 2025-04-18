@@ -195,8 +195,14 @@ glm::int4 GetBitsPerChannel(TextureFormat format)
 
 }
 
+int32_t GetSubresourceIndex(int32_t mipLevel, int32_t numMipLevels, int32_t arraySlice, int32_t numArraySlices)
+{
+	return mipLevel + arraySlice * numMipLevels;
+}
+
 float ReadPixelChannelValueAsFloat(void* data, int32_t numBits, TextureModifier modifier)
 {
+	PE_ASSERT_NO_ENTRY();
 	return 0;
 }
 

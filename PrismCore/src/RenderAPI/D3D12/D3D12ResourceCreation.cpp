@@ -1,8 +1,6 @@
 #include "pcpch.h"
 
-#include "RenderAPI/D3D12/D3D12PipelineState.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
-#include "RenderAPI/D3D12/D3D12ShaderImpl.h"
 #include "RenderAPI/D3D12/D3D12Swapchain.h"
 #include "Prism/Render/Buffer.h"
 #include "Prism/Render/BufferView.h"
@@ -31,21 +29,6 @@ Swapchain* CreateSwapchain(Core::Window* window, SwapchainDesc swapchainDesc)
 	return new D3D12::D3D12Swapchain(window, swapchainDesc);
 }
 
-Shader* CreateShader(const ShaderCreateInfo& createInfo)
-{
-	return new D3D12::D3D12Shader(createInfo);
-}
-
-GraphicsPipelineState* CreatePipelineState(const GraphicsPipelineStateDesc& desc)
-{
-	return new D3D12::D3D12GraphicsPipelineState(desc);
-}
-
-ComputePipelineState* CreatePipelineState(const ComputePipelineStateDesc& desc)
-{
-	return new D3D12::D3D12ComputePipelineState(desc);
-}
-
 Buffer* CreateBuffer(const BufferDesc& desc)
 {
 	return new D3D12::D3D12Buffer(desc);
@@ -69,5 +52,10 @@ Texture* CreateTexture(std::wstring filepath, bool loadAsCubemap, bool waitForLo
 TextureView* CreateTextureView(const TextureViewDesc& desc, Texture* texture)
 {
 	return new D3D12::D3D12TextureView(desc, texture);
+}
+
+ShaderCompiler* CreateShaderCompiler()
+{
+	return new D3D12::D3D12ShaderCompiler();
 }
 }

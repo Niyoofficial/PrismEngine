@@ -26,7 +26,6 @@ private:
 
 	bool m_isMapped = false;
 
-	std::future<void> m_cpuLoadFuture;
-	std::future<void> m_gpuLoadFuture;
+	std::future<void> m_loadFuture;
 };
 }

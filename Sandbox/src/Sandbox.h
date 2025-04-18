@@ -65,6 +65,9 @@ struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferModel
 	glm::float4x4 normalMatrix;
 
 	alignas(16)
+	float mipLevel = 0.f;
+
+	alignas(16)
 	Material material;
 };
 
@@ -106,10 +109,6 @@ private:
 	Ref<Render::TextureView> m_prefilteredEnvMapCubeSRVView;
 	Ref<Render::TextureView> m_prefilteredEnvMapUAVView;
 
-	Ref<Render::Texture> m_irradiance;
-	Ref<Render::TextureView> m_irradianceSRVView;
-	Ref<Render::TextureView> m_irradianceUAVView;
-
 	Ref<Render::Texture> m_rustedIronAlbedo;
 	Ref<Render::TextureView> m_rustedIronAlbedoView;
 	Ref<Render::Texture> m_rustedIronMetallic;
@@ -132,7 +131,7 @@ private:
 
 	Ref<Render::PrimitiveBatch> m_sponza;
 	Ref<Render::PrimitiveBatch> m_cube;
-	Ref<Render::PrimitiveBatch> m_sphere;
+	std::vector<Ref<Render::PrimitiveBatch>> m_spheres;
 
 	float m_cameraSpeed = 0.05f;
 	float m_mouseSpeed = 0.003f;

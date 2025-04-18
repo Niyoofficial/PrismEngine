@@ -125,8 +125,8 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 
 D3D12RenderDevice::~D3D12RenderDevice()
 {
-	m_dynamicBufferAllocator.CloseCmdListAllocations(D3D12RenderDevice::GetRenderQueue()->GetLastSubmittedCmdListFenceValue());
-	m_dynamicBufferAllocator.ReleaseStaleAllocations(D3D12RenderDevice::GetRenderQueue()->GetCompletedFenceValue());
+	m_dynamicBufferAllocator.CloseCmdListAllocations(D3D12RenderDevice::GetRenderCommandQueue()->GetLastSubmittedCmdListFenceValue());
+	m_dynamicBufferAllocator.ReleaseStaleAllocations(D3D12RenderDevice::GetRenderCommandQueue()->GetCompletedFenceValue());
 
 #if USE_PIX
 	FreeLibrary(m_pixGpuCaptureModule);
@@ -139,7 +139,7 @@ void D3D12RenderDevice::ImGuiNewFrame()
 	ImGui_ImplDX12_NewFrame();
 }
 
-RenderCommandQueue* D3D12RenderDevice::GetRenderQueue() const
+RenderCommandQueue* D3D12RenderDevice::GetRenderCommandQueue() const
 {
 	return m_commandQueue;
 }
@@ -148,8 +148,8 @@ void D3D12RenderDevice::ReleaseStaleResources()
 {
 	RenderDevice::ReleaseStaleResources();
 
-	m_dynamicBufferAllocator.CloseCmdListAllocations(GetRenderQueue()->GetLastSubmittedCmdListFenceValue());
-	m_dynamicBufferAllocator.ReleaseStaleAllocations(GetRenderQueue()->GetCompletedFenceValue());
+	m_dynamicBufferAllocator.CloseCmdListAllocations(GetRenderCommandQueue()->GetLastSubmittedCmdListFenceValue());
+	m_dynamicBufferAllocator.ReleaseStaleAllocations(GetRenderCommandQueue()->GetCompletedFenceValue());
 }
 
 int64_t D3D12RenderDevice::GetTotalSizeInBytes(BufferDesc buffDesc) const
@@ -189,6 +189,11 @@ int64_t D3D12RenderDevice::GetTexturePitchAlignment() const
 	return D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
 }
 
+D3D12ShaderCompiler* D3D12RenderDevice::GetD3D12ShaderCompiler() const
+{
+	return static_cast<D3D12ShaderCompiler*>(GetShaderCompiler());
+}
+
 ID3D12Device10* D3D12RenderDevice::GetD3D12Device() const
 {
 	PE_ASSERT(m_d3dDevice.Get());
@@ -203,7 +208,7 @@ IDXGIFactory2* D3D12RenderDevice::GetDXGIFactory() const
 
 ID3D12CommandQueue* D3D12RenderDevice::GetD3D12CommandQueue() const
 {
-	return static_cast<D3D12RenderCommandQueue*>(GetRenderQueue())->GetD3D12CommandQueue();
+	return static_cast<D3D12RenderCommandQueue*>(GetRenderCommandQueue())->GetD3D12CommandQueue();
 }
 
 DescriptorHeapAllocation D3D12RenderDevice::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t count)

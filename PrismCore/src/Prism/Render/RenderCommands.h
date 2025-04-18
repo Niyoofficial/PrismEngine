@@ -102,7 +102,7 @@ DEFINE_RENDER_COMMAND(DispatchRenderCommand)
 
 DEFINE_RENDER_COMMAND(SetGraphicsPSORenderCommand)
 {
-	explicit SetGraphicsPSORenderCommand(GraphicsPipelineState * inPSO)
+	explicit SetGraphicsPSORenderCommand(const GraphicsPipelineStateDesc& inPSO)
 		: pso(inPSO)
 	{
 	}
@@ -112,12 +112,12 @@ DEFINE_RENDER_COMMAND(SetGraphicsPSORenderCommand)
 		cmdList->SetPSO(pso);
 	}
 
-	GraphicsPipelineState* pso = nullptr;
+	GraphicsPipelineStateDesc pso;
 };
 
 DEFINE_RENDER_COMMAND(SetComputePSORenderCommand)
 {
-	explicit SetComputePSORenderCommand(ComputePipelineState * inPSO)
+	explicit SetComputePSORenderCommand(const ComputePipelineStateDesc& inPSO)
 		: pso(inPSO)
 	{
 	}
@@ -127,7 +127,7 @@ DEFINE_RENDER_COMMAND(SetComputePSORenderCommand)
 		cmdList->SetPSO(pso);
 	}
 
-	ComputePipelineState* pso = nullptr;
+	ComputePipelineStateDesc pso;
 };
 
 DEFINE_RENDER_COMMAND(SetRenderTargetsRenderCommand)

@@ -22,6 +22,8 @@
 				"sdl3-binding"
 			]
 		},
-		"winpixevent"
+		"winpixevent",
+		"xxhash",
+		"yaml-cpp"
 	]
 }

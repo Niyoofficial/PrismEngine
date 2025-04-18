@@ -1,19 +1,18 @@
 #pragma once
-#include "Prism/Render/PipelineStateCache.h"
 #include "Prism/Render/ReleaseQueue.h"
 #include "Prism/Render/RenderContext.h"
-#include "Prism/Render/ShaderCache.h"
+#include "Prism/Render/ShaderCompiler.h"
 #include "Prism/Utilities/StaticSingleton.h"
 
+
+DECLARE_LOG_CATEGORY(PERender, "Prism-Render");
+#define PE_RENDER_LOG(verbosity, ...) PE_LOG(PERender, verbosity, __VA_ARGS__)
 
 namespace Prism::Core
 {
 class Application;
 class Window;
 }
-
-DECLARE_LOG_CATEGORY(PERender, "Prism-Render");
-#define PE_RENDER_LOG(verbosity, ...) PE_LOG(PERender, verbosity, __VA_ARGS__)
 
 namespace Prism::Render
 {
@@ -57,13 +56,9 @@ public:
 	virtual SubresourceFootprint GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex = 0) const = 0;
 	virtual int64_t GetTexturePitchAlignment() const = 0;
 	
-	virtual RenderCommandQueue* GetRenderQueue() const = 0;
+	virtual RenderCommandQueue* GetRenderCommandQueue() const = 0;
 
-	ShaderCache& GetShaderCache() { return m_shaderCache; }
-	const ShaderCache& GetShaderCache() const { return m_shaderCache; }
-
-	PipelineStateCache& GetPipelineStateCache() { return m_pipelineStateCache; }
-	const PipelineStateCache& GetPipelineStateCache() const { return m_pipelineStateCache; }
+	ShaderCompiler* GetShaderCompiler() const { return m_shaderCompiler.get(); }
 
 	template<typename T>
 	void AddResourceToReleaseQueue(T&& resource, uint64_t fenceValue)
@@ -93,8 +88,7 @@ protected:
 	// prepared by CPU but not yet completed by the GPU
 	std::queue<uint64_t> m_cpuPreparedFrames;
 
-	ShaderCache m_shaderCache;
-	PipelineStateCache m_pipelineStateCache;
+	std::unique_ptr<ShaderCompiler> m_shaderCompiler;
 
 	PreservingObjectContainer m_endFramePreservedObjects;
 	ReleaseQueueAny m_releaseQueue;

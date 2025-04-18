@@ -25,7 +25,7 @@ Ref<Buffer> Buffer::Create(const BufferDesc& desc, RawData initData)
 			context->UpdateBuffer(buffer, initData);
 
 			RenderDevice::Get().SubmitContext(context);
-			RenderDevice::Get().GetRenderQueue()->Flush();
+			RenderDevice::Get().GetRenderCommandQueue()->Flush();
 		}
 		else
 		{

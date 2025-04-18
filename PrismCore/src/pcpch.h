@@ -8,9 +8,7 @@
 #include <deque>
 #include <any>
 #include <span>
-
-#include "glm/gtx/compatibility.hpp"
-#include "glm/gtx/quaternion.hpp"
+#include <ranges>
 
 #include "Prism/Base/Base.h"
 

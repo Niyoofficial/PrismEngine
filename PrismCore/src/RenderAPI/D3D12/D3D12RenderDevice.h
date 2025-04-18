@@ -1,5 +1,4 @@
 ﻿#pragma once
-#define USE_PIX 1
 
 #include "Prism/Render/RenderDevice.h"
 
@@ -9,6 +8,9 @@
 #include "RenderAPI/D3D12/D3D12Base.h"
 #include "RenderAPI/D3D12/D3D12DynamicBufferAllocator.h"
 
+
+DECLARE_LOG_CATEGORY(PED3D12, "Prism-D3D12");
+#define PE_D3D12_LOG(verbosity, ...) PE_LOG(PED3D12, verbosity, __VA_ARGS__)
 
 namespace Prism::Render::D3D12
 {
@@ -27,7 +29,7 @@ public:
 
 	virtual void ImGuiNewFrame() override;
 
-	RenderCommandQueue* GetRenderQueue() const override;
+	virtual RenderCommandQueue* GetRenderCommandQueue() const override;
 
 	virtual void ReleaseStaleResources() override;
 
@@ -36,12 +38,11 @@ public:
 	virtual SubresourceFootprint GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex) const override;
 	virtual int64_t GetTexturePitchAlignment() const override;
 
+	D3D12ShaderCompiler* GetD3D12ShaderCompiler() const;
+
 	ID3D12Device10* GetD3D12Device() const;
 	IDXGIFactory2* GetDXGIFactory() const;
 	ID3D12CommandQueue* GetD3D12CommandQueue() const;
-
-	D3D12ShaderCompiler& GetShaderCompiler() { return m_shaderCompiler; }
-	const D3D12ShaderCompiler& GetShaderCompiler() const { return m_shaderCompiler; }
 
 	DescriptorHeapAllocation AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t count = 1);
 
@@ -64,8 +65,6 @@ private:
 
 	ComPtr<IDXGIFactory2> m_dxgiFactory;
 	ComPtr<ID3D12Device10> m_d3dDevice;
-
-	D3D12ShaderCompiler m_shaderCompiler;
 
 	std::unordered_map<D3D12_DESCRIPTOR_HEAP_TYPE, uint32_t> m_descriptorHandleSizes;
 

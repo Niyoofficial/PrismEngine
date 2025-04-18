@@ -7,10 +7,11 @@ namespace Prism::Render
 {
 struct GraphicsPipelineStateDesc
 {
+	bool IsValid() const;
 	bool operator==(const GraphicsPipelineStateDesc& other) const;
 
-	Shader* vs = nullptr;
-	Shader* ps = nullptr;
+	ShaderDesc vs;
+	ShaderDesc ps;
 	BlendStateDesc blendState;
 	RasterizerStateDesc rasterizerState;
 	DepthStencilStateDesc depthStencilState;
@@ -26,39 +27,12 @@ struct GraphicsPipelineStateDesc
 	SampleDesc sampleDesc;
 };
 
-class GraphicsPipelineState : public RefCounted
-{
-public:
-	static GraphicsPipelineState* Create(const GraphicsPipelineStateDesc& desc);
-
-	const GraphicsPipelineStateDesc& GetDesc() const { return m_desc; }
-
-protected:
-	explicit GraphicsPipelineState(const GraphicsPipelineStateDesc& desc);
-
-protected:
-	GraphicsPipelineStateDesc m_desc = {};
-};
-
 struct ComputePipelineStateDesc
 {
+	bool IsValid() const;
 	bool operator==(const ComputePipelineStateDesc& other) const;
 
-	Shader* cs = nullptr;
-};
-
-class ComputePipelineState : public RefCounted
-{
-public:
-	static ComputePipelineState* Create(const ComputePipelineStateDesc& desc);
-
-	const ComputePipelineStateDesc& GetDesc() const { return m_desc; }
-
-protected:
-	explicit ComputePipelineState(const ComputePipelineStateDesc& desc);
-
-protected:
-	ComputePipelineStateDesc m_desc = {};
+	ShaderDesc cs;
 };
 }
 
@@ -69,19 +43,18 @@ struct std::hash<Prism::Render::GraphicsPipelineStateDesc>
 	{
 		using namespace Prism::Render;
 
-		static_assert(sizeof(desc) == 440,
+		static_assert(sizeof(desc) == 600,
 					  "If new field was added, add it to the hash function and update this assert");
 
 		return
-			std::hash<Shader*>()(desc.vs) ^
-			std::hash<Shader*>()(desc.ps) ^
+			std::hash<ShaderDesc>()(desc.vs) ^
+			std::hash<ShaderDesc>()(desc.ps) ^
 			std::hash<BlendStateDesc>()(desc.blendState) ^
 			std::hash<RasterizerStateDesc>()(desc.rasterizerState) ^
 			std::hash<DepthStencilStateDesc>()(desc.depthStencilState) ^
-			std::hash<TopologyType>()(desc.primitiveTopologyType) ^
 			std::hash<int32_t>()(desc.numRenderTargets) ^
-			std::hash<std::array<TextureFormat, 8>>()(desc.renderTargetFormats) ^
-			std::hash<TextureFormat>()(desc.depthStencilFormat);
+			std::hash<TextureFormat>()(desc.depthStencilFormat) ^
+			std::hash<uint32_t>()(desc.sampleMask);
 	}
 };
 
@@ -92,9 +65,9 @@ struct std::hash<Prism::Render::ComputePipelineStateDesc>
 	{
 		using namespace Prism::Render;
 
-		static_assert(sizeof(desc) == 8,
+		static_assert(sizeof(desc) == 88,
 					  "If new field was added, add it to the hash function and update this assert");
 
-		return std::hash<Shader*>()(desc.cs);
+		return std::hash<ShaderDesc>()(desc.cs);
 	}
 };

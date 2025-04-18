@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <d3d12shader.h>
 
+#include "dxcapi.h"
 #include "Prism/Render/Buffer.h"
 #include "Prism/Render/BufferView.h"
 #include "Prism/Render/PipelineState.h"
@@ -8,6 +9,7 @@
 #include "Prism/Render/Texture.h"
 #include "Prism/Render/TextureView.h"
 #include "RenderAPI/D3D12/D3D12Base.h"
+#include "RenderAPI/D3D12/D3D12ShaderCompiler.h"
 
 namespace Prism::Render::D3D12
 {
@@ -29,9 +31,9 @@ DXGI_FORMAT GetDXGIFormat(TextureFormat format);
 DXGI_SAMPLE_DESC GetDXGISampleDesc(SampleDesc sampleDesc);
 DXGI_RATIONAL GetDXGIRational(int32_t numerator, int32_t denominator);
 
-D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc);
-D3D12_COMPUTE_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const ComputePipelineStateDesc& desc);
-CD3DX12_SHADER_BYTECODE GetD3D12ShaderBytecode(Shader* shader);
+D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc, const D3D12ShaderCompilerOutput& vs, const D3D12ShaderCompilerOutput& ps);
+D3D12_COMPUTE_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const ComputePipelineStateDesc& desc, const D3D12ShaderCompilerOutput& cs);
+CD3DX12_SHADER_BYTECODE GetD3D12ShaderBytecode(IDxcBlob* shaderBytecode);
 D3D12_SHADER_VISIBILITY GetD3D12ShaderVisibility(ShaderType shaderType);
 
 D3D12_FILL_MODE GetD3D12FillMode(FillMode fillMode);
@@ -46,7 +48,7 @@ D3D12_BLEND GetD3D12Blend(BlendFactor blendFactor);
 D3D12_BLEND_OP GetD3D12BlendOp(BlendOperation blendOperation);
 D3D12_LOGIC_OP GetD3D12LogicOp(LogicOperation logicOperation);
 DXGI_FORMAT GetD3D12InputElementDescFormat(const D3D12_SIGNATURE_PARAMETER_DESC& paramDesc);
-D3D12InputLayout GetD3D12InputLayoutFromVertexShader(Shader* vertexShader);
+D3D12InputLayout GetD3D12InputLayoutFromVertexShader(const D3D12ShaderCompilerOutput& vertexShader);
 
 D3D12_RESOURCE_DESC1 GetD3D12ResourceDesc(const BufferDesc& bufferDesc);
 D3D12_RESOURCE_DESC1 GetD3D12ResourceDesc(const TextureDesc& textureDesc);

@@ -78,7 +78,7 @@ float3 HemisphereSample_GGX(float2 Xi, float roughness, float3 normal)
 	
 	float a = roughness * roughness;
 	
-	float phi = Xi.y * 2.f * PI;
+	float phi = Xi.x * 2.f * PI;
 	float cosTheta = sqrt((1.f - Xi.y) / (1.f + (a * a - 1.f) * Xi.y));
 	float sinTheta = sqrt(1.f - cosTheta * cosTheta);
 	

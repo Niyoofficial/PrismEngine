@@ -9,6 +9,9 @@
 #include "Prism/Utilities/Flags.h"
 
 #include "glm/gtx/compatibility.hpp"
+#include "glm/gtx/quaternion.hpp"
+
+#include "yaml-cpp/yaml.h"
 
 #define IMPLEMENT_APPLICATION(appClass)						\
 	void CreateApplication(int32_t argc, char** argv)		\

@@ -5,7 +5,12 @@
 
 namespace Prism::Render
 {
-bool ShaderCreateInfo::operator==(const ShaderCreateInfo& other) const
+bool ShaderDesc::IsValid() const
+{
+	return !filepath.empty() && !entryName.empty();
+}
+
+bool ShaderDesc::operator==(const ShaderDesc& other) const
 {
 	return
 		other.filepath == filepath &&
@@ -13,13 +18,13 @@ bool ShaderCreateInfo::operator==(const ShaderCreateInfo& other) const
 		other.shaderType == shaderType;
 }
 
-Shader* Shader::Create(const ShaderCreateInfo& createInfo)
+YAML::Emitter& operator<<(YAML::Emitter& out, const ShaderDesc& shaderCreateInfo)
 {
-	return RenderDevice::Get().GetShaderCache().GetOrCreateShader(createInfo);
-}
-
-Shader::Shader(const ShaderCreateInfo& createInfo)
-	: m_createInfo(createInfo)
-{
+	out << YAML::BeginMap;
+	out << YAML::Key << "filepath" << YAML::Value << WStringToString(shaderCreateInfo.filepath);
+	out << YAML::Key << "entryName" << YAML::Value << WStringToString(shaderCreateInfo.entryName);
+	out << YAML::Key << "shaderType" << YAML::Value << (int32_t)shaderCreateInfo.shaderType;
+	out << YAML::EndMap;
+	return out;
 }
 }

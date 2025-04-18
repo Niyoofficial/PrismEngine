@@ -29,7 +29,7 @@ PixelInputCube vsmain(VertexInput vin)
 	
 	vout.positionLocal = vin.positionLocal;
 	
-	vout.positionClip = mul(sceneBuffer.camera.viewProj, float4(vin.positionLocal + sceneBuffer.camera.camPos, 1.f)).xyww;
+	vout.positionClip = mul(sceneBuffer.camera.viewProj, float4(vin.positionLocal + sceneBuffer.camera.camPos, 1)).xyww;
 	
 	return vout;
 }
@@ -38,7 +38,7 @@ float4 psmain(PixelInputCube pin) : SV_TARGET
 {
 	TextureCube skybox = ResourceDescriptorHeap[g_skybox];
 
-	float3 color = skybox.Sample(g_samLinearWrap, pin.positionLocal).rgb;
+	float3 color = skybox.SampleLevel(g_samLinearWrap, pin.positionLocal, 0).rgb;
 	
 	// Gamma correction
 	color = color / (color + 1.f);

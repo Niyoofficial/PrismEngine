@@ -2,7 +2,6 @@
 #include "D3D12RootSignature.h"
 
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
-#include "RenderAPI/D3D12/D3D12ShaderImpl.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 
 

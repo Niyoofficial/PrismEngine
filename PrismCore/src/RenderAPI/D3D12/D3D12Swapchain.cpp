@@ -67,7 +67,7 @@ void D3D12Swapchain::Present()
 
 void D3D12Swapchain::Resize()
 {
-	RenderDevice::Get().GetRenderQueue()->Flush();
+	RenderDevice::Get().GetRenderCommandQueue()->Flush();
 
 	m_backBuffers.clear();
 	m_backBufferRTVs.clear();
