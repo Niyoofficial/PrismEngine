@@ -87,13 +87,13 @@ DynamicGPURingBuffer::DynamicAllocation DynamicGPURingBuffer::Allocate(int64_t s
 	if (IsFull())
 		return {};
 
-	if (m_maxSize - m_usedSize < size)
-		return {};
-
 	static constexpr int64_t ALIGNMENT = 256;
 	static constexpr int64_t ALIGNMENT_MASK = ALIGNMENT - 1;
 
 	size = (size + ALIGNMENT_MASK) & ~ALIGNMENT_MASK;
+
+	if (m_maxSize - m_usedSize < size)
+		return {};
 
 	int64_t currentOffset = INVALID_OFFSET;
 	if (m_tail >= m_head)
@@ -119,6 +119,12 @@ DynamicGPURingBuffer::DynamicAllocation DynamicGPURingBuffer::Allocate(int64_t s
 			m_tail = size;
 			currentOffset = 0;
 		}
+		else
+		{
+			// The memory has to be continuous so if we can't fit it as a whole after tail or
+			// in front of the head, then return invalid offset and let a new ring buffer be allocated
+			currentOffset = INVALID_OFFSET;
+		}
 	}
 	else if (m_tail + size <= m_head)
 	{
@@ -133,8 +139,6 @@ DynamicGPURingBuffer::DynamicAllocation DynamicGPURingBuffer::Allocate(int64_t s
 		m_currentCmdListSize += size;
 		currentOffset = offset;
 	}
-
-	PE_ASSERT(currentOffset != INVALID_OFFSET);
 
 	return {
 		.resource = m_resource.Get(),
