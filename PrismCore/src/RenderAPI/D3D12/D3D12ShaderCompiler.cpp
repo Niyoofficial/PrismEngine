@@ -20,7 +20,8 @@ D3D12ShaderCompiler::D3D12ShaderCompiler()
 
 	PE_ASSERT_HR(m_dxcUtils->CreateDefaultIncludeHandler(&m_dxcIncludeHandler));
 
-	for (const auto& file : std::filesystem::directory_iterator(Core::Paths::Get().GetIntermediateDir()))
+	std::error_code error;
+	for (const auto& file : std::filesystem::directory_iterator(Core::Paths::Get().GetIntermediateDir(), error))
 	{
 		if (file.is_regular_file())
 		{
@@ -69,6 +70,9 @@ D3D12ShaderCompiler::D3D12ShaderCompiler()
 
 				m_shaderCache[desc] = {hash, output};
 
+				// Try to compile the shader anyway in case the cached file is outdated
+				D3D12ShaderCompiler::CompileShader(desc);
+
 				PE_D3D12_LOG(Info, "Loaded cached shader binary file {} for shader {}, Entryname: {}, Shader code hash: {}",
 					file.path().generic_string(), WStringToString(desc.filepath), WStringToString(desc.entryName), hash);
 			}
@@ -89,6 +93,8 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 {
 	// dxc <shaderName>.hlsl -E <entryPoint> -T <shaderType>_6_8 -Zi -Od -Fo <outputName>.bin -Fd <outputName>.pdb -I -enable-16bit-types
 
+	std::wstring engineInputPath = Core::Paths::Get().GetEngineDir() + L"/" + desc.filepath;
+
 	ComPtr<IDxcBlobEncoding> source = nullptr;
 	HRESULT result = m_dxcUtils->LoadFile(desc.filepath.c_str(), nullptr, &source);
 	if (FAILED(result))
@@ -105,6 +111,7 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 	sourceBuffer.Encoding = DXC_CP_ACP;
 
 	std::wstring inputPathNoFile = desc.filepath.substr(0, desc.filepath.find_last_of('/') + 1);
+	std::wstring engineInputPathNoFile = engineInputPath.substr(0, engineInputPath.find_last_of('/') + 1);
 	std::wstring inputFilename = desc.filepath.substr(desc.filepath.find_last_of('/') + 1);
 	std::wstring inputFilenameNoExt = inputFilename.substr(0, inputFilename.find_last_of('.'));
 	std::wstring target = GetTargetStringForShader(desc.shaderType, 6, 8);
@@ -116,14 +123,16 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 		L"-Zi", L"-Od",							// Enable debug information, Disable optimization
 		//L"-Qstrip_debug",						// Strip debug into a separate blob
 		//L"-Qstrip_reflect",					// Strip reflection into a separate blob
-		L"-I", inputPathNoFile.c_str(),			// Shader directory will be used as base director for include handler
+		L"-I", inputPathNoFile.c_str(),			// Shader directory will be used as base directory for include handler
+		L"-I", engineInputPathNoFile.c_str(),	// Shader directory will be used as base directory for include handler
 		L"-enable-16bit-types"
 	};
 
 	const wchar_t* preprocessArguments[] = {
 		inputFilename.c_str(),					// Shader filename
 		L"-P",									// Preprocess
-		L"-I", inputPathNoFile.c_str(),			// Shader directory will be used as base director for include handler
+		L"-I", inputPathNoFile.c_str(),			// Shader directory will be used as base directory for include handler
+		L"-I", engineInputPathNoFile.c_str(),	// Shader directory will be used as base directory for include handler
 	};
 
 	XXH64_hash_t shaderHash;
@@ -157,9 +166,23 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 
 			XXH3_freeState(hashState);
 
-			// If the hash is the same, use the cached shader, otherwise compile it
-			if (m_shaderCache.contains(desc) && m_shaderCache.at(desc).hash == shaderHash)
-				return;
+			if (m_shaderCache.contains(desc))
+			{
+				if (m_shaderCache.at(desc).hash == shaderHash)
+				{
+					// If the hash is the same, use the cached shader, otherwise compile it
+					return;
+				}
+				else
+				{
+					// As soon as we know that the shader cached files are outdated, get rid of them so they won't be mistakenly loaded at the next program load
+					std::filesystem::path cacheFile(Core::Paths::Get().GetIntermediateDir() + L"/" + std::to_wstring(m_shaderCache.at(desc).hash));
+
+					std::filesystem::remove(cacheFile.replace_extension(L".bin"));
+					std::filesystem::remove(cacheFile.replace_extension(L".pdb"));
+					std::filesystem::remove(cacheFile.replace_extension(L".meta"));
+				}
+			}
 		}
 	}
 
