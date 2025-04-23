@@ -19,17 +19,28 @@ public:
 	{
 		PE_ASSERT(!m_closed);
 
-		//PE_LOG(PETest, Info, "Recording: {}", T::GetCommandString());
+		if (m_commandListForBypass)
+		{
+			PE_ASSERT(m_commandListForBypass);
+			T command(std::forward<Args>(args)...);
+			command.Execute(m_commandListForBypass);
+		}
+		else
+		{
+			//PE_LOG(PETest, Info, "Recording: {}", T::GetCommandString());
 
-		size_t alignedOffset = Align(m_newCommandOffset, alignof(T));
-		m_newCommandOffset = alignedOffset + sizeof(T);
-		PE_ASSERT(alignedOffset <= m_commands.size() && m_commands.size() - alignedOffset >= sizeof(T));
-		auto* command = (Commands::RenderCommandBase*)new (m_commands.data() + alignedOffset) T(std::forward<Args>(args)...);
-		*m_commandLink = command;
-		m_commandLink = &command->next;
+			size_t alignedOffset = Align(m_newCommandOffset, alignof(T));
+			m_newCommandOffset = alignedOffset + sizeof(T);
+			PE_ASSERT(alignedOffset <= m_commands.size() && m_commands.size() - alignedOffset >= sizeof(T));
+			auto* command = (Commands::RenderCommandBase*)new (m_commands.data() + alignedOffset) T(std::forward<Args>(args)...);
+			*m_commandLink = command;
+			m_commandLink = &command->next;
+		}
 	}
 
 	void Close();
+
+	RenderCommandList* GetCommandListForBypass();
 
 private:
 	void RecordCommands(RenderCommandList* commandList);
@@ -43,5 +54,7 @@ private:
 
 	bool m_closed = false;
 	std::atomic<bool> m_processed = false;
+
+	Ref<RenderCommandList> m_commandListForBypass;
 };
 }

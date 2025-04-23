@@ -44,6 +44,9 @@ public:
 	Ref<RenderContext> AllocateContext();
 	virtual uint64_t SubmitContext(RenderContext* context);
 
+	void SetBypassCommandRecording(bool bypass);
+	bool GetBypassCommandRecording() const;
+
 	virtual void ReleaseStaleResources();
 
 	// Returns the actual resource size that it would occupy in memory
@@ -92,5 +95,7 @@ protected:
 
 	PreservingObjectContainer m_endFramePreservedObjects;
 	ReleaseQueueAny m_releaseQueue;
+
+	bool m_bypassCommandRecording = false;
 };
 }

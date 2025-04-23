@@ -11,4 +11,4 @@
 // Author:  James Stanard 
 //
 
-#include "GenerateMipsCS.hlsli"
+#include "GenerateMips.hlsli"

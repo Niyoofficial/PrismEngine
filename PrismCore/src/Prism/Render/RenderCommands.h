@@ -329,7 +329,7 @@ DEFINE_RENDER_COMMAND(UpdateBufferRenderCommand)
 
 DEFINE_RENDER_COMMAND(UpdateTextureRenderCommand)
 {
-	UpdateTextureRenderCommand(Texture * inTexture, RawData inData, int32_t inSubresourceIndex)
+	UpdateTextureRenderCommand(Texture* inTexture, RawData inData, int32_t inSubresourceIndex)
 		: texture(inTexture), data(inData), subresourceIndex(inSubresourceIndex)
 	{
 	}
@@ -346,7 +346,7 @@ DEFINE_RENDER_COMMAND(UpdateTextureRenderCommand)
 
 DEFINE_RENDER_COMMAND(CopyBufferRegionRenderCommand)
 {
-	CopyBufferRegionRenderCommand(Buffer * inDest, int64_t inDestOffset, Buffer * inSrc, int64_t inSrcOffset, int64_t inNumBytes)
+	CopyBufferRegionRenderCommand(Buffer* inDest, int64_t inDestOffset, Buffer* inSrc, int64_t inSrcOffset, int64_t inNumBytes)
 		: dest(inDest), destOffset(inDestOffset), src(inSrc), srcOffset(inSrcOffset), numBytes(inNumBytes)
 	{
 	}

@@ -1,4 +1,4 @@
-#define CUBEMAP_RESOLUTION 4096
+#define CUBEMAP_RESOLUTION 2048
 
 SamplerState g_samPointWrap : register(s0);
 SamplerState g_samPointClamp : register(s1);

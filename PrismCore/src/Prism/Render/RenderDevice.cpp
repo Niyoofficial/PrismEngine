@@ -76,6 +76,16 @@ uint64_t RenderDevice::SubmitContext(RenderContext* context)
 	return GetRenderCommandQueue()->Submit(context);
 }
 
+void RenderDevice::SetBypassCommandRecording(bool bypass)
+{
+	m_bypassCommandRecording = bypass;
+}
+
+bool RenderDevice::GetBypassCommandRecording() const
+{
+	return m_bypassCommandRecording;
+}
+
 void RenderDevice::ReleaseStaleResources()
 {
 	m_releaseQueue.PurgeReleaseQueue(GetRenderCommandQueue()->GetCompletedFenceValue());

@@ -996,13 +996,13 @@ D3D12_BARRIER_SUBRESOURCE_RANGE GetD3D12BarrierSubresourceRange(SubresourceRange
 	}
 	else
 	{
+		if (subresourceRange.firstArraySlice == -1)
+			subresourceRange.firstArraySlice = 0;
+		if (subresourceRange.numArraySlices == -1)
+			subresourceRange.numArraySlices = 1;
+
 		return {
-			.IndexOrFirstMipLevel = D3D12CalcSubresource(
-				subresourceRange.firstMipLevel,
-				subresourceRange.firstArraySlice,
-				0,
-				subresourceRange.numMipLevels,
-				subresourceRange.numArraySlices),
+			.IndexOrFirstMipLevel = (UINT)subresourceRange.firstMipLevel,
 			.NumMipLevels = (UINT)subresourceRange.numMipLevels,
 			.FirstArraySlice = (UINT)subresourceRange.firstArraySlice,
 			.NumArraySlices = (UINT)subresourceRange.numArraySlices,
@@ -1432,15 +1432,15 @@ D3D12_RECT GetD3D12Rect(Scissor scissor)
 	};
 }
 
-D3D12_BOX GetD3D12Box(Box box, Texture* texture)
+D3D12_BOX GetD3D12Box(Box box, Texture* texture, int32_t subresource)
 {
 	return {
 		.left = (UINT)box.location.x,
 		.top = (UINT)box.location.y,
 		.front = (UINT)box.location.z,
-		.right = (UINT)(box.size.x == -1 ? texture->GetTextureDesc().GetWidth() - box.location.x : box.location.x + box.size.x),
-		.bottom = (UINT)(box.size.y == -1 ? texture->GetTextureDesc().GetHeight() - box.location.y : (UINT)box.location.y + box.size.y),
-		.back = (UINT)(box.size.z == -1 ? texture->GetTextureDesc().GetDepth() - box.location.z : (UINT)box.location.z + box.size.z)
+		.right = (UINT)(box.size.x == -1 ? max(1, texture->GetTextureDesc().GetWidth() >> subresource) - box.location.x : box.location.x + box.size.x),
+		.bottom = (UINT)(box.size.y == -1 ? max(1, texture->GetTextureDesc().GetHeight() >> subresource) - box.location.y : (UINT)box.location.y + box.size.y),
+		.back = (UINT)(box.size.z == -1 ? max(1, texture->GetTextureDesc().GetDepth() >> subresource) - box.location.z : (UINT)box.location.z + box.size.z)
 	};
 }
 

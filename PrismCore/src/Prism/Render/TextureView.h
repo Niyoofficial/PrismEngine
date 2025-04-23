@@ -25,7 +25,7 @@ public:
 public:
 	TextureViewType type;
 
-	TextureFormat format;
+	TextureFormat format = TextureFormat::Unknown;
 	ResourceDimension dimension = ResourceDimension::Tex2D;
 
 	// TODO: Replace with subresource range?

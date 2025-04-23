@@ -21,7 +21,7 @@ class Window;
 class Application : public StaticPointerSingleton<Application>
 {
 public:
-	Application() = default;
+	Application(int32_t argc, char** argv);
 	virtual ~Application();
 
 	template<typename T>
@@ -80,5 +80,7 @@ protected:
 	std::vector<WeakRef<Window>> m_windows;
 
 	bool m_imguiInitialized = false;
+
+	bool m_bypassCmdRecording = false;
 };
 }

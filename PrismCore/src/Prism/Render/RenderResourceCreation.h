@@ -3,7 +3,6 @@
 #include "Prism/Render/Buffer.h"
 #include "Prism/Render/BufferView.h"
 #include "Prism/Render/Texture.h"
-#include "Prism/Render/PipelineState.h"
 #include "Prism/Render/RenderDevice.h"
 
 namespace Prism::Render::Private

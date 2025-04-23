@@ -3,6 +3,7 @@
 
 #include "Prism/Render/RenderCommandQueue.h"
 #include "Prism/Render/RenderResourceCreation.h"
+#include "Prism/Render/RenderUtils.h"
 
 namespace Prism::Render
 {
@@ -187,62 +188,220 @@ Ref<TextureView> Texture::CreateView(const TextureViewDesc& desc)
 	return TextureView::Create(desc, this);
 }
 
-void Texture::GenerateMipMaps(class RenderContext* context)
+void Texture::GenerateMipMaps(RenderContext* context)
 {
+	// From: https://github.com/microsoft/DirectX-Graphics-Samples/blob/909adc1d8142f403e2c1435aeae3f6e2ad4d020b/MiniEngine/Core/ColorBuffer.cpp#L163
+
+	int32_t numMipMaps = GetTextureDesc().GetMipLevels() - 1;
+	if (numMipMaps == 0)
+		return;
+
 	Ref<RenderContext> renderContext;
 	if (context)
 		renderContext = context;
 	else
 		renderContext = RenderDevice::Get().AllocateContext();
 
-	auto linear = ShaderDesc{
-			.filepath = L"shaders/GenerateMipsLinear.hlsl",
-			.entryName = L"main",
-			.shaderType = ShaderType::CS
-		};
-	auto linearOddX = ShaderDesc{
-			.filepath = L"shaders/GenerateMipsLinearOddX.hlsl",
-			.entryName = L"main",
-			.shaderType = ShaderType::CS
-		};
-	auto linearOddY = ShaderDesc{
-			.filepath = L"shaders/GenerateMipsLinearOddY.hlsl",
-			.entryName = L"main",
-			.shaderType = ShaderType::CS
-		};
-	auto linearOddXY = ShaderDesc{
-			.filepath = L"shaders/GenerateMipsLinearOddXY.hlsl",
-			.entryName = L"main",
-			.shaderType = ShaderType::CS
-		};
+	ShaderDesc mipMapShadersLinear[4];
+	mipMapShadersLinear[0] = {
+		.filepath = L"shaders/GenerateMipsLinear.hlsl",
+		.entryName = L"main",
+		.shaderType = ShaderType::CS
+	};
+	mipMapShadersLinear[1] = {
+		.filepath = L"shaders/GenerateMipsLinearOddX.hlsl",
+		.entryName = L"main",
+		.shaderType = ShaderType::CS
+	};
+	mipMapShadersLinear[2] = {
+		.filepath = L"shaders/GenerateMipsLinearOddY.hlsl",
+		.entryName = L"main",
+		.shaderType = ShaderType::CS
+	};
+	mipMapShadersLinear[3] = {
+		.filepath = L"shaders/GenerateMipsLinearOddXY.hlsl",
+		.entryName = L"main",
+		.shaderType = ShaderType::CS
+	};
 
-	auto gamma = ShaderDesc{
-			.filepath = L"shaders/GenerateMipsGamma.hlsl",
-			.entryName = L"main",
-			.shaderType = ShaderType::CS
-		};
-	auto gammaOddX = ShaderDesc{
-			.filepath = L"shaders/GenerateMipsGammaOddX.hlsl",
-			.entryName = L"main",
-			.shaderType = ShaderType::CS
-		};
-	auto gammaOddY = ShaderDesc{
-			.filepath = L"shaders/GenerateMipsGammaOddY.hlsl",
-			.entryName = L"main",
-			.shaderType = ShaderType::CS
-		};
-	auto gammaOddXY = ShaderDesc{
-			.filepath = L"shaders/GenerateMipsGammaOddXY.hlsl",
-			.entryName = L"main",
-			.shaderType = ShaderType::CS
-		};
+	ShaderDesc mipMapShadersGamma[4];
+	mipMapShadersGamma[0] = {
+		.filepath = L"shaders/GenerateMipsGamma.hlsl",
+		.entryName = L"main",
+		.shaderType = ShaderType::CS
+	};
+	mipMapShadersGamma[1] = {
+		.filepath = L"shaders/GenerateMipsGammaOddX.hlsl",
+		.entryName = L"main",
+		.shaderType = ShaderType::CS
+	};
+	mipMapShadersGamma[2] = {
+		.filepath = L"shaders/GenerateMipsGammaOddY.hlsl",
+		.entryName = L"main",
+		.shaderType = ShaderType::CS
+	};
+	mipMapShadersGamma[3] = {
+		.filepath = L"shaders/GenerateMipsGammaOddXY.hlsl",
+		.entryName = L"main",
+		.shaderType = ShaderType::CS
+	};
 
-	//renderContext->SetPSO(ComputePipelineState::Create({
-	//	.cs = 
-	//}));
+	TextureDesc tempTexDesc = GetTextureDesc();
+	tempTexDesc.textureName = GetTextureDesc().textureName + L"_TempTexMipMapGen";
+	tempTexDesc.width = GetTextureDesc().GetWidth() >> 1;
+	tempTexDesc.height = GetTextureDesc().GetHeight() >> 1;
+	tempTexDesc.bindFlags |= BindFlags::UnorderedAccess;
+	tempTexDesc.mipLevels = numMipMaps;
 
-	// If the context was passed from the outside, we don't want to flush it but give the control back to the caller
+	auto tempTexture = Texture::Create(tempTexDesc);
+
+	for (int32_t i = 0; i < GetTextureDesc().GetDepthOrArraySize(); ++i)
+	{
+		for (int32_t topMip = 0; topMip < numMipMaps;)
+		{
+			int32_t srcWidth = GetTextureDesc().GetWidth() >> topMip;
+			int32_t srcHeight = GetTextureDesc().GetHeight() >> topMip;
+			int32_t dstWidth = srcWidth >> 1;
+			int32_t dstHeight = srcHeight >> 1;
+
+			// Determine if the first downsample is more than 2:1. This happens whenever
+			// the source width or height is odd.
+			int32_t shaderType = (srcWidth & 1) | (srcHeight & 1) << 1; // 0 - XY even, 1 - X odd, 2 - Y odd, 3 XY odd
+			if (GetTextureDesc().format == TextureFormat::RGBA8_UNorm_SRGB)
+				renderContext->SetPSO({.cs = mipMapShadersGamma[shaderType]});
+			else
+				renderContext->SetPSO({.cs = mipMapShadersLinear[shaderType]});
+
+			// We can downsample up to four times, but if the ratio between levels is not
+			// exactly 2:1, we have to shift our blend weights, which gets complicated or
+			// expensive.  Maybe we can update the code later to compute sample weights for
+			// each successive downsample.  We use std::countr_zero to count number of zeros
+			// in the low bits.  Zeros indicate we can divide by two without truncating.
+			int32_t additionalMips = std::countr_zero((uint32_t)((dstWidth == 1 ? dstHeight : dstWidth) | (dstHeight == 1 ? dstWidth : dstHeight)));
+			int32_t mipsToGenerate = 1 + (additionalMips > 3 ? 3 : additionalMips);
+			if (topMip + mipsToGenerate > numMipMaps)
+				mipsToGenerate = numMipMaps - topMip;
+
+			// These are clamped to 1 after computing additional mips because clamped
+			// dimensions should not limit us from downsampling multiple times.
+			// (E.g. 16x1 -> 8x1 -> 4x1 -> 2x1 -> 1x1.)
+			dstWidth = std::max(dstWidth, 1);
+			dstHeight = std::max(dstHeight, 1);
+
+			struct alignas(Constants::CBUFFER_ALIGNMENT) MipMapGenerationInfo
+			{
+				uint32_t srcMipLevel;
+				uint32_t numMipLevels;
+				glm::float2 texelSize;
+			};
+
+			MipMapGenerationInfo info = {
+				.srcMipLevel = (uint32_t)(topMip == 0 ? topMip : topMip - 1),
+				.numMipLevels = (uint32_t)mipsToGenerate,
+				.texelSize = {1.f / (float)dstWidth, 1.f / (float)dstHeight}
+			};
+
+			auto mipMapGenInfoBuffer = Buffer::Create(
+				{
+					.bufferName = L"MipMapGenerationInfo",
+					.size = sizeof(MipMapGenerationInfo),
+					.bindFlags = BindFlags::ConstantBuffer,
+					.usage = ResourceUsage::Default,
+					.cpuAccess = CPUAccess::None
+				},
+				{
+					.data = &info,
+					.sizeInBytes = sizeof(info)
+				});
+			renderContext->SetBuffer(mipMapGenInfoBuffer->CreateDefaultCBVView(), L"g_infoCBufferIndex");
+
+			if (topMip == 0)
+			{
+				auto srcView = TextureView::Create({
+						.type = TextureViewType::SRV,
+						.firstArrayOrDepthSlice = i,
+						.arrayOrDepthSlicesCount = 1
+					}, this);
+				renderContext->SetTexture(srcView, L"g_srcMip");
+			}
+			else
+			{
+				auto srcView = TextureView::Create({
+					.type = TextureViewType::SRV,
+					.firstArrayOrDepthSlice = i,
+					.arrayOrDepthSlicesCount = 1
+				}, tempTexture);
+				renderContext->SetTexture(srcView, L"g_srcMip");
+			}
+
+			for (int32_t j = 0; j < mipsToGenerate; ++j)
+			{
+				auto view = TextureView::Create({
+					.type = TextureViewType::UAV,
+					.firstMipLevel = topMip + j,
+					.numMipLevels = 1,
+					.firstArrayOrDepthSlice = i,
+					.arrayOrDepthSlicesCount = 1
+				}, tempTexture);
+				renderContext->SetTexture(view, std::wstring(L"g_outMip") + std::to_wstring(j + 1));
+			}
+
+			renderContext->Dispatch(dstWidth, dstHeight, 1);
+
+			if (topMip != numMipMaps - 1)
+			{
+				renderContext->Barrier(TextureBarrier{
+				   .texture = tempTexture,
+				   .syncBefore = BarrierSync::ComputeShading,
+				   .syncAfter = BarrierSync::ComputeShading,
+				   .accessBefore = BarrierAccess::UnorderedAccess,
+				   .accessAfter = BarrierAccess::UnorderedAccess,
+				   .layoutBefore = BarrierLayout::UnorderedAccess,
+				   .layoutAfter = BarrierLayout::UnorderedAccess,
+				   .subresourceRange = {
+					   .firstMipLevel = topMip,
+					   .numMipLevels = numMipMaps - topMip,
+					   .firstArraySlice = i,
+					   .numArraySlices = 1,
+				   }
+			   });
+			}
+
+			topMip += mipsToGenerate;
+		}
+	}
+
+	renderContext->Barrier(TextureBarrier{
+		.texture = this,
+		.syncBefore = BarrierSync::ComputeShading,
+		.syncAfter = BarrierSync::Copy,
+		.accessBefore = BarrierAccess::ShaderResource,
+		.accessAfter = BarrierAccess::CopyDest,
+		.layoutBefore = BarrierLayout::Common,
+		.layoutAfter = BarrierLayout::CopyDest,
+		/*.subresourceRange = {
+			.firstMipLevel = 1,
+			.numMipLevels = numMipMaps,
+			.firstArraySlice = i,
+			.numArraySlices = 1,
+		}*/
+	});
+
+	for (int32_t i = 0; i < GetTextureDesc().GetDepthOrArraySize(); ++i)
+	{
+		for (int32_t j = 0; j < numMipMaps; ++j)
+		{
+			renderContext->CopyTextureRegion(
+				this, {}, GetSubresourceIndex(j + 1, GetTextureDesc().GetMipLevels(), i, GetTextureDesc().GetDepthOrArraySize()),
+				tempTexture, GetSubresourceIndex(j, tempTexture->GetTextureDesc().GetMipLevels(), i, tempTexture->GetTextureDesc().GetDepthOrArraySize()));
+		}
+	}
+	
+	// If the renderContext was passed from the outside, we don't want to submit and flush it but give the control back to the caller
 	if (!context)
+	{
+		RenderDevice::Get().SubmitContext(renderContext);
 		RenderDevice::Get().GetRenderCommandQueue()->Flush();
+	}
 }
 }

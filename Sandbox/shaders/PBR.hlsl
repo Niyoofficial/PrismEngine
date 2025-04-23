@@ -94,7 +94,7 @@ float4 spheremain(PixelInput pin) : SV_TARGET
 	color = color / (color + 1.f);
 	color = pow(color, 1.f / 2.2f);
 	
-	color = float3(1.f, 0.f, 0.f);
+	//color = float3(1.f, 0.f, 0.f);
 	
 	return float4(color, 1.f);
 }

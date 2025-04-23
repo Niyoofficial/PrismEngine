@@ -18,7 +18,12 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 	IncreaseFenceValue();
 	m_lastSubmittedCmdListFenceValue = GetFenceValue();
 
-	auto cmdList = RenderCommandList::Create();
+	Ref<RenderCommandList> cmdList;
+	if (RenderDevice::Get().GetBypassCommandRecording())
+		cmdList = context->m_commandRecorder.GetCommandListForBypass();
+	else
+		cmdList = RenderCommandList::Create();
+
 	Ref<RenderCommandList> cmdListCopy = cmdList;
 	context->SafeReleaseResource(cmdListCopy);
 
@@ -30,10 +35,12 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 
 	m_cmdListsQueue.push({cmdList, m_lastSubmittedCmdListFenceValue});
 
-	auto func = 
+	auto func =
 		[this, cmdRecorder = &context->m_commandRecorder, cmdList = cmdList.Raw()]()
 		{
-			cmdRecorder->RecordCommands(cmdList);
+			if (!RenderDevice::Get().GetBypassCommandRecording())
+				cmdRecorder->RecordCommands(cmdList);
+
 			cmdList->Close();
 
 			TryExecuteQueuedCmdListsAsync();

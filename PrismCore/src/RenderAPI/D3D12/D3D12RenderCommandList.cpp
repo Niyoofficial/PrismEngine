@@ -350,7 +350,7 @@ void D3D12RenderCommandList::CopyTextureRegion(Buffer* dest, int64_t destOffset,
 	CD3DX12_TEXTURE_COPY_LOCATION destTexLoc(static_cast<D3D12Buffer*>(dest)->GetD3D12Resource(), bufferLayout);
 	CD3DX12_TEXTURE_COPY_LOCATION srcTexLoc(static_cast<D3D12Texture*>(src)->GetD3D12Resource(), srcSubresourceIndex);
 
-	auto d3d12Box = GetD3D12Box(srcBox, src);
+	auto d3d12Box = GetD3D12Box(srcBox, src, srcSubresourceIndex);
 	m_commandList->CopyTextureRegion(&destTexLoc, 0, 0, 0, &srcTexLoc, &d3d12Box);
 }
 
@@ -364,8 +364,8 @@ void D3D12RenderCommandList::CopyTextureRegion(Texture* dest, glm::int3 destLoc,
 	CD3DX12_TEXTURE_COPY_LOCATION destTexLoc(static_cast<D3D12Texture*>(dest)->GetD3D12Resource(), destSubresourceIndex);
 	CD3DX12_TEXTURE_COPY_LOCATION srcTexLoc(static_cast<D3D12Texture*>(src)->GetD3D12Resource(), srcSubresourceIndex);
 
-	auto d3d12Box = GetD3D12Box(srcBox, src);
-	m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, &d3d12Box);
+	auto d3d12Box = GetD3D12Box(srcBox, src, srcSubresourceIndex);
+	m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, srcBox.size == glm::int3{ -1, -1, -1 } ? nullptr : &d3d12Box);
 }
 
 void D3D12RenderCommandList::RenderImGui()

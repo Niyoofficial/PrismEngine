@@ -9,6 +9,15 @@
 
 namespace Prism::Core
 {
+Application::Application(int32_t argc, char** argv)
+{
+	for (int32_t i = 0; i < argc; ++i)
+	{
+		if (strcmp(argv[i], "-bypassCmdRecord") == 0)
+			m_bypassCmdRecording = true;
+	}
+}
+
 Application::~Application()
 {
 	if (m_imguiInitialized)
@@ -153,6 +162,7 @@ void Application::ShutdownPlatform()
 void Application::InitRenderer(const Render::RenderDeviceParams& params)
 {
 	Render::RenderDevice::Create(params);
+	Render::RenderDevice::Get().SetBypassCommandRecording(true);
 }
 
 void Application::ShutdownRenderer()
@@ -162,7 +172,6 @@ void Application::ShutdownRenderer()
 
 void Application::InitImGui(Window* window, Render::TextureFormat depthFormat)
 {
-	// TODO: Implement ImGui as a separate layer maybe?
 	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();

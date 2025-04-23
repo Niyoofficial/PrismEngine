@@ -107,9 +107,10 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 	m_skybox = Texture::Create({
 		.textureName = L"Skybox",
-		.width = 4096,
-		.height = 4096,
+		.width = 2048,
+		.height = 2048,
 		.depthOrArraySize = 6,
+		.mipLevels = (int32_t)std::log2f(2048) + 1,
 		.dimension = ResourceDimension::TexCube,
 		.format = TextureFormat::RGBA32_Float,
 		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
@@ -142,8 +143,8 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 	m_prefilteredEnvMap = Texture::Create({
 		.textureName = L"PrefilteredEnvMap",
-		.width = 4096,
-		.height = 4096,
+		.width = 2048,
+		.height = 2048,
 		.depthOrArraySize = 6,
 		.mipLevels = 6,
 		.dimension = ResourceDimension::TexCube,
@@ -179,7 +180,6 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 	m_environmentTexture = Texture::Create(L"textures/pisa.hdr");
 	m_environmentTextureView = m_environmentTexture->CreateView();
-
 
 	// Scene cbuffer
 	m_sceneCbuffer = Buffer::Create({
@@ -264,7 +264,19 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			renderContext->SetTexture(m_environmentTextureView, L"g_environment");
 			renderContext->SetTexture(m_skyboxUAVView, L"g_skybox");
 
-			renderContext->Dispatch(128, 128, 6);
+			renderContext->Dispatch(64, 64, 6);
+
+			renderContext->Barrier(TextureBarrier{
+				.texture = m_skybox,
+				.syncBefore = BarrierSync::ComputeShading,
+				.syncAfter = BarrierSync::ComputeShading,
+				.accessBefore = BarrierAccess::Common,
+				.accessAfter = BarrierAccess::Common,
+				.layoutBefore = BarrierLayout::Common,
+				.layoutAfter = BarrierLayout::Common
+			});
+
+			m_skybox->GenerateMipMaps(renderContext);
 		}
 
 		// Generate env diffuse irradiance
@@ -287,11 +299,11 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 			renderContext->Barrier(TextureBarrier{
 				.texture = m_skybox,
-				.syncBefore = BarrierSync::ComputeShading,
+				.syncBefore = BarrierSync::Copy,
 				.syncAfter = BarrierSync::ComputeShading,
-				.accessBefore = BarrierAccess::Common,
+				.accessBefore = BarrierAccess::CopyDest,
 				.accessAfter = BarrierAccess::ShaderResource,
-				.layoutBefore = BarrierLayout::Common,
+				.layoutBefore = BarrierLayout::CopyDest,
 				.layoutAfter = BarrierLayout::ShaderResource
 			});
 
@@ -682,6 +694,7 @@ SandboxApplication& SandboxApplication::Get()
 }
 
 SandboxApplication::SandboxApplication(int32_t argc, char** argv)
+	: Application(argc, argv)
 {
 	InitPlatform();
 	InitRenderer({.enableDebugLayer = true, .initPixLibrary = false});

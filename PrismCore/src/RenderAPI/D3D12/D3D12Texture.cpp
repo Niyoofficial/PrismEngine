@@ -53,7 +53,7 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 			.width = width,
 			.height = height,
 			.depthOrArraySize = 1,
-			.mipLevels = 1,
+			.mipLevels = (int32_t)std::log2f(max(width, height)) + 1,
 			.dimension = ResourceDimension::Tex2D,
 			.format = TextureFormat::RGBA32_Float,
 			.bindFlags = BindFlags::ShaderResource,
@@ -74,11 +74,10 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 
 		PE_ASSERT_HR(m_resource->SetName(filepath.c_str()));
 
-
 		auto context = D3D12RenderDevice::Get().AllocateContext();
 		context->UpdateTexture(this, {.data = loadedData, .sizeInBytes = (int64_t)(width * height * 4 * 4)}, 0);
 
-		//GenerateMipMaps(context);
+		GenerateMipMaps(context);
 
 		D3D12RenderDevice::Get().SubmitContext(context);
 		D3D12RenderDevice::Get().GetRenderCommandQueue()->Flush();
