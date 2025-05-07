@@ -28,13 +28,7 @@ public:
 	TextureFormat format = TextureFormat::Unknown;
 	ResourceDimension dimension = ResourceDimension::Tex2D;
 
-	// TODO: Replace with subresource range?
-	int32_t firstMipLevel = 0;
-	// Set to -1 to use all mip levels
-	int32_t numMipLevels = -1;
-
-	int32_t firstArrayOrDepthSlice = -1;
-	int32_t arrayOrDepthSlicesCount = -1;
+	SubresourceRange subresourceRange;
 };
 
 class TextureView : public RenderResourceView

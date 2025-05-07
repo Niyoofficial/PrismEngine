@@ -87,6 +87,19 @@ float4 spheremain(PixelInput pin) : SV_TARGET
 	float3 normal = normalize(pin.normalWorld);
 	
 	float3 L = normalize(2.f * dot(toCamera, normal) * normal - toCamera);
+	L = 2.f * normal * dot(toCamera, normal) - toCamera;
+	float a = 0.f;
+	switch (modelBuffer.mipLevel)
+	{
+	case 0: a = 0.0f; break;
+	case 1: a = 0.2f; break;
+	case 2: a = 0.4f; break;
+	case 3: a = 0.6f; break;
+	case 4: a = 0.8f; break;
+	case 5: a = 1.f; break;
+	}
+	a = a * a;
+	L = lerp(normal, L, (1.f - a) * (sqrt(1.f - a)) + a);
 
 	float3 color = envMap.SampleLevel(g_samLinearWrap, L, modelBuffer.mipLevel).rgb;
 	

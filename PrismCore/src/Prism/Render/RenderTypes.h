@@ -775,10 +775,11 @@ enum class ClearFlags
 
 struct SubresourceRange
 {
-	int32_t firstMipLevel = -1;
+	int32_t firstMipLevel = 0;
+	// -1 indicates all mip levels
 	int32_t numMipLevels = -1;
-	int32_t firstArraySlice = -1;
-	int32_t numArraySlices = -1;
+	int32_t firstArraySlice = 0;
+	int32_t numArraySlices = 1;
 };
 
 enum class BarrierSync

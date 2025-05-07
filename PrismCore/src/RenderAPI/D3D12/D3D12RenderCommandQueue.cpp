@@ -4,6 +4,10 @@
 #include "RenderAPI/D3D12/D3D12RenderCommandList.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 
+#if PE_USE_PIX
+#include "pix3.h"
+#endif
+
 namespace Prism::Render::D3D12
 {
 D3D12RenderCommandQueue::D3D12RenderCommandQueue()
@@ -17,6 +21,27 @@ D3D12RenderCommandQueue::D3D12RenderCommandQueue()
 
 	PE_ASSERT_HR(d3d12Device->CreateFence(0, D3D12_FENCE_FLAG_NONE, IID_PPV_ARGS(&m_cmdListFence)));
 	PE_ASSERT_HR(m_cmdListFence->SetName(L"Cmd List Fence"));
+}
+
+void D3D12RenderCommandQueue::SetMarker(glm::float3 color, std::wstring string)
+{
+#if PE_USE_PIX
+	PIXSetMarker(m_d3d12CommandQueue.Get(), PIX_COLOR(color.r * 255, color.g * 255, color.b * 255), string.c_str());
+#endif
+}
+
+void D3D12RenderCommandQueue::BeginEvent(glm::float3 color, std::wstring string)
+{
+#if PE_USE_PIX
+	PIXBeginEvent(m_d3d12CommandQueue.Get(), PIX_COLOR(color.r * 255, color.g * 255, color.b * 255), string.c_str());
+#endif
+}
+
+void D3D12RenderCommandQueue::EndEvent()
+{
+#if PE_USE_PIX
+	PIXEndEvent(m_d3d12CommandQueue.Get());
+#endif
 }
 
 uint64_t D3D12RenderCommandQueue::GetFenceValue()

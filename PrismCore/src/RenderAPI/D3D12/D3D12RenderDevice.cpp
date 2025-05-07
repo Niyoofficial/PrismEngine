@@ -7,7 +7,7 @@
 #include "RenderAPI/D3D12/D3D12Texture.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 
-#if USE_PIX
+#if PE_USE_PIX
 #include "pix3.h"
 #endif
 
@@ -44,7 +44,7 @@ D3D12RenderDevice* D3D12RenderDevice::TryGet()
 D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	: RenderDevice(params)
 {
-#if USE_PIX
+#if PE_USE_PIX
 	if (params.initPixLibrary)
 	{
 		// In order to use pix library include wrl/client.h and pix3.h after it
@@ -128,7 +128,7 @@ D3D12RenderDevice::~D3D12RenderDevice()
 	m_dynamicBufferAllocator.CloseCmdListAllocations(D3D12RenderDevice::GetRenderCommandQueue()->GetLastSubmittedCmdListFenceValue());
 	m_dynamicBufferAllocator.ReleaseStaleAllocations(D3D12RenderDevice::GetRenderCommandQueue()->GetCompletedFenceValue());
 
-#if USE_PIX
+#if PE_USE_PIX
 	FreeLibrary(m_pixGpuCaptureModule);
 	FreeLibrary(m_pixTimingCaptureModule);
 #endif

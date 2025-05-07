@@ -13,6 +13,8 @@ Application::Application(int32_t argc, char** argv)
 {
 	for (int32_t i = 0; i < argc; ++i)
 	{
+		// TODO: Add some persistent storage for cmd line arguments so they can be queried from the entire engine
+		// TODO: Case insensitive comparison
 		if (strcmp(argv[i], "-bypassCmdRecord") == 0)
 			m_bypassCmdRecording = true;
 	}
@@ -193,7 +195,7 @@ void Application::InitImGui(Window* window, Render::TextureFormat depthFormat)
 	{
 		void Update(Duration delta) override
 		{
-			auto context = Render::RenderDevice::Get().AllocateContext();
+			auto context = Render::RenderDevice::Get().AllocateContext(L"ImguiUpdate");
 			context->RenderImGui();
 			Render::RenderDevice::Get().SubmitContext(context);
 		}

@@ -65,7 +65,7 @@ D3D12ShaderCompiler::D3D12ShaderCompiler()
 				ShaderDesc desc = {
 					.filepath = StringToWString(metadata["ShaderDesc"]["filepath"].as<std::string>()),
 					.entryName = StringToWString(metadata["ShaderDesc"]["entryName"].as<std::string>()),
-					.shaderType = (ShaderType)metadata["ShaderDesc"]["shaderType"].as<int32_t>(),
+					.shaderType = (ShaderType)metadata["ShaderDesc"]["shaderType"].as<int32_t>()
 				};
 
 				m_shaderCache[desc] = {hash, output};
@@ -118,9 +118,14 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 
 	const wchar_t* compileArguments[] = {
 		inputFilename.c_str(),					// Shader filename
-		L"-E", desc.entryName.c_str(),	// Entry point
+		L"-E", desc.entryName.c_str(),			// Entry point
 		L"-T", target.c_str(),					// Target
-		L"-Zi", L"-Od",							// Enable debug information, Disable optimization
+		L"-Zi",									// Enable debug information
+#if PE_BUILD_DEBUG
+		L"-Od",									// Disable optimization
+#else
+		L"-O3",									// Enable optimization
+#endif
 		//L"-Qstrip_debug",						// Strip debug into a separate blob
 		//L"-Qstrip_reflect",					// Strip reflection into a separate blob
 		L"-I", inputPathNoFile.c_str(),			// Shader directory will be used as base directory for include handler

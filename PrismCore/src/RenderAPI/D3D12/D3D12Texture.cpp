@@ -10,6 +10,10 @@
 #include "stb_image.h"
 #include "Prism/Render/RenderCommandQueue.h"
 
+#if PE_USE_PIX
+#include "pix3.h"
+#endif
+
 namespace Prism::Render::D3D12
 {
 D3D12Texture::D3D12Texture(const TextureDesc& desc, BarrierLayout initLayout)
@@ -74,7 +78,7 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 
 		PE_ASSERT_HR(m_resource->SetName(filepath.c_str()));
 
-		auto context = D3D12RenderDevice::Get().AllocateContext();
+		auto context = D3D12RenderDevice::Get().AllocateContext(std::format(L"LoadHDRImage_{}", filepath));
 		context->UpdateTexture(this, {.data = loadedData, .sizeInBytes = (int64_t)(width * height * 4 * 4)}, 0);
 
 		GenerateMipMaps(context);
@@ -103,11 +107,22 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 		auto func =
 			[loadAsCubemap, d3d12Device, filepath, this]()
 			{
+#if PE_USE_PIX
+				// This will show up in the PIX event viewer incorrectly because its called asynchronously,
+				// it'd work correctly if the event was called on the cmd list, but we cannot access is from ResourceUploadBatch
+				// and I want to keep this function async since CreateWICTextureFromFileEx can take a while
+				PIXBeginEvent(D3D12RenderDevice::Get().GetD3D12CommandQueue(), PIX_COLOR(0, 0, 0), std::format(L"LoadWICImage_{}", filepath).c_str());
+#endif
+
 				DX::ResourceUploadBatch batch(d3d12Device);
 				batch.Begin();
 				PE_ASSERT_HR(DX::CreateWICTextureFromFileEx(d3d12Device, batch, filepath.c_str(), 0,
 					D3D12_RESOURCE_FLAG_NONE, DX::WIC_LOADER_FORCE_RGBA32 | DX::WIC_LOADER_MIP_AUTOGEN, &m_resource));
 				batch.End(D3D12RenderDevice::Get().GetD3D12CommandQueue()).wait_for(std::chrono::seconds(0));
+
+#if PE_USE_PIX
+				PIXEndEvent(D3D12RenderDevice::Get().GetD3D12CommandQueue());
+#endif
 
 				PE_ASSERT(m_resource);
 

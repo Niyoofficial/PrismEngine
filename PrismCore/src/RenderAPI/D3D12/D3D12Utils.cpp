@@ -5,6 +5,7 @@
 
 #include "Prism/Render/RenderTypes.h"
 #include "Prism/Render/Shader.h"
+#include "Prism/Render/TextureView.h"
 
 namespace Prism::Render::D3D12
 {
@@ -27,5 +28,10 @@ bool VerifyHResult(HRESULT hr)
 	}
 
 	return !fail;
+}
+
+bool ShouldD3D12ViewBeCreatedAsArray(const TextureViewDesc& viewDesc)
+{
+	return viewDesc.subresourceRange.firstArraySlice != 0 || viewDesc.subresourceRange.numArraySlices > 1;
 }
 }

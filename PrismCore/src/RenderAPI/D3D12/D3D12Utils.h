@@ -4,6 +4,7 @@
 
 namespace Prism::Render
 {
+struct TextureViewDesc;
 enum class ShaderType : uint8_t;
 enum class TextureFormat;
 }
@@ -12,6 +13,8 @@ namespace Prism::Render::D3D12
 {
 // Returns whether the HRESULT is successful or not
 bool VerifyHResult(HRESULT hr);
+
+bool ShouldD3D12ViewBeCreatedAsArray(const TextureViewDesc& viewDesc);
 }
 
 #ifdef PE_ENABLE_ASSERTS

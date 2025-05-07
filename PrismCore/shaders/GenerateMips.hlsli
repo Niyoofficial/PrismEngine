@@ -33,7 +33,7 @@ struct Info
 
 cbuffer Resources
 {
-    int g_infoCBufferIndex;
+    int g_infoBuffer;
     
     int g_outMip1;
     int g_outMip2;
@@ -84,7 +84,7 @@ float4 PackColor(float4 Linear)
 [numthreads( 8, 8, 1 )]
 void main( uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID )
 {
-    ConstantBuffer<Info> Info = ResourceDescriptorHeap[g_infoCBufferIndex];
+    ConstantBuffer<Info> Info = ResourceDescriptorHeap[g_infoBuffer];
     
     RWTexture2D<float4> outMip1 = ResourceDescriptorHeap[g_outMip1];
     RWTexture2D<float4> outMip2 = ResourceDescriptorHeap[g_outMip2];

@@ -22,18 +22,12 @@ bool TextureViewDesc::Is3D() const
 
 bool TextureViewDesc::IsArray() const
 {
-	return
-		firstArrayOrDepthSlice != -1 &&
-		arrayOrDepthSlicesCount > 1;
+	return dimension != ResourceDimension::Tex3D && (subresourceRange.firstArraySlice != 1 || subresourceRange.numArraySlices > 1);
 }
 
 bool TextureViewDesc::IsCube() const
 {
-	return
-		dimension == ResourceDimension::TexCube &&
-		IsArray() &&
-		arrayOrDepthSlicesCount >= 6 &&
-		arrayOrDepthSlicesCount % 6 == 0;
+	return dimension == ResourceDimension::TexCube;
 }
 
 TextureView* TextureView::Create(const TextureViewDesc& desc, Texture* texture)

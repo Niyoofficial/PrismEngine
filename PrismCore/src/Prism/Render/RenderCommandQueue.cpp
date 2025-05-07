@@ -55,6 +55,7 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 void RenderCommandQueue::Flush()
 {
 	uint64_t fenceValue = IncreaseAndSignalFence();
+	SetMarker({1.f, 0.f, 0.f}, L"Flush");
 	WaitForFenceToComplete(fenceValue);
 }
 

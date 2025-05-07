@@ -9,6 +9,10 @@ class D3D12RenderCommandQueue : public RenderCommandQueue
 public:
 	D3D12RenderCommandQueue();
 
+	void SetMarker(glm::float3 color, std::wstring string) override;
+	void BeginEvent(glm::float3 color, std::wstring string) override;
+	void EndEvent() override;
+
 	uint64_t GetFenceValue() override;
 	void IncreaseFenceValue() override;
 	void SignalFence(uint64_t fenceValue) override;

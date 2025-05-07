@@ -58,7 +58,7 @@ public:
 	virtual void ShutdownImGui() override;
 
 private:
-#if USE_PIX
+#if PE_USE_PIX
 	HMODULE m_pixGpuCaptureModule = {};
 	HMODULE m_pixTimingCaptureModule = {};
 #endif

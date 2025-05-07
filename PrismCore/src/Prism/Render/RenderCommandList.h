@@ -74,6 +74,10 @@ public:
 
 	virtual void RenderImGui() = 0;
 
+	virtual void SetMarker(glm::float3 color, std::wstring string) = 0;
+	virtual void BeginEvent(glm::float3 color, std::wstring string) = 0;
+	virtual void EndEvent() = 0;
+
 	template<typename T>
 	void SafeReleaseResource(T&& resource)
 	{

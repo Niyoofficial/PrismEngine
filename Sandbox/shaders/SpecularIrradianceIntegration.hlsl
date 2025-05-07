@@ -4,13 +4,15 @@ cbuffer Resources
 {
 	int g_skybox;
 	int g_outputTexture;
-	int g_integrationData;
+	int g_prefilterData;
 }
 
-struct IntegrationData
+struct PrefilterData
 {
 	float roughness;
-	int resolution;
+	int totalResolution;
+	int mipResolution;
+	int sampleCount;
 };
 
 float3 GetSamplingVector(int3 threadID, int resolution)
@@ -43,41 +45,37 @@ void main(int3 groupID : SV_GroupID,
 {
 	TextureCube skybox = ResourceDescriptorHeap[g_skybox];
 	RWTexture2DArray<float4> outputTexture = ResourceDescriptorHeap[g_outputTexture];
-	ConstantBuffer<IntegrationData> integrationData = ResourceDescriptorHeap[g_integrationData];
+	ConstantBuffer<PrefilterData> prefilterData = ResourceDescriptorHeap[g_prefilterData];
 	
-	const int SAMPLE_COUNT = 32;
-	
-	float3 normal = GetSamplingVector(dispatchThreadID, integrationData.resolution);
-	float3 V = normal;
+	float3 normal = GetSamplingVector(dispatchThreadID, prefilterData.mipResolution);
+	float3 toView = normal;
 	
 	float3 outputColor = 0.f;
 	float totalWeight = 0.f;
 	
-	for (int i = 0; i < SAMPLE_COUNT; ++i)
+	int sampleCount = prefilterData.sampleCount;
+
+	for (int i = 0; i < sampleCount; ++i)
 	{
-		float2 Xi = Hammersley(i, SAMPLE_COUNT);
-		float3 H = HemisphereSample_GGX(Xi, integrationData.roughness, normal);
-		float3 L = normalize(2.f * dot(V, H) * H - V);
+		float2 Xi = Hammersley(i, sampleCount);
+		float3 halfVector = HemisphereSample_GGX(Xi, prefilterData.roughness, normal);
+		float3 toLight = normalize(2.f * dot(toView, halfVector) * halfVector - toView);
 		
-		float wt = 4.f * PI / (6 * integrationData.resolution * integrationData.resolution);
-		
-		float NdotL = max(dot(normal, L), 0.f);
+		float NdotL = max(dot(normal, toLight), 0.f);
 		if (NdotL > 0.f)
 		{
-			float NdotH = max(dot(normal, H), 0.f);
+			float NdotH = saturate(dot(normal, halfVector));
+			float VdotH = saturate(dot(toView, halfVector));
 			
-			float pdf = DistributionGGX(normal, H, integrationData.roughness) * 0.25f;
+			float pdf = DistributionGGX(normal, halfVector, prefilterData.roughness) * NdotH / (4.f * VdotH);
 			
-			float ws = 1.f / (pdf * SAMPLE_COUNT);
+			float omegaS = 1.f / (sampleCount * pdf);
+			float omegaP = 4.f * PI / (6 * prefilterData.totalResolution * prefilterData.totalResolution);
 			
-			float mipLevel = max(0.5f * log2(ws / wt) + 1.f, 0.f);
-			
-			//
-			//
-			// TODO: Skybox doesnt have any mipmaps!!!
-			//
-			//
-			outputColor += skybox.SampleLevel(g_samLinearClamp, L, mipLevel).rgb * NdotL;
+			const float MIP_BIAS = 1.f;
+			float mipLevel = max(0.5f * log2(omegaS / omegaP) + MIP_BIAS, 0.f);
+
+			outputColor += skybox.SampleLevel(g_samLinearClamp, toLight, mipLevel).rgb * NdotL;
 			totalWeight += NdotL;
 		}
 	}

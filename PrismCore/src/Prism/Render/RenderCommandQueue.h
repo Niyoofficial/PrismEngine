@@ -25,6 +25,10 @@ private:
 public:
 	uint64_t Submit(RenderContext* context);
 
+	virtual void SetMarker(glm::float3 color, std::wstring string) = 0;
+	virtual void BeginEvent(glm::float3 color, std::wstring string) = 0;
+	virtual void EndEvent() = 0;
+
 	// Not thread safe
 	virtual uint64_t GetFenceValue() = 0;
 	virtual void IncreaseFenceValue() = 0;

@@ -20,7 +20,7 @@ Ref<Buffer> Buffer::Create(const BufferDesc& desc, RawData initData)
 		else if (desc.usage == ResourceUsage::Default)
 		{
 			// TODO: Add copy context
-			Ref context = RenderDevice::Get().AllocateContext();
+			Ref context = RenderDevice::Get().AllocateContext(L"UpdateDefaultBuffer");
 
 			context->UpdateBuffer(buffer, initData);
 

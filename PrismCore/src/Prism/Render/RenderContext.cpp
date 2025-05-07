@@ -271,6 +271,33 @@ void RenderContext::RenderImGui()
 		});
 }
 
+void RenderContext::SetMarker(glm::float3 color, std::wstring string)
+{
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+		[markerColor = color, formatString = string](RenderCommandList* cmdList)
+		{
+			cmdList->SetMarker(markerColor, formatString);
+		});
+}
+
+void RenderContext::BeginEvent(glm::float3 color, std::wstring string)
+{
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+		[markerColor = color, formatString = string](RenderCommandList* cmdList)
+		{
+			cmdList->BeginEvent(markerColor, formatString);
+		});
+}
+
+void RenderContext::EndEvent()
+{
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+		[](RenderCommandList* cmdList)
+		{
+			cmdList->EndEvent();
+		});
+}
+
 void RenderContext::AddGPUCompletionCallback(std::function<void()> callback)
 {
 	m_gpuCompletionCallbacks.emplace_back(callback);

@@ -137,7 +137,7 @@ Ref<Texture> Texture::Create(const TextureDesc& desc, BarrierLayout initLayout, 
 	if (initData.data && initData.sizeInBytes > 0)
 	{
 		// TODO: Add copy context
-		auto context = RenderDevice::Get().AllocateContext();
+		auto context = RenderDevice::Get().AllocateContext(L"UpdateTextureWithInitData");
 		context->UpdateTexture(texture, initData, 0);
 
 		RenderDevice::Get().SubmitContext(context);
@@ -169,7 +169,7 @@ Ref<Texture> Texture::Create(const TextureDesc& desc, Buffer* initDataBuffer, Ba
 	}
 
 	// TODO: Add copy context
-	auto context = RenderDevice::Get().AllocateContext();
+	auto context = RenderDevice::Get().AllocateContext(L"UpdateTextureWithInitDataBuffer");
 	context->CopyBufferRegion(texture, {0, 0, 0}, 0, uploadBuffer, 0);
 
 	RenderDevice::Get().SubmitContext(context);
@@ -198,9 +198,15 @@ void Texture::GenerateMipMaps(RenderContext* context)
 
 	Ref<RenderContext> renderContext;
 	if (context)
+	{
 		renderContext = context;
+		renderContext->BeginEvent({1.f, 0.f, 1.f}, std::format(L"GenerateMipMaps_{}", GetTextureDesc().textureName));
+	}
 	else
-		renderContext = RenderDevice::Get().AllocateContext();
+	{
+		renderContext = RenderDevice::Get().AllocateContext(std::format(L"GenerateMipMaps_{}", GetTextureDesc().textureName));
+	}
+
 
 	ShaderDesc mipMapShadersLinear[4];
 	mipMapShadersLinear[0] = {
@@ -257,6 +263,8 @@ void Texture::GenerateMipMaps(RenderContext* context)
 
 	for (int32_t i = 0; i < GetTextureDesc().GetDepthOrArraySize(); ++i)
 	{
+		renderContext->BeginEvent({}, std::format(L"ArrayIndex_{}", i));
+
 		for (int32_t topMip = 0; topMip < numMipMaps;)
 		{
 			int32_t srcWidth = GetTextureDesc().GetWidth() >> topMip;
@@ -264,23 +272,25 @@ void Texture::GenerateMipMaps(RenderContext* context)
 			int32_t dstWidth = srcWidth >> 1;
 			int32_t dstHeight = srcHeight >> 1;
 
-			// Determine if the first downsample is more than 2:1. This happens whenever
-			// the source width or height is odd.
-			int32_t shaderType = (srcWidth & 1) | (srcHeight & 1) << 1; // 0 - XY even, 1 - X odd, 2 - Y odd, 3 XY odd
-			if (GetTextureDesc().format == TextureFormat::RGBA8_UNorm_SRGB)
-				renderContext->SetPSO({.cs = mipMapShadersGamma[shaderType]});
-			else
-				renderContext->SetPSO({.cs = mipMapShadersLinear[shaderType]});
-
 			// We can downsample up to four times, but if the ratio between levels is not
 			// exactly 2:1, we have to shift our blend weights, which gets complicated or
-			// expensive.  Maybe we can update the code later to compute sample weights for
-			// each successive downsample.  We use std::countr_zero to count number of zeros
-			// in the low bits.  Zeros indicate we can divide by two without truncating.
+			// expensive. Maybe we can update the code later to compute sample weights for
+			// each successive downsample. We use std::countr_zero to count number of zeros
+			// in the low bits. Zeros indicate we can divide by two without truncating.
 			int32_t additionalMips = std::countr_zero((uint32_t)((dstWidth == 1 ? dstHeight : dstWidth) | (dstHeight == 1 ? dstWidth : dstHeight)));
 			int32_t mipsToGenerate = 1 + (additionalMips > 3 ? 3 : additionalMips);
 			if (topMip + mipsToGenerate > numMipMaps)
 				mipsToGenerate = numMipMaps - topMip;
+
+			renderContext->BeginEvent({}, std::format(L"GenerateLevels {}..{}", topMip + 1, mipsToGenerate + topMip + 1));
+
+			// Determine if the first downsample is more than 2:1. This happens whenever
+			// the source width or height is odd.
+			int32_t shaderType = (srcWidth & 1) | (srcHeight & 1) << 1; // 0 - XY even, 1 - X odd, 2 - Y odd, 3 XY odd
+			if (GetTextureDesc().format == TextureFormat::RGBA8_UNorm_SRGB)
+				renderContext->SetPSO({ .cs = mipMapShadersGamma[shaderType] });
+			else
+				renderContext->SetPSO({ .cs = mipMapShadersLinear[shaderType] });
 
 			// These are clamped to 1 after computing additional mips because clamped
 			// dimensions should not limit us from downsampling multiple times.
@@ -313,14 +323,16 @@ void Texture::GenerateMipMaps(RenderContext* context)
 					.data = &info,
 					.sizeInBytes = sizeof(info)
 				});
-			renderContext->SetBuffer(mipMapGenInfoBuffer->CreateDefaultCBVView(), L"g_infoCBufferIndex");
+			renderContext->SetBuffer(mipMapGenInfoBuffer->CreateDefaultCBVView(), L"g_infoBuffer");
 
 			if (topMip == 0)
 			{
 				auto srcView = TextureView::Create({
 						.type = TextureViewType::SRV,
-						.firstArrayOrDepthSlice = i,
-						.arrayOrDepthSlicesCount = 1
+						.subresourceRange = {
+							.firstArraySlice = i,
+							.numArraySlices = 1
+						}
 					}, this);
 				renderContext->SetTexture(srcView, L"g_srcMip");
 			}
@@ -328,8 +340,10 @@ void Texture::GenerateMipMaps(RenderContext* context)
 			{
 				auto srcView = TextureView::Create({
 					.type = TextureViewType::SRV,
-					.firstArrayOrDepthSlice = i,
-					.arrayOrDepthSlicesCount = 1
+					.subresourceRange = {
+							.firstArraySlice = i,
+							.numArraySlices = 1
+						}
 				}, tempTexture);
 				renderContext->SetTexture(srcView, L"g_srcMip");
 			}
@@ -338,10 +352,12 @@ void Texture::GenerateMipMaps(RenderContext* context)
 			{
 				auto view = TextureView::Create({
 					.type = TextureViewType::UAV,
-					.firstMipLevel = topMip + j,
-					.numMipLevels = 1,
-					.firstArrayOrDepthSlice = i,
-					.arrayOrDepthSlicesCount = 1
+					.subresourceRange = {
+						.firstMipLevel = topMip + j,
+						.numMipLevels = 1,
+						.firstArraySlice = i,
+						.numArraySlices = 1
+					}
 				}, tempTexture);
 				renderContext->SetTexture(view, std::wstring(L"g_outMip") + std::to_wstring(j + 1));
 			}
@@ -368,7 +384,11 @@ void Texture::GenerateMipMaps(RenderContext* context)
 			}
 
 			topMip += mipsToGenerate;
+
+			renderContext->EndEvent();
 		}
+
+		renderContext->EndEvent();
 	}
 
 	renderContext->Barrier(TextureBarrier{
@@ -387,6 +407,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 		}*/
 	});
 
+	context->BeginEvent({}, L"MipMapCopy");
 	for (int32_t i = 0; i < GetTextureDesc().GetDepthOrArraySize(); ++i)
 	{
 		for (int32_t j = 0; j < numMipMaps; ++j)
@@ -396,12 +417,17 @@ void Texture::GenerateMipMaps(RenderContext* context)
 				tempTexture, GetSubresourceIndex(j, tempTexture->GetTextureDesc().GetMipLevels(), i, tempTexture->GetTextureDesc().GetDepthOrArraySize()));
 		}
 	}
+	context->EndEvent();
 	
 	// If the renderContext was passed from the outside, we don't want to submit and flush it but give the control back to the caller
 	if (!context)
 	{
 		RenderDevice::Get().SubmitContext(renderContext);
 		RenderDevice::Get().GetRenderCommandQueue()->Flush();
+	}
+	else
+	{
+		renderContext->EndEvent();
 	}
 }
 }

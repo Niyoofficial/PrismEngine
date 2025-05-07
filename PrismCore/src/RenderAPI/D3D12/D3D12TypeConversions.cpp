@@ -988,7 +988,7 @@ D3D12_BARRIER_LAYOUT GetD3D12BarrierLayout(BarrierLayout barrierLayout)
 
 D3D12_BARRIER_SUBRESOURCE_RANGE GetD3D12BarrierSubresourceRange(SubresourceRange subresourceRange)
 {
-	if (subresourceRange.firstMipLevel == -1)
+	if (subresourceRange.numMipLevels == -1)
 	{
 		return {
 			.IndexOrFirstMipLevel = 0xffffffff
@@ -996,11 +996,6 @@ D3D12_BARRIER_SUBRESOURCE_RANGE GetD3D12BarrierSubresourceRange(SubresourceRange
 	}
 	else
 	{
-		if (subresourceRange.firstArraySlice == -1)
-			subresourceRange.firstArraySlice = 0;
-		if (subresourceRange.numArraySlices == -1)
-			subresourceRange.numArraySlices = 1;
-
 		return {
 			.IndexOrFirstMipLevel = (UINT)subresourceRange.firstMipLevel,
 			.NumMipLevels = (UINT)subresourceRange.numMipLevels,
@@ -1126,74 +1121,99 @@ D3D12_SHADER_RESOURCE_VIEW_DESC GetD3D12ShaderResourceViewDesc(TextureViewDesc d
 		.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING
 	};
 
+	// We ignore buffer type here because we don't want there to be an option to create a buffer SRV from texture view
 	switch (desc.dimension)
 	{
 	case ResourceDimension::Tex1D:
-		if (!desc.IsArray())
 		{
-			d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
-			d3d12SRVDesc.Texture1D = {
-				.MostDetailedMip = (UINT)desc.firstMipLevel,
-				.MipLevels = (UINT)desc.numMipLevels,
+			if (!ShouldD3D12ViewBeCreatedAsArray(desc))
+			{
+				d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1D;
+				d3d12SRVDesc.Texture1D = {
+					.MostDetailedMip = (UINT)desc.subresourceRange.firstMipLevel,
+					.MipLevels = (UINT)desc.subresourceRange.numMipLevels,
+					.ResourceMinLODClamp = 0.f
+				};
+			}
+			else
+			{
+				d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+				d3d12SRVDesc.Texture1DArray = {
+					.MostDetailedMip = (UINT)desc.subresourceRange.firstMipLevel,
+					.MipLevels = (UINT)desc.subresourceRange.numMipLevels,
+					.FirstArraySlice = (UINT)desc.subresourceRange.firstArraySlice,
+					.ArraySize = (UINT)desc.subresourceRange.numArraySlices,
+					.ResourceMinLODClamp = 0.f
+				};
+			}
+			break;
+		}
+	case ResourceDimension::Tex2D:
+		{
+			if (!ShouldD3D12ViewBeCreatedAsArray(desc))
+			{
+				d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+				d3d12SRVDesc.Texture2D = {
+					.MostDetailedMip = (UINT)desc.subresourceRange.firstMipLevel,
+					.MipLevels = (UINT)desc.subresourceRange.numMipLevels,
+					// TODO: should probably revisit this
+					.PlaneSlice = GetPlaneSlice(desc.format),
+					// TODO: add support for this
+					.ResourceMinLODClamp = 0.f
+				};
+			}
+			else
+			{
+				d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+				d3d12SRVDesc.Texture2DArray = {
+					.MostDetailedMip = (UINT)desc.subresourceRange.firstMipLevel,
+					.MipLevels = (UINT)desc.subresourceRange.numMipLevels,
+					.FirstArraySlice = (UINT)desc.subresourceRange.firstArraySlice,
+					.ArraySize = (UINT)desc.subresourceRange.numArraySlices,
+					.PlaneSlice = GetPlaneSlice(desc.format),
+					.ResourceMinLODClamp = 0.f
+				};
+			}
+			break;
+		}
+	case ResourceDimension::Tex3D:
+		{
+			PE_ASSERT(desc.subresourceRange.firstArraySlice == 0 && desc.subresourceRange.numArraySlices == 1, "3D textures cannot be arrays");
+
+			d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+			d3d12SRVDesc.Texture3D = {
+				.MostDetailedMip = (UINT)desc.subresourceRange.firstMipLevel,
+				.MipLevels = (UINT)desc.subresourceRange.numMipLevels,
 				.ResourceMinLODClamp = 0.f
 			};
+			break;
 		}
-		else
-		{
-			d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
-			d3d12SRVDesc.Texture1DArray = {
-				.MostDetailedMip = (UINT)desc.firstMipLevel,
-				.MipLevels = (UINT)desc.numMipLevels,
-				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
-				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount,
-				.ResourceMinLODClamp = 0.f
-			};
-		}
-		break;
 	case ResourceDimension::TexCube:
 		{
 			PE_ASSERT(desc.IsCube());
-			d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
-			d3d12SRVDesc.Texture2D = {
-				.MostDetailedMip = (UINT)desc.firstMipLevel,
-				.MipLevels = (UINT)desc.numMipLevels,
-				.PlaneSlice = GetPlaneSlice(desc.format),
-				.ResourceMinLODClamp = 0.f
-			};
+
+			if (!ShouldD3D12ViewBeCreatedAsArray(desc))
+			{
+				d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBE;
+				d3d12SRVDesc.TextureCube = {
+					.MostDetailedMip = (UINT)desc.subresourceRange.firstMipLevel,
+					.MipLevels = (UINT)desc.subresourceRange.numMipLevels,
+					.ResourceMinLODClamp = 0.f
+				};
+			}
+			else
+			{
+				d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURECUBEARRAY;
+				d3d12SRVDesc.TextureCubeArray = {
+					.MostDetailedMip = (UINT)desc.subresourceRange.firstMipLevel,
+					.MipLevels = (UINT)desc.subresourceRange.numMipLevels,
+					.First2DArrayFace = (UINT)desc.subresourceRange.firstArraySlice,
+					.NumCubes = (UINT)desc.subresourceRange.numArraySlices / 6,
+					.ResourceMinLODClamp = 0.f
+				};
+			}
+			break;
 		}
-		break;
-	case ResourceDimension::Tex2D:
-		if (!desc.IsArray())
-		{
-			d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-			d3d12SRVDesc.Texture2D = {
-				.MostDetailedMip = (UINT)desc.firstMipLevel,
-				.MipLevels = (UINT)desc.numMipLevels,
-				.PlaneSlice = GetPlaneSlice(desc.format),
-				.ResourceMinLODClamp = 0.f
-			};
-		}
-		else
-		{
-			d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
-			d3d12SRVDesc.Texture2DArray = {
-				.MostDetailedMip = (UINT)desc.firstMipLevel,
-				.MipLevels = (UINT)desc.numMipLevels,
-				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
-				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount,
-				.PlaneSlice = GetPlaneSlice(desc.format),
-				.ResourceMinLODClamp = 0.f
-			};
-		}
-		break;
-	case ResourceDimension::Tex3D:
-		d3d12SRVDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
-		d3d12SRVDesc.Texture3D = {
-			.MostDetailedMip = (UINT)desc.firstMipLevel,
-			.MipLevels = (UINT)desc.numMipLevels,
-			.ResourceMinLODClamp = 0.f
-		};
-		break;
 	default:
 		PE_ASSERT_NO_ENTRY();
 		return {};
@@ -1234,51 +1254,62 @@ D3D12_UNORDERED_ACCESS_VIEW_DESC GetD3D12UnorderedAccessViewDesc(TextureViewDesc
 	switch (desc.dimension)
 	{
 	case ResourceDimension::Tex1D:
-		if (!desc.IsArray())
 		{
-			d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
-			d3d12UAVDesc.Texture1D = {
-				.MipSlice = (UINT)desc.firstMipLevel
-			};
+			if (!ShouldD3D12ViewBeCreatedAsArray(desc))
+			{
+				d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1D;
+				d3d12UAVDesc.Texture1D = {
+					.MipSlice = (UINT)desc.subresourceRange.firstMipLevel
+				};
+			}
+			else
+			{
+				d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
+				d3d12UAVDesc.Texture1DArray = {
+					.MipSlice = (UINT)desc.subresourceRange.firstMipLevel,
+					.FirstArraySlice = (UINT)desc.subresourceRange.firstArraySlice,
+					.ArraySize = (UINT)desc.subresourceRange.numArraySlices
+				};
+			}
+			break;
 		}
-		else
-		{
-			d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE1DARRAY;
-			d3d12UAVDesc.Texture1DArray = {
-				.MipSlice = (UINT)desc.firstMipLevel,
-				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
-				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount
-			};
-		}
-		break;
-	case ResourceDimension::TexCube:
-		PE_ASSERT(desc.arrayOrDepthSlicesCount == 6);
 	case ResourceDimension::Tex2D:
-		if (!desc.IsArray())
 		{
-			d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
-			d3d12UAVDesc.Texture2D = {
-				.MipSlice = (UINT)desc.firstMipLevel
-			};
+			if (!ShouldD3D12ViewBeCreatedAsArray(desc))
+			{
+				d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+				d3d12UAVDesc.Texture2D = {
+					.MipSlice = (UINT)desc.subresourceRange.firstMipLevel
+				};
+			}
+			else
+			{
+				d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
+				d3d12UAVDesc.Texture2DArray = {
+					.MipSlice = (UINT)desc.subresourceRange.firstMipLevel,
+					.FirstArraySlice = (UINT)desc.subresourceRange.firstArraySlice,
+					.ArraySize = (UINT)desc.subresourceRange.numArraySlices
+				};
+			}
+			break;
 		}
-		else
-		{
-			d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2DARRAY;
-			d3d12UAVDesc.Texture2DArray = {
-				.MipSlice = (UINT)desc.firstMipLevel,
-				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
-				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount
-			};
-		}
-		break;
 	case ResourceDimension::Tex3D:
-		d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
-		d3d12UAVDesc.Texture3D = {
-			.MipSlice = (UINT)desc.firstMipLevel,
-			.FirstWSlice = (UINT)desc.firstArrayOrDepthSlice,
-			.WSize = (UINT)desc.arrayOrDepthSlicesCount
-		};
-		break;
+		{
+			PE_ASSERT(desc.subresourceRange.firstArraySlice == 0 && desc.subresourceRange.numArraySlices == 1, "3D textures cannot be arrays");
+
+			d3d12UAVDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE3D;
+			d3d12UAVDesc.Texture3D = {
+				.MipSlice = (UINT)desc.subresourceRange.firstMipLevel,
+				.FirstWSlice = (UINT)desc.subresourceRange.firstArraySlice,
+				.WSize = (UINT)desc.subresourceRange.numArraySlices
+			};
+			break;
+		}
+	case ResourceDimension::TexCube:
+		{
+			PE_ASSERT_NO_ENTRY("Use Tex2D array for UAVs");
+			return {};
+		}
 	default:
 		PE_ASSERT_NO_ENTRY();
 		return {};
@@ -1298,51 +1329,60 @@ D3D12_RENDER_TARGET_VIEW_DESC GetD3D12RenderTargetViewDesc(TextureViewDesc desc)
 	switch (desc.dimension)
 	{
 	case ResourceDimension::Tex1D:
-		if (!desc.IsArray())
 		{
-			d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
-			d3d12RTVDesc.Texture1D = {
-				.MipSlice = (UINT)desc.firstMipLevel
-			};
+			if (!ShouldD3D12ViewBeCreatedAsArray(desc))
+			{
+				d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1D;
+				d3d12RTVDesc.Texture1D = {
+					.MipSlice = (UINT)desc.subresourceRange.firstMipLevel
+				};
+			}
+			else
+			{
+				d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
+				d3d12RTVDesc.Texture1DArray = {
+					.MipSlice = (UINT)desc.subresourceRange.firstMipLevel,
+					.FirstArraySlice = (UINT)desc.subresourceRange.firstArraySlice,
+					.ArraySize = (UINT)desc.subresourceRange.numArraySlices
+				};
+			}
+			break;
 		}
-		else
-		{
-			d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE1DARRAY;
-			d3d12RTVDesc.Texture1DArray = {
-				.MipSlice = (UINT)desc.firstMipLevel,
-				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
-				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount
-			};
-		}
-		break;
-	case ResourceDimension::TexCube:
-		PE_ASSERT(desc.arrayOrDepthSlicesCount == 6);
 	case ResourceDimension::Tex2D:
-		if (!desc.IsArray())
 		{
-			d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
-			d3d12RTVDesc.Texture2D = {
-				.MipSlice = (UINT)desc.firstMipLevel
-			};
+			if (!ShouldD3D12ViewBeCreatedAsArray(desc))
+			{
+				d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+				d3d12RTVDesc.Texture2D = {
+					.MipSlice = (UINT)desc.subresourceRange.firstMipLevel
+				};
+			}
+			else
+			{
+				d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
+				d3d12RTVDesc.Texture2DArray = {
+					.MipSlice = (UINT)desc.subresourceRange.firstMipLevel,
+					.FirstArraySlice = (UINT)desc.subresourceRange.firstArraySlice,
+					.ArraySize = (UINT)desc.subresourceRange.numArraySlices
+				};
+			}
+			break;
 		}
-		else
-		{
-			d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DARRAY;
-			d3d12RTVDesc.Texture2DArray = {
-				.MipSlice = (UINT)desc.firstMipLevel,
-				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
-				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount
-			};
-		}
-		break;
 	case ResourceDimension::Tex3D:
-		d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
-		d3d12RTVDesc.Texture3D = {
-			.MipSlice = (UINT)desc.firstMipLevel,
-			.FirstWSlice = (UINT)desc.firstArrayOrDepthSlice,
-			.WSize = (UINT)desc.arrayOrDepthSlicesCount
-		};
-		break;
+		{
+			d3d12RTVDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE3D;
+			d3d12RTVDesc.Texture3D = {
+				.MipSlice = (UINT)desc.subresourceRange.firstMipLevel,
+				.FirstWSlice = (UINT)desc.subresourceRange.firstArraySlice,
+				.WSize = (UINT)desc.subresourceRange.numArraySlices
+			};
+			break;
+		}
+	case ResourceDimension::TexCube:
+		{
+			PE_ASSERT_NO_ENTRY("Use Tex2D array for RTVs");
+			return {};
+		}
 	default:
 		PE_ASSERT_NO_ENTRY();
 		return {};
@@ -1362,46 +1402,50 @@ D3D12_DEPTH_STENCIL_VIEW_DESC GetD3D12DepthStencilViewDesc(TextureViewDesc desc)
 	switch (desc.dimension)
 	{
 	case ResourceDimension::Tex1D:
-		if (!desc.IsArray())
 		{
-			d3d12DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
-			d3d12DSVDesc.Texture1D = {
-				.MipSlice = (UINT)desc.firstMipLevel
-			};
+			if (!ShouldD3D12ViewBeCreatedAsArray(desc))
+			{
+				d3d12DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1D;
+				d3d12DSVDesc.Texture1D = {
+					.MipSlice = (UINT)desc.subresourceRange.firstMipLevel
+				};
+			}
+			else
+			{
+				d3d12DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
+				d3d12DSVDesc.Texture1DArray = {
+					.MipSlice = (UINT)desc.subresourceRange.firstMipLevel,
+					.FirstArraySlice = (UINT)desc.subresourceRange.firstArraySlice,
+					.ArraySize = (UINT)desc.subresourceRange.numArraySlices
+				};
+			}
+			break;
 		}
-		else
-		{
-			d3d12DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE1DARRAY;
-			d3d12DSVDesc.Texture1DArray = {
-				.MipSlice = (UINT)desc.firstMipLevel,
-				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
-				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount
-			};
-		}
-		break;
-	case ResourceDimension::TexCube:
-		PE_ASSERT(desc.arrayOrDepthSlicesCount == 6);
 	case ResourceDimension::Tex2D:
-		if (!desc.IsArray())
 		{
-			d3d12DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
-			d3d12DSVDesc.Texture2D = {
-				.MipSlice = (UINT)desc.firstMipLevel
-			};
+			if (!ShouldD3D12ViewBeCreatedAsArray(desc))
+			{
+				d3d12DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+				d3d12DSVDesc.Texture2D = {
+					.MipSlice = (UINT)desc.subresourceRange.firstMipLevel
+				};
+			}
+			else
+			{
+				d3d12DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
+				d3d12DSVDesc.Texture2DArray = {
+					.MipSlice = (UINT)desc.subresourceRange.firstMipLevel,
+					.FirstArraySlice = (UINT)desc.subresourceRange.firstArraySlice,
+					.ArraySize = (UINT)desc.subresourceRange.numArraySlices
+				};
+			}
+			break;
 		}
-		else
+	case ResourceDimension::TexCube:
 		{
-			d3d12DSVDesc.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2DARRAY;
-			d3d12DSVDesc.Texture2DArray = {
-				.MipSlice = (UINT)desc.firstMipLevel,
-				.FirstArraySlice = (UINT)desc.firstArrayOrDepthSlice,
-				.ArraySize = (UINT)desc.arrayOrDepthSlicesCount
-			};
+			PE_ASSERT_NO_ENTRY("Use Tex2D array for DSVs");
+			return {};
 		}
-		break;
-	case ResourceDimension::Tex3D:
-		PE_ASSERT_NO_ENTRY("DSV cannot be 3D texture view");
-		return {};
 	default:
 		PE_ASSERT_NO_ENTRY();
 		return {};

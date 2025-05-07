@@ -81,7 +81,8 @@ D3D12TextureView::D3D12TextureView(TextureViewDesc desc, Texture* texture)
 				&d3d12ViewDesc, m_descriptor.GetCPUHandle());
 		}
 		break;
-	default: ;
+	default:
+		PE_ASSERT_NO_ENTRY();
 	}
 }
 

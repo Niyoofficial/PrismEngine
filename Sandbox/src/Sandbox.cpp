@@ -11,6 +11,9 @@
 #include "Prism/Render/Texture.h"
 #include "Prism/Render/TextureView.h"
 
+#include "wrl/client.h"
+#include "pix3.h"
+
 IMPLEMENT_APPLICATION(SandboxApplication);
 
 SandboxLayer::SandboxLayer(Core::Window* owningWindow)
@@ -18,6 +21,10 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 {
 	using namespace Prism::Render;
 	Layer::Attach();
+
+	PIXCaptureParameters params;
+	params.GpuCaptureParameters.FileName = L"Capture.wpix";
+	PIXBeginCapture(PIX_CAPTURE_GPU, &params);
 
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::WindowResized>(
 		[this](Core::AppEvent event)
@@ -68,7 +75,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			constexpr float moveSpeedChangeMult = 0.01f;
 			constexpr float minMoveSpeed = 0.01f;
 			m_cameraSpeed += delta * moveSpeedChangeMult;
-			m_cameraSpeed = std::max(m_cameraSpeed, minMoveSpeed);
+			//m_cameraSpeed = std::max(m_cameraSpeed, minMoveSpeed);
 		});
 
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseButtonDown>(
@@ -87,7 +94,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
 	m_camera = new Camera(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
-	m_camera->SetPosition({0.f, 2.f, -5.f});
+	m_camera->SetPosition({7.f, -5.f, -10.f});
 
 	m_depthStencil = Texture::Create({
 										 .textureName = L"DepthStencil",
@@ -119,30 +126,34 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	m_skyboxCubeSRVView = m_skybox->CreateView({
 		.type = TextureViewType::SRV,
 		.dimension = ResourceDimension::TexCube,
-		.firstMipLevel = 0,
-		.numMipLevels = 1,
-		.firstArrayOrDepthSlice = 0,
-		.arrayOrDepthSlicesCount = 6
+		.subresourceRange = {
+			.firstArraySlice = 0,
+			.numArraySlices = 6
+		}
 	});
 	m_skyboxArraySRVView = m_skybox->CreateView({
 		.type = TextureViewType::SRV,
 		.dimension = ResourceDimension::Tex2D,
-		.firstMipLevel = 0,
-		.numMipLevels = 1,
-		.firstArrayOrDepthSlice = 0,
-		.arrayOrDepthSlicesCount = 6
+		.subresourceRange = {
+			.firstMipLevel = 0,
+			.numMipLevels = 1,
+			.firstArraySlice = 0,
+			.numArraySlices = 6
+		}
 	});
 	m_skyboxUAVView = m_skybox->CreateView({
 		.type = TextureViewType::UAV,
-		.dimension = ResourceDimension::TexCube,
-		.firstMipLevel = 0,
-		.numMipLevels = 1,
-		.firstArrayOrDepthSlice = 0,
-		.arrayOrDepthSlicesCount = 6
+		.dimension = ResourceDimension::Tex2D,
+		.subresourceRange = {
+			.firstMipLevel = 0,
+			.numMipLevels = 1,
+			.firstArraySlice = 0,
+			.numArraySlices = 6
+		}
 	});
 
-	m_prefilteredEnvMap = Texture::Create({
-		.textureName = L"PrefilteredEnvMap",
+	m_prefilteredSkybox = Texture::Create({
+		.textureName = L"PrefilteredSkybox",
 		.width = 2048,
 		.height = 2048,
 		.depthOrArraySize = 6,
@@ -152,21 +163,25 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
 		.optimizedClearValue = {}
 	});
-	m_prefilteredEnvMapCubeSRVView = m_prefilteredEnvMap->CreateView({
+	m_prefilteredEnvMapCubeSRVView = m_prefilteredSkybox->CreateView({
 		.type = TextureViewType::SRV,
 		.dimension = ResourceDimension::TexCube,
-		.firstMipLevel = 0,
-		.numMipLevels = 6,
-		.firstArrayOrDepthSlice = 0,
-		.arrayOrDepthSlicesCount = 6
+		.subresourceRange = {
+			.firstMipLevel = 0,
+			.numMipLevels = 6,
+			.firstArraySlice = 0,
+			.numArraySlices = 6
+		}
 	});
-	m_prefilteredEnvMapUAVView = m_prefilteredEnvMap->CreateView({
+	m_prefilteredEnvMapUAVView = m_prefilteredSkybox->CreateView({
 		.type = TextureViewType::UAV,
-		.dimension = ResourceDimension::TexCube,
-		.firstMipLevel = 0,
-		.numMipLevels = 6,
-		.firstArrayOrDepthSlice = 0,
-		.arrayOrDepthSlicesCount = 6
+		.dimension = ResourceDimension::Tex2D,
+		.subresourceRange = {
+			.firstMipLevel = 0,
+			.numMipLevels = 6,
+			.firstArraySlice = 0,
+			.numArraySlices = 6
+		}
 	});
 
 	m_rustedIronAlbedo = Texture::Create(L"textures/rustediron2_basecolor.png");
@@ -232,7 +247,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 							 primitiveData.indices.data(), (int64_t)primitiveData.indices.size());
 	}
 
-	// Load sphere
+	// Load spheres
 	for (int32_t i = 0; i < 6; ++i)
 	{
 		m_spheres.push_back(new PrimitiveBatch(L"Sphere", L"g_modelBuffer", sizeof(CBufferModel)));
@@ -249,7 +264,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	}
 
 	{
-		auto renderContext = RenderDevice::Get().AllocateContext();
+		auto renderContext = RenderDevice::Get().AllocateContext(L"Initialization");
 
 		// HDRI to cubemap skybox
 		{
@@ -344,8 +359,8 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			});
 
 			for (int32_t i = 0; i < 6; ++i)
-				renderContext->CopyTextureRegion(m_prefilteredEnvMap, {},
-					GetSubresourceIndex(0, m_prefilteredEnvMap->GetTextureDesc().GetMipLevels(), i, 6),
+				renderContext->CopyTextureRegion(m_prefilteredSkybox, {},
+					GetSubresourceIndex(0, m_prefilteredSkybox->GetTextureDesc().GetMipLevels(), i, 6),
 					m_skybox, GetSubresourceIndex(0, m_skybox->GetTextureDesc().GetMipLevels(), i, 6));
 
 			renderContext->Barrier(TextureBarrier{
@@ -359,7 +374,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			});
 
 			renderContext->Barrier(TextureBarrier{
-				.texture = m_prefilteredEnvMap,
+				.texture = m_prefilteredSkybox,
 				.syncBefore = BarrierSync::Copy,
 				.syncAfter = BarrierSync::ComputeShading,
 				.accessBefore = BarrierAccess::Common,
@@ -378,43 +393,53 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 			renderContext->SetTexture(m_skyboxCubeSRVView, L"g_skybox");
 
-			struct alignas(Constants::CBUFFER_ALIGNMENT) IntegrationData
+			struct alignas(Constants::CBUFFER_ALIGNMENT) PrefilterData
 			{
 				float roughness = 0.f;
-				int32_t resolution = 0;
+				int32_t totalResolution = 0;
+				int32_t mipResolution = 0;
+				int32_t sampleCount = 0;
 			};
 
-			for (int32_t i = 1; i < m_prefilteredEnvMap->GetTextureDesc().GetMipLevels(); ++i)
+			for (int32_t i = 1; i < m_prefilteredSkybox->GetTextureDesc().GetMipLevels(); ++i)
 			{
-				int32_t threadGroupSize = m_prefilteredEnvMap->GetTextureDesc().GetWidth() / (int32_t)std::pow(2, i) / 32;
+				int32_t threadGroupSize = m_prefilteredSkybox->GetTextureDesc().GetWidth() / (int32_t)std::pow(2, i) / 32;
 
-				renderContext->SetTexture(m_prefilteredEnvMap->CreateView({
+				renderContext->SetTexture(m_prefilteredSkybox->CreateView({
 					.type = TextureViewType::UAV,
-					.dimension = ResourceDimension::TexCube,
-					.firstMipLevel = i,
-					.numMipLevels = 1,
-					.firstArrayOrDepthSlice = 0,
-					.arrayOrDepthSlicesCount = 6
+					.dimension = ResourceDimension::Tex2D,
+					.subresourceRange = {
+						.firstMipLevel = i,
+						.numMipLevels = 1,
+						.firstArraySlice = 0,
+						.numArraySlices = 6
+					}
 				}), L"g_outputTexture");
 
-				IntegrationData data = {
-					.roughness = (float)i / (float)m_prefilteredEnvMap->GetTextureDesc().GetMipLevels(),
-					.resolution = m_prefilteredEnvMap->GetTextureDesc().GetWidth() / (int32_t)std::pow(2, i)
+				std::array sampleCounts = {
+					8, 16, 64, 128, 128
 				};
 
-				auto integrationBuffer = Buffer::Create({
-															.bufferName = std::wstring(L"IntegrationBuffer_") + std::to_wstring(data.resolution),
-															.size = sizeof(IntegrationData),
-															.bindFlags = BindFlags::ConstantBuffer,
-															.usage = ResourceUsage::Default,
-															.cpuAccess = CPUAccess::None
-														},
-														{
-															.data = &data,
-															.sizeInBytes = sizeof(data)
-														});
+				PrefilterData data = {
+					.roughness = (float)i / (float)(m_prefilteredSkybox->GetTextureDesc().GetMipLevels() - 1),
+					.totalResolution = m_prefilteredSkybox->GetTextureDesc().GetWidth(),
+					.mipResolution = m_prefilteredSkybox->GetTextureDesc().GetWidth() / (int32_t)std::pow(2, i),
+					.sampleCount = sampleCounts.size() >= i ? sampleCounts[i - 1] : sampleCounts.back()
+				};
 
-				renderContext->SetBuffer(integrationBuffer->CreateDefaultCBVView(), L"g_integrationData");
+				auto prefilterDataBuffer = Buffer::Create({
+															  .bufferName = std::wstring(L"PrefilterDataBuffer_") + std::to_wstring(data.mipResolution),
+															  .size = sizeof(PrefilterData),
+															  .bindFlags = BindFlags::ConstantBuffer,
+															  .usage = ResourceUsage::Default,
+															  .cpuAccess = CPUAccess::None
+														  },
+														  {
+															  .data = &data,
+															  .sizeInBytes = sizeof(data)
+														  });
+
+				renderContext->SetBuffer(prefilterDataBuffer->CreateDefaultCBVView(), L"g_prefilterData");
 
 				renderContext->Dispatch(threadGroupSize, threadGroupSize, 6);
 			}
@@ -507,7 +532,7 @@ void SandboxLayer::Update(Duration delta)
 			m_camera->AddPosition(m_camera->GetUpVector() * m_cameraSpeed);
 	}
 
-	Ref<RenderContext> renderContext = RenderDevice::Get().AllocateContext();
+	Ref<RenderContext> renderContext = RenderDevice::Get().AllocateContext(L"SandboxUpdate");
 
 	glm::float2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 	auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
@@ -635,12 +660,14 @@ void SandboxLayer::Update(Duration delta)
 
 		renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_envMap");
 
-		for (Ref<Render::PrimitiveBatch> sphere : m_spheres)
+		int32_t i = 0;
+		for (const auto& sphere : m_spheres)
 		{
 			modelData.world = glm::translate(modelData.world, glm::float3(2.f, 0.f, 0.f));
 			modelData.mipLevel += 1.f;
 			
 			sphere->Draw(renderContext, &modelData, sizeof(CBufferModel));
+			++i;
 		}
 	}
 
@@ -686,6 +713,9 @@ void SandboxLayer::Update(Duration delta)
 	}
 
 	RenderDevice::Get().SubmitContext(renderContext);
+
+	if (Core::Application::Get().GetCurrentFrame() == 1)
+		PIXEndCapture(false);
 }
 
 SandboxApplication& SandboxApplication::Get()
@@ -697,7 +727,7 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 	: Application(argc, argv)
 {
 	InitPlatform();
-	InitRenderer({.enableDebugLayer = true, .initPixLibrary = false});
+	InitRenderer({.enableDebugLayer = true, .initPixLibrary = true});
 
 	Core::WindowDesc windowParams = {
 		.windowTitle = L"Test",

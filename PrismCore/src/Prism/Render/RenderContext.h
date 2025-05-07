@@ -59,6 +59,10 @@ public:
 
 	void RenderImGui();
 
+	void SetMarker(glm::float3 color, std::wstring string);
+	void BeginEvent(glm::float3 color, std::wstring string);
+	void EndEvent();
+
 
 	/* Add a callback that will be executed when this context is finished by the GPU */
 	void AddGPUCompletionCallback(std::function<void()> callback);

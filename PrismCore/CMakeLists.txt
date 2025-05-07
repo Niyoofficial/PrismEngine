@@ -30,6 +30,7 @@ if (WIN32)
 	target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
 	target_compile_options(${PROJECT_NAME} PUBLIC "/Zc:preprocessor")
 	target_compile_definitions(${PROJECT_NAME} PUBLIC "PE_PLATFORM_WINDOWS")
+	target_compile_definitions(${PROJECT_NAME} PUBLIC "PE_USE_PIX")
 	add_definitions(-DUNICODE -D_UNICODE)
 endif()
 

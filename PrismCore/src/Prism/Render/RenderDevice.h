@@ -41,7 +41,7 @@ public:
 
 	explicit RenderDevice(RenderDeviceParams params);
 
-	Ref<RenderContext> AllocateContext();
+	Ref<RenderContext> AllocateContext(std::wstring debugName = L"");
 	virtual uint64_t SubmitContext(RenderContext* context);
 
 	void SetBypassCommandRecording(bool bypass);

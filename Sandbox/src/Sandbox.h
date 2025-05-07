@@ -105,7 +105,7 @@ private:
 	Ref<Render::TextureView> m_skyboxArraySRVView;
 	Ref<Render::TextureView> m_skyboxUAVView;
 
-	Ref<Render::Texture> m_prefilteredEnvMap;
+	Ref<Render::Texture> m_prefilteredSkybox;
 	Ref<Render::TextureView> m_prefilteredEnvMapCubeSRVView;
 	Ref<Render::TextureView> m_prefilteredEnvMapUAVView;
 

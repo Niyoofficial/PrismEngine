@@ -66,13 +66,21 @@ void RenderDevice::EndRenderFrame()
 	}
 }
 
-Ref<RenderContext> RenderDevice::AllocateContext()
+Ref<RenderContext> RenderDevice::AllocateContext(std::wstring debugName)
 {
-	return new RenderContext;
+	auto* context = new RenderContext;
+	std::wstring eventName = L"RenderContext";
+	if (!debugName.empty())
+		eventName += L"_" + debugName;
+
+	context->BeginEvent({}, eventName);
+
+	return context;
 }
 
 uint64_t RenderDevice::SubmitContext(RenderContext* context)
 {
+	context->EndEvent();
 	return GetRenderCommandQueue()->Submit(context);
 }
 

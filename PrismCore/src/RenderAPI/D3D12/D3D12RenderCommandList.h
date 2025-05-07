@@ -48,6 +48,10 @@ public:
 
 	virtual void RenderImGui() override;
 
+	virtual void SetMarker(glm::float3 color, std::wstring string) override;
+	virtual void BeginEvent(glm::float3 color, std::wstring string) override;
+	virtual void EndEvent() override;
+
 	virtual void Close() override;
 
 	ID3D12GraphicsCommandList7* GetD3D12CommandList() const { return m_commandList.Get(); }
