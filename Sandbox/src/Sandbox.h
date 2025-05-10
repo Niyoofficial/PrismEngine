@@ -109,6 +109,8 @@ private:
 	Ref<Render::TextureView> m_prefilteredEnvMapCubeSRVView;
 	Ref<Render::TextureView> m_prefilteredEnvMapUAVView;
 
+	Ref<Render::Texture> m_BRDFLUT;
+
 	Ref<Render::Texture> m_rustedIronAlbedo;
 	Ref<Render::TextureView> m_rustedIronAlbedoView;
 	Ref<Render::Texture> m_rustedIronMetallic;
@@ -124,8 +126,6 @@ private:
 	Ref<Render::Buffer> m_sceneCbuffer;
 	Ref<Render::BufferView> m_sceneCbufferView;
 
-	Ref<Render::Buffer> m_coeffGenerationBuffer;
-	Ref<Render::BufferView> m_coeffBufferView;
 	Ref<Render::Buffer> m_irradianceSHBuffer;
 	Ref<Render::BufferView> m_irradianceSHBufferView;
 

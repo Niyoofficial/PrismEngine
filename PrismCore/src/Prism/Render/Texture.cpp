@@ -329,6 +329,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 			{
 				auto srcView = TextureView::Create({
 						.type = TextureViewType::SRV,
+						.dimension = ResourceDimension::Tex2D,
 						.subresourceRange = {
 							.firstArraySlice = i,
 							.numArraySlices = 1
@@ -340,6 +341,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 			{
 				auto srcView = TextureView::Create({
 					.type = TextureViewType::SRV,
+					.dimension = ResourceDimension::Tex2D,
 					.subresourceRange = {
 							.firstArraySlice = i,
 							.numArraySlices = 1
@@ -352,6 +354,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 			{
 				auto view = TextureView::Create({
 					.type = TextureViewType::UAV,
+					.dimension = ResourceDimension::Tex2D,
 					.subresourceRange = {
 						.firstMipLevel = topMip + j,
 						.numMipLevels = 1,

@@ -48,7 +48,7 @@ void main(int3 groupID : SV_GroupID,
 	ConstantBuffer<PrefilterData> prefilterData = ResourceDescriptorHeap[g_prefilterData];
 	
 	float3 normal = GetSamplingVector(dispatchThreadID, prefilterData.mipResolution);
-	float3 toView = normal;
+	float3 toCamera = normal;
 	
 	float3 outputColor = 0.f;
 	float totalWeight = 0.f;
@@ -59,13 +59,13 @@ void main(int3 groupID : SV_GroupID,
 	{
 		float2 Xi = Hammersley(i, sampleCount);
 		float3 halfVector = HemisphereSample_GGX(Xi, prefilterData.roughness, normal);
-		float3 toLight = normalize(2.f * dot(toView, halfVector) * halfVector - toView);
+		float3 toLight = normalize(2.f * dot(toCamera, halfVector) * halfVector - toCamera);
 		
 		float NdotL = max(dot(normal, toLight), 0.f);
 		if (NdotL > 0.f)
 		{
 			float NdotH = saturate(dot(normal, halfVector));
-			float VdotH = saturate(dot(toView, halfVector));
+			float VdotH = saturate(dot(toCamera, halfVector));
 			
 			float pdf = DistributionGGX(normal, halfVector, prefilterData.roughness) * NdotH / (4.f * VdotH);
 			

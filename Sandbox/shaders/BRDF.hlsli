@@ -45,8 +45,37 @@ float DistributionGGX(float3 N, float3 H, float roughness)
 // The Schlick-GGX geometry function
 float GeometrySchlickGGX(float NdotV, float roughness)
 {
+	// describes self shadowing of geometry
+	//
+	// G_SchlickGGX(N, V, k) = ( dot(N,V) ) / ( dot(N,V)*(1-k) + k )
+	//
+	// k		 :	remapping of roughness based on wheter we're using geometry function 
+	//				for direct lighting or IBL
+	// k_direct	 = (roughness + 1)^2 / 8
+	// k_IBL	 = roughness^2 / 2
+	//
 	float r = (roughness + 1.f);
 	float k = (r * r) / 8.f;
+
+	float num = NdotV;
+	float denom = NdotV * (1.f - k) + k;
+	
+	return num / denom;
+}
+
+// The Schlick-GGX geometry function for IBL
+float GeometrySchlickGGX_EnvMap(float NdotV, float roughness)
+{
+	// describes self shadowing of geometry
+	//
+	// G_SchlickGGX(N, V, k) = ( dot(N,V) ) / ( dot(N,V)*(1-k) + k )
+	//
+	// k		 :	remapping of roughness based on wheter we're using geometry function 
+	//				for direct lighting or IBL
+	// k_direct	 = (roughness + 1)^2 / 8
+	// k_IBL	 = roughness^2 / 2
+	//
+	float k = roughness * roughness / 2.f;
 
 	float num = NdotV;
 	float denom = NdotV * (1.f - k) + k;
@@ -65,6 +94,17 @@ float GeometrySmith(float3 normal, float3 toCamera, float3 toLight, float roughn
 	return ggx1 * ggx2;
 }
 
+// The Smith's geometry function combines Schlick-GGX for both the view and light directions for IBL
+float GeometrySmith_EnvMap(float3 normal, float3 toCamera, float3 toLight, float roughness)
+{
+	float NdotV = max(dot(normal, toCamera), 0.f);
+	float NdotL = max(dot(normal, toLight), 0.f);
+	float ggx1 = GeometrySchlickGGX_EnvMap(NdotL, roughness);
+	float ggx2 = GeometrySchlickGGX_EnvMap(NdotV, roughness);
+	
+	return ggx1 * ggx2;
+}
+
 // Importance sample function based on Epic Games implementation
 float3 HemisphereSample_GGX(float2 Xi, float roughness, float3 normal)
 {
@@ -79,7 +119,7 @@ float3 HemisphereSample_GGX(float2 Xi, float roughness, float3 normal)
 	float a = roughness * roughness;
 	
 	float phi = Xi.x * 2.f * PI;
-	float cosTheta = sqrt((1.f - Xi.y) / (1.f + (a * a - 1.f) * Xi.y));
+	float cosTheta = sqrt(clamp((1.f - Xi.y) / (1.f + (a * a - 1.f) * Xi.y), 0.f, 1.f));
 	float sinTheta = sqrt(1.f - cosTheta * cosTheta);
 	
 	float3 sample = float3(cos(phi) * sinTheta, sin(phi) * sinTheta, cosTheta);
@@ -95,6 +135,7 @@ float CalcAttenuation(float distance)
 }
 
 // The Cook-Torrance specular BRDF and the Lambertian diffuse BRDF
+// Cosine lobe scale has to be done outside of this funtion
 float3 BRDF(BRDFSurface surface, float3 toLight, float3 toCamera)
 {
 	float3 halfVector = normalize(toCamera + toLight);
@@ -125,7 +166,9 @@ float3 BRDF(BRDFSurface surface, float3 toLight, float3 toCamera)
 	return diffuse + specular;
 }
 
-float3 EnvironmentBRDF(BRDFSurface surface, float3 toCamera)
+// Split-sum IBL, Cook-Torrance specular BRDF and the Lambertian diffuse BRDF
+// Cosine lobe scale has to be done outside of this funtion
+float3 EnvironmentBRDF(BRDFSurface surface, float3 toCamera, float3 diffuseIrradiance, float3 specularPrefilteredColor, float2 F0ScaleBias)
 {
 	// Metals have a reflectivity equal to their albedo
 	float3 F0 = lerp(DIELECTRIC_F0, surface.albedo, surface.metallic);
@@ -137,5 +180,8 @@ float3 EnvironmentBRDF(BRDFSurface surface, float3 toCamera)
 	// Metallic surfaces don't have diffuse lighting
 	kD *= 1.f - surface.metallic;
 	
-	return LambertDiffuse(surface.albedo) * kD;
+	float3 diffuse = LambertDiffuse(surface.albedo) * kD * diffuseIrradiance;
+	float3 specular = specularPrefilteredColor * (kS * F0ScaleBias.x + F0ScaleBias.y);
+	
+	return diffuse + specular;
 }

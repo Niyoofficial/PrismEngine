@@ -40,6 +40,9 @@ D3D12TextureView::D3D12TextureView(TextureViewDesc desc, Texture* texture)
 			m_viewDesc.type = TextureViewType::DSV;
 	}
 
+	if (m_viewDesc.dimension == ResourceDimension::Undefined)
+		m_viewDesc.dimension = texture->GetTextureDesc().dimension;
+
 	m_descriptor = D3D12RenderDevice::Get().AllocateDescriptors(GetD3D12DescriptorHeapType(m_viewDesc.type));
 
 	switch (m_viewDesc.type)

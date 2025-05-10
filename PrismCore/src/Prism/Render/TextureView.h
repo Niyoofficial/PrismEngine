@@ -26,7 +26,7 @@ public:
 	TextureViewType type;
 
 	TextureFormat format = TextureFormat::Unknown;
-	ResourceDimension dimension = ResourceDimension::Tex2D;
+	ResourceDimension dimension = ResourceDimension::Undefined;
 
 	SubresourceRange subresourceRange;
 };
