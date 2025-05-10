@@ -195,7 +195,7 @@ void Application::InitImGui(Window* window, Render::TextureFormat depthFormat)
 	{
 		void Update(Duration delta) override
 		{
-			auto context = Render::RenderDevice::Get().AllocateContext(L"ImguiUpdate");
+			auto context = Render::RenderDevice::Get().AllocateContext(L"ImGuiUpdate");
 			context->RenderImGui();
 			Render::RenderDevice::Get().SubmitContext(context);
 		}
@@ -220,7 +220,7 @@ void Application::OnQuitEvent(AppEvent event)
 
 void Application::TransitionBackBuffersToRenderTarget()
 {
-	auto context = Render::RenderDevice::Get().AllocateContext();
+	auto context = Render::RenderDevice::Get().AllocateContext(L"TransitionBackBuffersToRenderTarget");
 	for (auto window : m_windows)
 	{
 		PE_ASSERT(window.IsValid());
@@ -240,7 +240,7 @@ void Application::TransitionBackBuffersToRenderTarget()
 
 void Application::TransitionBackBuffersToPresent()
 {
-	auto context = Render::RenderDevice::Get().AllocateContext();
+	auto context = Render::RenderDevice::Get().AllocateContext(L"TransitionBackBuffersToPresent");
 	for (auto window : m_windows)
 	{
 		PE_ASSERT(window.IsValid());

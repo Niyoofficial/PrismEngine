@@ -4,6 +4,8 @@ cbuffer Resources
 {
 	int g_sceneBuffer;
 	int g_irradiance;
+	int g_envMap;
+	int g_brdfLUT;
 	int g_modelBuffer;
 
 	int g_albedoTexture;
@@ -11,8 +13,6 @@ cbuffer Resources
 	int g_roughnessTexture;
 	int g_aoTexture;
 	int g_normalTexture;
-	
-	int g_envMap;
 }
 
 struct VertexInput
@@ -117,6 +117,9 @@ float4 psmain(PixelInput pin) : SV_TARGET
 	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_sceneBuffer];
 	ConstantBuffer<ModelBuffer> modelBuffer = ResourceDescriptorHeap[g_modelBuffer];
 	ConstantBuffer<SceneIrradiance> sceneIrradiance = ResourceDescriptorHeap[g_irradiance];
+	
+	TextureCube prefilteredEnvMap = ResourceDescriptorHeap[g_envMap];
+	Texture2D brdfLUT = ResourceDescriptorHeap[g_brdfLUT];
 
 	float3 normal = normalize(pin.normalWorld);
 	float3 tangent = normalize(pin.tangentWorld);
@@ -140,7 +143,7 @@ float4 psmain(PixelInput pin) : SV_TARGET
 	if (g_roughnessTexture != -1)
 	{
 		Texture2D roughnessTexture = ResourceDescriptorHeap[g_roughnessTexture];
-		roughness *= roughnessTexture.Sample(g_samLinearWrap, pin.texCoords).r;
+		roughness *= roughnessTexture.Sample(g_samLinearWrap, pin.texCoords).g;
 	}
 	if (g_aoTexture != -1)
 	{
@@ -154,7 +157,6 @@ float4 psmain(PixelInput pin) : SV_TARGET
 	}
 	
 	BRDFSurface surface = { albedo, metallic, roughness, normal };
-	
 
 	float3 analyticLight = 0.f;
 	for (int i = 0; i < MAX_LIGHT_COUNT; ++i)
@@ -180,10 +182,11 @@ float4 psmain(PixelInput pin) : SV_TARGET
 						toLight, toCamera, 1.f);
 	}
 	
-	float3 irradiance = SH::CalculateIrradiance(sceneIrradiance.irradianceSH, normal); // Does the cosine lobe scale
-	float avg = (irradiance.x + irradiance.y + irradiance.z) / 3.f;
-	irradiance = lerp(float3(avg, avg, avg), irradiance, sceneBuffer.environmentDiffuseScale);
-	float3 envLight = EnvironmentBRDF(surface, toCamera) * irradiance;
+	float3 r = reflect(-toCamera, normal);
+	float3 prefilteredSpecularColor = prefilteredEnvMap.Sample(g_samLinearWrap, r, roughness * 5).xyz;
+	float2 F0ScaleBias = brdfLUT.SampleLevel(g_samLinearWrap, float2(dot(normal, toCamera), roughness), 0).xy;
+	float3 diffuseIrradiance = SH::CalculateIrradiance(sceneIrradiance.irradianceSH, normal); // Does the cosine lobe scale
+	float3 envLight = EnvironmentBRDF(surface, toCamera, diffuseIrradiance, prefilteredSpecularColor, F0ScaleBias);
 	
 	float3 Lo = analyticLight + envLight;
 	

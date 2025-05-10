@@ -638,7 +638,7 @@ D3D12InputLayout GetD3D12InputLayoutFromVertexShader(const D3D12ShaderCompilerOu
 			.AlignedByteOffset = D3D12_APPEND_ALIGNED_ELEMENT,
 			.InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA,
 			.InstanceDataStepRate = 0u
-			});
+		});
 	}
 
 	return layout;

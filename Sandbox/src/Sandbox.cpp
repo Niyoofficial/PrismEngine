@@ -11,9 +11,6 @@
 #include "Prism/Render/Texture.h"
 #include "Prism/Render/TextureView.h"
 
-#include "wrl/client.h"
-#include "pix3.h"
-
 IMPLEMENT_APPLICATION(SandboxApplication);
 
 SandboxLayer::SandboxLayer(Core::Window* owningWindow)
@@ -21,10 +18,6 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 {
 	using namespace Prism::Render;
 	Layer::Attach();
-
-	PIXCaptureParameters params;
-	params.GpuCaptureParameters.FileName = L"Capture.wpix";
-	PIXBeginCapture(PIX_CAPTURE_GPU, &params);
 
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::WindowResized>(
 		[this](Core::AppEvent event)
@@ -97,16 +90,17 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	m_camera->SetPosition({7.f, -5.f, -10.f});
 
 	m_depthStencil = Texture::Create({
-										 .textureName = L"DepthStencil",
-										 .width = windowSize.x,
-										 .height = windowSize.y,
-										 .dimension = ResourceDimension::Tex2D,
-										 .format = TextureFormat::D24_UNorm_S8_UInt,
-										 .bindFlags = BindFlags::DepthStencil,
-										 .optimizedClearValue = DepthStencilClearValue{
-											 .format = TextureFormat::D24_UNorm_S8_UInt
-										 }
-									 }, BarrierLayout::DepthStencilWrite);
+		 .textureName = L"DepthStencil",
+		 .width = windowSize.x,
+		 .height = windowSize.y,
+		 .dimension = ResourceDimension::Tex2D,
+		 .format = TextureFormat::D24_UNorm_S8_UInt,
+		 .bindFlags = BindFlags::DepthStencil,
+		 .optimizedClearValue = DepthStencilClearValue{
+			 .format = TextureFormat::D24_UNorm_S8_UInt
+		 }
+	 },
+	BarrierLayout::DepthStencilWrite);
 	m_depthStencilView = m_depthStencil->CreateView({
 		.type = TextureViewType::DSV,
 		.dimension = ResourceDimension::Tex2D,
@@ -182,6 +176,15 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			.firstArraySlice = 0,
 			.numArraySlices = 6
 		}
+	});
+
+	m_BRDFLUT = Texture::Create({
+		.textureName = L"BRDFLUT",
+		.width = 1024,
+		.height = 1024,
+		.dimension = ResourceDimension::Tex2D,
+		.format = TextureFormat::RG32_Float,
+		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
 	});
 
 	m_rustedIronAlbedo = Texture::Create(L"textures/rustediron2_basecolor.png");
@@ -296,13 +299,13 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 		// Generate env diffuse irradiance
 		{
-			m_coeffGenerationBuffer = Buffer::Create({
+			auto coeffGenerationBuffer = Buffer::Create({
 				.bufferName = L"SHCoefficientsGeneration",
 				.size = sizeof(glm::float4) * 9, // RGB channels + one for padding * numOfCoefficients
 				.bindFlags = BindFlags::UnorderedAccess,
 				.usage = ResourceUsage::Default
 			});
-			m_coeffBufferView = m_coeffGenerationBuffer->CreateDefaultUAVView(sizeof(glm::float4)); // Single element
+			auto coeffBufferView = coeffGenerationBuffer->CreateDefaultUAVView(sizeof(glm::float4)); // Single element
 
 			renderContext->SetPSO({
 				.cs = {
@@ -323,7 +326,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			});
 
 			renderContext->SetTexture(m_skyboxCubeSRVView, L"g_skybox");
-			renderContext->SetBuffer(m_coeffBufferView, L"g_coefficients");
+			renderContext->SetBuffer(coeffBufferView, L"g_coefficients");
 
 			renderContext->Dispatch(1, 1, 1);
 
@@ -336,17 +339,17 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			m_irradianceSHBufferView = m_irradianceSHBuffer->CreateDefaultCBVView();
 
 			renderContext->Barrier(BufferBarrier{
-				.buffer = m_coeffGenerationBuffer,
+				.buffer = coeffGenerationBuffer,
 				.syncBefore = BarrierSync::ComputeShading,
 				.syncAfter = BarrierSync::Copy,
 				.accessBefore = BarrierAccess::UnorderedAccess,
 				.accessAfter = BarrierAccess::CopySource
 			});
 
-			renderContext->CopyBufferRegion(m_irradianceSHBuffer, 0, m_coeffGenerationBuffer, 0, m_coeffGenerationBuffer->GetBufferDesc().size);
+			renderContext->CopyBufferRegion(m_irradianceSHBuffer, 0, coeffGenerationBuffer, 0, coeffGenerationBuffer->GetBufferDesc().size);
 		}
 
-		// Generate env specular irradiance
+		// Generate env specular irradiance (prefiltered skybox)
 		{
 			renderContext->Barrier(TextureBarrier{
 				.texture = m_skybox,
@@ -443,6 +446,41 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 				renderContext->Dispatch(threadGroupSize, threadGroupSize, 6);
 			}
+		}
+
+		// Generate BRDF integration LUT
+		{
+			renderContext->SetPSO({
+				.cs = {
+					.filepath = L"shaders/BRDFIntegration.hlsl",
+					.entryName = L"main",
+					.shaderType = ShaderType::CS
+				},
+			});
+
+			struct
+			{
+				int32_t resolution;
+			} integrationData;
+			integrationData.resolution = m_BRDFLUT->GetTextureDesc().GetWidth();
+
+			auto integrationDataBuffer = Buffer::Create({
+															.bufferName = L"IntegrationDataBuffer",
+															.size = sizeof(integrationData),
+															.bindFlags = BindFlags::ConstantBuffer,
+															.usage = ResourceUsage::Default,
+															.cpuAccess = CPUAccess::None
+														},
+														{
+															.data = &integrationData,
+															.sizeInBytes = sizeof(integrationData)
+														});
+
+			renderContext->SetBuffer(integrationDataBuffer->CreateDefaultCBVView(), L"g_integrationData");
+
+			renderContext->SetTexture(m_BRDFLUT->CreateView({.type = TextureViewType::UAV}), L"g_outputTexture");
+
+			renderContext->Dispatch(integrationData.resolution / 8, integrationData.resolution / 8, 1);
 		}
 
 		RenderDevice::Get().SubmitContext(renderContext);
@@ -574,6 +612,8 @@ void SandboxLayer::Update(Duration delta)
 	}
 
 	renderContext->SetBuffer(m_irradianceSHBufferView, L"g_irradiance");
+	renderContext->SetTexture(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), L"g_brdfLUT");
+	renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_envMap");
 
 	// Skybox
 	{
@@ -658,8 +698,6 @@ void SandboxLayer::Update(Duration delta)
 			}
 		};
 
-		renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_envMap");
-
 		int32_t i = 0;
 		for (const auto& sphere : m_spheres)
 		{
@@ -672,7 +710,6 @@ void SandboxLayer::Update(Duration delta)
 	}
 
 	// Sponza
-	if (0)
 	{
 		renderContext->SetPSO({
 			.vs = {
@@ -713,9 +750,6 @@ void SandboxLayer::Update(Duration delta)
 	}
 
 	RenderDevice::Get().SubmitContext(renderContext);
-
-	if (Core::Application::Get().GetCurrentFrame() == 1)
-		PIXEndCapture(false);
 }
 
 SandboxApplication& SandboxApplication::Get()
@@ -727,7 +761,7 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 	: Application(argc, argv)
 {
 	InitPlatform();
-	InitRenderer({.enableDebugLayer = true, .initPixLibrary = true});
+	InitRenderer({.enableDebugLayer = true, .initPixLibrary = false});
 
 	Core::WindowDesc windowParams = {
 		.windowTitle = L"Test",
