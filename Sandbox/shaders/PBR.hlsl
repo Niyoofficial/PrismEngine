@@ -183,7 +183,8 @@ float4 psmain(PixelInput pin) : SV_TARGET
 	}
 	
 	float3 r = reflect(-toCamera, normal);
-	float3 prefilteredSpecularColor = prefilteredEnvMap.Sample(g_samLinearWrap, r, roughness * 5).xyz;
+	const int MAX_MIP_LEVEL = 5;
+	float3 prefilteredSpecularColor = prefilteredEnvMap.Sample(g_samLinearWrap, r, roughness * MAX_MIP_LEVEL).xyz;
 	float2 F0ScaleBias = brdfLUT.SampleLevel(g_samLinearWrap, float2(dot(normal, toCamera), roughness), 0).xy;
 	float3 diffuseIrradiance = SH::CalculateIrradiance(sceneIrradiance.irradianceSH, normal); // Does the cosine lobe scale
 	float3 envLight = EnvironmentBRDF(surface, toCamera, diffuseIrradiance, prefilteredSpecularColor, F0ScaleBias);
@@ -192,44 +193,6 @@ float4 psmain(PixelInput pin) : SV_TARGET
 	
 	float3 color = Lo;
 
-	//float3 kS = FresnelSchlick(max(dot(normal, toCamera), 0.f), F0);
-	//float3 kD = 1.f - kS; // TODO: More accurate energy conservation http://jbit.net/~sparky/academic/mm_brdf.pdf
-	//float3 diffuse = irradiance * albedo;
-	//float3 ambient = kD * diffuse * ao;
-	
-	/*float3 Lo = 0.f;
-	for (int i = 0; i < MAX_LIGHT_COUNT; ++i)
-	{
-		if (length(sceneBuffer.pointLights[i].position) <= 0.f)
-			break;
-
-		float3 lightPosition = sceneBuffer.pointLights[i].position;
-		float distance = length(lightPosition - pin.positionWorld);
-		float3 toLight = normalize(lightPosition - pin.positionWorld);
-
-		Lo += CalcLight(albedo, metallic, roughness, sceneBuffer.pointLights[i].lightColor,
-						toLight, toCamera, normal, CalcAttenuation(distance), F0);
-	}
-	for (int i = 0; i < MAX_LIGHT_COUNT; ++i)
-	{
-		if (length(sceneBuffer.directionalLights[i].direction) <= 0.f)
-			break;
-
-		float3 toLight = normalize(-sceneBuffer.directionalLights[i].direction);
-
-		Lo += CalcLight(albedo, metallic, roughness, sceneBuffer.directionalLights[i].lightColor,
-						toLight, toCamera, normal, 1.f, F0);
-	}
-	
-	float3 kS = FresnelSchlickRoughness(max(dot(normal, toCamera), 0.f), F0, roughness);
-	float3 kD = 1.f - kS;
-	kD *= 1.f - metallic; // Metallic surfaces don't have diffuse lighting, so the more mettalic the surface is the less diffuse it gets
-	float3 irradiance = SH::CalculateIrradiance(sceneIrradiance.irradianceSH, normal) * (1.f / PI);
-	float3 diffuse = irradiance * albedo;
-	float3 ambient = kD * diffuse * ao;
-	
-	float3 color = ambient + Lo;*/
-	
 	// Gamma correction
 	color = color / (color + 1.f);
 	color = pow(color, 1.f / 2.2f);
