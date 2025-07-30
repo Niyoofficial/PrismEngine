@@ -26,6 +26,7 @@ struct DrawIndexedCommandDesc
 
 enum class IndexBufferFormat
 {
+	Unknown,
 	Uint16,
 	Uint32
 };

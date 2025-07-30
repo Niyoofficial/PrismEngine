@@ -63,10 +63,11 @@ private:
 	ComPtr<ID3D12CommandAllocator> m_commandAllocator;
 	ComPtr<ID3D12GraphicsCommandList7> m_commandList;
 
-	D3D12PipelineStateCache m_pipelineStateCache;
-
 	GraphicsPipelineStateDesc m_currentGraphicsPSO = {};
 	ComputePipelineStateDesc m_currentComputePSO = {};
+
+	std::vector<Ref<TextureView>> m_renderTargetViews;
+	Ref<TextureView> m_depthStencilView;
 
 	std::unordered_map<std::wstring, Ref<RenderResourceView>> m_rootResources;
 	std::vector<Ref<RenderResourceView>> m_overriddenRootResources;

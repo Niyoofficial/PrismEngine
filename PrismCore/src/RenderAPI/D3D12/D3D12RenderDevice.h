@@ -7,6 +7,7 @@
 
 #include "RenderAPI/D3D12/D3D12Base.h"
 #include "RenderAPI/D3D12/D3D12DynamicBufferAllocator.h"
+#include "RenderAPI/D3D12/D3D12PipelineStateCache.h"
 
 
 DECLARE_LOG_CATEGORY(PED3D12, "Prism-D3D12");
@@ -44,15 +45,18 @@ public:
 	IDXGIFactory2* GetDXGIFactory() const;
 	ID3D12CommandQueue* GetD3D12CommandQueue() const;
 
+	D3D12RootSignature* GetGlobalRootSignature(PipelineStateType type) const;
+	D3D12PipelineStateCache& GetPipelineStateCache();
+	const D3D12PipelineStateCache& GetPipelineStateCache() const;
+
 	DescriptorHeapAllocation AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t count = 1);
 
 	std::array<ID3D12DescriptorHeap*, 2> GetGPUDescriptorHeaps() const;
 
 	uint32_t GetDescriptorHandleSize(D3D12_DESCRIPTOR_HEAP_TYPE type) const;
 
-	D3D12RootSignature* GetGlobalRootSignature(PipelineStateType type) const;
-
-	DynamicGPURingBuffer::DynamicAllocation AllocateDynamicBufferMemory(int64_t size);
+	DynamicBufferAllocator::Allocation AllocateDynamicBufferMemory(int64_t size);
+	ID3D12Resource* GetD3D12ResourceForDynamicAllocation(int64_t ringBufferID) const;
 
 	virtual void InitializeImGui(Core::Window* window, TextureFormat depthFormat) override;
 	virtual void ShutdownImGui() override;
@@ -75,6 +79,8 @@ private:
 
 	Ref<D3D12RootSignature> m_graphicsRootSignature;
 	Ref<D3D12RootSignature> m_computeRootSignature;
+
+	D3D12PipelineStateCache m_pipelineStateCache;
 
 	DynamicBufferAllocator m_dynamicBufferAllocator;
 

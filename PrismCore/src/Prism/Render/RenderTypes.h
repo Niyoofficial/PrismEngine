@@ -585,10 +585,10 @@ enum class BindFlags : uint16_t
 	// A buffer can be bound as an index buffer.
 	IndexBuffer = 1u << 1u,
 
-	// A buffer can be bound as a constant (uniform) buffer.
+	// A buffer can be bound as a uniform (constant in DirectX) buffer.
 	//
 	// This flag may NOT be combined with any other bind flag.
-	ConstantBuffer = 1u << 2u,
+	UniformBuffer = 1u << 2u,
 
 	// A buffer or a texture can be bound as a shader resource.
 	ShaderResource = 1u << 3u,

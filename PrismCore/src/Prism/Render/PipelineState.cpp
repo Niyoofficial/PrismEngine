@@ -19,9 +19,6 @@ bool GraphicsPipelineStateDesc::operator==(const GraphicsPipelineStateDesc& othe
 		other.rasterizerState == rasterizerState &&
 		other.depthStencilState == depthStencilState &&
 		other.primitiveTopologyType == primitiveTopologyType &&
-		other.numRenderTargets == numRenderTargets &&
-		other.renderTargetFormats == renderTargetFormats &&
-		other.depthStencilFormat == depthStencilFormat &&
 		other.sampleMask == sampleMask &&
 		other.sampleDesc == sampleDesc;
 }

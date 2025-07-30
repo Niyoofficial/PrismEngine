@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Prism/Render/Material.h"
 #include "Prism/Render/RenderContext.h"
 
 namespace Prism::Render
@@ -6,52 +7,24 @@ namespace Prism::Render
 class Primitive : public RefCounted
 {
 public:
-	struct TextureParameter
-	{
-		bool IsValid() const;
+	explicit Primitive(const std::wstring& primitiveName);
 
-		Ref<TextureView> textureView;
-		std::wstring paramName;
-	};
+	void SetVertices(int64_t vertexSize, void* vertexBuffer, int64_t vertexCount, IndexBufferFormat indexFormat, void* indexBuffer, int64_t indexCount);
+	void SetPrimitiveUniformBuffer(std::wstring bufferParamName, int64_t bufferSize);
 
-public:
-	Primitive(const std::wstring& primitiveName, int64_t vertexSize, IndexBufferFormat indexFormat,
-			  void* vertexBuffer, int64_t vertexCount, void* indexBuffer, int64_t indexCount,
-			  TextureParameter albedoTexture = {}, TextureParameter normalsTexture = {},
-			  TextureParameter metallicTexture = {}, TextureParameter roughnessTexture = {},
-			  Buffer* primitiveCBuffer = nullptr, BufferView* primitiveCBufferView = nullptr,
-			  const std::wstring& primitiveCBufferParamNam = L"");
-
-	void SetCBuffer(Buffer* primitiveCBuffer,
-					BufferView* primitiveCBufferView,
-					const std::wstring& primitiveCBufferParamNam);
-
-	void SetAlbedoTexture(TextureParameter albedo);
-	void SetNormalsTexture(TextureParameter normals);
-	void SetMetallicTexture(TextureParameter metallic);
-	void SetRoughnessTexture(TextureParameter roughness);
-
-	void BindPrimitive(RenderContext* renderContext, void* cbufferData = nullptr, int64_t dataSize = -1);
-	void DrawPrimitive(RenderContext* renderContext);
+	void DrawPrimitive(RenderContext* renderContext, void* uniformBufferData, int64_t dataSize, Material material);
 
 protected:
 	std::wstring m_primitiveName;
 
 	Ref<Buffer> m_vertexBuffer;
 	int64_t m_vertexSize = -1;
-	int64_t m_vertexCount = -1;
 
+	IndexBufferFormat m_indexFormat = IndexBufferFormat::Unknown;
 	Ref<Buffer> m_indexBuffer;
-	int64_t m_indexCount = -1;
-	IndexBufferFormat m_indexFormat = IndexBufferFormat::Uint32;
 
-	TextureParameter m_albedoTexture;
-	TextureParameter m_normalsTexture;
-	TextureParameter m_metallicTexture;
-	TextureParameter m_roughnessTexture;
-
-	Ref<Buffer> m_primitiveCBuffer;
-	Ref<BufferView> m_primitiveCBufferView;
-	std::wstring m_primitiveCBufferParamName;
+	Ref<Buffer> m_primitiveUniformBuffer;
+	Ref<BufferView> m_primitiveUniformBufferView;
+	std::wstring m_primitiveParamName;
 };
 }

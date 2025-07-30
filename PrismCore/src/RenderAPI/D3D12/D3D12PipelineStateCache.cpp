@@ -5,7 +5,7 @@
 
 namespace Prism::Render::D3D12
 {
-ID3D12PipelineState* D3D12PipelineStateCache::GetOrCreatePipelineState(const GraphicsPipelineStateDesc& desc)
+ID3D12PipelineState* D3D12PipelineStateCache::GetOrCreatePipelineState(const GraphicsPipelineStateDesc& desc, std::vector<Ref<TextureView>> rtvs, TextureView* dsv)
 {
 	auto vsOutput = D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetOrCreateShader(desc.vs);
 	auto psOutput = D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetOrCreateShader(desc.ps);
@@ -15,11 +15,12 @@ ID3D12PipelineState* D3D12PipelineStateCache::GetOrCreatePipelineState(const Gra
 	if (m_graphicsPipelineStates.contains(hash))
 		return m_graphicsPipelineStates.at(hash).Get();
 
-	auto d3d12PipelineStateDesc = GetD3D12PipelineStateDesc(desc, vsOutput, psOutput);
+	auto d3d12PipelineStateDesc = GetD3D12PipelineStateDesc(desc, vsOutput, psOutput, rtvs, dsv);
 	ComPtr<ID3D12PipelineState> pipelineState;
 	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateGraphicsPipelineState(
 		&d3d12PipelineStateDesc.psoDesc, IID_PPV_ARGS(&pipelineState)));
 
+	PE_ASSERT_HR(pipelineState->SetName(L"Graphics PSO"));
 	m_graphicsPipelineStates[hash] = pipelineState;
 
 	return pipelineState.Get();
@@ -31,14 +32,15 @@ ID3D12PipelineState* D3D12PipelineStateCache::GetOrCreatePipelineState(const Com
 
 	XXH64_hash_t hash = HashPipelineStateDesc(desc);
 
-	if (m_graphicsPipelineStates.contains(hash))
-		return m_graphicsPipelineStates.at(hash).Get();
+	if (m_computePipelineStates.contains(hash))
+		return m_computePipelineStates.at(hash).Get();
 
 	auto d3d12PipelineStateDesc = GetD3D12PipelineStateDesc(desc, csOutput);
 	ComPtr<ID3D12PipelineState> pipelineState;
 	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateComputePipelineState(
 		&d3d12PipelineStateDesc, IID_PPV_ARGS(&pipelineState)));
 
+	PE_ASSERT_HR(pipelineState->SetName(L"Compute PSO"));
 	m_computePipelineStates[hash] = pipelineState;
 
 	return pipelineState.Get();

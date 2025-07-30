@@ -13,7 +13,7 @@ struct VertexData
 	glm::float3 normal;
 	glm::float3 tangent;
 	glm::float3 bitangent;
-	glm::float2 texCoord;
+	glm::float2 texCoords;
 	glm::float4 vertexColor;
 };
 

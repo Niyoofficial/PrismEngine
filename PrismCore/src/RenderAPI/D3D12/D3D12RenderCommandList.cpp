@@ -69,7 +69,8 @@ D3D12RenderCommandList::D3D12RenderCommandList()
 		m_commandAllocator.Get(),
 		nullptr,
 		IID_PPV_ARGS(&m_commandList)));
-	PE_ASSERT_HR(m_commandList->SetName(L"Render Cmd List"));
+	static std::atomic<int32_t> idCounter = 0;
+	PE_ASSERT_HR(m_commandList->SetName((std::wstring(L"Render Cmd List") + std::to_wstring(idCounter.fetch_add(1))).c_str()));
 
 	auto heaps = D3D12RenderDevice::Get().GetGPUDescriptorHeaps();
 	m_commandList->SetDescriptorHeaps((UINT)heaps.size(), heaps.data());
@@ -101,39 +102,37 @@ void D3D12RenderCommandList::Dispatch(int32_t threadGroupCountX, int32_t threadG
 void D3D12RenderCommandList::SetPSO(const GraphicsPipelineStateDesc& desc)
 {
 	m_currentGraphicsPSO = desc;
-
-	auto* pso = m_pipelineStateCache.GetOrCreatePipelineState(desc);
-
-	m_commandList->SetPipelineState(pso);
-	m_commandList->IASetPrimitiveTopology(GetD3D12PrimitiveTopology(desc.primitiveTopologyType));
 }
 
 void D3D12RenderCommandList::SetPSO(const ComputePipelineStateDesc& desc)
 {
 	m_currentComputePSO = desc;
-
-	auto* pso = m_pipelineStateCache.GetOrCreatePipelineState(desc);
-
-	m_commandList->SetPipelineState(pso);
 }
 
 void D3D12RenderCommandList::SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv)
 {
 	PE_ASSERT(!rtvs.empty());
 
-	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> handles;
-	handles.reserve(rtvs.size());
+	m_renderTargetViews.clear();
 	for (TextureView* rtv : rtvs)
 	{
-		if (rtv)
-			handles.push_back(static_cast<D3D12TextureView*>(rtv)->GetDescriptor().GetCPUHandle());
+		PE_ASSERT(rtv->GetTexture()->GetTextureDesc().bindFlags & BindFlags::RenderTarget, "Texture must have RenderTarget bind flag set to be used as a render target");
+		m_renderTargetViews.emplace_back(rtv);
+	}
+	m_depthStencilView = dsv;
+
+	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles;
+	rtvHandles.reserve(m_renderTargetViews.size());
+	for (TextureView* rtv : m_renderTargetViews)
+	{
+		rtvHandles.push_back(rtv ? static_cast<D3D12TextureView*>(rtv)->GetDescriptor().GetCPUHandle() : CD3DX12_CPU_DESCRIPTOR_HANDLE{});
 	}
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
-	if (dsv)
-		dsvHandle = static_cast<D3D12TextureView*>(dsv)->GetDescriptor().GetCPUHandle();
+	if (m_depthStencilView)
+		dsvHandle = static_cast<D3D12TextureView*>(m_depthStencilView.Raw())->GetDescriptor().GetCPUHandle();
 
-	m_commandList->OMSetRenderTargets((UINT)handles.size(), handles.data(), false, dsv ? &dsvHandle : nullptr);
+	m_commandList->OMSetRenderTargets((UINT)rtvHandles.size(), rtvHandles.data(), false, m_depthStencilView ? &dsvHandle : nullptr);
 }
 
 void D3D12RenderCommandList::SetViewports(std::vector<Viewport> viewports)
@@ -428,6 +427,20 @@ void D3D12RenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
 
 	auto setupDescriptors = [this]<typename T>(const T& pso) requires std::is_same_v<T, GraphicsPipelineStateDesc> || std::is_same_v<T, ComputePipelineStateDesc>
 	{
+		if constexpr (std::is_same_v<T, GraphicsPipelineStateDesc>)
+		{
+			auto* d3d12GraphicsPSO = D3D12RenderDevice::Get().GetPipelineStateCache().GetOrCreatePipelineState(pso, m_renderTargetViews, m_depthStencilView);
+
+			m_commandList->SetPipelineState(d3d12GraphicsPSO);
+			m_commandList->IASetPrimitiveTopology(GetD3D12PrimitiveTopology(pso.primitiveTopologyType));
+		}
+		else
+		{
+			auto* d3d12ComputePSO = D3D12RenderDevice::Get().GetPipelineStateCache().GetOrCreatePipelineState(pso);
+
+			m_commandList->SetPipelineState(d3d12ComputePSO);
+		}
+
 		using ShaderArray = std::conditional_t<std::is_same_v<T, GraphicsPipelineStateDesc>,
 		   std::array<const ShaderDesc*, 2>,
 		   std::array<const ShaderDesc*, 1>

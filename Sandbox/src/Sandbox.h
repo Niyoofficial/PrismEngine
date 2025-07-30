@@ -4,6 +4,7 @@
 #include "Prism/Render/Buffer.h"
 #include "Prism/Render/Camera.h"
 #include "Prism/Render/Layer.h"
+#include "Prism/Render/Material.h"
 #include "Prism/Render/PrimitiveBatch.h"
 #include "Prism/Render/Primitive.h"
 #include "Prism/Render/RenderConstants.h"
@@ -111,15 +112,6 @@ private:
 
 	Ref<Render::Texture> m_BRDFLUT;
 
-	Ref<Render::Texture> m_rustedIronAlbedo;
-	Ref<Render::TextureView> m_rustedIronAlbedoView;
-	Ref<Render::Texture> m_rustedIronMetallic;
-	Ref<Render::TextureView> m_rustedIronMetallicView;
-	Ref<Render::Texture> m_rustedIronRoughness;
-	Ref<Render::TextureView> m_rustedIronRoughnessView;
-	Ref<Render::Texture> m_rustedIronNormal;
-	Ref<Render::TextureView> m_rustedIronNormalView;
-
 	Ref<Render::Texture> m_environmentTexture;
 	Ref<Render::TextureView> m_environmentTextureView;
 
@@ -131,7 +123,7 @@ private:
 
 	Ref<Render::PrimitiveBatch> m_sponza;
 	Ref<Render::PrimitiveBatch> m_cube;
-	std::vector<Ref<Render::PrimitiveBatch>> m_spheres;
+	Ref<Render::PrimitiveBatch> m_sphere;
 
 	float m_cameraSpeed = 0.05f;
 	float m_mouseSpeed = 0.003f;
@@ -160,7 +152,10 @@ public:
 
 	Core::Window* GetWindow() const;
 
-	static MeshData ConvertMeshToSandboxFormat(const MeshUtils::MeshData& mesh);
+	static Ref<Render::PrimitiveBatch> LoadMeshFromFile(const std::wstring& primitiveBatchName, const std::wstring& filepath,
+														std::function<Render::Material(const MeshUtils::PrimitiveData&)> createMaterialFunc,
+														std::wstring primitiveBufferParamName, int64_t primitiveBufferSize, MeshUtils::MeshData* outMeshData = nullptr);
+	static Ref<Render::PrimitiveBatch> LoadMeshFromFilePBR(const std::wstring& primitiveBatchName, const std::wstring& filepath);
 
 private:
 	Ref<Core::Window> m_window;

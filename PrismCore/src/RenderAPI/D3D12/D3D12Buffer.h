@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "Prism/Render/Buffer.h"
 #include "RenderAPI/D3D12/D3D12Base.h"
-#include "RenderAPI/D3D12/D3D12DynamicGPURingBuffer.h"
+#include "RenderAPI/D3D12/D3D12DynamicBufferAllocator.h"
 
 namespace Prism::Render::D3D12
 {
@@ -22,13 +22,13 @@ public:
 	// this will return 0 for everything else
 	int64_t GetDefaultOffset() const;
 
-	DynamicGPURingBuffer::DynamicAllocation GetDynamicAllocation() const { return m_dynamicAllocation; }
+	DynamicBufferAllocator::Allocation GetDynamicAllocation() const { return m_dynamicAllocation; }
 
 private:
 	ComPtr<ID3D12Resource> m_resource;
 	BufferDesc m_originalDesc;
 
 	bool m_isMapped = false;
-	DynamicGPURingBuffer::DynamicAllocation m_dynamicAllocation;
+	DynamicBufferAllocator::Allocation m_dynamicAllocation;
 };
 }

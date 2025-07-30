@@ -6,6 +6,16 @@ namespace Prism::Render::D3D12
 struct DynamicBufferAllocator
 {
 public:
+	struct Allocation
+	{
+		bool IsValid() const;
+
+		bool operator==(const Allocation&) const = default;
+
+		int64_t ringBufferID = -1;
+		DynamicGPURingBuffer::Allocation gpuRingAllocation = {};
+	};
+public:
 	DynamicBufferAllocator() = default;
 
 	// Copies nor moves allowed
@@ -18,12 +28,21 @@ public:
 
 	void Init(int64_t initSize);
 
-	DynamicGPURingBuffer::DynamicAllocation Allocate(int64_t size);
+	Allocation Allocate(int64_t size);
 
 	void CloseCmdListAllocations(uint64_t fenceValue);
 	void ReleaseStaleAllocations(uint64_t lastCompletedFenceValue);
 
+	ID3D12Resource* GetD3D12Resource(int64_t ringBufferID) const;
+
 private:
-	std::vector<DynamicGPURingBuffer> m_ringBuffers;
+	int64_t m_nextRingBufferID = 0;
+
+	struct TrackedRingBuffer
+	{
+		int64_t ID = -1;
+		DynamicGPURingBuffer ringBuffer;
+	};
+	std::vector<TrackedRingBuffer> m_ringBuffers;
 };
 }

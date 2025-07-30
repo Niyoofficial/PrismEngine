@@ -15,13 +15,12 @@ public:
 		int64_t size = INVALID_OFFSET;
 	};
 
-	struct DynamicAllocation
+	struct Allocation
 	{
 		bool IsValid() const;
 
-		bool operator==(const DynamicAllocation&) const = default;
+		bool operator==(const Allocation&) const = default;
 
-		ID3D12Resource* resource = nullptr;
 		int64_t offset = INVALID_OFFSET;
 		int64_t size = INVALID_OFFSET;
 		void* cpuAddress = nullptr;
@@ -40,7 +39,7 @@ public:
 
 	~DynamicGPURingBuffer();
 
-	DynamicAllocation Allocate(int64_t size);
+	Allocation Allocate(int64_t size);
 
 	void CloseCmdListAllocations(uint64_t fenceValue);
 	void ReleaseCompletedResources(uint64_t completedFenceValue);
@@ -49,6 +48,7 @@ public:
 	int64_t GetUsedSize() const { return m_usedSize; }
 	bool IsFull() const { return m_usedSize == m_maxSize; }
 	bool IsEmpty() const { return m_usedSize == 0; }
+	ID3D12Resource* GetD3D12Resource() const { return m_resource.Get(); }
 
 private:
 	std::deque<CompletedTailAttributes> m_completedTails;

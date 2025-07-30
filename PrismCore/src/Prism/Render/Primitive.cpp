@@ -2,28 +2,17 @@
 #include "Primitive.h"
 
 #include "Prism/Render/Buffer.h"
+#include "Prism/Render/Material.h"
 
 namespace Prism::Render
 {
-bool Primitive::TextureParameter::IsValid() const
+Primitive::Primitive(const std::wstring& primitiveName)
+	: m_primitiveName(primitiveName)
 {
-	return textureView && !paramName.empty();
 }
 
-Primitive::Primitive(const std::wstring& primitiveName, int64_t vertexSize, IndexBufferFormat indexFormat,
-					 void* vertexBuffer, int64_t vertexCount, void* indexBuffer, int64_t indexCount,
-					 TextureParameter albedoTexture, TextureParameter normalsTexture,
-					 TextureParameter metallicTexture, TextureParameter roughnessTexture,
-					 Buffer* primitiveCBuffer, BufferView* primitiveCBufferView,
-					 const std::wstring& primitiveCBufferParamName)
-	: m_primitiveName(primitiveName),
-	  m_vertexSize(vertexSize),
-	  m_vertexCount(vertexCount), m_indexCount(indexCount),
-	  m_indexFormat(indexFormat),
-	  m_albedoTexture(albedoTexture), m_normalsTexture(normalsTexture),
-	  m_metallicTexture(metallicTexture), m_roughnessTexture(roughnessTexture),
-	  m_primitiveCBuffer(primitiveCBuffer), m_primitiveCBufferView(primitiveCBufferView),
-	  m_primitiveCBufferParamName(primitiveCBufferParamName)
+void Primitive::SetVertices(int64_t vertexSize, void* vertexBuffer, int64_t vertexCount,
+							IndexBufferFormat indexFormat, void* indexBuffer, int64_t indexCount)
 {
 	PE_ASSERT(vertexSize > 0);
 	PE_ASSERT(vertexBuffer);
@@ -31,85 +20,73 @@ Primitive::Primitive(const std::wstring& primitiveName, int64_t vertexSize, Inde
 	PE_ASSERT(indexBuffer);
 	PE_ASSERT(indexCount > 0);
 
-	// Vertex Buffer
-	m_vertexBuffer = Buffer::Create({
-										.bufferName = m_primitiveName + L"_VertexBuffer",
-										.size = m_vertexCount * m_vertexSize,
-										.bindFlags = BindFlags::VertexBuffer
-									},
-									{
-										.data = vertexBuffer,
-										.sizeInBytes = m_vertexCount * m_vertexSize
-									});
+	m_vertexSize = vertexSize;
+	m_vertexBuffer = Buffer::Create(
+		{
+			.bufferName = m_primitiveName + L"_VertexBuffer",
+			.size = vertexCount * vertexSize,
+			.bindFlags = BindFlags::VertexBuffer
+		},
+		{
+			.data = vertexBuffer,
+			.sizeInBytes = vertexCount * vertexSize
+		});
 
-	// Index Buffer
-	int64_t indexSizeBytes = m_indexFormat == IndexBufferFormat::Uint16 ? sizeof(uint16_t) : sizeof(uint32_t);
-	m_indexBuffer = Buffer::Create({
-									   .bufferName = m_primitiveName + L"_IndexBuffer",
-									   .size = m_indexCount * indexSizeBytes,
-									   .bindFlags = BindFlags::IndexBuffer
-								   },
-								   {
-									   .data = indexBuffer,
-									   .sizeInBytes = m_indexCount * indexSizeBytes
-								   });
+	m_indexFormat = indexFormat;
+	int64_t indexSizeBytes = indexFormat == IndexBufferFormat::Uint16 ? sizeof(uint16_t) : sizeof(uint32_t);
+	m_indexBuffer = Buffer::Create(
+		{
+			.bufferName = m_primitiveName + L"_IndexBuffer",
+			.size = indexCount * indexSizeBytes,
+			.bindFlags = BindFlags::IndexBuffer
+		},
+		{
+			.data = indexBuffer,
+			.sizeInBytes = indexCount * indexSizeBytes
+		});
 }
 
-void Primitive::SetCBuffer(Buffer* primitiveCBuffer, BufferView* primitiveCBufferView,
-						   const std::wstring& primitiveCBufferParamNam)
+void Primitive::SetPrimitiveUniformBuffer(std::wstring bufferParamName, int64_t bufferSize)
 {
-	m_primitiveCBuffer = primitiveCBuffer;
-	m_primitiveCBufferView = primitiveCBufferView;
-	m_primitiveCBufferParamName = primitiveCBufferParamNam;
+	m_primitiveUniformBuffer = Buffer::Create(
+		{
+			.bufferName = m_primitiveName + L"_UniformBuffer",
+			.size = bufferSize,
+			.bindFlags = BindFlags::UniformBuffer,
+			.usage = ResourceUsage::Dynamic,
+			.cpuAccess = CPUAccess::Write
+		});
+	m_primitiveUniformBufferView = m_primitiveUniformBuffer->CreateDefaultCBVView();
+	m_primitiveParamName = bufferParamName;
 }
 
-void Primitive::SetAlbedoTexture(TextureParameter albedo)
+void Primitive::DrawPrimitive(RenderContext* renderContext, void* uniformBufferData, int64_t dataSize, Material material)
 {
-	m_albedoTexture = albedo;
-}
+	PE_ASSERT(m_vertexBuffer);
+	PE_ASSERT(m_vertexSize > 0);
+	PE_ASSERT(m_indexBuffer);
+	PE_ASSERT(m_indexFormat != IndexBufferFormat::Unknown);
 
-void Primitive::SetNormalsTexture(TextureParameter normals)
-{
-	m_normalsTexture = normals;
-}
+	PE_ASSERT(!m_primitiveParamName.empty());
+	PE_ASSERT(m_primitiveUniformBuffer);
+	PE_ASSERT(m_primitiveUniformBufferView);
 
-void Primitive::SetMetallicTexture(TextureParameter metallic)
-{
-	m_metallicTexture = metallic;
-}
-
-void Primitive::SetRoughnessTexture(TextureParameter roughness)
-{
-	m_roughnessTexture = roughness;
-}
-
-void Primitive::BindPrimitive(RenderContext* renderContext, void* cbufferData, int64_t dataSize)
-{
 	PE_ASSERT(renderContext);
+	PE_ASSERT(dataSize <= m_primitiveUniformBuffer->GetBufferDesc().size, "You cannot pass more data than it was set in SetPrimitiveUniformBuffer");
 
-	if (cbufferData && dataSize > 0)
+	if (uniformBufferData && dataSize > 0)
 	{
-		void* data = m_primitiveCBuffer->Map(CPUAccess::Write);
-		memcpy_s(data, m_primitiveCBuffer->GetBufferDesc().size, cbufferData, dataSize);
-		m_primitiveCBuffer->Unmap();
-		renderContext->SetBuffer(m_primitiveCBufferView, m_primitiveCBufferParamName);
+		void* data = m_primitiveUniformBuffer->Map(CPUAccess::Write);
+		memcpy_s(data, m_primitiveUniformBuffer->GetBufferDesc().size, uniformBufferData, dataSize);
+		m_primitiveUniformBuffer->Unmap();
+		renderContext->SetBuffer(m_primitiveUniformBufferView, m_primitiveParamName);
 	}
-
-	if (m_albedoTexture.IsValid())
-		renderContext->SetTexture(m_albedoTexture.textureView, m_albedoTexture.paramName);
-	if (m_normalsTexture.IsValid())
-		renderContext->SetTexture(m_normalsTexture.textureView, m_normalsTexture.paramName);
-	if (m_metallicTexture.IsValid())
-		renderContext->SetTexture(m_metallicTexture.textureView, m_metallicTexture.paramName);
-	if (m_roughnessTexture.IsValid())
-		renderContext->SetTexture(m_roughnessTexture.textureView, m_roughnessTexture.paramName);
 
 	renderContext->SetVertexBuffer(m_vertexBuffer, m_vertexSize);
 	renderContext->SetIndexBuffer(m_indexBuffer, m_indexFormat);
-}
 
-void Primitive::DrawPrimitive(RenderContext* renderContext)
-{
+	material.BindMaterial(renderContext);
+
 	renderContext->DrawIndexed({
 		.numIndices = m_indexBuffer->GetBufferDesc().size / (int64_t)sizeof(int32_t),
 		.numInstances = 1,

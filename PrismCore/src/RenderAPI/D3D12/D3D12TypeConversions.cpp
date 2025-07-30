@@ -161,7 +161,7 @@ DXGI_RATIONAL GetDXGIRational(int32_t numerator, int32_t denominator)
 	};
 }
 
-D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc, const D3D12ShaderCompilerOutput& vs, const D3D12ShaderCompilerOutput& ps)
+D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc, const D3D12ShaderCompilerOutput& vs, const D3D12ShaderCompilerOutput& ps, std::vector<Ref<TextureView>> rtvs, TextureView* dsv)
 {
 	PE_ASSERT(
 		desc.primitiveTopologyType != Render::TopologyType::LineStrip &&
@@ -173,10 +173,6 @@ D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineS
 	std::array<D3D12_RENDER_TARGET_BLEND_DESC, 8> renderTargetBlends;
 	for (int32_t i = 0; i < (int32_t)renderTargetBlends.size(); ++i)
 		renderTargetBlends[i] = GetD3D12RenderTargetBlendDesc(desc.blendState.renderTargetBlendDescs[i]);
-
-	std::array<DXGI_FORMAT, 8> rtvFormats;
-	for (int32_t i = 0; i < desc.numRenderTargets; ++i)
-		rtvFormats[i] = GetDXGIFormat(desc.renderTargetFormats[i]);
 
 	D3D12InputLayout inputLayout = GetD3D12InputLayoutFromVertexShader(vs);
 
@@ -201,7 +197,7 @@ D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineS
 			.DepthBiasClamp = desc.rasterizerState.depthBiasClamp,
 			.SlopeScaledDepthBias = desc.rasterizerState.slopeScaledDepthBias,
 			.DepthClipEnable = desc.rasterizerState.depthClipEnable,
-			.MultisampleEnable = desc.rasterizerState.antialiasedLineEnable, // Multisample enabled only when antialiased line is
+			.MultisampleEnable = desc.rasterizerState.antialiasedLineEnable, // Multisample enabled only when antialiased line is enabled
 			.AntialiasedLineEnable = desc.rasterizerState.antialiasedLineEnable,
 			.ForcedSampleCount = 0,
 			.ConservativeRaster = D3D12_CONSERVATIVE_RASTERIZATION_MODE_OFF
@@ -222,16 +218,16 @@ D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineS
 		},
 		.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED, // TODO: When using strips you have to pass index buffer format to PSO 0xFFFF for 16 bit and 0xFFFFFFFF for 32 bit indices, we don't support strips for now
 		.PrimitiveTopologyType = GetD3D12PrimitiveTopologyType(desc.primitiveTopologyType),
-		.NumRenderTargets = (UINT)desc.numRenderTargets,
+		.NumRenderTargets = (UINT)rtvs.size(),
 		.RTVFormats = {DXGI_FORMAT_UNKNOWN},
-		.DSVFormat = GetDXGIFormat(desc.depthStencilFormat),
+		.DSVFormat = dsv ? GetDXGIFormat(dsv->GetViewDesc().format) : DXGI_FORMAT_UNKNOWN,
 		.SampleDesc = GetDXGISampleDesc(desc.sampleDesc)
 	};
 
 	for (int32_t i = 0; i < (int32_t)_countof(d3d12Desc.BlendState.RenderTarget); ++i)
 		d3d12Desc.BlendState.RenderTarget[i] = GetD3D12RenderTargetBlendDesc(desc.blendState.renderTargetBlendDescs[i]);
-	for (int32_t i = 0; i < desc.numRenderTargets; ++i)
-		d3d12Desc.RTVFormats[i] = GetDXGIFormat(desc.renderTargetFormats[i]);
+	for (int32_t i = 0; i < rtvs.size(); ++i)
+		d3d12Desc.RTVFormats[i] = rtvs[i] ? GetDXGIFormat(rtvs[i]->GetViewDesc().format) : DXGI_FORMAT_UNKNOWN;
 
 	return {
 		.psoDesc = d3d12Desc,

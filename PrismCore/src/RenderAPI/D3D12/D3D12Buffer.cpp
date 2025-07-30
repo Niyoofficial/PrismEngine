@@ -12,7 +12,7 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc)
 {
 	DISABLE_DESTRUCTION_SCOPE_GUARD(this);
 
-	if (m_originalDesc.bindFlags.HasAllFlags(BindFlags::ConstantBuffer))
+	if (m_originalDesc.bindFlags.HasAllFlags(BindFlags::UniformBuffer))
 		m_originalDesc.size = Align(m_originalDesc.size, Constants::CBUFFER_ALIGNMENT);
 
 	if (desc.usage == ResourceUsage::Default)
@@ -86,7 +86,7 @@ void* D3D12Buffer::Map(Flags<CPUAccess> access)
 	{
 		m_dynamicAllocation = D3D12RenderDevice::Get().AllocateDynamicBufferMemory(m_originalDesc.size);
 
-		return m_dynamicAllocation.cpuAddress;
+		return m_dynamicAllocation.gpuRingAllocation.cpuAddress;
 	}
 	else if (m_originalDesc.usage == ResourceUsage::Staging)
 	{
@@ -114,10 +114,12 @@ BufferDesc D3D12Buffer::GetBufferDesc() const
 {
 	if (auto* d3d12Resource = GetD3D12Resource())
 	{
+		D3D12_RESOURCE_DESC d3ddesc = d3d12Resource->GetDesc();
+
 		BufferDesc desc = {
 			.bufferName = m_originalDesc.bufferName,
-			.size = (int32_t)d3d12Resource->GetDesc().Width,
-			.bindFlags = GetBindFlags(d3d12Resource->GetDesc().Flags),
+			.size = (int32_t)d3ddesc.Width,
+			.bindFlags = GetBindFlags(d3ddesc.Flags),
 			.usage = m_originalDesc.usage,
 			.cpuAccess = m_originalDesc.cpuAccess
 		};
@@ -133,7 +135,7 @@ BufferDesc D3D12Buffer::GetBufferDesc() const
 ID3D12Resource* D3D12Buffer::GetD3D12Resource() const
 {
 	if (m_originalDesc.usage == ResourceUsage::Dynamic)
-		return m_dynamicAllocation.resource;
+		return D3D12RenderDevice::Get().GetD3D12ResourceForDynamicAllocation(m_dynamicAllocation.ringBufferID);
 	else
 		return m_resource.Get();
 }
@@ -141,7 +143,7 @@ ID3D12Resource* D3D12Buffer::GetD3D12Resource() const
 int64_t D3D12Buffer::GetDefaultOffset() const
 {
 	if (m_originalDesc.usage == ResourceUsage::Dynamic)
-		return m_dynamicAllocation.offset;
+		return m_dynamicAllocation.gpuRingAllocation.offset;
 	else
 		return 0;
 }

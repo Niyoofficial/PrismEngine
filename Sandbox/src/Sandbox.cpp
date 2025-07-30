@@ -4,6 +4,7 @@
 #include "Prism/Base/Base.h"
 #include "Prism/Base/Platform.h"
 #include "Prism/Base/Window.h"
+#include "Prism/Render/Material.h"
 #include "Prism/Render/RenderCommandQueue.h"
 #include "Prism/Render/RenderContext.h"
 #include "Prism/Render/RenderDevice.h"
@@ -187,15 +188,6 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
 	});
 
-	m_rustedIronAlbedo = Texture::Create(L"textures/rustediron2_basecolor.png");
-	m_rustedIronAlbedoView = m_rustedIronAlbedo->CreateView();
-	m_rustedIronMetallic = Texture::Create(L"textures/rustediron2_metallic.png");
-	m_rustedIronMetallicView = m_rustedIronMetallic->CreateView();
-	m_rustedIronRoughness = Texture::Create(L"textures/rustediron2_roughness.png");
-	m_rustedIronRoughnessView = m_rustedIronRoughness->CreateView();
-	m_rustedIronNormal = Texture::Create(L"textures/rustediron2_normal.png");
-	m_rustedIronNormalView = m_rustedIronNormal->CreateView();
-
 	m_environmentTexture = Texture::Create(L"textures/pisa.hdr");
 	m_environmentTextureView = m_environmentTexture->CreateView();
 
@@ -203,68 +195,60 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	m_sceneCbuffer = Buffer::Create({
 										.bufferName = L"SceneCBuffer",
 										.size = sizeof(CBufferScene),
-										.bindFlags = BindFlags::ConstantBuffer,
+										.bindFlags = BindFlags::UniformBuffer,
 										.usage = ResourceUsage::Dynamic,
 										.cpuAccess = CPUAccess::Write
 									});
 	m_sceneCbufferView = m_sceneCbuffer->CreateDefaultCBVView();
 
 	// Load sponza
-	m_sponza = new PrimitiveBatch(L"Sponza", L"g_modelBuffer", sizeof(CBufferModel));
-
-	auto sponzaData = MeshUtils::LoadMeshFromFile(L"meshes/SponzaCrytek/Sponza.gltf");
-	auto sponzaMesh = SandboxApplication::ConvertMeshToSandboxFormat(sponzaData);
-
-	for (auto& primitiveData : sponzaMesh.primitives)
-	{
-		Ref<TextureView> albedo = primitiveData.textures[MeshUtils::TextureType::Albedo]
-									  ? primitiveData.textures[MeshUtils::TextureType::Albedo]->CreateView()
-									  : nullptr;
-		Ref<TextureView> normals = primitiveData.textures[MeshUtils::TextureType::Normals]
-									   ? primitiveData.textures[MeshUtils::TextureType::Normals]->CreateView()
-									   : nullptr;
-		Ref<TextureView> metallic = primitiveData.textures[MeshUtils::TextureType::Metallic]
-										? primitiveData.textures[MeshUtils::TextureType::Metallic]->CreateView()
-										: nullptr;
-		Ref<TextureView> roughness = primitiveData.textures[MeshUtils::TextureType::Roughness]
-										 ? primitiveData.textures[MeshUtils::TextureType::Roughness]->CreateView()
-										 : nullptr;
-
-		m_sponza->AddPrimitive(sizeof(Vertex), IndexBufferFormat::Uint32,
-							   primitiveData.vertices.data(), (int64_t)primitiveData.vertices.size(),
-							   primitiveData.indices.data(), (int64_t)primitiveData.indices.size(),
-							   {albedo, L"g_albedoTexture"}, {normals, L"g_normalTexture"},
-							   {metallic, L"g_metallicTexture"}, {roughness, L"g_roughnessTexture"});
-	}
+	m_sponza = SandboxApplication::LoadMeshFromFilePBR(L"Sponza", L"meshes/SponzaCrytek/Sponza.gltf");
 
 	// Load cube
-	m_cube = new PrimitiveBatch(L"Cube", L"g_modelBuffer", sizeof(CBufferModel));
-
-	auto cubeData = MeshUtils::LoadMeshFromFile(L"meshes/Cube.fbx");
-	auto cubeMesh = SandboxApplication::ConvertMeshToSandboxFormat(cubeData);
-
-	for (auto& primitiveData : cubeMesh.primitives)
-	{
-		m_cube->AddPrimitive(sizeof(Vertex), IndexBufferFormat::Uint32,
-							 primitiveData.vertices.data(), (int64_t)primitiveData.vertices.size(),
-							 primitiveData.indices.data(), (int64_t)primitiveData.indices.size());
-	}
-
-	// Load spheres
-	for (int32_t i = 0; i < 6; ++i)
-	{
-		m_spheres.push_back(new PrimitiveBatch(L"Sphere", L"g_modelBuffer", sizeof(CBufferModel)));
-
-		auto sphereData = MeshUtils::LoadMeshFromFile(L"meshes/Sphere.gltf");
-		auto sphereMesh = SandboxApplication::ConvertMeshToSandboxFormat(sphereData);
-
-		for (auto& primitiveData : sphereMesh.primitives)
+	m_cube = SandboxApplication::LoadMeshFromFile(L"Cube", L"meshes/Cube.fbx",
+		[this](auto& primitiveData)
 		{
-			m_spheres.back()->AddPrimitive(sizeof(Vertex), IndexBufferFormat::Uint32,
-				primitiveData.vertices.data(), (int64_t)primitiveData.vertices.size(),
-				primitiveData.indices.data(), (int64_t)primitiveData.indices.size());
-		}
-	}
+			Render::Material material;
+			material.SetVertexShader({
+				.filepath = L"shaders/Skybox.hlsl",
+				.entryName = L"vsmain",
+				.shaderType = ShaderType::VS
+			});
+			material.SetPixelShader({
+				.filepath = L"shaders/Skybox.hlsl",
+				.entryName = L"psmain",
+				.shaderType = ShaderType::PS
+			});
+			material.SetRasterizerState({
+				.cullMode = CullMode::Front
+			});
+			material.SetDepthStencilState({
+				.depthEnable = true,
+				.depthWriteEnable = true,
+				.depthFunc = ComparisionFunction::LessEqual
+			});
+
+			material.SetTexture(L"g_skybox", m_prefilteredEnvMapCubeSRVView);
+			return material;
+		}, L"g_modelBuffer", sizeof(CBufferModel));
+
+	// Load sphere
+	m_sphere = SandboxApplication::LoadMeshFromFile(L"Sphere", L"meshes/Sphere.gltf",
+		[](auto& primitiveData)
+		{
+			Render::Material material;
+			material.SetVertexShader({
+				.filepath = L"shaders/PBR.hlsl",
+				.entryName = L"vsmain",
+				.shaderType = ShaderType::VS
+			});
+			material.SetPixelShader({
+				.filepath = L"shaders/PBR.hlsl",
+				.entryName = L"spheremain",
+				.shaderType = ShaderType::PS
+			});
+			return material;
+		}, L"g_modelBuffer", sizeof(CBufferModel));
 
 	{
 		auto renderContext = RenderDevice::Get().AllocateContext(L"Initialization");
@@ -333,7 +317,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			m_irradianceSHBuffer = Buffer::Create({
 				.bufferName = L"IrradianceSH",
 				.size = sizeof(glm::float3) * 9, // RGB channels * numOfCoefficients
-				.bindFlags = BindFlags::ConstantBuffer,
+				.bindFlags = BindFlags::UniformBuffer,
 				.usage = ResourceUsage::Default
 			});
 			m_irradianceSHBufferView = m_irradianceSHBuffer->CreateDefaultCBVView();
@@ -433,7 +417,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 				auto prefilterDataBuffer = Buffer::Create({
 															  .bufferName = std::wstring(L"PrefilterDataBuffer_") + std::to_wstring(data.mipResolution),
 															  .size = sizeof(PrefilterData),
-															  .bindFlags = BindFlags::ConstantBuffer,
+															  .bindFlags = BindFlags::UniformBuffer,
 															  .usage = ResourceUsage::Default,
 															  .cpuAccess = CPUAccess::None
 														  },
@@ -467,7 +451,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			auto integrationDataBuffer = Buffer::Create({
 															.bufferName = L"IntegrationDataBuffer",
 															.size = sizeof(integrationData),
-															.bindFlags = BindFlags::ConstantBuffer,
+															.bindFlags = BindFlags::UniformBuffer,
 															.usage = ResourceUsage::Default,
 															.cpuAccess = CPUAccess::None
 														},
@@ -583,7 +567,7 @@ void SandboxLayer::Update(Duration delta)
 	renderContext->ClearRenderTargetView(currentBackBuffer, &clearColor);
 	renderContext->ClearDepthStencilView(m_depthStencilView, Flags(ClearFlags::ClearDepth) | Flags(ClearFlags::ClearStencil));
 
-	// Scene cbuffer
+	// Scene
 	{
 		CBufferScene cbufferScene = {
 			.environmentDiffuseScale = m_environmentDiffuseScale,
@@ -603,47 +587,19 @@ void SandboxLayer::Update(Duration delta)
 			//}
 		};
 
-
 		void* sceneCBufferData = m_sceneCbuffer->Map(CPUAccess::Write);
 		memcpy_s(sceneCBufferData, m_sceneCbuffer->GetBufferDesc().size, &cbufferScene, sizeof(cbufferScene));
 		m_sceneCbuffer->Unmap();
 
 		renderContext->SetBuffer(m_sceneCbufferView, L"g_sceneBuffer");
-	}
 
-	renderContext->SetBuffer(m_irradianceSHBufferView, L"g_irradiance");
-	renderContext->SetTexture(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), L"g_brdfLUT");
-	renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_envMap");
+		renderContext->SetBuffer(m_irradianceSHBufferView, L"g_irradiance");
+		renderContext->SetTexture(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), L"g_brdfLUT");
+		renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_envMap");
+	}
 
 	// Skybox
 	{
-		renderContext->SetPSO({
-			.vs = {
-				.filepath = L"shaders/Skybox.hlsl",
-				.entryName = L"vsmain",
-				.shaderType = ShaderType::VS
-			},
-			.ps = {
-				.filepath = L"shaders/Skybox.hlsl",
-				.entryName = L"psmain",
-				.shaderType = ShaderType::PS
-			},
-			.rasterizerState = {
-				.cullMode = CullMode::Front
-			},
-			.depthStencilState = {
-				.depthEnable = true,
-				.depthWriteEnable = true,
-				.depthFunc = ComparisionFunction::LessEqual
-			},
-			.primitiveTopologyType = TopologyType::TriangleList,
-			.numRenderTargets = 1,
-			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
-			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
-			});
-
-		renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_skybox");
-
 		CBufferModel modelData = {
 			.world = glm::float4x4(1.f),
 			.normalMatrix = glm::transpose(glm::inverse(glm::float3x3(modelData.world))),
@@ -658,32 +614,8 @@ void SandboxLayer::Update(Duration delta)
 		m_cube->Draw(renderContext, &modelData, sizeof(CBufferModel));
 	}
 
-	// Sphere
+	// Spheres
 	{
-		renderContext->SetPSO({
-			.vs = {
-				.filepath = L"shaders/PBR.hlsl",
-				.entryName = L"vsmain",
-				.shaderType = ShaderType::VS
-			},
-			.ps = {
-				.filepath = L"shaders/PBR.hlsl",
-				.entryName = L"spheremain",
-				.shaderType = ShaderType::PS
-			},
-			.rasterizerState = {
-				.cullMode = CullMode::Back
-			},
-			.depthStencilState = {
-				.depthEnable = true,
-				.depthWriteEnable = true
-			},
-			.primitiveTopologyType = TopologyType::TriangleList,
-			.numRenderTargets = 1,
-			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
-			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
-			});
-
 		CBufferModel modelData = {
 			.world = glm::translate(glm::float4x4(1.f), glm::float3(0.f, -5.f, 0.f)),
 			.normalMatrix = glm::transpose(glm::inverse(glm::float3x3(modelData.world))),
@@ -698,43 +630,18 @@ void SandboxLayer::Update(Duration delta)
 			}
 		};
 
-		int32_t i = 0;
-		for (const auto& sphere : m_spheres)
+		for (int32_t i = 0; i < 6; ++i)
 		{
 			modelData.world = glm::translate(modelData.world, glm::float3(2.f, 0.f, 0.f));
 			modelData.mipLevel += 1.f;
 			
-			sphere->Draw(renderContext, &modelData, sizeof(CBufferModel));
-			++i;
+			m_sphere->Draw(renderContext, &modelData, sizeof(CBufferModel));
 		}
 	}
 
 	// Sponza
 	{
-		renderContext->SetPSO({
-			.vs = {
-				.filepath = L"shaders/PBR.hlsl",
-				.entryName = L"vsmain",
-				.shaderType = ShaderType::VS
-			},
-			.ps = {
-				.filepath = L"shaders/PBR.hlsl",
-				.entryName = L"psmain",
-				.shaderType = ShaderType::PS
-			},
-			.rasterizerState = {
-				.cullMode = CullMode::Back
-			},
-			.depthStencilState = {
-				.depthEnable = true,
-				.depthWriteEnable = true
-			},
-			.primitiveTopologyType = TopologyType::TriangleList,
-			.numRenderTargets = 1,
-			.renderTargetFormats = {TextureFormat::RGBA8_UNorm},
-			.depthStencilFormat = m_depthStencil->GetTextureDesc().format
-			});
-
+		
 		CBufferModel modelData = {
 			.world = glm::scale(glm::float4x4(1.f), glm::float3(1.f, 1.f, 1.f)),
 			.normalMatrix = glm::transpose(glm::inverse(modelData.world)),
@@ -792,32 +699,89 @@ Core::Window* SandboxApplication::GetWindow() const
 	return m_window;
 }
 
-SandboxApplication::MeshData SandboxApplication::ConvertMeshToSandboxFormat(const MeshUtils::MeshData& mesh)
+Ref<Render::PrimitiveBatch> SandboxApplication::LoadMeshFromFile(const std::wstring& primitiveBatchName,
+																 const std::wstring& filepath,
+																 std::function<Render::Material(const MeshUtils::PrimitiveData&)> createMaterialFunc,
+																 std::wstring primitiveBufferParamName,
+																 int64_t primitiveBufferSize,
+																 MeshUtils::MeshData* outMeshData)
 {
-	MeshData outMesh;
-	for (const auto& [vertices, indices, textures] : mesh.primitives)
-	{
-		PrimitiveData outPrimitive;
-		outPrimitive.vertices.reserve(vertices.size());
-		for (const MeshUtils::VertexData& vertex : vertices)
+	auto fillBatchData = [&primitiveBatchName, &createMaterialFunc, &primitiveBufferParamName, &primitiveBufferSize](MeshUtils::MeshData& meshData)
 		{
-			outPrimitive.vertices.push_back({
-				.position = vertex.position,
-				.normal = vertex.normal,
-				.tangent = vertex.tangent,
-				.bitangent = vertex.bitangent,
-				.color = vertex.vertexColor,
-				.texCoords = vertex.texCoord
-			});
-		}
-		outPrimitive.indices.reserve(indices.size());
-		for (uint32_t index : indices)
-			outPrimitive.indices.push_back(index);
+			Ref batch = new Render::PrimitiveBatch(primitiveBatchName);
 
-		outPrimitive.textures = textures;
+			for (auto& primitive : meshData.primitives)
+			{
+				std::vector<Vertex> vertices;
+				for (auto& loadedVertex : primitive.vertices)
+				{
+					Vertex v;
+					v.position = loadedVertex.position;
+					v.normal = loadedVertex.normal;
+					v.tangent = loadedVertex.tangent;
+					v.bitangent = loadedVertex.bitangent;
+					v.texCoords = loadedVertex.texCoords;
 
-		outMesh.primitives.push_back(outPrimitive);
+					vertices.push_back(v);
+				}
+
+				batch->AddPrimitive(sizeof(Vertex), Render::IndexBufferFormat::Uint32, vertices.data(), (int64_t)vertices.size(),
+									primitive.indices.data(), (int64_t)primitive.indices.size(), primitiveBufferParamName, primitiveBufferSize,
+									createMaterialFunc(primitive));
+			}
+
+			return batch;
+		};
+
+	if (outMeshData)
+	{
+		*outMeshData = MeshUtils::LoadMeshFromFile(filepath);
+		return fillBatchData(*outMeshData);
 	}
+	else
+	{
+		auto meshData = MeshUtils::LoadMeshFromFile(filepath);
+		return fillBatchData(meshData);
+	}
+}
 
-	return outMesh;
+Ref<Render::PrimitiveBatch> SandboxApplication::LoadMeshFromFilePBR(const std::wstring& primitiveBatchName, const std::wstring& filepath)
+{
+	MeshUtils::MeshData meshData;
+	auto batch = LoadMeshFromFile(primitiveBatchName, filepath,
+								  [](const MeshUtils::PrimitiveData& primitiveData)
+								  {
+									  Render::Material material;
+									  if (primitiveData.textures.contains(MeshUtils::TextureType::Albedo))
+										  material.SetTexture(L"g_albedoTexture", primitiveData.textures.at(MeshUtils::TextureType::Albedo)->CreateView());
+									  if (primitiveData.textures.contains(MeshUtils::TextureType::Normals))
+										  material.SetTexture(L"g_normalTexture", primitiveData.textures.at(MeshUtils::TextureType::Normals)->CreateView());
+									  if (primitiveData.textures.contains(MeshUtils::TextureType::Metallic))
+										  material.SetTexture(L"g_metallicTexture", primitiveData.textures.at(MeshUtils::TextureType::Metallic)->CreateView());
+									  if (primitiveData.textures.contains(MeshUtils::TextureType::Roughness))
+										  material.SetTexture(L"g_roughnessTexture", primitiveData.textures.at(MeshUtils::TextureType::Roughness)->CreateView());
+
+									  material.SetVertexShader({
+										  .filepath = L"shaders/PBR.hlsl",
+										  .entryName = L"vsmain",
+										  .shaderType = Render::ShaderType::VS
+									  });
+									  material.SetPixelShader({
+										  .filepath = L"shaders/PBR.hlsl",
+										  .entryName = L"psmain",
+										  .shaderType = Render::ShaderType::PS
+									  });
+									  material.SetRasterizerState({
+										  .cullMode = Render::CullMode::Back
+									  });
+									  material.SetDepthStencilState({
+										  .depthEnable = true,
+										  .depthWriteEnable = true
+									  });
+									  material.SetTopologyType(Render::TopologyType::TriangleList);
+
+									  return material;
+								  }, L"g_modelBuffer", sizeof(CBufferModel), &meshData);
+
+	return batch;
 }

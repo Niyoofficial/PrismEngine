@@ -315,7 +315,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 				{
 					.bufferName = L"MipMapGenerationInfo",
 					.size = sizeof(MipMapGenerationInfo),
-					.bindFlags = BindFlags::ConstantBuffer,
+					.bindFlags = BindFlags::UniformBuffer,
 					.usage = ResourceUsage::Default,
 					.cpuAccess = CPUAccess::None
 				},

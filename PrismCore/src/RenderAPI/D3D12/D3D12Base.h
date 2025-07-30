@@ -21,6 +21,7 @@
 
 template<typename T>
 using ComPtr = Microsoft::WRL::ComPtr<T>;
+using WeakComPtr = Microsoft::WRL::WeakRef;
 namespace DirectX {}
 namespace DX = ::DirectX;
 

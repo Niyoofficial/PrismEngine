@@ -16,9 +16,6 @@ struct GraphicsPipelineStateDesc
 	RasterizerStateDesc rasterizerState;
 	DepthStencilStateDesc depthStencilState;
 	TopologyType primitiveTopologyType = TopologyType::TriangleList;
-	int32_t numRenderTargets = 1;
-	std::array<TextureFormat, 8> renderTargetFormats = {TextureFormat::Unknown};
-	TextureFormat depthStencilFormat;
 	/// 32-bit sample mask that determines which samples get updated
 	/// in all the active render targets. A sample mask is always applied;
 	/// it is independent of whether multisampling is enabled, and does not
@@ -43,7 +40,7 @@ struct std::hash<Prism::Render::GraphicsPipelineStateDesc>
 	{
 		using namespace Prism::Render;
 
-		static_assert(sizeof(desc) == 600,
+		static_assert(sizeof(desc) == 560,
 					  "If new field was added, add it to the hash function and update this assert");
 
 		return
@@ -52,8 +49,6 @@ struct std::hash<Prism::Render::GraphicsPipelineStateDesc>
 			std::hash<BlendStateDesc>()(desc.blendState) ^
 			std::hash<RasterizerStateDesc>()(desc.rasterizerState) ^
 			std::hash<DepthStencilStateDesc>()(desc.depthStencilState) ^
-			std::hash<int32_t>()(desc.numRenderTargets) ^
-			std::hash<TextureFormat>()(desc.depthStencilFormat) ^
 			std::hash<uint32_t>()(desc.sampleMask);
 	}
 };

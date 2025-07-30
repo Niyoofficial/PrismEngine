@@ -123,7 +123,7 @@ void ProcessPrimitive(PrimitiveData& data, aiNode* node, aiMesh* mesh, const aiS
 		if (mesh->HasTextureCoords(0))
 		{
 			aiVector3D texCoords = mesh->mTextureCoords[0][i];
-			vertex.texCoord = {texCoords.x, texCoords.y};
+			vertex.texCoords = {texCoords.x, texCoords.y};
 		}
 
 		if (mesh->HasTangentsAndBitangents())

@@ -3,6 +3,10 @@
 #include "RenderAPI/D3D12/D3D12Base.h"
 #include "xxhash.h"
 
+namespace Prism::Render {
+class TextureView;
+}
+
 struct ID3D12PipelineState;
 
 namespace Prism::Render::D3D12
@@ -10,7 +14,7 @@ namespace Prism::Render::D3D12
 class D3D12PipelineStateCache
 {
 public:
-	ID3D12PipelineState* GetOrCreatePipelineState(const GraphicsPipelineStateDesc& desc);
+	ID3D12PipelineState* GetOrCreatePipelineState(const GraphicsPipelineStateDesc& desc, std::vector<Ref<TextureView>> rtvs, TextureView* dsv);
 	ID3D12PipelineState* GetOrCreatePipelineState(const ComputePipelineStateDesc& desc);
 
 private:

@@ -35,6 +35,8 @@ public:
 
 	constexpr virtual ResourceType GetResourceType() const override { return ResourceType::Buffer; }
 
+	virtual BufferViewDesc GetViewDesc() const = 0;
+
 	Buffer* GetBuffer() const;
 
 protected:

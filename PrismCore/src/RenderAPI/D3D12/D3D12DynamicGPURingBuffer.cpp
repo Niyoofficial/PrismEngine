@@ -6,10 +6,9 @@
 
 namespace Prism::Render::D3D12
 {
-bool DynamicGPURingBuffer::DynamicAllocation::IsValid() const
+bool DynamicGPURingBuffer::Allocation::IsValid() const
 {
 	return
-		resource != nullptr &&
 		offset != INVALID_OFFSET &&
 		size != INVALID_OFFSET &&
 		cpuAddress != nullptr &&
@@ -82,7 +81,7 @@ DynamicGPURingBuffer::~DynamicGPURingBuffer()
 		m_resource->Unmap(0, nullptr);
 }
 
-DynamicGPURingBuffer::DynamicAllocation DynamicGPURingBuffer::Allocate(int64_t size)
+DynamicGPURingBuffer::Allocation DynamicGPURingBuffer::Allocate(int64_t size)
 {
 	if (IsFull())
 		return {};
@@ -141,7 +140,6 @@ DynamicGPURingBuffer::DynamicAllocation DynamicGPURingBuffer::Allocate(int64_t s
 	}
 
 	return {
-		.resource = m_resource.Get(),
 		.offset = currentOffset,
 		.size = size,
 		.cpuAddress = (uint8_t*)m_cpuVirtualAddress + currentOffset,

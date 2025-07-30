@@ -211,6 +211,21 @@ ID3D12CommandQueue* D3D12RenderDevice::GetD3D12CommandQueue() const
 	return static_cast<D3D12RenderCommandQueue*>(GetRenderCommandQueue())->GetD3D12CommandQueue();
 }
 
+D3D12RootSignature* D3D12RenderDevice::GetGlobalRootSignature(PipelineStateType type) const
+{
+	return type == PipelineStateType::Graphics ? m_graphicsRootSignature : m_computeRootSignature;
+}
+
+D3D12PipelineStateCache& D3D12RenderDevice::GetPipelineStateCache()
+{
+	return m_pipelineStateCache;
+}
+
+const D3D12PipelineStateCache& D3D12RenderDevice::GetPipelineStateCache() const
+{
+	return m_pipelineStateCache;
+}
+
 DescriptorHeapAllocation D3D12RenderDevice::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t count)
 {
 	if (type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
@@ -250,14 +265,14 @@ uint32_t D3D12RenderDevice::GetDescriptorHandleSize(D3D12_DESCRIPTOR_HEAP_TYPE t
 	return m_descriptorHandleSizes.at(type);
 }
 
-D3D12RootSignature* D3D12RenderDevice::GetGlobalRootSignature(PipelineStateType type) const
-{
-	return type == PipelineStateType::Graphics ? m_graphicsRootSignature : m_computeRootSignature;
-}
-
-DynamicGPURingBuffer::DynamicAllocation D3D12RenderDevice::AllocateDynamicBufferMemory(int64_t size)
+DynamicBufferAllocator::Allocation D3D12RenderDevice::AllocateDynamicBufferMemory(int64_t size)
 {
 	return m_dynamicBufferAllocator.Allocate(size);
+}
+
+ID3D12Resource* D3D12RenderDevice::GetD3D12ResourceForDynamicAllocation(int64_t ringBufferID) const
+{
+	return m_dynamicBufferAllocator.GetD3D12Resource(ringBufferID);
 }
 
 void D3D12RenderDevice::InitializeImGui(Core::Window* window, TextureFormat depthFormat)

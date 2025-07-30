@@ -38,6 +38,8 @@ public:
 
 	constexpr virtual ResourceType GetResourceType() const override { return ResourceType::Texture; }
 
+	virtual TextureViewDesc GetViewDesc() const = 0;
+
 	Texture* GetTexture() const;
 
 protected:
