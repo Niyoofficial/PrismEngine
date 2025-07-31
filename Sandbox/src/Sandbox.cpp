@@ -488,6 +488,18 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		}
 
 		ImGui::EndMainMenuBar();
+
+		ImGui::BeginMainMenuBar();
+
+		if (ImGui::BeginMenu("Tools"))
+		{
+			if (ImGui::MenuItem("Recompile Shaders", nullptr))
+				Render::RenderDevice::Get().GetShaderCompiler()->RecompileCachedShaders();
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMainMenuBar();
 	}
 
 	// Stats overlay
@@ -526,8 +538,6 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		ImGui::Begin("Debug");
 
 		ImGui::SliderFloat("Environment diffuse scale", &m_environmentDiffuseScale, 0.f, 1.f);
-		if (ImGui::Button("Recompile Shaders"))
-			Render::RenderDevice::Get().GetShaderCompiler()->RecompileCachedShaders();
 
 		ImGui::End();
 	}
