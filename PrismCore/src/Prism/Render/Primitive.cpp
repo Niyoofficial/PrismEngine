@@ -46,6 +46,11 @@ void Primitive::SetVertices(int64_t vertexSize, void* vertexBuffer, int64_t vert
 		});
 }
 
+void Primitive::SetBounds(Bounds3F bounds)
+{
+	m_bounds = bounds;
+}
+
 void Primitive::SetPrimitiveUniformBuffer(std::wstring bufferParamName, int64_t bufferSize)
 {
 	m_primitiveUniformBuffer = Buffer::Create(
@@ -60,7 +65,7 @@ void Primitive::SetPrimitiveUniformBuffer(std::wstring bufferParamName, int64_t 
 	m_primitiveParamName = bufferParamName;
 }
 
-void Primitive::DrawPrimitive(RenderContext* renderContext, void* uniformBufferData, int64_t dataSize, Material material)
+void Primitive::DrawPrimitive(RenderContext* renderContext, void* uniformBufferData, int64_t dataSize, Material material, bool bBindMaterial)
 {
 	PE_ASSERT(m_vertexBuffer);
 	PE_ASSERT(m_vertexSize > 0);
@@ -85,7 +90,8 @@ void Primitive::DrawPrimitive(RenderContext* renderContext, void* uniformBufferD
 	renderContext->SetVertexBuffer(m_vertexBuffer, m_vertexSize);
 	renderContext->SetIndexBuffer(m_indexBuffer, m_indexFormat);
 
-	material.BindMaterial(renderContext);
+	if (bBindMaterial)
+		material.BindMaterial(renderContext);
 
 	renderContext->DrawIndexed({
 		.numIndices = m_indexBuffer->GetBufferDesc().size / (int64_t)sizeof(int32_t),

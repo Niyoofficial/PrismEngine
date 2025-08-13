@@ -34,9 +34,10 @@ void RenderContext::SetPSO(const ComputePipelineStateDesc& pso)
 
 void RenderContext::SetRenderTarget(TextureView* rtv, TextureView* dsv)
 {
-	PE_ASSERT(rtv != nullptr);
-
-	SetRenderTargets({ rtv }, dsv);
+	std::vector<TextureView*> rtvs;
+	if (rtv)
+		rtvs.push_back(rtv);
+	SetRenderTargets(rtvs, dsv);
 }
 
 void RenderContext::SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv)
@@ -124,7 +125,7 @@ void RenderContext::CopyBufferRegion(Texture* dest, glm::int3 destLoc, int32_t d
 	m_commandRecorder.AllocateCommand<Commands::CopyBufferRegionToTextureRenderCommand>(dest, destLoc, destSubresourceIndex, src, srcOffset);
 }
 
-void RenderContext::CopyTextureRegion(Buffer* dest, int64_t destOffset, Texture* src, int32_t srcSubresourceIndex, Box srcBox)
+void RenderContext::CopyTextureRegion(Buffer* dest, int64_t destOffset, Texture* src, int32_t srcSubresourceIndex, Box3I srcBox)
 {
 	m_commandRecorder.AllocateCommand<Commands::CopyTextureRegionToBufferRenderCommand>(
 		dest, destOffset,
@@ -132,7 +133,7 @@ void RenderContext::CopyTextureRegion(Buffer* dest, int64_t destOffset, Texture*
 }
 
 void RenderContext::CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
-									  Texture* src, int32_t srcSubresourceIndex, Box srcBox)
+									  Texture* src, int32_t srcSubresourceIndex, Box3I srcBox)
 {
 	m_commandRecorder.AllocateCommand<Commands::CopyTextureRegionToTextureRenderCommand>(
 		dest, destLoc, destSubresourceIndex,

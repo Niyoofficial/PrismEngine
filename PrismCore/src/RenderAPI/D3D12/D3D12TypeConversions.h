@@ -80,7 +80,7 @@ D3D12_DEPTH_STENCIL_VIEW_DESC GetD3D12DepthStencilViewDesc(TextureViewDesc desc)
 
 D3D12_VIEWPORT GetD3D12Viewport(Viewport viewport);
 D3D12_RECT GetD3D12Rect(Scissor scissor);
-D3D12_BOX GetD3D12Box(Box box, Texture* texture, int32_t subresource);
+D3D12_BOX GetD3D12Box(Box3I box, Texture* texture, int32_t subresource);
 D3D12_CLEAR_FLAGS GetD3D12ClearFlags(Flags<ClearFlags> clearFlags);
 
 DXGI_FORMAT GetIndexBufferDXGIFormat(IndexBufferFormat format);

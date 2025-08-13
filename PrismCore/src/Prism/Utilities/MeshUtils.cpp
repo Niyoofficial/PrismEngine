@@ -146,6 +146,7 @@ void ProcessPrimitive(PrimitiveData& data, aiNode* node, aiMesh* mesh, const aiS
 		}
 
 		data.vertices.push_back(vertex);
+		data.bounds += vertex.position;
 	}
 
 	PE_ASSERT(mesh->HasFaces());
@@ -240,6 +241,7 @@ void ProcessNode(MeshData& data, aiNode* node, const aiScene* scene, const std::
 		aiMesh* mesh = scene->mMeshes[node->mMeshes[i]];
 		ProcessPrimitive(primitiveData, node, mesh, scene, meshName, textures, transform);
 		data.primitives.push_back(primitiveData);
+		data.bounds += primitiveData.bounds;
 	}
 
 	for (int32_t i = 0; i < (int32_t)node->mNumChildren; ++i)
@@ -258,7 +260,7 @@ MeshData LoadMeshFromFile(const std::wstring& filePath)
 	const aiScene* scene = importer.ReadFile(WStringToString(filePath),
 											 aiProcess_Triangulate |
 											 aiProcess_ConvertToLeftHanded |
-											 aiProcess_OptimizeMeshes |
+											 //aiProcess_OptimizeMeshes |
 											 aiProcess_ValidateDataStructure |
 											 aiProcess_PreTransformVertices |
 											 aiProcess_GlobalScale |

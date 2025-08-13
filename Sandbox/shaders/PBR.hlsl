@@ -6,14 +6,40 @@ cbuffer Resources
 	int g_irradiance;
 	int g_envMap;
 	int g_brdfLUT;
-	int g_modelBuffer;
+	int g_shadowMap;
 
+	int g_modelBuffer;
 	int g_albedoTexture;
 	int g_metallicTexture;
 	int g_roughnessTexture;
 	int g_aoTexture;
 	int g_normalTexture;
 }
+
+struct SceneBuffer
+{
+	float environmentLightScale;
+	CameraInfo camera;
+	float4x4 shadowViewProj;
+	
+	DirectionalLight directionalLights[MAX_LIGHT_COUNT];
+	PointLight pointLights[MAX_LIGHT_COUNT];
+};
+
+struct SceneIrradiance
+{
+	SH::L2_RGB irradianceSH;
+};
+
+struct ModelBuffer
+{
+	float4x4 world;
+	float4x4 normalMatrix;
+	
+	float mipLevel;
+
+	Material material;
+};
 
 struct VertexInput
 {
@@ -34,6 +60,7 @@ struct PixelInput
 	float3 bitangentWorld : BITANGENT;
 	float3 color : COLOR;
 	float2 texCoords : TEXCOORD;
+	float4 shadowPosClip : POSITION1;
 };
 
 float3 CalcLight(BRDFSurface surface, float3 lightColor, float3 toLight, float3 toCamera, float attenuation)
@@ -56,6 +83,34 @@ float3 NormalSampleToWorldSpace(float3 normalSample, float4x4 normalMatrix, floa
 	return normalize(mul(normalSampleUncomp, TBN));
 }
 
+float CalcShadowFactor(float4 shadowPosClip, float shadowMapResolution, Texture2D shadowMap, SamplerComparisonState shadowSampler)
+{
+    shadowPosClip.xyz /= shadowPosClip.w;
+	
+    float depth = shadowPosClip.z;
+	
+	// Transform from NDC[-1, 1] to texture coordinates[0, 1]
+    float2 texCoords = float2((shadowPosClip.x + 1.f) / 2.f, (-shadowPosClip.y + 1.f) / 2.f);
+	
+	// Texel size
+    float dx = 1.f / (float)shadowMapResolution;
+    float dx2 = 2.f * dx;
+	
+    float percentLit = 0.f;
+    const float2 offsets[25] = {
+        float2(-dx2, -dx2), float2(-dx, -dx2), float2(0.f, -dx2), float2(+dx,  -dx2), float2(+dx2, -dx2),
+        float2(-dx2,  -dx), float2(-dx,  +dx), float2(0.f,  -dx), float2(+dx,   +dx), float2(+dx2,  -dx),
+        float2(-dx2,  0.f), float2(-dx,  0.f), float2(0.f,  0.f), float2(+dx,   0.f), float2(+dx2,  0.f),
+        float2(-dx2,  +dx), float2(-dx,  +dx), float2(0.f,  +dx), float2(+dx,   +dx), float2(+dx2,  +dx),
+        float2(-dx2, +dx2), float2(-dx, +dx2), float2(0.f, +dx2), float2(+dx,  +dx2), float2(+dx2, +dx2)
+    };
+
+    for (int i = 0; i < 25; ++i)
+        percentLit += shadowMap.SampleCmpLevelZero(shadowSampler, texCoords + offsets[i], depth).r;
+	
+    return percentLit / 25.f;
+}
+
 PixelInput vsmain(VertexInput vin)
 {
 	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_sceneBuffer];
@@ -66,6 +121,7 @@ PixelInput vsmain(VertexInput vin)
 	float4 posWorld = mul(modelBuffer.world, float4(vin.positionLocal, 1.f));
 	vout.positionWorld = (float3)posWorld;
 	vout.positionClip = mul(sceneBuffer.camera.viewProj, posWorld);
+	vout.shadowPosClip = mul(sceneBuffer.shadowViewProj, posWorld);
 	
 	vout.normalWorld = vin.normalLocal;
 	vout.tangentWorld = vin.tangentlLocal;
@@ -120,6 +176,7 @@ float4 psmain(PixelInput pin) : SV_TARGET
 	
 	TextureCube prefilteredEnvMap = ResourceDescriptorHeap[g_envMap];
 	Texture2D brdfLUT = ResourceDescriptorHeap[g_brdfLUT];
+	Texture2D shadowMap = ResourceDescriptorHeap[g_shadowMap];
 
 	float3 normal = normalize(pin.normalWorld);
 	float3 tangent = normalize(pin.tangentWorld);
@@ -150,13 +207,16 @@ float4 psmain(PixelInput pin) : SV_TARGET
 		Texture2D aoTexture = ResourceDescriptorHeap[g_aoTexture];
 		ao *= aoTexture.Sample(g_samLinearWrap, pin.texCoords).r;
 	}
-	if (g_normalTexture != -1 && false)
+	if (g_normalTexture != -1)
 	{
 		Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
 		normal = NormalSampleToWorldSpace(normalTexture.Sample(g_samLinearWrap, pin.texCoords).rgb, modelBuffer.normalMatrix, normal, tangent, bitangent);
 	}
 	
 	BRDFSurface surface = { albedo, metallic, roughness, normal };
+	
+	// For now only a single directional light has shadow
+	float shadowFactor = CalcShadowFactor(pin.shadowPosClip, 4096, shadowMap, g_samShadow);
 
 	float3 analyticLight = 0.f;
 	for (int i = 0; i < MAX_LIGHT_COUNT; ++i)
@@ -178,7 +238,7 @@ float4 psmain(PixelInput pin) : SV_TARGET
 
 		float3 toLight = normalize(-sceneBuffer.directionalLights[i].direction);
 
-		analyticLight += CalcLight(surface, sceneBuffer.directionalLights[i].lightColor,
+		analyticLight += shadowFactor * CalcLight(surface, sceneBuffer.directionalLights[i].lightColor,
 						toLight, toCamera, 1.f);
 	}
 	
@@ -189,6 +249,7 @@ float4 psmain(PixelInput pin) : SV_TARGET
 	float3 diffuseIrradiance = SH::CalculateIrradiance(sceneIrradiance.irradianceSH, normal); // Does the cosine lobe scale
 	float3 envLight = EnvironmentBRDF(surface, toCamera, diffuseIrradiance, prefilteredSpecularColor, F0ScaleBias);
 	
+	envLight *= sceneBuffer.environmentLightScale;
 	float3 Lo = analyticLight + envLight;
 	
 	float3 color = Lo;

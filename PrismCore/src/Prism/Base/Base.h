@@ -7,9 +7,11 @@
 #include "Prism/Utilities/MathUtils.h"
 #include "Prism/Utilities/PreprocessorUtils.h"
 #include "Prism/Utilities/Flags.h"
+#include "Prism/Base/CommonTypes.h"
 
 #include "glm/gtx/compatibility.hpp"
 #include "glm/gtx/quaternion.hpp"
+#include "glm/gtx/rotate_vector.hpp"
 
 #include "yaml-cpp/yaml.h"
 

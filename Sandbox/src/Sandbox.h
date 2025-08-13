@@ -44,11 +44,19 @@ struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferScene
 	float environmentDiffuseScale = 1.f;
 	alignas(16)
 	CBufferCamera camera;
+	alignas(16)
+	glm::float4x4 shadowViewProj;
 
 	alignas(16)
 	DirectionalLight directionalLights[16];
 	alignas(16)
 	PointLight pointLights[16];
+};
+
+struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferSceneShadow
+{
+	alignas(16)
+	glm::float4x4 lightViewProj;
 };
 
 struct Material
@@ -70,6 +78,11 @@ struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferModel
 
 	alignas(16)
 	Material material;
+};
+
+struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferModelShadow
+{
+	glm::float4x4 world;
 };
 
 struct Vertex
@@ -94,7 +107,8 @@ private:
 	WeakRef<Core::Window> m_owningWindow;
 
 	bool m_showStatWindow = true;
-	float m_environmentDiffuseScale = 1.f;
+	float m_environmentLightScale = 1.f;
+	glm::float3 m_sunRotation = {};
 
 	Ref<Render::Camera> m_camera;
 
@@ -115,8 +129,17 @@ private:
 	Ref<Render::Texture> m_environmentTexture;
 	Ref<Render::TextureView> m_environmentTextureView;
 
+	Ref<Render::Texture> m_sunTestRender;
+	Ref<Render::TextureView> m_sunTestRenderRTV;
+	Ref<Render::Texture> m_sunShadowMap;
+	Ref<Render::TextureView> m_sunShadowMapDSV;
+	Ref<Render::TextureView> m_sunShadowMapSRV;
+
 	Ref<Render::Buffer> m_sceneCbuffer;
 	Ref<Render::BufferView> m_sceneCbufferView;
+
+	Ref<Render::Buffer> m_sceneShadowUniformBuffer;
+	Ref<Render::BufferView> m_sceneShadowView;
 
 	Ref<Render::Buffer> m_irradianceSHBuffer;
 	Ref<Render::BufferView> m_irradianceSHBufferView;

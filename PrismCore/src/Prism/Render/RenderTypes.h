@@ -928,12 +928,6 @@ struct RawData
 	int64_t sizeInBytes = 0;
 };
 
-struct Box
-{
-	glm::int3 location = {};
-	glm::int3 size = {-1, -1, -1};
-};
-
 enum class PipelineStateType
 {
 	Graphics,

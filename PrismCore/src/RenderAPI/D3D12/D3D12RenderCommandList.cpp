@@ -111,8 +111,6 @@ void D3D12RenderCommandList::SetPSO(const ComputePipelineStateDesc& desc)
 
 void D3D12RenderCommandList::SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv)
 {
-	PE_ASSERT(!rtvs.empty());
-
 	m_renderTargetViews.clear();
 	for (TextureView* rtv : rtvs)
 	{
@@ -333,7 +331,7 @@ void D3D12RenderCommandList::CopyBufferRegion(Texture* dest, glm::int3 destLoc, 
 }
 
 void D3D12RenderCommandList::CopyTextureRegion(Buffer* dest, int64_t destOffset,
-											   Texture* src, int32_t srcSubresourceIndex, Box srcBox)
+											   Texture* src, int32_t srcSubresourceIndex, Box3I srcBox)
 {
 	PE_ASSERT(dest && src);
 	PE_ASSERT(dest->GetResourceType() == ResourceType::Buffer);
@@ -358,7 +356,7 @@ void D3D12RenderCommandList::CopyTextureRegion(Buffer* dest, int64_t destOffset,
 }
 
 void D3D12RenderCommandList::CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
-											   Texture* src, int32_t srcSubresourceIndex, Box srcBox)
+											   Texture* src, int32_t srcSubresourceIndex, Box3I srcBox)
 {
 	PE_ASSERT(dest && src);
 	PE_ASSERT(dest->GetResourceType() == ResourceType::Texture);
@@ -368,7 +366,7 @@ void D3D12RenderCommandList::CopyTextureRegion(Texture* dest, glm::int3 destLoc,
 	CD3DX12_TEXTURE_COPY_LOCATION srcTexLoc(static_cast<D3D12Texture*>(src)->GetD3D12Resource(), srcSubresourceIndex);
 
 	auto d3d12Box = GetD3D12Box(srcBox, src, srcSubresourceIndex);
-	m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, srcBox.size == glm::int3{ -1, -1, -1 } ? nullptr : &d3d12Box);
+	m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, (srcBox.size.x <= 0 || srcBox.size.y <= 0 || srcBox.size.z <= 0) ? nullptr : &d3d12Box);
 }
 
 void D3D12RenderCommandList::RenderImGui()

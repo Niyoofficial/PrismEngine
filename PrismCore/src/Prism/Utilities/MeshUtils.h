@@ -31,11 +31,14 @@ struct PrimitiveData
 	std::vector<uint32_t> indices;
 
 	std::unordered_map<TextureType, Ref<Render::Texture>> textures;
+
+	Bounds3F bounds;
 };
 
 struct MeshData
 {
 	std::vector<PrimitiveData> primitives;
+	Bounds3F bounds;
 };
 
 void InitMeshLoading();

@@ -69,9 +69,9 @@ public:
 	virtual void CopyBufferRegion(Buffer* dest, int64_t destOffset, Buffer* src, int64_t srcOffset, int64_t numBytes) = 0;
 	virtual void CopyBufferRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex, Buffer* src, int64_t srcOffset) = 0;
 	virtual void CopyTextureRegion(Buffer* dest, int64_t destOffset,
-								   Texture* src, int32_t srcSubresourceIndex, Box srcBox) = 0;
+								   Texture* src, int32_t srcSubresourceIndex, Box3I srcBox) = 0;
 	virtual void CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
-								   Texture* src, int32_t srcSubresourceIndex, Box srcBox) = 0;
+								   Texture* src, int32_t srcSubresourceIndex, Box3I srcBox) = 0;
 
 	virtual void RenderImGui() = 0;
 

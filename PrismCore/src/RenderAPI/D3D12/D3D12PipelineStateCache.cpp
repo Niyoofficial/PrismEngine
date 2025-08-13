@@ -10,7 +10,7 @@ ID3D12PipelineState* D3D12PipelineStateCache::GetOrCreatePipelineState(const Gra
 	auto vsOutput = D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetOrCreateShader(desc.vs);
 	auto psOutput = D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetOrCreateShader(desc.ps);
 
-	XXH64_hash_t hash = HashPipelineStateDesc(desc);
+	XXH64_hash_t hash = HashPipelineStateDesc(desc, rtvs, dsv);
 
 	if (m_graphicsPipelineStates.contains(hash))
 		return m_graphicsPipelineStates.at(hash).Get();
@@ -46,19 +46,35 @@ ID3D12PipelineState* D3D12PipelineStateCache::GetOrCreatePipelineState(const Com
 	return pipelineState.Get();
 }
 
-template<typename T>
-XXH64_hash_t D3D12PipelineStateCache::HashPipelineStateDesc(const T& desc) const
+XXH64_hash_t D3D12PipelineStateCache::HashPipelineStateDesc(const GraphicsPipelineStateDesc& desc, std::vector<Ref<TextureView>> rtvs, TextureView* dsv) const
 {
 	auto hash = XXH3_64bits(&desc, sizeof(desc));
-	if constexpr (std::is_same_v<T, GraphicsPipelineStateDesc>)
+
+	hash ^= D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetShaderCodeHash(desc.vs);
+	hash ^= D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetShaderCodeHash(desc.ps);
+
+	for (auto& rtv : rtvs)
 	{
-		hash ^= D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetShaderCodeHash(desc.vs);
-		hash ^= D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetShaderCodeHash(desc.ps);
+		if (rtv)
+		{
+			auto viewDesc = rtv->GetViewDesc();
+			hash ^= XXH3_64bits(&viewDesc, sizeof(viewDesc));
+		}
 	}
-	else if constexpr (std::is_same_v<T, ComputePipelineStateDesc>)
+	if (dsv)
 	{
-		hash ^= D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetShaderCodeHash(desc.cs);
+		auto viewDesc = dsv->GetViewDesc();
+		hash ^= XXH3_64bits(&viewDesc, sizeof(viewDesc));
 	}
+
+	return hash;
+}
+
+XXH64_hash_t D3D12PipelineStateCache::HashPipelineStateDesc(const ComputePipelineStateDesc& desc) const
+{
+	auto hash = XXH3_64bits(&desc, sizeof(desc));
+
+	hash ^= D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetShaderCodeHash(desc.cs);
 
 	return hash;
 }

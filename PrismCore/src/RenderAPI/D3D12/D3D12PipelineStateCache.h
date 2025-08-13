@@ -18,8 +18,8 @@ public:
 	ID3D12PipelineState* GetOrCreatePipelineState(const ComputePipelineStateDesc& desc);
 
 private:
-	template<typename T>
-	XXH64_hash_t HashPipelineStateDesc(const T& desc) const;
+	XXH64_hash_t HashPipelineStateDesc(const GraphicsPipelineStateDesc& desc, std::vector<Ref<TextureView>> rtvs, TextureView* dsv) const;
+	XXH64_hash_t HashPipelineStateDesc(const ComputePipelineStateDesc& desc) const;
 
 private:
 	std::unordered_map<XXH64_hash_t, ComPtr<ID3D12PipelineState>> m_graphicsPipelineStates;

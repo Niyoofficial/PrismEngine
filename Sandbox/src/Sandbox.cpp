@@ -188,6 +188,23 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
 	});
 
+	m_sunShadowMap = Texture::Create({
+		.textureName = L"SunShadowMap",
+		.width = 4096,
+		.height = 4096,
+		.dimension = ResourceDimension::Tex2D,
+		.format = TextureFormat::D32_Float,
+		.bindFlags = Flags(BindFlags::DepthStencil) | Flags(BindFlags::ShaderResource),
+		.optimizedClearValue = DepthStencilClearValue{
+			.format = TextureFormat::D32_Float,
+			.depthStencil = {
+				.depth = 1.f
+			}
+		}
+	}, BarrierLayout::DepthStencilWrite);
+	m_sunShadowMapDSV = m_sunShadowMap->CreateView({.type = TextureViewType::DSV});
+	m_sunShadowMapSRV = m_sunShadowMap->CreateView({.type = TextureViewType::SRV, .format = TextureFormat::R32_Float});
+
 	m_environmentTexture = Texture::Create(L"textures/pisa.hdr");
 	m_environmentTextureView = m_environmentTexture->CreateView();
 
@@ -200,6 +217,16 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 										.cpuAccess = CPUAccess::Write
 									});
 	m_sceneCbufferView = m_sceneCbuffer->CreateDefaultCBVView();
+
+	// Scene shadow cbuffer
+	m_sceneShadowUniformBuffer = Buffer::Create({
+										.bufferName = L"SceneShadowCBuffer",
+										.size = sizeof(CBufferScene),
+										.bindFlags = BindFlags::UniformBuffer,
+										.usage = ResourceUsage::Dynamic,
+										.cpuAccess = CPUAccess::Write
+									});
+	m_sceneShadowView = m_sceneShadowUniformBuffer->CreateDefaultCBVView();
 
 	// Load sponza
 	m_sponza = SandboxApplication::LoadMeshFromFilePBR(L"Sponza", L"meshes/SponzaCrytek/Sponza.gltf");
@@ -537,7 +564,9 @@ void SandboxLayer::UpdateImGui(Duration delta)
 	{
 		ImGui::Begin("Debug");
 
-		ImGui::SliderFloat("Environment diffuse scale", &m_environmentDiffuseScale, 0.f, 1.f);
+		ImGui::SliderFloat("Environment light scale", &m_environmentLightScale, 0.f, 1.f);
+		ImGui::SliderAngle("Sun Rotation Yaw", &m_sunRotation.y, -180.f, 180.f);
+		ImGui::SliderAngle("Sun Rotation Pitch", &m_sunRotation.z, -180.f, 180.f);
 
 		ImGui::End();
 	}
@@ -566,104 +595,198 @@ void SandboxLayer::Update(Duration delta)
 
 	Ref<RenderContext> renderContext = RenderDevice::Get().AllocateContext(L"SandboxUpdate");
 
-	glm::float2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
-	auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
+	glm::float3 sunDir = glm::rotate(glm::quat(m_sunRotation), {1.f, 0.f, 0.f});
 
-	renderContext->SetViewport({{0.f, 0.f}, windowSize, {0.f, 1.f}});
-	renderContext->SetScissor({{0.f, 0.f}, windowSize});
-	renderContext->SetRenderTarget(currentBackBuffer, m_depthStencilView);
+	glm::float4x4 lightView = glm::lookAt(m_sponza->GetBounds().GetRadius() * -sunDir, sunDir, {0.f, 1.f, 0.f});
+	glm::float4x4 lightProj = glm::ortho(-m_sponza->GetBounds().GetRadius(),
+										 m_sponza->GetBounds().GetRadius(),
+										 -m_sponza->GetBounds().GetRadius(),
+										 m_sponza->GetBounds().GetRadius(),
+										 0.f, m_sponza->GetBounds().GetRadius() * 2.f);
 
-	glm::float4 clearColor = {0.8f, 0.2f, 0.3f, 1.f};
-	renderContext->ClearRenderTargetView(currentBackBuffer, &clearColor);
-	renderContext->ClearDepthStencilView(m_depthStencilView, Flags(ClearFlags::ClearDepth) | Flags(ClearFlags::ClearStencil));
-
-	// Scene
+	// Shadows
 	{
-		CBufferScene cbufferScene = {
-			.environmentDiffuseScale = m_environmentDiffuseScale,
-			.camera = {
-				.view = m_camera->GetViewMatrix(),
-				.proj = m_camera->GetProjectionMatrix(),
-				.viewProj = m_camera->GetViewProjectionMatrix(),
+		renderContext->BeginEvent({}, L"Shadows");
 
-				.camPos = m_camera->GetPosition()
+		glm::float2 shadowMapSize = { (float)m_sunShadowMap->GetTextureDesc().GetWidth(), (float)m_sunShadowMap->GetTextureDesc().GetHeight() };
+		renderContext->SetViewport({ {0.f, 0.f}, shadowMapSize, {0.f, 1.f} });
+		renderContext->SetScissor({ {0.f, 0.f}, shadowMapSize });
+		renderContext->SetRenderTarget(nullptr, m_sunShadowMapDSV);
+
+		renderContext->ClearDepthStencilView(m_sunShadowMapDSV, ClearFlags::ClearDepth);
+
+		renderContext->SetPSO({
+			.vs = {
+				.filepath = L"shaders/ShadowMap.hlsl",
+				.entryName = L"vsmain",
+				.shaderType = ShaderType::VS
 			},
-			.directionalLights = {
-				{.direction = {0.f, -1.f, -1.f}, .lightColor = {1.f, 1.f, 1.f}}
-			}
-			//.pointLights = {
-			//	{.position = {0.f, 3.f, -2.f}, .lightColor = {1.f, 1.f, 1.f}},
-			//	{.position = {2.f, 3.f, -1.f}, .lightColor = {1.f, 0.f, 0.f}}
-			//}
-		};
+			.ps = {
+				.filepath = L"shaders/ShadowMap.hlsl",
+				.entryName = L"psmain",
+				.shaderType = ShaderType::PS
+			},
+			.rasterizerState = {
+				.fillMode = FillMode::Solid,
+				.cullMode = CullMode::Back,
+				.depthBias = 10000,
+				.depthBiasClamp = 0.f,
+				.slopeScaledDepthBias = 1.5f,
+			},
+		});
 
-		void* sceneCBufferData = m_sceneCbuffer->Map(CPUAccess::Write);
-		memcpy_s(sceneCBufferData, m_sceneCbuffer->GetBufferDesc().size, &cbufferScene, sizeof(cbufferScene));
-		m_sceneCbuffer->Unmap();
-
-		renderContext->SetBuffer(m_sceneCbufferView, L"g_sceneBuffer");
-
-		renderContext->SetBuffer(m_irradianceSHBufferView, L"g_irradiance");
-		renderContext->SetTexture(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), L"g_brdfLUT");
-		renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_envMap");
-	}
-
-	// Skybox
-	{
-		CBufferModel modelData = {
-			.world = glm::float4x4(1.f),
-			.normalMatrix = glm::transpose(glm::inverse(glm::float3x3(modelData.world))),
-
-			.material = {
-				.albedo = glm::float3(0.2f, 0.3f, 0.8f),
-				.metallic = 0.2f,
-				.roughness = 0.4f,
-				.ao = 0.3f
-			}
-		};
-		m_cube->Draw(renderContext, &modelData, sizeof(CBufferModel));
-	}
-
-	// Spheres
-	{
-		CBufferModel modelData = {
-			.world = glm::translate(glm::float4x4(1.f), glm::float3(0.f, -5.f, 0.f)),
-			.normalMatrix = glm::transpose(glm::inverse(glm::float3x3(modelData.world))),
-
-			.mipLevel = -1.f,
-
-			.material = {
-				.albedo = glm::float3(1.f, 1.f, 1.f),
-				.metallic = 0.f,
-				.roughness = 0.1f,
-				.ao = 0.3f
-			}
-		};
-
-		for (int32_t i = 0; i < 6; ++i)
+		// Shadow scene
 		{
-			modelData.world = glm::translate(modelData.world, glm::float3(2.f, 0.f, 0.f));
-			modelData.mipLevel += 1.f;
-			
-			m_sphere->Draw(renderContext, &modelData, sizeof(CBufferModel));
+			CBufferSceneShadow sceneShadow = {
+				.lightViewProj = lightProj * lightView,
+			};
+
+			void* sceneBufferData = m_sceneShadowUniformBuffer->Map(CPUAccess::Write);
+			memcpy_s(sceneBufferData, m_sceneShadowUniformBuffer->GetBufferDesc().size, &sceneShadow, sizeof(sceneShadow));
+			m_sceneShadowUniformBuffer->Unmap();
+
+			renderContext->SetBuffer(m_sceneShadowView, L"g_shadowSceneBuffer");
 		}
+
+		// Sponza
+		{
+			CBufferModelShadow modelShadow = {
+				.world = glm::float4x4(1.f)
+			};
+			m_sponza->Draw(renderContext, &modelShadow, sizeof(modelShadow), false);
+		}
+
+		renderContext->EndEvent();
 	}
 
-	// Sponza
+	// Base Pass
 	{
-		
-		CBufferModel modelData = {
-			.world = glm::scale(glm::float4x4(1.f), glm::float3(1.f, 1.f, 1.f)),
-			.normalMatrix = glm::transpose(glm::inverse(modelData.world)),
+		renderContext->BeginEvent({}, L"BasePass");
 
-			.material = {
-				.albedo = glm::float3(1.f, 1.f, 1.f),
-				.metallic = 1.f,
-				.roughness = 1.f,
-				.ao = 1.f
+		glm::float2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
+		auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
+
+		renderContext->SetViewport({{0.f, 0.f}, windowSize, {0.f, 1.f}});
+		renderContext->SetScissor({{0.f, 0.f}, windowSize});
+		renderContext->SetRenderTarget(currentBackBuffer, m_depthStencilView);
+
+		glm::float4 clearColor = {0.8f, 0.2f, 0.3f, 1.f};
+		renderContext->ClearRenderTargetView(currentBackBuffer, &clearColor);
+		renderContext->ClearDepthStencilView(m_depthStencilView, Flags(ClearFlags::ClearDepth) | Flags(ClearFlags::ClearStencil));
+
+		// Scene
+		{
+			CBufferScene cbufferScene = {
+				.environmentDiffuseScale = m_environmentLightScale,
+				.camera = {
+					.view = m_camera->GetViewMatrix(),
+					.proj = m_camera->GetProjectionMatrix(),
+					.viewProj = m_camera->GetViewProjectionMatrix(),
+
+					.camPos = m_camera->GetPosition()
+				},
+				.shadowViewProj = lightProj * lightView,
+				.directionalLights = {
+					{.direction = sunDir, .lightColor = {1.f, 1.f, 1.f}}
+				}
+				//.pointLights = {
+				//	{.position = {0.f, 3.f, -2.f}, .lightColor = {1.f, 1.f, 1.f}},
+				//	{.position = {2.f, 3.f, -1.f}, .lightColor = {1.f, 0.f, 0.f}}
+				//}
+			};
+
+			void* sceneCBufferData = m_sceneCbuffer->Map(CPUAccess::Write);
+			memcpy_s(sceneCBufferData, m_sceneCbuffer->GetBufferDesc().size, &cbufferScene, sizeof(cbufferScene));
+			m_sceneCbuffer->Unmap();
+
+			renderContext->SetBuffer(m_sceneCbufferView, L"g_sceneBuffer");
+
+			renderContext->SetBuffer(m_irradianceSHBufferView, L"g_irradiance");
+			renderContext->SetTexture(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), L"g_brdfLUT");
+			renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_envMap");
+
+			renderContext->Barrier(TextureBarrier{
+				.texture = m_sunShadowMap,
+				.syncBefore = BarrierSync::DepthStencil,
+				.syncAfter = BarrierSync::PixelShading,
+				.accessBefore = BarrierAccess::DepthStencilWrite,
+				.accessAfter = BarrierAccess::ShaderResource,
+				.layoutBefore = BarrierLayout::DepthStencilWrite,
+				.layoutAfter = BarrierLayout::ShaderResource,
+			});
+
+			renderContext->SetTexture(m_sunShadowMapSRV, L"g_shadowMap");
+		}
+
+		// Skybox
+		{
+			CBufferModel modelData = {
+				.world = glm::float4x4(1.f),
+				.normalMatrix = glm::transpose(glm::inverse(glm::float3x3(modelData.world))),
+
+				.material = {
+					.albedo = glm::float3(0.2f, 0.3f, 0.8f),
+					.metallic = 0.2f,
+					.roughness = 0.4f,
+					.ao = 0.3f
+				}
+			};
+			m_cube->Draw(renderContext, &modelData, sizeof(CBufferModel));
+		}
+
+		// Spheres
+		{
+			CBufferModel modelData = {
+				.world = glm::translate(glm::float4x4(1.f), glm::float3(0.f, -5.f, 0.f)),
+				.normalMatrix = glm::transpose(glm::inverse(glm::float3x3(modelData.world))),
+
+				.mipLevel = -1.f,
+
+				.material = {
+					.albedo = glm::float3(1.f, 1.f, 1.f),
+					.metallic = 0.f,
+					.roughness = 0.1f,
+					.ao = 0.3f
+				}
+			};
+
+			for (int32_t i = 0; i < 6; ++i)
+			{
+				modelData.world = glm::translate(modelData.world, glm::float3(2.f, 0.f, 0.f));
+				modelData.mipLevel += 1.f;
+			
+				m_sphere->Draw(renderContext, &modelData, sizeof(CBufferModel));
 			}
-		};
-		m_sponza->Draw(renderContext, &modelData, sizeof(CBufferModel));
+		}
+
+		// Sponza
+		{
+		
+			CBufferModel modelData = {
+				.world = glm::float4x4(1.f),
+				.normalMatrix = glm::transpose(glm::inverse(modelData.world)),
+
+				.material = {
+					.albedo = glm::float3(1.f, 1.f, 1.f),
+					.metallic = 1.f,
+					.roughness = 1.f,
+					.ao = 1.f
+				}
+			};
+			m_sponza->Draw(renderContext, &modelData, sizeof(CBufferModel));
+		}
+
+		renderContext->Barrier(TextureBarrier{
+				.texture = m_sunShadowMap,
+				.syncBefore = BarrierSync::PixelShading,
+				.syncAfter = BarrierSync::None,
+				.accessBefore = BarrierAccess::ShaderResource,
+				.accessAfter = BarrierAccess::NoAccess,
+				.layoutBefore = BarrierLayout::ShaderResource,
+				.layoutAfter = BarrierLayout::DepthStencilWrite,
+			});
+
+		renderContext->EndEvent();
 	}
 
 	RenderDevice::Get().SubmitContext(renderContext);
@@ -737,7 +860,7 @@ Ref<Render::PrimitiveBatch> SandboxApplication::LoadMeshFromFile(const std::wstr
 
 				batch->AddPrimitive(sizeof(Vertex), Render::IndexBufferFormat::Uint32, vertices.data(), (int64_t)vertices.size(),
 									primitive.indices.data(), (int64_t)primitive.indices.size(), primitiveBufferParamName, primitiveBufferSize,
-									createMaterialFunc(primitive));
+									createMaterialFunc(primitive), primitive.bounds);
 			}
 
 			return batch;

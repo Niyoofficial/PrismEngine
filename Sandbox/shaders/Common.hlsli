@@ -41,31 +41,6 @@ struct Material
 	float ao;
 };
 
-// CBuffer structs
-struct SceneBuffer
-{
-	float environmentDiffuseScale;
-	CameraInfo camera;
-	
-	DirectionalLight directionalLights[MAX_LIGHT_COUNT];
-	PointLight pointLights[MAX_LIGHT_COUNT];
-};
-
-struct SceneIrradiance
-{
-	SH::L2_RGB irradianceSH;
-};
-
-struct ModelBuffer
-{
-	float4x4 world;
-	float4x4 normalMatrix;
-	
-	float mipLevel;
-
-	Material material;
-};
-
 // Given a normal returns the tangent and bitangent vectors
 void ComputeBasisVectors(float3 normal, out float3 tangent, out float3 bitangent)
 {

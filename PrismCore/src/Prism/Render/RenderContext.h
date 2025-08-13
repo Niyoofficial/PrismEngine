@@ -49,9 +49,9 @@ public:
 
 	void CopyBufferRegion(Buffer* dest, int64_t destOffset, Buffer* src, int64_t srcOffset, int64_t numBytes);
 	void CopyBufferRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex, Buffer* src, int64_t srcOffset);
-	void CopyTextureRegion(Buffer* dest, int64_t destOffset, Texture* src, int32_t srcSubresourceIndex = 0, Box srcBox = {});
+	void CopyTextureRegion(Buffer* dest, int64_t destOffset, Texture* src, int32_t srcSubresourceIndex = 0, Box3I srcBox = {});
 	void CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
-						   Texture* src, int32_t srcSubresourceIndex = 0, Box srcBox = {});
+						   Texture* src, int32_t srcSubresourceIndex = 0, Box3I srcBox = {});
 
 	Buffer* ReadbackBuffer(Buffer* bufferToReadback);
 	void ReadbackTexture(Texture* textureToReadback, int32_t subresource,
