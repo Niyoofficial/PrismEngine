@@ -69,8 +69,8 @@ void D3D12Swapchain::Resize()
 {
 	RenderDevice::Get().GetRenderCommandQueue()->Flush();
 
-	m_backBuffers.clear();
 	m_backBufferRTVs.clear();
+	m_backBuffers.clear();
 
 	SwapchainDesc swapchainDesc = GetSwapchainDesc();
 	PE_ASSERT_HR(m_swapchain->ResizeBuffers(swapchainDesc.bufferCount,

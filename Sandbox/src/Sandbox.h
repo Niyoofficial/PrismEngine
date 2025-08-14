@@ -108,7 +108,7 @@ private:
 
 	bool m_showStatWindow = true;
 	float m_environmentLightScale = 1.f;
-	glm::float3 m_sunRotation = {};
+	glm::float3 m_sunRotation = {0.f, glm::radians(-7.f), glm::radians(-101.f)};
 
 	Ref<Render::Camera> m_camera;
 

@@ -187,10 +187,12 @@ float4 psmain(PixelInput pin) : SV_TARGET
 	float metallic = modelBuffer.material.metallic;
 	float roughness = modelBuffer.material.roughness;
 	float ao = modelBuffer.material.ao;
+	float alpha = 1.f;
 	if (g_albedoTexture != -1)
 	{
 		Texture2D albedoTexture = ResourceDescriptorHeap[g_albedoTexture];
 		albedo *= albedoTexture.Sample(g_samLinearWrap, pin.texCoords).rgb;
+		alpha = albedoTexture.Sample(g_samLinearWrap, pin.texCoords).a;
 	}
 	if (g_metallicTexture != -1)
 	{
@@ -212,6 +214,8 @@ float4 psmain(PixelInput pin) : SV_TARGET
 		Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
 		normal = NormalSampleToWorldSpace(normalTexture.Sample(g_samLinearWrap, pin.texCoords).rgb, modelBuffer.normalMatrix, normal, tangent, bitangent);
 	}
+	
+	clip(alpha - 0.1f);
 	
 	BRDFSurface surface = { albedo, metallic, roughness, normal };
 	
