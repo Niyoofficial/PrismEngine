@@ -25,5 +25,15 @@
 		"winpixevent",
 		"xxhash",
 		"yaml-cpp"
+	],
+	"overrides": [
+		{
+			"name": "directx12-agility",
+			"version": "1.616.1"
+		},
+		{
+			"name": "directx-dxc",
+			"version-date": "2025-05-30"
+		}
 	]
 }
