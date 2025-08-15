@@ -67,7 +67,8 @@ private:
 	HMODULE m_pixTimingCaptureModule = {};
 #endif
 
-	ComPtr<IDXGIFactory2> m_dxgiFactory;
+	ComPtr<IDXGIFactory6> m_dxgiFactory;
+	ComPtr<IDXGIAdapter1> m_dxgiAdapter;
 	ComPtr<ID3D12Device10> m_d3dDevice;
 
 	std::unordered_map<D3D12_DESCRIPTOR_HEAP_TYPE, uint32_t> m_descriptorHandleSizes;

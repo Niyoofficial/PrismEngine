@@ -18,7 +18,7 @@
 // AgilitySDK
 extern "C"
 {
-__declspec(dllexport) extern const UINT D3D12SDKVersion = 615;
+__declspec(dllexport) extern const UINT D3D12SDKVersion = 616;
 }
 
 extern "C"
@@ -71,14 +71,38 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 #endif
 	PE_ASSERT_HR(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_dxgiFactory)));
 
-	PE_ASSERT_HR(D3D12CreateDevice(nullptr, D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_d3dDevice)));
+	if (SUCCEEDED(m_dxgiFactory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&m_dxgiAdapter))))
+	{
+		DXGI_ADAPTER_DESC1 desc;
+		PE_ASSERT_HR(m_dxgiAdapter->GetDesc1(&desc));
+	}
+	else
+	{
+		uint32_t adapter = 0;
+		SIZE_T maxDedicatedVideoMemory = 0;
+		for (uint32_t i = 0; m_dxgiFactory->EnumAdapters1(i, &m_dxgiAdapter) != DXGI_ERROR_NOT_FOUND; i++)
+		{
+			DXGI_ADAPTER_DESC1 desc;
+			PE_ASSERT_HR(m_dxgiAdapter->GetDesc1(&desc));
+			SIZE_T dedicatedVideoMemory = desc.DedicatedVideoMemory;
+
+			if (dedicatedVideoMemory > maxDedicatedVideoMemory && (desc.Flags & DXGI_ADAPTER_FLAG_SOFTWARE) == 0)
+			{
+				maxDedicatedVideoMemory = dedicatedVideoMemory;
+				adapter = i;
+			}
+		}
+
+		PE_ASSERT_HR(m_dxgiFactory->EnumAdapters1(adapter, &m_dxgiAdapter));
+	}
+	PE_ASSERT_HR(D3D12CreateDevice(m_dxgiAdapter.Get(), D3D_FEATURE_LEVEL_12_0, IID_PPV_ARGS(&m_d3dDevice)));
 
 	// Make sure that required features are supported
 	D3D12_FEATURE_DATA_D3D12_OPTIONS12 requiredFeatureSet = {};
 	PE_ASSERT_HR(m_d3dDevice->CheckFeatureSupport(
 		D3D12_FEATURE_D3D12_OPTIONS12, &requiredFeatureSet, sizeof(requiredFeatureSet)));
 
-	PE_ASSERT(requiredFeatureSet.EnhancedBarriersSupported == TRUE);
+	PE_ASSERT(requiredFeatureSet.EnhancedBarriersSupported == TRUE, "Enhanced barriers not supported!");
 
 #if PE_BUILD_DEBUG || PE_BUILD_PROFILE
 	if (params.enableDebugLayer)
