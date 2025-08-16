@@ -15,6 +15,17 @@ namespace Prism::Core
 {
 class Window;
 
+struct DisplayInfo
+{
+	uint32_t displayID;				/**< the display this mode is associated with */
+	int32_t width;                  /**< width */
+	int32_t height;                 /**< height */
+	float pixelDensity;				/**< scale converting size to pixels (e.g. a 1920x1080 mode with 2.0 scale would have 3840x2160 pixels) */
+	float refreshRate;				/**< refresh rate (or 0.0f for unspecified) */
+	int32_t refreshRateNumerator;   /**< precise refresh rate numerator (or 0 for unspecified) */
+	int32_t refreshRateDenominator; /**< precise refresh rate denominator */
+};
+
 class Platform : public StaticPointerSingleton<Platform>
 {
 public:
@@ -40,6 +51,9 @@ public:
 
 	virtual Duration GetApplicationTime() = 0;
 	virtual uint64_t GetPerformanceTicksPerSecond() = 0;
+
+	virtual DisplayInfo GetDisplayInfo(uint32_t displayID) = 0;
+	virtual uint32_t GetPrimaryDisplayID() = 0;
 
 	virtual void InitializeImGuiPlatform(Window* window) = 0;
 	virtual void ShutdownImGuiPlatform() = 0;

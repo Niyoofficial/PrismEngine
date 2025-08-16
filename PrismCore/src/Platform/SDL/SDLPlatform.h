@@ -19,6 +19,9 @@ public:
 	virtual Duration GetApplicationTime() override;
 	virtual uint64_t GetPerformanceTicksPerSecond() override;
 
+	virtual Core::DisplayInfo GetDisplayInfo(uint32_t displayID) override;
+	virtual uint32_t GetPrimaryDisplayID() override;
+
 	virtual void InitializeImGuiPlatform(Core::Window* window) override;
 	virtual void ShutdownImGuiPlatform() override;
 

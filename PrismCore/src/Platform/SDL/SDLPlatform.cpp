@@ -408,6 +408,26 @@ uint64_t SDLPlatform::GetPerformanceTicksPerSecond()
 	return SDL_GetPerformanceFrequency();
 }
 
+Core::DisplayInfo SDLPlatform::GetDisplayInfo(uint32_t displayID)
+{
+	const SDL_DisplayMode* displayMode = SDL_GetDesktopDisplayMode(displayID);
+
+	return {
+		.displayID = displayMode->displayID,
+		.width = displayMode->w,
+		.height = displayMode->h,
+		.pixelDensity = displayMode->pixel_density,
+		.refreshRate = displayMode->refresh_rate,
+		.refreshRateNumerator = displayMode->refresh_rate_numerator,
+		.refreshRateDenominator = displayMode->refresh_rate_denominator
+	};
+}
+
+uint32_t SDLPlatform::GetPrimaryDisplayID()
+{
+	return SDL_GetPrimaryDisplay();
+}
+
 void SDLPlatform::InitializeImGuiPlatform(Core::Window* window)
 {
 	ImGui_ImplSDL3_InitForD3D(std::any_cast<SDL_Window*>(window->GetNativeWindow()));

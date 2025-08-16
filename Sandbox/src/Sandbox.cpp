@@ -803,9 +803,11 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 	InitPlatform();
 	InitRenderer({.enableDebugLayer = true, .initPixLibrary = false});
 
+	auto displayInfo = Core::Platform::Get().GetDisplayInfo(Core::Platform::Get().GetPrimaryDisplayID());
+
 	Core::WindowDesc windowParams = {
 		.windowTitle = L"Test",
-		.windowSize = {2560, 1440},
+		.windowSize = {displayInfo.width / 1.5f, displayInfo.height / 1.5f},
 		.fullscreen = false
 	};
 	Render::SwapchainDesc swapchainDesc = {

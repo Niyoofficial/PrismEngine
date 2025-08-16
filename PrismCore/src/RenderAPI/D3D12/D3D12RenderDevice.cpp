@@ -56,9 +56,16 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 #if PE_BUILD_DEBUG || PE_BUILD_PROFILE
 	if (params.enableDebugLayer)
 	{
-		ComPtr<ID3D12Debug> debugController;
-		PE_ASSERT_HR(D3D12GetDebugInterface(IID_PPV_ARGS(&debugController)));
-		debugController->EnableDebugLayer();
+		ComPtr<ID3D12Debug6> d3d12DebugController;
+		PE_ASSERT_HR(D3D12GetDebugInterface(IID_PPV_ARGS(&d3d12DebugController)));
+		d3d12DebugController->EnableDebugLayer();
+		d3d12DebugController->SetEnableAutoName(TRUE);
+		//d3d12DebugController->SetEnableGPUBasedValidation(TRUE);
+		d3d12DebugController->SetEnableSynchronizedCommandQueueValidation(TRUE);
+
+		ComPtr<IDXGIDebug1> dxgiDebugController;
+		PE_ASSERT_HR(DXGIGetDebugInterface1(0, IID_PPV_ARGS(&dxgiDebugController)));
+		dxgiDebugController->EnableLeakTrackingForThread();
 	}
 #endif
 
