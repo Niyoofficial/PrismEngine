@@ -66,8 +66,8 @@ private:
 	GraphicsPipelineStateDesc m_currentGraphicsPSO = {};
 	ComputePipelineStateDesc m_currentComputePSO = {};
 
-	std::vector<Ref<TextureView>> m_renderTargetViews;
-	Ref<TextureView> m_depthStencilView;
+	std::vector<TextureView*> m_renderTargetViews;
+	TextureView* m_depthStencilView;
 
 	std::unordered_map<std::wstring, Ref<RenderResourceView>> m_rootResources;
 	std::vector<Ref<RenderResourceView>> m_overriddenRootResources;

@@ -24,6 +24,7 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC PE_ENGINE_DIR=${PROJECT_SOURCE_DIR})
+message(STATUS "Engine directory set to: ${PROJECT_SOURCE_DIR}")
 
 if (WIN32)
 	target_compile_options(${PROJECT_NAME} PUBLIC "$<$<C_COMPILER_ID:MSVC>:/utf-8>")
@@ -60,7 +61,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectXTK12)
 find_package(directx-headers CONFIG REQUIRED)
 find_package(directx12-agility CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility)
-
 
 if(TARGET Microsoft::DirectX12-Agility)
 	file(MAKE_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/D3D12")
