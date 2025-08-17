@@ -40,8 +40,10 @@ struct std::hash<Prism::Render::GraphicsPipelineStateDesc>
 	{
 		using namespace Prism::Render;
 
+#ifdef PE_BUILD_DEBUG
 		static_assert(sizeof(desc) == 560,
 					  "If new field was added, add it to the hash function and update this assert");
+#endif
 
 		return
 			std::hash<ShaderDesc>()(desc.vs) ^
@@ -60,8 +62,10 @@ struct std::hash<Prism::Render::ComputePipelineStateDesc>
 	{
 		using namespace Prism::Render;
 
+#ifdef PE_BUILD_DEBUG
 		static_assert(sizeof(desc) == 88,
 					  "If new field was added, add it to the hash function and update this assert");
+#endif
 
 		return std::hash<ShaderDesc>()(desc.cs);
 	}
