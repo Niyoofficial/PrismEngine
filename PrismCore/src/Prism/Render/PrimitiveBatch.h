@@ -1,6 +1,4 @@
 ﻿#pragma once
-#include "Prism/Base/AppEvents.h"
-#include "Prism/Base/AppEvents.h"
 #include "Prism/Render/Material.h"
 #include "Prism/Render/Primitive.h"
 

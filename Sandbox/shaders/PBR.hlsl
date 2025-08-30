@@ -69,48 +69,6 @@ float3 CalcLight(BRDFSurface surface, float3 lightColor, float3 toLight, float3 
 	return BRDF(surface, toLight, toCamera) * lightColor * attenuation * NdotL;
 }
 
-float3 NormalSampleToWorldSpace(float3 normalSample, float4x4 normalMatrix, float3 normal, float3 tangent, float3 bitangent)
-{
-	// Uncompress each component from [0,1] to [-1,1].
-	float3 normalSampleUncomp = 2.f * normalSample - 1.f;
-	
-	normal = normalize(mul((float3x3)normalMatrix, normal));
-	tangent = normalize(mul((float3x3)normalMatrix, tangent));
-	bitangent = normalize(mul((float3x3)normalMatrix, bitangent));
-	
-	float3x3 TBN = float3x3(tangent, bitangent, normal);
-
-	return normalize(mul(normalSampleUncomp, TBN));
-}
-
-float CalcShadowFactor(float4 shadowPosClip, float shadowMapResolution, Texture2D shadowMap, SamplerComparisonState shadowSampler)
-{
-    shadowPosClip.xyz /= shadowPosClip.w;
-	
-    float depth = shadowPosClip.z;
-	
-	// Transform from NDC[-1, 1] to texture coordinates[0, 1]
-    float2 texCoords = float2((shadowPosClip.x + 1.f) / 2.f, (-shadowPosClip.y + 1.f) / 2.f);
-	
-	// Texel size
-    float dx = 1.f / (float)shadowMapResolution;
-    float dx2 = 2.f * dx;
-	
-    float percentLit = 0.f;
-    const float2 offsets[25] = {
-        float2(-dx2, -dx2), float2(-dx, -dx2), float2(0.f, -dx2), float2(+dx,  -dx2), float2(+dx2, -dx2),
-        float2(-dx2,  -dx), float2(-dx,  +dx), float2(0.f,  -dx), float2(+dx,   +dx), float2(+dx2,  -dx),
-        float2(-dx2,  0.f), float2(-dx,  0.f), float2(0.f,  0.f), float2(+dx,   0.f), float2(+dx2,  0.f),
-        float2(-dx2,  +dx), float2(-dx,  +dx), float2(0.f,  +dx), float2(+dx,   +dx), float2(+dx2,  +dx),
-        float2(-dx2, +dx2), float2(-dx, +dx2), float2(0.f, +dx2), float2(+dx,  +dx2), float2(+dx2, +dx2)
-    };
-
-    for (int i = 0; i < 25; ++i)
-        percentLit += shadowMap.SampleCmpLevelZero(shadowSampler, texCoords + offsets[i], depth).r;
-	
-    return percentLit / 25.f;
-}
-
 PixelInput vsmain(VertexInput vin)
 {
 	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_sceneBuffer];
@@ -168,7 +126,14 @@ float4 spheremain(PixelInput pin) : SV_TARGET
 	return float4(color, 1.f);
 }
 
-float4 psmain(PixelInput pin) : SV_TARGET
+struct PixelOutput
+{
+	float4 color : SV_TARGET0;
+	float4 normals : SV_TARGET1;
+	float4 roughnessMetalAO : SV_TARGET2;
+};
+
+PixelOutput psmain(PixelInput pin)
 {
 	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_sceneBuffer];
 	ConstantBuffer<ModelBuffer> modelBuffer = ResourceDescriptorHeap[g_modelBuffer];
@@ -215,12 +180,18 @@ float4 psmain(PixelInput pin) : SV_TARGET
 		normal = NormalSampleToWorldSpace(normalTexture.Sample(g_samLinearWrap, pin.texCoords).rgb, modelBuffer.normalMatrix, normal, tangent, bitangent);
 	}
 	
+	PixelOutput pout;
+	pout.color = float4(albedo, 1.f);
+	pout.normals = float4(normal, 1.f);
+	pout.roughnessMetalAO = float4(roughness, metallic, ao, 1.f);
+	return pout;
+	
 	clip(alpha - 0.1f);
 	
 	BRDFSurface surface = { albedo, metallic, roughness, normal };
 	
 	// For now only a single directional light has shadow
-	float shadowFactor = CalcShadowFactor(pin.shadowPosClip, 4096, shadowMap, g_samShadow);
+	float shadowFactor = CalcShadowFactor(pin.shadowPosClip, 8192, shadowMap, g_samShadow);
 
 	float3 analyticLight = 0.f;
 	for (int i = 0; i < MAX_LIGHT_COUNT; ++i)
@@ -262,5 +233,5 @@ float4 psmain(PixelInput pin) : SV_TARGET
 	color = color / (color + 1.f);
 	color = pow(color, 1.f / 2.2f);
 	
-	return float4(color, 1.f);
+	//return float4(color, 1.f);
 }

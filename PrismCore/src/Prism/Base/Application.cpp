@@ -1,7 +1,7 @@
 #include "pcpch.h"
 #include "Application.h"
 
-#include "imgui.h"
+#include "Prism/Render/PrismImGui.h"
 #include "Prism/Base/Platform.h"
 #include "Prism/Render/Layer.h"
 #include "Prism/Render/RenderCommandQueue.h"

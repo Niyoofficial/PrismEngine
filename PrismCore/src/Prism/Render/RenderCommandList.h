@@ -13,7 +13,7 @@ struct DrawCommandDesc
 {
 	int64_t numVertices;
 	int64_t numInstances = 1;
-	int64_t startVertexLocation;
+	int64_t startVertexLocation = 0;
 };
 
 struct DrawIndexedCommandDesc

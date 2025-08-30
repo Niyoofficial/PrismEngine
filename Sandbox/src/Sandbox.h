@@ -18,6 +18,9 @@ struct CBufferCamera
 	glm::float4x4 view;
 	glm::float4x4 proj;
 	glm::float4x4 viewProj;
+	glm::float4x4 invView;
+	glm::float4x4 invProj;
+	glm::float4x4 invViewProj;
 
 	glm::float3 camPos;
 };
@@ -38,22 +41,29 @@ struct PointLight
 	glm::float3 lightColor;
 };
 
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferScene
+struct alignas(Render::Constants::CBUFFER_ALIGNMENT) SceneUniformBuffer
 {
 	alignas(16)
-	float environmentDiffuseScale = 1.f;
-	alignas(16)
 	CBufferCamera camera;
-	alignas(16)
-	glm::float4x4 shadowViewProj;
+};
 
+struct alignas(Render::Constants::CBUFFER_ALIGNMENT) LightsUniformBuffer
+{
 	alignas(16)
 	DirectionalLight directionalLights[16];
 	alignas(16)
 	PointLight pointLights[16];
 };
 
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferSceneShadow
+struct alignas(Render::Constants::CBUFFER_ALIGNMENT) PerLightUniformBuffer
+{
+	alignas(16)
+	int32_t lightIndex = -1;
+	alignas(16)
+	glm::float4x4 shadowViewProj;
+};
+
+struct alignas(Render::Constants::CBUFFER_ALIGNMENT) ShadowUniformBuffer
 {
 	alignas(16)
 	glm::float4x4 lightViewProj;
@@ -85,6 +95,37 @@ struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferModelShadow
 	glm::float4x4 world;
 };
 
+struct GBuffer
+{
+	enum class Type
+	{
+		Depth,
+		Color,
+		Normal,
+		Roughness_Metal_AO,
+		Count
+	};
+
+	void CreateResources(glm::int2 windowSize);
+
+	Render::Texture* GetTexture(Type type)
+	{
+		return entries[(size_t)type].texture.Raw();
+	}
+	Render::TextureView* GetView(Type type, Render::TextureViewType view)
+	{
+		return entries[(size_t)type].views.at(view).Raw();
+	}
+	
+	struct Entry
+	{
+		Ref<Render::Texture> texture;
+		std::unordered_map<Render::TextureViewType, Ref<Render::TextureView>> views;
+	};
+
+	std::array<Entry, (size_t)Type::Count> entries;
+};
+
 struct Vertex
 {
 	glm::float3 position;
@@ -112,8 +153,7 @@ private:
 
 	Ref<Render::Camera> m_camera;
 
-	Ref<Render::Texture> m_depthStencil;
-	Ref<Render::TextureView> m_depthStencilView;
+	GBuffer m_gbuffer;
 
 	Ref<Render::Texture> m_skybox;
 	Ref<Render::TextureView> m_skyboxCubeSRVView;
@@ -129,14 +169,18 @@ private:
 	Ref<Render::Texture> m_environmentTexture;
 	Ref<Render::TextureView> m_environmentTextureView;
 
-	Ref<Render::Texture> m_sunTestRender;
-	Ref<Render::TextureView> m_sunTestRenderRTV;
 	Ref<Render::Texture> m_sunShadowMap;
 	Ref<Render::TextureView> m_sunShadowMapDSV;
 	Ref<Render::TextureView> m_sunShadowMapSRV;
 
-	Ref<Render::Buffer> m_sceneCbuffer;
-	Ref<Render::BufferView> m_sceneCbufferView;
+	Ref<Render::Buffer> m_sceneUniBuffer;
+	Ref<Render::BufferView> m_sceneUniBufferView;
+
+	Ref<Render::Buffer> m_lightsUniBuffer;
+	Ref<Render::BufferView> m_lightsUniBufferView;
+
+	Ref<Render::Buffer> m_perLightUniBuffer;
+	Ref<Render::BufferView> m_perLightUniBufferView;
 
 	Ref<Render::Buffer> m_sceneShadowUniformBuffer;
 	Ref<Render::BufferView> m_sceneShadowView;

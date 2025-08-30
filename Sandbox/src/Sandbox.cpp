@@ -1,6 +1,5 @@
 ﻿#include "Sandbox.h"
 
-#include "imgui.h"
 #include "Prism/Base/Base.h"
 #include "Prism/Base/Platform.h"
 #include "Prism/Base/Window.h"
@@ -14,6 +13,118 @@
 
 IMPLEMENT_APPLICATION(SandboxApplication);
 
+void GBuffer::CreateResources(glm::int2 windowSize)
+{
+	using namespace Prism::Render;
+
+	auto depthStencil = Texture::Create({
+		.textureName = L"GBuffer_Depth",
+		.width = windowSize.x,
+		.height = windowSize.y,
+		.dimension = ResourceDimension::Tex2D,
+		.format = TextureFormat::R32_Typeless,
+		.bindFlags = Flags(BindFlags::DepthStencil) | Flags(BindFlags::ShaderResource),
+		.optimizedClearValue = DepthStencilClearValue{
+			.format = TextureFormat::D32_Float
+		}
+	},
+	BarrierLayout::DepthStencilWrite);
+	auto depthStencilDSV = depthStencil->CreateView({
+		.type = TextureViewType::DSV, .format = TextureFormat::D32_Float
+	});
+	auto depthStencilSRV = depthStencil->CreateView({
+		.type = TextureViewType::SRV, .format = TextureFormat::R32_Float
+	});
+
+	auto color = Texture::Create({
+		.textureName = L"GBuffer_Color",
+		.width = windowSize.x,
+		.height = windowSize.y,
+		.dimension = ResourceDimension::Tex2D,
+		.format = TextureFormat::RGBA16_UNorm,
+		.bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
+		.optimizedClearValue = RenderTargetClearValue{
+			.format = TextureFormat::RGBA16_UNorm,
+			.color = {0.f, 0.f, 0.f, 1.f}
+		}
+	}, BarrierLayout::RenderTarget);
+	auto colorRTV = color->CreateView({
+		.type = TextureViewType::RTV
+	});
+	auto colorSRV = color->CreateView({
+		.type = TextureViewType::SRV
+	});
+
+	auto normals = Texture::Create({
+		.textureName = L"GBuffer_Normals",
+		.width = windowSize.x,
+		.height = windowSize.y,
+		.dimension = ResourceDimension::Tex2D,
+		.format = TextureFormat::RGBA16_Float,
+		.bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
+		.optimizedClearValue = RenderTargetClearValue{
+			.format = TextureFormat::RGBA16_Float,
+			.color = {0.f, 0.f, 0.f, 1.f}
+		}
+	}, BarrierLayout::RenderTarget);
+	auto normalsRTV = normals->CreateView({
+		.type = TextureViewType::RTV
+	});
+	auto normalsSRV = normals->CreateView({
+		.type = TextureViewType::SRV
+	});
+
+	auto roughnessMetalAO = Texture::Create({
+		.textureName = L"GBuffer_RoughnessMetalAO",
+		.width = windowSize.x,
+		.height = windowSize.y,
+		.dimension = ResourceDimension::Tex2D,
+		.format = TextureFormat::RGBA16_UNorm,
+		.bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
+		.optimizedClearValue = RenderTargetClearValue{
+			.format = TextureFormat::RGBA16_UNorm,
+			.color = {0.f, 0.f, 0.f, 1.f}
+		}
+	}, BarrierLayout::RenderTarget);
+	auto roughnessMetalAORTV = roughnessMetalAO->CreateView({
+		.type = TextureViewType::RTV
+	});
+	auto roughnessMetalAOSRV = roughnessMetalAO->CreateView({
+		.type = TextureViewType::SRV
+	});
+
+	entries.fill({});
+
+	entries[(size_t)Type::Depth] = {
+		.texture = depthStencil,
+		.views = {
+			{ TextureViewType::DSV, depthStencilDSV },
+			{ TextureViewType::SRV, depthStencilSRV }
+		}
+	};
+	entries[(size_t)Type::Color] = {
+		.texture = color,
+		.views = {
+			{ TextureViewType::RTV, colorRTV },
+			{ TextureViewType::SRV, colorSRV }
+		}
+	};
+	entries[(size_t)Type::Normal] = {
+		.texture = normals,
+		.views = {
+			{ TextureViewType::RTV, normalsRTV },
+			{ TextureViewType::SRV, normalsSRV }
+		}
+	};
+	entries[(size_t)Type::Roughness_Metal_AO] = {
+		.texture = roughnessMetalAO,
+		.views = {
+			{ TextureViewType::RTV, roughnessMetalAORTV },
+			{ TextureViewType::SRV, roughnessMetalAOSRV }
+		}
+	};
+}
+
 SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	: m_owningWindow(owningWindow)
 {
@@ -23,21 +134,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::WindowResized>(
 		[this](Core::AppEvent event)
 		{
-			m_depthStencil = Texture::Create({
-												 .textureName = L"DepthStencil",
-												 .width = m_owningWindow->GetSize().x,
-												 .height = m_owningWindow->GetSize().y,
-												 .dimension = ResourceDimension::Tex2D,
-												 .format = TextureFormat::D24_UNorm_S8_UInt,
-												 .bindFlags = BindFlags::DepthStencil,
-												 .optimizedClearValue = DepthStencilClearValue{
-													 .format = TextureFormat::D24_UNorm_S8_UInt
-												 }
-											 }, BarrierLayout::DepthStencilWrite);
-			m_depthStencilView = m_depthStencil->CreateView({
-				.type = TextureViewType::DSV,
-				.dimension = ResourceDimension::Tex2D,
-			});
+			m_gbuffer.CreateResources({m_owningWindow->GetSize().x, m_owningWindow->GetSize().y});
 
 			m_camera->SetPerspective(45.f,
 									 (float)m_owningWindow->GetSize().x / (float)m_owningWindow->GetSize().y,
@@ -69,7 +166,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			constexpr float moveSpeedChangeMult = 0.01f;
 			constexpr float minMoveSpeed = 0.01f;
 			m_cameraSpeed += delta * moveSpeedChangeMult;
-			m_cameraSpeed = std::max(m_cameraSpeed, minMoveSpeed);
+			//m_cameraSpeed = std::max(m_cameraSpeed, minMoveSpeed);
 		});
 
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseButtonDown>(
@@ -88,24 +185,9 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
 	m_camera = new Camera(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
-	m_camera->SetPosition({7.f, -5.f, -10.f});
+	m_camera->SetPosition({0.f, 0.f, 0.f});
 
-	m_depthStencil = Texture::Create({
-		 .textureName = L"DepthStencil",
-		 .width = windowSize.x,
-		 .height = windowSize.y,
-		 .dimension = ResourceDimension::Tex2D,
-		 .format = TextureFormat::D24_UNorm_S8_UInt,
-		 .bindFlags = BindFlags::DepthStencil,
-		 .optimizedClearValue = DepthStencilClearValue{
-			 .format = TextureFormat::D24_UNorm_S8_UInt
-		 }
-	 },
-	BarrierLayout::DepthStencilWrite);
-	m_depthStencilView = m_depthStencil->CreateView({
-		.type = TextureViewType::DSV,
-		.dimension = ResourceDimension::Tex2D,
-	});
+	m_gbuffer.CreateResources(windowSize);
 
 	m_skybox = Texture::Create({
 		.textureName = L"Skybox",
@@ -190,8 +272,8 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 	m_sunShadowMap = Texture::Create({
 		.textureName = L"SunShadowMap",
-		.width = 4096,
-		.height = 4096,
+		.width = 8192,
+		.height = 8192,
 		.dimension = ResourceDimension::Tex2D,
 		.format = TextureFormat::D32_Float,
 		.bindFlags = Flags(BindFlags::DepthStencil) | Flags(BindFlags::ShaderResource),
@@ -207,21 +289,41 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 	m_environmentTexture = Texture::Create(L"textures/pisa.hdr");
 	m_environmentTextureView = m_environmentTexture->CreateView();
-
+	
 	// Scene cbuffer
-	m_sceneCbuffer = Buffer::Create({
+	m_sceneUniBuffer = Buffer::Create({
 										.bufferName = L"SceneCBuffer",
-										.size = sizeof(CBufferScene),
+										.size = sizeof(SceneUniformBuffer),
 										.bindFlags = BindFlags::UniformBuffer,
 										.usage = ResourceUsage::Dynamic,
 										.cpuAccess = CPUAccess::Write
 									});
-	m_sceneCbufferView = m_sceneCbuffer->CreateDefaultCBVView();
+	m_sceneUniBufferView = m_sceneUniBuffer->CreateDefaultCBVView();
+
+	// Lights cbuffer
+	m_lightsUniBuffer = Buffer::Create({
+										.bufferName = L"LightsCBuffer",
+										.size = sizeof(LightsUniformBuffer),
+										.bindFlags = BindFlags::UniformBuffer,
+										.usage = ResourceUsage::Dynamic,
+										.cpuAccess = CPUAccess::Write
+		});
+	m_lightsUniBufferView = m_lightsUniBuffer->CreateDefaultCBVView();
+
+	// PerLight cbuffer
+	m_perLightUniBuffer = Buffer::Create({
+										.bufferName = L"PerLightCBuffer",
+										.size = sizeof(PerLightUniformBuffer),
+										.bindFlags = BindFlags::UniformBuffer,
+										.usage = ResourceUsage::Dynamic,
+										.cpuAccess = CPUAccess::Write
+		});
+	m_perLightUniBufferView = m_perLightUniBuffer->CreateDefaultCBVView();
 
 	// Scene shadow cbuffer
 	m_sceneShadowUniformBuffer = Buffer::Create({
 										.bufferName = L"SceneShadowCBuffer",
-										.size = sizeof(CBufferScene),
+										.size = sizeof(SceneUniformBuffer),
 										.bindFlags = BindFlags::UniformBuffer,
 										.usage = ResourceUsage::Dynamic,
 										.cpuAccess = CPUAccess::Write
@@ -564,9 +666,10 @@ void SandboxLayer::UpdateImGui(Duration delta)
 	{
 		ImGui::Begin("Debug");
 
-		ImGui::SliderFloat("Environment light scale", &m_environmentLightScale, 0.f, 1.f);
+		//ImGui::SliderFloat("Environment light scale", &m_environmentLightScale, 0.f, 1.f);
 		ImGui::SliderAngle("Sun Rotation Yaw", &m_sunRotation.y, -180.f, 180.f);
 		ImGui::SliderAngle("Sun Rotation Pitch", &m_sunRotation.z, -180.f, 180.f);
+		ImGui::Image(m_sunShadowMap->CreateView({ .type = Render::TextureViewType::SRV, .format = Render::TextureFormat::R32_Float }).Raw(), {8192/16, 8192/16});
 
 		ImGui::End();
 	}
@@ -637,7 +740,7 @@ void SandboxLayer::Update(Duration delta)
 
 		// Shadow scene
 		{
-			CBufferSceneShadow sceneShadow = {
+			ShadowUniformBuffer sceneShadow = {
 				.lightViewProj = lightProj * lightView,
 			};
 
@@ -659,66 +762,78 @@ void SandboxLayer::Update(Duration delta)
 		renderContext->EndEvent();
 	}
 
+	SceneUniformBuffer sceneUniformBuffer = {
+				.camera = {
+					.view = m_camera->GetViewMatrix(),
+					.proj = m_camera->GetProjectionMatrix(),
+					.viewProj = m_camera->GetViewProjectionMatrix(),
+					.invView = m_camera->GetInvViewMatrix(),
+					.invProj = m_camera->GetInvProjectionMatrix(),
+					.invViewProj = m_camera->GetInvViewProjectionMatrix(),
+
+					.camPos = m_camera->GetPosition()
+				}
+	};
+
+	void* sceneData = m_sceneUniBuffer->Map(CPUAccess::Write);
+	memcpy_s(sceneData, m_sceneUniBuffer->GetBufferDesc().size, &sceneUniformBuffer, sizeof(sceneUniformBuffer));
+	m_sceneUniBuffer->Unmap();
+
+	renderContext->SetBuffer(m_sceneUniBufferView, L"g_sceneBuffer");
+
 	// Base Pass
 	{
 		renderContext->BeginEvent({}, L"BasePass");
 
 		glm::float2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
-		auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
 
 		renderContext->SetViewport({{0.f, 0.f}, windowSize, {0.f, 1.f}});
 		renderContext->SetScissor({{0.f, 0.f}, windowSize});
-		renderContext->SetRenderTarget(currentBackBuffer, m_depthStencilView);
 
-		glm::float4 clearColor = {0.8f, 0.2f, 0.3f, 1.f};
-		renderContext->ClearRenderTargetView(currentBackBuffer, &clearColor);
-		renderContext->ClearDepthStencilView(m_depthStencilView, Flags(ClearFlags::ClearDepth) | Flags(ClearFlags::ClearStencil));
+		renderContext->SetRenderTargets({
+										   m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV),
+										   m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::RTV),
+										   m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::RTV)
+									   }, m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::DSV));
 
-		// Scene
+		glm::float4 clearColor = {0.f, 0.f, 0.f, 1.f};
+		renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV), &clearColor);
+		renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::RTV), &clearColor);
+		renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::RTV),
+											 &clearColor);
+		renderContext->ClearDepthStencilView(m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::DSV),
+											 Flags(ClearFlags::ClearDepth) | Flags(ClearFlags::ClearStencil));
+
+		renderContext->Barrier(TextureBarrier{
+			.texture = m_sunShadowMap,
+			.syncBefore = BarrierSync::DepthStencil,
+			.syncAfter = BarrierSync::PixelShading,
+			.accessBefore = BarrierAccess::DepthStencilWrite,
+			.accessAfter = BarrierAccess::ShaderResource,
+			.layoutBefore = BarrierLayout::DepthStencilWrite,
+			.layoutAfter = BarrierLayout::ShaderResource,
+		});
+
+		renderContext->SetTexture(m_sunShadowMapSRV, L"g_shadowMap");
+
+		// Sponza
 		{
-			CBufferScene cbufferScene = {
-				.environmentDiffuseScale = m_environmentLightScale,
-				.camera = {
-					.view = m_camera->GetViewMatrix(),
-					.proj = m_camera->GetProjectionMatrix(),
-					.viewProj = m_camera->GetViewProjectionMatrix(),
+			CBufferModel modelData = {
+				.world = glm::float4x4(1.f),
+				.normalMatrix = glm::transpose(glm::inverse(modelData.world)),
 
-					.camPos = m_camera->GetPosition()
-				},
-				.shadowViewProj = lightProj * lightView,
-				.directionalLights = {
-					{.direction = sunDir, .lightColor = {1.f, 1.f, 1.f}}
+				.material = {
+					.albedo = glm::float3(1.f, 1.f, 1.f),
+					.metallic = 1.f,
+					.roughness = 1.f,
+					.ao = 1.f
 				}
-				//.pointLights = {
-				//	{.position = {0.f, 3.f, -2.f}, .lightColor = {1.f, 1.f, 1.f}},
-				//	{.position = {2.f, 3.f, -1.f}, .lightColor = {1.f, 0.f, 0.f}}
-				//}
 			};
-
-			void* sceneCBufferData = m_sceneCbuffer->Map(CPUAccess::Write);
-			memcpy_s(sceneCBufferData, m_sceneCbuffer->GetBufferDesc().size, &cbufferScene, sizeof(cbufferScene));
-			m_sceneCbuffer->Unmap();
-
-			renderContext->SetBuffer(m_sceneCbufferView, L"g_sceneBuffer");
-
-			renderContext->SetBuffer(m_irradianceSHBufferView, L"g_irradiance");
-			renderContext->SetTexture(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), L"g_brdfLUT");
-			renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_envMap");
-
-			renderContext->Barrier(TextureBarrier{
-				.texture = m_sunShadowMap,
-				.syncBefore = BarrierSync::DepthStencil,
-				.syncAfter = BarrierSync::PixelShading,
-				.accessBefore = BarrierAccess::DepthStencilWrite,
-				.accessAfter = BarrierAccess::ShaderResource,
-				.layoutBefore = BarrierLayout::DepthStencilWrite,
-				.layoutAfter = BarrierLayout::ShaderResource,
-			});
-
-			renderContext->SetTexture(m_sunShadowMapSRV, L"g_shadowMap");
+			m_sponza->Draw(renderContext, &modelData, sizeof(CBufferModel));
 		}
 
 		// Skybox
+		if (0)
 		{
 			CBufferModel modelData = {
 				.world = glm::float4x4(1.f),
@@ -735,6 +850,7 @@ void SandboxLayer::Update(Duration delta)
 		}
 
 		// Spheres
+		if (0)
 		{
 			CBufferModel modelData = {
 				.world = glm::translate(glm::float4x4(1.f), glm::float3(0.f, -5.f, 0.f)),
@@ -759,32 +875,117 @@ void SandboxLayer::Update(Duration delta)
 			}
 		}
 
-		// Sponza
-		{
-		
-			CBufferModel modelData = {
-				.world = glm::float4x4(1.f),
-				.normalMatrix = glm::transpose(glm::inverse(modelData.world)),
+		renderContext->EndEvent();
+	}
 
-				.material = {
-					.albedo = glm::float3(1.f, 1.f, 1.f),
-					.metallic = 1.f,
-					.roughness = 1.f,
-					.ao = 1.f
-				}
+	// Lighting Pass
+	{
+		renderContext->BeginEvent({}, L"LightingPass");
+
+		auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
+		renderContext->SetRenderTarget(currentBackBuffer, nullptr);
+
+		glm::float4 clearColor = {0.8f, 0.2f, 0.3f, 1.f};
+		renderContext->ClearRenderTargetView(currentBackBuffer, &clearColor);
+
+		renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::SRV), L"g_colorTexture");
+		renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::SRV), L"g_normalTexture");
+		renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::SRV), L"g_roughnessMetalAOTexture");
+		renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::SRV), L"g_depthTexture");
+
+		// Env light
+		{
+			BlendStateDesc blendState;
+			blendState.renderTargetBlendDescs[0] = {.blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One};
+			renderContext->SetPSO(GraphicsPipelineStateDesc{
+			   .vs = {
+				   .filepath = L"shaders/DeferredLightingIndirect.hlsl",
+				   .entryName = L"vsmain",
+				   .shaderType = ShaderType::VS
+			   },
+			   .ps = {
+				   .filepath = L"shaders/DeferredLightingIndirect.hlsl",
+				   .entryName = L"psmain",
+				   .shaderType = ShaderType::PS
+			   },
+			   .rasterizerState = {
+				   .cullMode = CullMode::Front
+			   },
+			   .depthStencilState = {
+				   .depthEnable = false,
+				   .depthWriteEnable = false,
+				   .stencilEnable = false
+			   },
+			});
+
+			renderContext->SetBuffer(m_irradianceSHBufferView, L"g_irradiance");
+			renderContext->SetTexture(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), L"g_brdfLUT");
+			renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_envMap");
+
+			renderContext->Draw({.numVertices = 3});
+		}
+
+		BlendStateDesc blendState;
+		blendState.renderTargetBlendDescs[0] = { .blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One };
+		renderContext->SetPSO(GraphicsPipelineStateDesc{
+			.vs = {
+				.filepath = L"shaders/DeferredLightingDirect.hlsl",
+				.entryName = L"vsmain",
+				.shaderType = ShaderType::VS
+			},
+			.ps = {
+				.filepath = L"shaders/DeferredLightingDirect.hlsl",
+				.entryName = L"psmain",
+				.shaderType = ShaderType::PS
+			},
+			.blendState = blendState,
+			.rasterizerState = {
+				.cullMode = CullMode::Front
+			},
+			.depthStencilState = {
+				.depthEnable = false,
+				.depthWriteEnable = false,
+				.stencilEnable = false
+			},
+		});
+
+		LightsUniformBuffer lightsUniformBuffer = {
+			.directionalLights = {
+				{.direction = sunDir, .lightColor = {1.f, 1.f, 1.f}}
+			}
+		};
+
+		void* lightsData = m_lightsUniBuffer->Map(CPUAccess::Write);
+		memcpy_s(lightsData, m_lightsUniBuffer->GetBufferDesc().size, &lightsUniformBuffer, sizeof(lightsUniformBuffer));
+		m_lightsUniBuffer->Unmap();
+
+		renderContext->SetBuffer(m_lightsUniBufferView, L"g_lightsBuffer");
+
+		// Loop over all lights (currently 1)
+		{
+			PerLightUniformBuffer perLightUniformBuffer = {
+				.lightIndex = 0,
+				.shadowViewProj = lightProj * lightView
 			};
-			m_sponza->Draw(renderContext, &modelData, sizeof(CBufferModel));
+
+			void* perLightData = m_perLightUniBuffer->Map(CPUAccess::Write);
+			memcpy_s(perLightData, m_perLightUniBuffer->GetBufferDesc().size, &perLightUniformBuffer, sizeof(perLightUniformBuffer));
+			m_perLightUniBuffer->Unmap();
+
+			renderContext->SetBuffer(m_perLightUniBufferView, L"g_perLightBuffer");
+
+			renderContext->Draw({.numVertices = 3});
 		}
 
 		renderContext->Barrier(TextureBarrier{
-				.texture = m_sunShadowMap,
-				.syncBefore = BarrierSync::PixelShading,
-				.syncAfter = BarrierSync::None,
-				.accessBefore = BarrierAccess::ShaderResource,
-				.accessAfter = BarrierAccess::NoAccess,
-				.layoutBefore = BarrierLayout::ShaderResource,
-				.layoutAfter = BarrierLayout::DepthStencilWrite,
-			});
+			.texture = m_sunShadowMap,
+			.syncBefore = BarrierSync::PixelShading,
+			.syncAfter = BarrierSync::None,
+			.accessBefore = BarrierAccess::ShaderResource,
+			.accessAfter = BarrierAccess::NoAccess,
+			.layoutBefore = BarrierLayout::ShaderResource,
+			.layoutAfter = BarrierLayout::DepthStencilWrite,
+		});
 
 		renderContext->EndEvent();
 	}
@@ -897,12 +1098,12 @@ Ref<Render::PrimitiveBatch> SandboxApplication::LoadMeshFromFilePBR(const std::w
 										  material.SetTexture(L"g_roughnessTexture", primitiveData.textures.at(MeshUtils::TextureType::Roughness)->CreateView());
 
 									  material.SetVertexShader({
-										  .filepath = L"shaders/PBR.hlsl",
+										  .filepath = L"shaders/DeferredBasePass.hlsl",
 										  .entryName = L"vsmain",
 										  .shaderType = Render::ShaderType::VS
 									  });
 									  material.SetPixelShader({
-										  .filepath = L"shaders/PBR.hlsl",
+										  .filepath = L"shaders/DeferredBasePass.hlsl",
 										  .entryName = L"psmain",
 										  .shaderType = Render::ShaderType::PS
 									  });

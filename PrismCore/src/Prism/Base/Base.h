@@ -9,6 +9,8 @@
 #include "Prism/Utilities/Flags.h"
 #include "Prism/Base/CommonTypes.h"
 
+#include "Prism/Render/PrismImGui.h"
+
 #include "glm/gtx/compatibility.hpp"
 #include "glm/gtx/quaternion.hpp"
 #include "glm/gtx/rotate_vector.hpp"

@@ -185,3 +185,31 @@ float3 EnvironmentBRDF(BRDFSurface surface, float3 toCamera, float3 diffuseIrrad
 	
 	return diffuse + specular;
 }
+
+float CalcShadowFactor(float4 shadowPosClip, float shadowMapResolution, Texture2D shadowMap, SamplerComparisonState shadowSampler)
+{
+    shadowPosClip.xyz /= shadowPosClip.w;
+	
+    float depth = shadowPosClip.z;
+	
+	// Transform from NDC[-1, 1] to texture coordinates[0, 1]
+    float2 texCoords = float2((shadowPosClip.x + 1.f) / 2.f, (-shadowPosClip.y + 1.f) / 2.f);
+	
+	// Texel size
+    float dx = 1.f / (float)shadowMapResolution;
+    float dx2 = 2.f * dx;
+	
+    float percentLit = 0.f;
+    const float2 offsets[25] = {
+        float2(-dx2, -dx2), float2(-dx, -dx2), float2(0.f, -dx2), float2(+dx,  -dx2), float2(+dx2, -dx2),
+        float2(-dx2,  -dx), float2(-dx,  +dx), float2(0.f,  -dx), float2(+dx,   +dx), float2(+dx2,  -dx),
+        float2(-dx2,  0.f), float2(-dx,  0.f), float2(0.f,  0.f), float2(+dx,   0.f), float2(+dx2,  0.f),
+        float2(-dx2,  +dx), float2(-dx,  +dx), float2(0.f,  +dx), float2(+dx,   +dx), float2(+dx2,  +dx),
+        float2(-dx2, +dx2), float2(-dx, +dx2), float2(0.f, +dx2), float2(+dx,  +dx2), float2(+dx2, +dx2)
+    };
+
+    for (int i = 0; i < 25; ++i)
+        percentLit += shadowMap.SampleCmpLevelZero(shadowSampler, texCoords + offsets[i], depth).r;
+	
+    return percentLit / 25.f;
+}

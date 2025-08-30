@@ -17,6 +17,9 @@ struct CameraInfo
 	float4x4 view;
 	float4x4 proj;
 	float4x4 viewProj;
+	float4x4 invView;
+	float4x4 invProj;
+	float4x4 invViewProj;
 
 	float3 camPos;
 };
@@ -82,4 +85,18 @@ float3 HemisphereSample(float2 Xi, float3 normal)
 	float3 tangent, bitangent;
 	ComputeBasisVectors(normal, tangent, bitangent);
 	return TangentToWorldSpace(sample, normal, tangent, bitangent);
+}
+
+float3 NormalSampleToWorldSpace(float3 normalSample, float4x4 normalMatrix, float3 normal, float3 tangent, float3 bitangent)
+{
+	// Uncompress each component from [0,1] to [-1,1].
+	float3 normalSampleUncomp = 2.f * normalSample - 1.f;
+	
+	normal = normalize(mul((float3x3)normalMatrix, normal));
+	tangent = normalize(mul((float3x3)normalMatrix, tangent));
+	bitangent = normalize(mul((float3x3)normalMatrix, bitangent));
+	
+	float3x3 TBN = float3x3(tangent, bitangent, normal);
+
+	return normalize(mul(normalSampleUncomp, TBN));
 }

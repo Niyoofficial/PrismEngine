@@ -260,7 +260,7 @@ MeshData LoadMeshFromFile(const std::wstring& filePath)
 	const aiScene* scene = importer.ReadFile(WStringToString(filePath),
 											 aiProcess_Triangulate |
 											 aiProcess_ConvertToLeftHanded |
-											 //aiProcess_OptimizeMeshes |
+											 aiProcess_OptimizeMeshes |
 											 aiProcess_ValidateDataStructure |
 											 aiProcess_PreTransformVertices |
 											 aiProcess_GlobalScale |
