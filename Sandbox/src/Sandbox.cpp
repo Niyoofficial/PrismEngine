@@ -595,13 +595,17 @@ void SandboxLayer::UpdateImGui(Duration delta)
 {
 	Layer::UpdateImGui(delta);
 
+	bool s_showStatWindow = true;
+	static bool s_debugMenuOpen = true;
+
 	// Menu bar
 	{
 		ImGui::BeginMainMenuBar();
 
 		if (ImGui::BeginMenu("Show"))
 		{
-			ImGui::MenuItem("Show stat window", nullptr, &m_showStatWindow);
+			ImGui::MenuItem("Show stat window", nullptr, &s_showStatWindow);
+			ImGui::MenuItem("Show debug window", nullptr, &s_debugMenuOpen);
 
 			ImGui::EndMenu();
 		}
@@ -622,7 +626,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 	}
 
 	// Stats overlay
-	if (m_showStatWindow)
+	if (s_showStatWindow)
 	{
 		ImGuiWindowFlags window_flags =
 			ImGuiWindowFlags_NoDecoration |
@@ -653,10 +657,9 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		ImGui::End();
 	}
 
+	if (s_debugMenuOpen)
 	{
-		//ImGui::ShowDemoWindow(nullptr);
-
-		ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_HorizontalScrollbar);
+		ImGui::Begin("Debug", &s_debugMenuOpen, ImGuiWindowFlags_HorizontalScrollbar);
 
 		if (ImGui::CollapsingHeader("GBuffer"))
 		{
@@ -690,7 +693,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		if (ImGui::CollapsingHeader("IBL"))
 		{
 			ImGui::Text("Original image");
-			ImGui::Image(m_environmentTextureSRV, { m_environmentTexture->GetTextureDesc().GetWidth() / m_environmentTexture->GetTextureDesc().GetHeight() * 256.f, 256.f });
+			ImGui::Image(m_environmentTextureSRV, {(float)m_environmentTexture->GetTextureDesc().GetWidth() / (float)m_environmentTexture->GetTextureDesc().GetHeight() * 256.f, 256.f});
 
 			ImGui::Text("Prefiltered Env Cube Map");
 			static int32_t s_mipIndex = 0;
