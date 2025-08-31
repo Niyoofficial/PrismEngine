@@ -162,12 +162,11 @@ private:
 
 	Ref<Render::Texture> m_prefilteredSkybox;
 	Ref<Render::TextureView> m_prefilteredEnvMapCubeSRVView;
-	Ref<Render::TextureView> m_prefilteredEnvMapUAVView;
 
 	Ref<Render::Texture> m_BRDFLUT;
 
 	Ref<Render::Texture> m_environmentTexture;
-	Ref<Render::TextureView> m_environmentTextureView;
+	Ref<Render::TextureView> m_environmentTextureSRV;
 
 	Ref<Render::Texture> m_sunShadowMap;
 	Ref<Render::TextureView> m_sunShadowMapDSV;

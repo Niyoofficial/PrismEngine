@@ -250,16 +250,6 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			.numArraySlices = 6
 		}
 	});
-	m_prefilteredEnvMapUAVView = m_prefilteredSkybox->CreateView({
-		.type = TextureViewType::UAV,
-		.dimension = ResourceDimension::Tex2D,
-		.subresourceRange = {
-			.firstMipLevel = 0,
-			.numMipLevels = 6,
-			.firstArraySlice = 0,
-			.numArraySlices = 6
-		}
-	});
 
 	m_BRDFLUT = Texture::Create({
 		.textureName = L"BRDFLUT",
@@ -288,7 +278,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	m_sunShadowMapSRV = m_sunShadowMap->CreateView({.type = TextureViewType::SRV, .format = TextureFormat::R32_Float});
 
 	m_environmentTexture = Texture::Create(L"textures/pisa.hdr");
-	m_environmentTextureView = m_environmentTexture->CreateView();
+	m_environmentTextureSRV = m_environmentTexture->CreateView();
 	
 	// Scene cbuffer
 	m_sceneUniBuffer = Buffer::Create({
@@ -392,7 +382,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 				},
 			});
 
-			renderContext->SetTexture(m_environmentTextureView, L"g_environment");
+			renderContext->SetTexture(m_environmentTextureSRV, L"g_environment");
 			renderContext->SetTexture(m_skyboxUAVView, L"g_skybox");
 
 			renderContext->Dispatch(64, 64, 6);
@@ -664,12 +654,73 @@ void SandboxLayer::UpdateImGui(Duration delta)
 	}
 
 	{
-		ImGui::Begin("Debug");
+		//ImGui::ShowDemoWindow(nullptr);
 
-		//ImGui::SliderFloat("Environment light scale", &m_environmentLightScale, 0.f, 1.f);
-		ImGui::SliderAngle("Sun Rotation Yaw", &m_sunRotation.y, -180.f, 180.f);
-		ImGui::SliderAngle("Sun Rotation Pitch", &m_sunRotation.z, -180.f, 180.f);
-		ImGui::Image(m_sunShadowMap->CreateView({ .type = Render::TextureViewType::SRV, .format = Render::TextureFormat::R32_Float }).Raw(), {8192/16, 8192/16});
+		ImGui::Begin("Debug", nullptr, ImGuiWindowFlags_HorizontalScrollbar);
+
+		if (ImGui::CollapsingHeader("GBuffer"))
+		{
+			float texWidth = (float)m_gbuffer.GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetWidth() / (float)m_gbuffer.GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetHeight() * 256.f;
+			ImGui::Text("Color");
+			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Color, Render::TextureViewType::SRV), {texWidth, 256});
+			ImGui::Text("Depth");
+			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Depth, Render::TextureViewType::SRV), {texWidth, 256});
+			ImGui::Text("Normal");
+			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Normal, Render::TextureViewType::SRV), {texWidth, 256});
+			ImGui::Text("R:Roughness G:Metal B:AO");
+			static bool s_roughness = true;
+			ImGui::Checkbox("Roughness", &s_roughness);
+			ImGui::SameLine();
+			static bool s_metallic = true;
+			ImGui::Checkbox("Metallic", &s_metallic);
+			ImGui::SameLine();
+			static bool s_ao = true;
+			ImGui::Checkbox("AO", &s_ao);
+			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, Render::TextureViewType::SRV), {texWidth, 256}, {0, 0}, {1, 1}, {(float)s_roughness, (float)s_metallic, (float)s_ao, 1});
+		}
+
+		if (ImGui::CollapsingHeader("Sun"))
+		{
+			//ImGui::SliderFloat("Environment light scale", &m_environmentLightScale, 0.f, 1.f);
+			ImGui::SliderAngle("Sun Rotation Yaw", &m_sunRotation.y, -180.f, 180.f);
+			ImGui::SliderAngle("Sun Rotation Pitch", &m_sunRotation.z, -180.f, 180.f);
+			ImGui::Image(m_sunShadowMap->CreateView({ .type = Render::TextureViewType::SRV, .format = Render::TextureFormat::R32_Float }), {256, 256});
+		}
+
+		if (ImGui::CollapsingHeader("IBL"))
+		{
+			ImGui::Text("Original image");
+			ImGui::Image(m_environmentTextureSRV, { m_environmentTexture->GetTextureDesc().GetWidth() / m_environmentTexture->GetTextureDesc().GetHeight() * 256.f, 256.f });
+
+			ImGui::Text("Prefiltered Env Cube Map");
+			static int32_t s_mipIndex = 0;
+			ImGui::SliderInt("Mip Index", &s_mipIndex, 0, 5);
+
+			auto viewDesc = Render::TextureViewDesc{
+				.type = Render::TextureViewType::SRV,
+				.dimension = Render::ResourceDimension::Tex2D,
+				.subresourceRange = {.firstMipLevel = s_mipIndex, .numMipLevels = 1, .firstArraySlice = 4, .numArraySlices = 1}
+			};
+			ImGui::Image(m_prefilteredSkybox->CreateView(viewDesc), {256, 256});
+			ImGui::SameLine(0.f, 0.f);
+			viewDesc.subresourceRange.firstArraySlice = 0;
+			ImGui::Image(m_prefilteredSkybox->CreateView(viewDesc), {256, 256});
+			ImGui::SameLine(0.f, 0.f);
+			viewDesc.subresourceRange.firstArraySlice = 5;
+			ImGui::Image(m_prefilteredSkybox->CreateView(viewDesc), {256, 256});
+			ImGui::SameLine(0.f, 0.f);
+			viewDesc.subresourceRange.firstArraySlice = 1;
+			ImGui::Image(m_prefilteredSkybox->CreateView(viewDesc), {256, 256});
+			ImGui::SameLine(0.f, 0.f);
+			viewDesc.subresourceRange.firstArraySlice = 2;
+			ImGui::Image(m_prefilteredSkybox->CreateView(viewDesc), {256, 256});
+			ImGui::SameLine(0.f, 0.f);
+			viewDesc.subresourceRange.firstArraySlice = 3;
+			ImGui::Image(m_prefilteredSkybox->CreateView(viewDesc), {256, 256});
+
+			ImGui::Text("BRDF LUT");
+			ImGui::Image(m_BRDFLUT->CreateView({.type = Render::TextureViewType::SRV}), {256, 256});
+		}
 
 		ImGui::End();
 	}
