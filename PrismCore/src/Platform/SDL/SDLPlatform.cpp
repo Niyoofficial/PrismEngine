@@ -111,8 +111,8 @@ void SDLPlatform::PumpEvents()
 			break;
 		case SDL_EVENT_WINDOW_MOUSE_ENTER:
 			{
-				if (ImGui::GetIO().WantCaptureMouse)
-					break;
+				//if (ImGui::GetIO().WantCaptureMouse)
+				//	break;
 
 				AppEvents::WindowMouseEnter event;
 				executeCallbacks(event);
@@ -120,8 +120,8 @@ void SDLPlatform::PumpEvents()
 			break;
 		case SDL_EVENT_WINDOW_MOUSE_LEAVE:
 			{
-				if (ImGui::GetIO().WantCaptureMouse)
-					break;
+				//if (ImGui::GetIO().WantCaptureMouse)
+				//	break;
 
 				AppEvents::WindowMouseLeave event;
 				executeCallbacks(event);
@@ -197,8 +197,8 @@ void SDLPlatform::PumpEvents()
 		/* Keyboard events */
 		case SDL_EVENT_KEY_DOWN:
 			{
-				if (ImGui::GetIO().WantCaptureKeyboard)
-					break;
+				//if (ImGui::GetIO().WantCaptureKeyboard)
+				//	break;
 
 				AppEvents::KeyDown event = {
 					.scanCode = (ScanCode)sdlEvent.key.scancode,
@@ -210,8 +210,8 @@ void SDLPlatform::PumpEvents()
 			break;
 		case SDL_EVENT_KEY_UP:
 			{
-				if (ImGui::GetIO().WantCaptureKeyboard)
-					break;
+				//if (ImGui::GetIO().WantCaptureKeyboard)
+				//	break;
 
 				AppEvents::KeyUp event = {
 					.scanCode = (ScanCode)sdlEvent.key.scancode,
@@ -243,8 +243,8 @@ void SDLPlatform::PumpEvents()
 		/* Mouse events */
 		case SDL_EVENT_MOUSE_MOTION:
 			{
-				if (ImGui::GetIO().WantCaptureMouse)
-					break;
+				//if (ImGui::GetIO().WantCaptureMouse)
+				//	break;
 
 				AppEvents::MouseMotion event = {
 					.position = {sdlEvent.motion.x, sdlEvent.motion.y},
@@ -255,8 +255,8 @@ void SDLPlatform::PumpEvents()
 			break;
 		case SDL_EVENT_MOUSE_BUTTON_DOWN:
 			{
-				if (ImGui::GetIO().WantCaptureMouse)
-					break;
+				//if (ImGui::GetIO().WantCaptureMouse)
+				//	break;
 
 				AppEvents::MouseButtonDown event = {
 					.keyCode = GetPrismKeyCodeFromMouseButton(sdlEvent.button.button),
@@ -268,8 +268,8 @@ void SDLPlatform::PumpEvents()
 			break;
 		case SDL_EVENT_MOUSE_BUTTON_UP:
 			{
-				if (ImGui::GetIO().WantCaptureMouse)
-					break;
+				//if (ImGui::GetIO().WantCaptureMouse)
+				//	break;
 
 				AppEvents::MouseButtonUp event = {
 					.keyCode = GetPrismKeyCodeFromMouseButton(sdlEvent.button.button),
@@ -280,8 +280,8 @@ void SDLPlatform::PumpEvents()
 			break;
 		case SDL_EVENT_MOUSE_WHEEL:
 			{
-				if (ImGui::GetIO().WantCaptureMouse)
-					break;
+				//if (ImGui::GetIO().WantCaptureMouse)
+				//	break;
 
 				AppEvents::MouseWheel event = {
 					.x = sdlEvent.wheel.x,

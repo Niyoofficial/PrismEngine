@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "Prism/Base/AppEvents.h"
+#include "Prism/Base/AppEvents.h"
 #include "Prism/Base/Application.h"
 #include "Prism/Render/Buffer.h"
 #include "Prism/Render/Camera.h"
@@ -145,22 +147,33 @@ public:
 	virtual void Update(Duration delta) override;
 
 private:
+	bool CheckForViewportResize(glm::int2 viewportSize);
+
+private:
 	WeakRef<Core::Window> m_owningWindow;
 
 	float m_environmentLightScale = 1.f;
 	glm::float3 m_sunRotation = {0.f, glm::radians(-7.f), glm::radians(-101.f)};
 
+	glm::int2 m_viewportSize;
+	bool m_viewportHovered = false;
+	bool m_viewportRelativeMouse = false;
+
 	Ref<Render::Camera> m_camera;
 
 	GBuffer m_gbuffer;
 
+	Ref<Render::Texture> m_sceneColor;
+	Ref<Render::TextureView> m_sceneColorRTV;
+	Ref<Render::TextureView> m_sceneColorSRV;
+
 	Ref<Render::Texture> m_skybox;
-	Ref<Render::TextureView> m_skyboxCubeSRVView;
-	Ref<Render::TextureView> m_skyboxArraySRVView;
-	Ref<Render::TextureView> m_skyboxUAVView;
+	Ref<Render::TextureView> m_skyboxCubeSRV;
+	Ref<Render::TextureView> m_skyboxArraySRV;
+	Ref<Render::TextureView> m_skyboxUAV;
 
 	Ref<Render::Texture> m_prefilteredSkybox;
-	Ref<Render::TextureView> m_prefilteredEnvMapCubeSRVView;
+	Ref<Render::TextureView> m_prefilteredEnvMapCubeSRV;
 
 	Ref<Render::Texture> m_BRDFLUT;
 

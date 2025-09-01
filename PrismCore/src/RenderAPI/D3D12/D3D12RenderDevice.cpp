@@ -160,8 +160,7 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 
 D3D12RenderDevice::~D3D12RenderDevice()
 {
-	m_dynamicBufferAllocator.CloseCmdListAllocations(D3D12RenderDevice::GetRenderCommandQueue()->GetLastSubmittedCmdListFenceValue());
-	m_dynamicBufferAllocator.ReleaseStaleAllocations(D3D12RenderDevice::GetRenderCommandQueue()->GetCompletedFenceValue());
+	D3D12RenderDevice::ReleaseStaleResources();
 
 #if PE_USE_PIX
 	FreeLibrary(m_pixGpuCaptureModule);
@@ -315,33 +314,33 @@ void D3D12RenderDevice::InitializeImGui(Core::Window* window, TextureFormat dept
 	DXGI_FORMAT format = GetDXGIFormat(window->GetSwapchain()->GetSwapchainDesc().format);
 
 	ImGui_ImplDX12_InitInfo initInfo = {};
-		initInfo.Device = GetD3D12Device();
-		initInfo.CommandQueue = GetD3D12CommandQueue();
-		initInfo.NumFramesInFlight = Constants::MAX_FRAMES_IN_FLIGHT;
-		initInfo.RTVFormat = format;
-		initInfo.DSVFormat = GetDXGIFormat(depthFormat);
-		initInfo.SrvDescriptorHeap = m_gpuDescriptorHeapManagers.at(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV).GetDescriptorHeap().GetD3D12DescriptorHeap();
-		initInfo.SrvDescriptorAllocFn = 
-			[](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_desc_handle)
-			{
-				DescriptorHeapAllocation descriptor = g_renderDevice->AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-				*out_cpu_desc_handle = descriptor.GetCPUHandle();
-				*out_gpu_desc_handle = descriptor.GetGPUHandle();
-				g_renderDevice->m_imGuiAllocations.push_back(std::move(descriptor));
-			};
-		initInfo.SrvDescriptorFreeFn = 
-			[](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_desc_handle)
-			{
-				PE_ASSERT(!g_renderDevice->m_imGuiAllocations.empty());
-				const auto [first, last] = std::ranges::remove_if(g_renderDevice->m_imGuiAllocations,
-					[cpu_desc_handle, gpu_desc_handle](const DescriptorHeapAllocation& allocation)
-					{
-						return
-							allocation.GetCPUHandle().ptr == cpu_desc_handle.ptr &&
-							allocation.GetGPUHandle().ptr == gpu_desc_handle.ptr;
-					});
-				g_renderDevice->m_imGuiAllocations.erase(first, last);
-			};
+	initInfo.Device = GetD3D12Device();
+	initInfo.CommandQueue = GetD3D12CommandQueue();
+	initInfo.NumFramesInFlight = Constants::MAX_FRAMES_IN_FLIGHT;
+	initInfo.RTVFormat = format;
+	initInfo.DSVFormat = GetDXGIFormat(depthFormat);
+	initInfo.SrvDescriptorHeap = m_gpuDescriptorHeapManagers.at(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV).GetDescriptorHeap().GetD3D12DescriptorHeap();
+	initInfo.SrvDescriptorAllocFn = 
+		[](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE* out_cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE* out_gpu_desc_handle)
+		{
+			DescriptorHeapAllocation descriptor = g_renderDevice->AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+			*out_cpu_desc_handle = descriptor.GetCPUHandle();
+			*out_gpu_desc_handle = descriptor.GetGPUHandle();
+			g_renderDevice->m_imGuiAllocations.push_back(std::move(descriptor));
+		};
+	initInfo.SrvDescriptorFreeFn = 
+		[](ImGui_ImplDX12_InitInfo* info, D3D12_CPU_DESCRIPTOR_HANDLE cpu_desc_handle, D3D12_GPU_DESCRIPTOR_HANDLE gpu_desc_handle)
+		{
+			PE_ASSERT(!g_renderDevice->m_imGuiAllocations.empty());
+			const auto [first, last] = std::ranges::remove_if(g_renderDevice->m_imGuiAllocations,
+				[cpu_desc_handle, gpu_desc_handle](const DescriptorHeapAllocation& allocation)
+				{
+					return
+						allocation.GetCPUHandle().ptr == cpu_desc_handle.ptr &&
+						allocation.GetGPUHandle().ptr == gpu_desc_handle.ptr;
+				});
+			g_renderDevice->m_imGuiAllocations.erase(first, last);
+		};
 	ImGui_ImplDX12_Init(&initInfo);
 
 	initializedImGui = true;
