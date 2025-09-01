@@ -25,7 +25,6 @@ DescriptorHeapAllocation::~DescriptorHeapAllocation()
 	PE_ASSERT(IsNull());
 }
 
-
 DescriptorHeapAllocation::DescriptorHeapAllocation(DescriptorHeapAllocation&& other) noexcept
 	: m_heap(std::move(other.m_heap)),
 	  m_numHandles(std::move(other.m_numHandles)),

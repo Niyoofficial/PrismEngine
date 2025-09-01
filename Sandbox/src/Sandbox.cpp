@@ -131,16 +131,6 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	using namespace Prism::Render;
 	Layer::Attach();
 
-	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::WindowResized>(
-		[this](Core::AppEvent event)
-		{
-			m_gbuffer.CreateResources({m_owningWindow->GetSize().x, m_owningWindow->GetSize().y});
-
-			m_camera->SetPerspective(45.f,
-									 (float)m_owningWindow->GetSize().x / (float)m_owningWindow->GetSize().y,
-									 0.1f, 10000.f);
-		});
-
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::KeyDown>(
 		[](Core::AppEvent event)
 		{
@@ -151,7 +141,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseMotion>(
 		[this](Core::AppEvent event)
 		{
-			if (Core::Platform::Get().IsKeyPressed(KeyCode::RightMouseButton))
+			if (m_viewportRelativeMouse && Core::Platform::Get().IsKeyPressed(KeyCode::RightMouseButton))
 			{
 				glm::float2 delta = std::get<Core::AppEvents::MouseMotion>(event).relPosition;
 				delta *= m_mouseSpeed;
@@ -166,28 +156,33 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			constexpr float moveSpeedChangeMult = 0.01f;
 			constexpr float minMoveSpeed = 0.01f;
 			m_cameraSpeed += delta * moveSpeedChangeMult;
-			//m_cameraSpeed = std::max(m_cameraSpeed, minMoveSpeed);
+			m_cameraSpeed = std::max(m_cameraSpeed, minMoveSpeed);
 		});
 
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseButtonDown>(
 		[this](Core::AppEvent event)
 		{
-			if (m_owningWindow.IsValid() && std::get<Core::AppEvents::MouseButtonDown>(event).keyCode == KeyCode::RightMouseButton)
+			if (m_owningWindow.IsValid() && m_viewportHovered && std::get<Core::AppEvents::MouseButtonDown>(event).keyCode == KeyCode::RightMouseButton)
+			{
+				m_viewportRelativeMouse = true;
+				ImGui::SetWindowFocus("Viewport");
 				Core::Platform::Get().SetMouseRelativeMode(m_owningWindow.Raw(), true);
+			}
 		});
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseButtonUp>(
 		[this](Core::AppEvent event)
 		{
-			if (m_owningWindow.IsValid() && std::get<Core::AppEvents::MouseButtonUp>(event).keyCode == KeyCode::RightMouseButton)
+			if (m_owningWindow.IsValid() && m_viewportRelativeMouse && std::get<Core::AppEvents::MouseButtonUp>(event).keyCode == KeyCode::RightMouseButton)
+			{
+				m_viewportRelativeMouse = false;
 				Core::Platform::Get().SetMouseRelativeMode(m_owningWindow.Raw(), false);
+			}
 		});
 
 	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
 	m_camera = new Camera(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
 	m_camera->SetPosition({0.f, 0.f, 0.f});
-
-	m_gbuffer.CreateResources(windowSize);
 
 	m_skybox = Texture::Create({
 		.textureName = L"Skybox",
@@ -200,7 +195,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
 		.optimizedClearValue = {}
 	});
-	m_skyboxCubeSRVView = m_skybox->CreateView({
+	m_skyboxCubeSRV = m_skybox->CreateView({
 		.type = TextureViewType::SRV,
 		.dimension = ResourceDimension::TexCube,
 		.subresourceRange = {
@@ -208,7 +203,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			.numArraySlices = 6
 		}
 	});
-	m_skyboxArraySRVView = m_skybox->CreateView({
+	m_skyboxArraySRV = m_skybox->CreateView({
 		.type = TextureViewType::SRV,
 		.dimension = ResourceDimension::Tex2D,
 		.subresourceRange = {
@@ -218,7 +213,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			.numArraySlices = 6
 		}
 	});
-	m_skyboxUAVView = m_skybox->CreateView({
+	m_skyboxUAV = m_skybox->CreateView({
 		.type = TextureViewType::UAV,
 		.dimension = ResourceDimension::Tex2D,
 		.subresourceRange = {
@@ -240,7 +235,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
 		.optimizedClearValue = {}
 	});
-	m_prefilteredEnvMapCubeSRVView = m_prefilteredSkybox->CreateView({
+	m_prefilteredEnvMapCubeSRV = m_prefilteredSkybox->CreateView({
 		.type = TextureViewType::SRV,
 		.dimension = ResourceDimension::TexCube,
 		.subresourceRange = {
@@ -347,7 +342,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 				.depthFunc = ComparisionFunction::LessEqual
 			});
 
-			material.SetTexture(L"g_skybox", m_prefilteredEnvMapCubeSRVView);
+			material.SetTexture(L"g_skybox", m_prefilteredEnvMapCubeSRV);
 			return material;
 		}, L"g_modelBuffer", sizeof(CBufferModel));
 
@@ -383,7 +378,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			});
 
 			renderContext->SetTexture(m_environmentTextureSRV, L"g_environment");
-			renderContext->SetTexture(m_skyboxUAVView, L"g_skybox");
+			renderContext->SetTexture(m_skyboxUAV, L"g_skybox");
 
 			renderContext->Dispatch(64, 64, 6);
 
@@ -428,7 +423,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 				.layoutAfter = BarrierLayout::ShaderResource
 			});
 
-			renderContext->SetTexture(m_skyboxCubeSRVView, L"g_skybox");
+			renderContext->SetTexture(m_skyboxCubeSRV, L"g_skybox");
 			renderContext->SetBuffer(coeffBufferView, L"g_coefficients");
 
 			renderContext->Dispatch(1, 1, 1);
@@ -497,7 +492,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 				},
 			});
 
-			renderContext->SetTexture(m_skyboxCubeSRVView, L"g_skybox");
+			renderContext->SetTexture(m_skyboxCubeSRV, L"g_skybox");
 
 			struct alignas(Constants::CBUFFER_ALIGNMENT) PrefilterData
 			{
@@ -593,10 +588,69 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 void SandboxLayer::UpdateImGui(Duration delta)
 {
+	using namespace Prism::Render;
 	Layer::UpdateImGui(delta);
 
-	bool s_showStatWindow = true;
+	//ImGui::ShowDemoWindow();
+
+	static bool s_showStatWindow = true;
 	static bool s_debugMenuOpen = true;
+
+	ImGui::DockSpaceOverViewport();
+	
+	{
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
+
+		ImGui::Begin("Viewport");
+
+		m_viewportHovered = ImGui::IsWindowHovered();
+
+		auto viewportSize = ImGui::GetContentRegionAvail();
+		if (CheckForViewportResize({viewportSize.x, viewportSize.y}))
+		{
+			float viewportStartHeight = ImGui::GetCursorPos().y;
+
+			ImGui::Image(m_sceneColorSRV, viewportSize);
+
+			// Stats overlay
+			if (s_showStatWindow)
+			{
+				ImGuiWindowFlags windowFlags =
+					ImGuiWindowFlags_NoDecoration |
+					ImGuiWindowFlags_NoDocking |
+					ImGuiWindowFlags_NoSavedSettings |
+					ImGuiWindowFlags_NoFocusOnAppearing |
+					ImGuiWindowFlags_NoNav |
+					ImGuiWindowFlags_NoMove;
+
+				ImGuiChildFlags childFlags =
+					ImGuiChildFlags_FrameStyle |
+					ImGuiChildFlags_AutoResizeY;
+
+				constexpr float padding = 10.0f;
+				const ImGuiViewport* viewport = ImGui::GetMainViewport();
+				ImVec2 workPos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
+				ImVec2 workSize = viewport->WorkSize;
+				ImVec2 windowPos;
+				windowPos.x = workPos.x + workSize.x - padding;
+				windowPos.y = workPos.y + padding + viewportStartHeight;
+				ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, { 1.f, 0.f });
+				ImGui::SetNextWindowBgAlpha(0.55f); // Transparent background
+
+				if (ImGui::BeginChild("Stats overlay", { 250, 0 }, childFlags, windowFlags))
+				{
+					auto& io = ImGui::GetIO();
+					ImGui::Text("FPS: %.1f", io.Framerate);
+					ImGui::Text("Frame time: %.2f ms", delta.GetMilliseconds());
+				}
+				ImGui::EndChild();
+			}
+		}
+
+		ImGui::End();
+
+		ImGui::PopStyleVar();
+	}
 
 	// Menu bar
 	{
@@ -616,45 +670,13 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 		if (ImGui::BeginMenu("Tools"))
 		{
-			if (ImGui::MenuItem("Recompile Shaders", nullptr))
-				Render::RenderDevice::Get().GetShaderCompiler()->RecompileCachedShaders();
+			if (ImGui::MenuItem("Recompile Shaders"))
+				RenderDevice::Get().GetShaderCompiler()->RecompileCachedShaders();
 
 			ImGui::EndMenu();
 		}
 
 		ImGui::EndMainMenuBar();
-	}
-
-	// Stats overlay
-	if (s_showStatWindow)
-	{
-		ImGuiWindowFlags window_flags =
-			ImGuiWindowFlags_NoDecoration |
-			ImGuiWindowFlags_NoDocking |
-			ImGuiWindowFlags_NoSavedSettings |
-			ImGuiWindowFlags_NoFocusOnAppearing |
-			ImGuiWindowFlags_NoNav |
-			ImGuiWindowFlags_NoMove;
-
-		constexpr float padding = 10.0f;
-		const ImGuiViewport* viewport = ImGui::GetMainViewport();
-		ImVec2 workPos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
-		ImVec2 workSize = viewport->WorkSize;
-		ImVec2 windowPos;
-		windowPos.x = workPos.x + workSize.x - padding;
-		windowPos.y = workPos.y + padding;
-		ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, { 1.f, 0.f });
-		ImGui::SetNextWindowViewport(viewport->ID);
-
-		ImGui::SetNextWindowBgAlpha(0.55f); // Transparent background
-
-		if (ImGui::Begin("Stats overlay", nullptr, window_flags))
-		{
-			auto& io = ImGui::GetIO();
-			ImGui::Text("FPS: %.1f", io.Framerate);
-			ImGui::Text("Frame time: %.2f ms", delta.GetMilliseconds());
-		}
-		ImGui::End();
 	}
 
 	if (s_debugMenuOpen)
@@ -665,11 +687,11 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		{
 			float texWidth = (float)m_gbuffer.GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetWidth() / (float)m_gbuffer.GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetHeight() * 256.f;
 			ImGui::Text("Color");
-			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Color, Render::TextureViewType::SRV), {texWidth, 256});
+			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::SRV), {texWidth, 256});
 			ImGui::Text("Depth");
-			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Depth, Render::TextureViewType::SRV), {texWidth, 256});
+			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::SRV), {texWidth, 256});
 			ImGui::Text("Normal");
-			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Normal, Render::TextureViewType::SRV), {texWidth, 256});
+			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::SRV), {texWidth, 256});
 			ImGui::Text("R:Roughness G:Metal B:AO");
 			static bool s_roughness = true;
 			ImGui::Checkbox("Roughness", &s_roughness);
@@ -679,7 +701,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			ImGui::SameLine();
 			static bool s_ao = true;
 			ImGui::Checkbox("AO", &s_ao);
-			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, Render::TextureViewType::SRV), {texWidth, 256}, {0, 0}, {1, 1}, {(float)s_roughness, (float)s_metallic, (float)s_ao, 1});
+			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::SRV), {texWidth, 256}, {0, 0}, {1, 1}, {(float)s_roughness, (float)s_metallic, (float)s_ao, 1});
 		}
 
 		if (ImGui::CollapsingHeader("Sun"))
@@ -687,7 +709,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			//ImGui::SliderFloat("Environment light scale", &m_environmentLightScale, 0.f, 1.f);
 			ImGui::SliderAngle("Sun Rotation Yaw", &m_sunRotation.y, -180.f, 180.f);
 			ImGui::SliderAngle("Sun Rotation Pitch", &m_sunRotation.z, -180.f, 180.f);
-			ImGui::Image(m_sunShadowMap->CreateView({ .type = Render::TextureViewType::SRV, .format = Render::TextureFormat::R32_Float }), {256, 256});
+			ImGui::Image(m_sunShadowMap->CreateView({ .type = TextureViewType::SRV, .format = TextureFormat::R32_Float }), {256, 256});
 		}
 
 		if (ImGui::CollapsingHeader("IBL"))
@@ -699,9 +721,9 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			static int32_t s_mipIndex = 0;
 			ImGui::SliderInt("Mip Index", &s_mipIndex, 0, 5);
 
-			auto viewDesc = Render::TextureViewDesc{
-				.type = Render::TextureViewType::SRV,
-				.dimension = Render::ResourceDimension::Tex2D,
+			auto viewDesc = TextureViewDesc{
+				.type = TextureViewType::SRV,
+				.dimension = ResourceDimension::Tex2D,
 				.subresourceRange = {.firstMipLevel = s_mipIndex, .numMipLevels = 1, .firstArraySlice = 4, .numArraySlices = 1}
 			};
 			ImGui::Image(m_prefilteredSkybox->CreateView(viewDesc), {256, 256});
@@ -722,7 +744,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			ImGui::Image(m_prefilteredSkybox->CreateView(viewDesc), {256, 256});
 
 			ImGui::Text("BRDF LUT");
-			ImGui::Image(m_BRDFLUT->CreateView({.type = Render::TextureViewType::SRV}), {256, 256});
+			ImGui::Image(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), {256, 256});
 		}
 
 		ImGui::End();
@@ -734,7 +756,10 @@ void SandboxLayer::Update(Duration delta)
 	using namespace Prism::Render;
 	Layer::Update(delta);
 
-	if (Core::Platform::Get().IsKeyPressed(KeyCode::RightMouseButton))
+	if (m_viewportSize.x == 0 || m_viewportSize.y == 0)
+		return;
+
+	if (m_viewportRelativeMouse && Core::Platform::Get().IsKeyPressed(KeyCode::RightMouseButton))
 	{
 		if (Core::Platform::Get().IsKeyPressed(KeyCode::W))
 			m_camera->AddPosition(m_camera->GetForwardVector() * m_cameraSpeed);
@@ -839,10 +864,8 @@ void SandboxLayer::Update(Duration delta)
 	{
 		renderContext->BeginEvent({}, L"BasePass");
 
-		glm::float2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
-
-		renderContext->SetViewport({{0.f, 0.f}, windowSize, {0.f, 1.f}});
-		renderContext->SetScissor({{0.f, 0.f}, windowSize});
+		renderContext->SetViewport({{0.f, 0.f}, m_viewportSize, {0.f, 1.f}});
+		renderContext->SetScissor({{0.f, 0.f}, m_viewportSize});
 
 		renderContext->SetRenderTargets({
 										   m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV),
@@ -936,11 +959,11 @@ void SandboxLayer::Update(Duration delta)
 	{
 		renderContext->BeginEvent({}, L"LightingPass");
 
-		auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
-		renderContext->SetRenderTarget(currentBackBuffer, nullptr);
+		//auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
+		renderContext->SetRenderTarget(m_sceneColorRTV, nullptr);
 
-		glm::float4 clearColor = {0.8f, 0.2f, 0.3f, 1.f};
-		renderContext->ClearRenderTargetView(currentBackBuffer, &clearColor);
+		glm::float4 clearColor = {0.f, 0.f, 0.f, 1.f};
+		renderContext->ClearRenderTargetView(m_sceneColorRTV, &clearColor);
 
 		renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::SRV), L"g_colorTexture");
 		renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::SRV), L"g_normalTexture");
@@ -974,7 +997,7 @@ void SandboxLayer::Update(Duration delta)
 
 			renderContext->SetBuffer(m_irradianceSHBufferView, L"g_irradiance");
 			renderContext->SetTexture(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), L"g_brdfLUT");
-			renderContext->SetTexture(m_prefilteredEnvMapCubeSRVView, L"g_envMap");
+			renderContext->SetTexture(m_prefilteredEnvMapCubeSRV, L"g_envMap");
 
 			renderContext->Draw({.numVertices = 3});
 		}
@@ -1047,6 +1070,46 @@ void SandboxLayer::Update(Duration delta)
 	RenderDevice::Get().SubmitContext(renderContext);
 }
 
+bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
+{
+	using namespace Render;
+
+	if (viewportSize.x != m_viewportSize.x || viewportSize.y != m_viewportSize.y)
+	{
+		m_viewportSize = {viewportSize.x, viewportSize.y};
+
+		PE_RENDER_LOG(Trace, "Viewport resized to x: {} y: {}", viewportSize.x, viewportSize.y);
+
+		if (m_viewportSize.x == 0 || m_viewportSize.y == 0)
+			return false;
+
+		m_gbuffer.CreateResources(m_viewportSize);
+
+		m_sceneColor = Texture::Create({
+										   .textureName = L"SceneColor",
+										   .width = m_viewportSize.x,
+										   .height = m_viewportSize.y,
+										   .dimension = ResourceDimension::Tex2D,
+										   .format = TextureFormat::RGBA16_UNorm,
+										   .bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
+										   .optimizedClearValue = RenderTargetClearValue{
+											   .format = TextureFormat::RGBA16_UNorm,
+											   .color = {0.f, 0.f, 0.f, 1.f}
+										   }
+									   }, BarrierLayout::RenderTarget);
+		m_sceneColorRTV = m_sceneColor->CreateView({.type = TextureViewType::RTV});
+		m_sceneColorSRV = m_sceneColor->CreateView({.type = TextureViewType::SRV});
+
+		m_camera->SetPerspective(45.f,
+			(float)m_viewportSize.x / (float)m_viewportSize.y,
+			0.1f, 10000.f);
+
+		return true;
+	}
+
+	return true;
+}
+
 SandboxApplication& SandboxApplication::Get()
 {
 	return Application::Get<SandboxApplication>();
@@ -1062,7 +1125,7 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 
 	Core::WindowDesc windowParams = {
 		.windowTitle = L"Test",
-		.windowSize = {displayInfo.width / 1.5f, displayInfo.height / 1.5f},
+		.windowSize = {displayInfo.width / 1.25f, displayInfo.height / 1.25f},
 		.fullscreen = false
 	};
 	Render::SwapchainDesc swapchainDesc = {
@@ -1079,6 +1142,78 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 	m_window = Core::Window::Create(windowParams, swapchainDesc);
 
 	InitImGui(m_window, Render::TextureFormat::D24_UNorm_S8_UInt);
+
+	{
+		ImGuiStyle& style = ImGui::GetStyle();
+		ImVec4* colors = style.Colors;
+
+		// Primary background
+		colors[ImGuiCol_WindowBg] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);  // #131318
+		colors[ImGuiCol_MenuBarBg] = ImVec4(0.12f, 0.12f, 0.15f, 1.00f); // #131318
+
+		colors[ImGuiCol_PopupBg] = ImVec4(0.18f, 0.18f, 0.22f, 1.00f);
+
+		// Headers
+		colors[ImGuiCol_Header] = ImVec4(0.18f, 0.18f, 0.22f, 1.00f);
+		colors[ImGuiCol_HeaderHovered] = ImVec4(0.30f, 0.30f, 0.40f, 1.00f);
+		colors[ImGuiCol_HeaderActive] = ImVec4(0.25f, 0.25f, 0.35f, 1.00f);
+
+		// Buttons
+		colors[ImGuiCol_Button] = ImVec4(0.20f, 0.22f, 0.27f, 1.00f);
+		colors[ImGuiCol_ButtonHovered] = ImVec4(0.30f, 0.32f, 0.40f, 1.00f);
+		colors[ImGuiCol_ButtonActive] = ImVec4(0.35f, 0.38f, 0.50f, 1.00f);
+
+		// Frame BG
+		colors[ImGuiCol_FrameBg] = ImVec4(0.15f, 0.15f, 0.18f, 1.00f);
+		colors[ImGuiCol_FrameBgHovered] = ImVec4(0.22f, 0.22f, 0.27f, 1.00f);
+		colors[ImGuiCol_FrameBgActive] = ImVec4(0.25f, 0.25f, 0.30f, 1.00f);
+
+		// Tabs
+		colors[ImGuiCol_Tab] = ImVec4(0.18f, 0.18f, 0.22f, 1.00f);
+		colors[ImGuiCol_TabHovered] = ImVec4(0.35f, 0.35f, 0.50f, 1.00f);
+		colors[ImGuiCol_TabActive] = ImVec4(0.25f, 0.25f, 0.38f, 1.00f);
+		colors[ImGuiCol_TabUnfocused] = ImVec4(0.13f, 0.13f, 0.17f, 1.00f);
+		colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.20f, 0.20f, 0.25f, 1.00f);
+
+		// Title
+		colors[ImGuiCol_TitleBg] = ImVec4(0.12f, 0.12f, 0.15f, 1.00f);
+		colors[ImGuiCol_TitleBgActive] = ImVec4(0.15f, 0.15f, 0.20f, 1.00f);
+		colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.10f, 0.10f, 0.12f, 1.00f);
+
+		// Borders
+		colors[ImGuiCol_Border] = ImVec4(0.20f, 0.20f, 0.25f, 0.50f);
+		colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
+
+		// Text
+		colors[ImGuiCol_Text] = ImVec4(0.90f, 0.90f, 0.95f, 1.00f);
+		colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.55f, 1.00f);
+
+		// Highlights
+		colors[ImGuiCol_CheckMark] = ImVec4(0.50f, 0.70f, 1.00f, 1.00f);
+		colors[ImGuiCol_SliderGrab] = ImVec4(0.50f, 0.70f, 1.00f, 1.00f);
+		colors[ImGuiCol_SliderGrabActive] = ImVec4(0.60f, 0.80f, 1.00f, 1.00f);
+		colors[ImGuiCol_ResizeGrip] = ImVec4(0.50f, 0.70f, 1.00f, 0.50f);
+		colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.60f, 0.80f, 1.00f, 0.75f);
+		colors[ImGuiCol_ResizeGripActive] = ImVec4(0.70f, 0.90f, 1.00f, 1.00f);
+
+		// Scrollbar
+		colors[ImGuiCol_ScrollbarBg] = ImVec4(0.10f, 0.10f, 0.12f, 1.00f);
+		colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.30f, 0.30f, 0.35f, 1.00f);
+		colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.40f, 0.40f, 0.50f, 1.00f);
+		colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.45f, 0.45f, 0.55f, 1.00f);
+
+		// Style tweaks
+		style.WindowRounding = 5.0f;
+		style.FrameRounding = 5.0f;
+		style.GrabRounding = 5.0f;
+		style.TabRounding = 5.0f;
+		style.PopupRounding = 5.0f;
+		style.ScrollbarRounding = 5.0f;
+		style.WindowPadding = ImVec2(10, 10);
+		style.FramePadding = ImVec2(6, 4);
+		style.ItemSpacing = ImVec2(8, 6);
+		style.PopupBorderSize = 0.f;
+	}
 
 	m_sandboxLayer = new SandboxLayer(m_window);
 	PushLayer(m_sandboxLayer);
