@@ -5,6 +5,28 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include "Prism/Utilities/StringUtils.h"
 
+namespace spdlog::sinks
+{
+class imgui_sink : public base_sink<std::mutex>
+{
+public:
+	imgui_sink() = default;
+
+	void Clear();
+
+	const fmt::basic_memory_buffer<char, 4096>& GetLogBuffer() const { return m_buffer; }
+	std::vector<int64_t> GetLineOffsets() const { return m_lineOffsets; }
+
+protected:
+	virtual void sink_it_(const details::log_msg& msg) override;
+	virtual void flush_() override;
+
+protected:
+	fmt::basic_memory_buffer<char, 4096> m_buffer;
+	std::vector<int64_t> m_lineOffsets = {0};
+};
+}
+
 namespace Prism::Log
 {
 void InitLog();
@@ -36,7 +58,7 @@ protected:
 
 private:
 	std::string m_name;
-	std::unique_ptr<spdlog::logger> m_logger;
+	std::shared_ptr<spdlog::logger> m_logger;
 };
 
 class ErrorLogger
@@ -51,7 +73,7 @@ public:
 			 T&& string, Args&&... args);
 
 private:
-	std::unique_ptr<spdlog::logger> m_logger;
+	std::shared_ptr<spdlog::logger> m_logger;
 };
 
 class LogsRegistry final
@@ -70,6 +92,7 @@ public:
 	std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> GetStdOutSink() const { return m_stdOutSink; }
 	std::shared_ptr<spdlog::sinks::stderr_color_sink_mt> GetStdErrSink() const { return m_stdErrSink; }
 	std::shared_ptr<spdlog::sinks::rotating_file_sink_mt> GetFileSink() const { return m_fileSink; }
+	std::shared_ptr<spdlog::sinks::imgui_sink> GetImGuiSink() const { return m_imguiSink; }
 
 private:
 	std::vector<LogCategory*> m_categories;
@@ -79,6 +102,7 @@ private:
 	std::shared_ptr<spdlog::sinks::stdout_color_sink_mt> m_stdOutSink;
 	std::shared_ptr<spdlog::sinks::stderr_color_sink_mt> m_stdErrSink;
 	std::shared_ptr<spdlog::sinks::rotating_file_sink_mt> m_fileSink;
+	std::shared_ptr<spdlog::sinks::imgui_sink> m_imguiSink;
 };
 
 template<typename T>

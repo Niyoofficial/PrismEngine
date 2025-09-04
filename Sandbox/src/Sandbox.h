@@ -203,7 +203,7 @@ private:
 	Ref<Render::PrimitiveBatch> m_cube;
 	Ref<Render::PrimitiveBatch> m_sphere;
 
-	float m_cameraSpeed = 0.05f;
+	float m_cameraSpeed = 5.f;
 	float m_mouseSpeed = 0.003f;
 };
 

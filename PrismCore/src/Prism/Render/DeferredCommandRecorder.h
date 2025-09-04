@@ -3,8 +3,6 @@
 #include "Prism/Render/RenderConstants.h"
 #include "Prism/Utilities/MemoryUtils.h"
 
-DECLARE_LOG_CATEGORY(PETest, "Prism-Render");
-
 namespace Prism::Render
 {
 class DeferredCommandRecorder
@@ -27,7 +25,7 @@ public:
 		}
 		else
 		{
-			//PE_LOG(PETest, Info, "Recording: {}", T::GetCommandString());
+			//PE_RENDER_LOG(Info, "Recording: {}", T::GetCommandString());
 
 			size_t alignedOffset = Align(m_newCommandOffset, alignof(T));
 			m_newCommandOffset = alignedOffset + sizeof(T);

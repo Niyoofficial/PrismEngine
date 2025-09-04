@@ -36,8 +36,12 @@ void LogsRegistry::DestroyRegistry()
 LogsRegistry::LogsRegistry()
 	: m_stdOutSink(std::make_shared<spdlog::sinks::stdout_color_sink_mt>()),
 	  m_stdErrSink(std::make_shared<spdlog::sinks::stderr_color_sink_mt>()),
-	  m_fileSink(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(WStringToString(Core::Paths::Get().MakePathRelative(Core::Paths::Get().GetLogsDir() + L"/PrismLog.log", Core::Paths::Get().GetProjectDir())), -1, 10, true))
+	  m_fileSink(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(WStringToString(Core::Paths::Get().MakePathRelative(Core::Paths::Get().GetLogsDir() + L"/PrismLog.log", Core::Paths::Get().GetProjectDir())), -1, 10, true)),
+	  m_imguiSink(std::make_shared<spdlog::sinks::imgui_sink>())
 {
+	// TODO: Flush log in a smarter way
+	spdlog::details::registry::instance().flush_on(spdlog::level::level_enum::trace);
+
 	/*auto tp = std::chrono::system_clock::now();
 	time_t tnow = std::chrono::system_clock::to_time_t(tp);
 	tm tm;
@@ -82,23 +86,27 @@ ErrorLogger::ErrorLogger()
 
 void ErrorLogger::Init()
 {
-	std::array<spdlog::sink_ptr, 3> sinks = {
+	std::array<spdlog::sink_ptr, 4> sinks = {
 		LogsRegistry::Get().GetStdErrSink(),
 		LogsRegistry::Get().GetStdOutSink(),
-		LogsRegistry::Get().GetFileSink()
+		LogsRegistry::Get().GetFileSink(),
+		LogsRegistry::Get().GetImGuiSink()
 	};
-	m_logger = std::make_unique<spdlog::logger>("ErrorLog", sinks.begin(), sinks.end());
+	m_logger = std::make_shared<spdlog::logger>("ErrorLog", sinks.begin(), sinks.end());
+	spdlog::details::registry::instance().initialize_logger(m_logger);
 	m_logger->set_pattern("%^[%T] %v [File: %g] [Line: %#] [Func: %!()]%$");
 	m_logger->set_level(spdlog::level::critical);
 }
 
 void LogCategory::Init()
 {
-	std::array<spdlog::sink_ptr, 2> sinks = {
+	std::array<spdlog::sink_ptr, 3> sinks = {
 		LogsRegistry::Get().GetStdOutSink(),
-		LogsRegistry::Get().GetFileSink()
+		LogsRegistry::Get().GetFileSink(),
+		LogsRegistry::Get().GetImGuiSink(),
 	};
-	m_logger = std::make_unique<spdlog::logger>(m_name, sinks.begin(), sinks.end());
+	m_logger = std::make_shared<spdlog::logger>(m_name, sinks.begin(), sinks.end());
+	spdlog::details::registry::instance().initialize_logger(m_logger);
 	m_logger->set_pattern("%^[%T] [%l] %n: %v%$");
 	m_logger->set_level(spdlog::level::trace);
 }
@@ -138,4 +146,25 @@ void PrintAssertMessage(const char* filename, int32_t line, const char* function
 {
 	g_errorLogger.Log(filename, line, function, "Assertion Failed!");
 }
+}
+
+namespace spdlog::sinks
+{
+void imgui_sink::Clear()
+{
+	m_buffer.clear();
+	m_lineOffsets.clear();
+	m_lineOffsets.push_back(0);
+}
+
+void imgui_sink::sink_it_(const details::log_msg& msg)
+{
+	memory_buf_t formatted;
+	base_sink<std::mutex>::formatter_->format(msg, formatted);
+
+	m_buffer.append(formatted);
+	m_lineOffsets.push_back((int64_t)m_buffer.size());
+}
+
+void imgui_sink::flush_() {}
 }

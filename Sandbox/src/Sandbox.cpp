@@ -153,8 +153,8 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		[this](Core::AppEvent event)
 		{
 			float delta = std::get<Core::AppEvents::MouseWheel>(event).y;
-			constexpr float moveSpeedChangeMult = 0.01f;
-			constexpr float minMoveSpeed = 0.01f;
+			constexpr float moveSpeedChangeMult = 0.5f;
+			constexpr float minMoveSpeed = 0.5f;
 			m_cameraSpeed += delta * moveSpeedChangeMult;
 			m_cameraSpeed = std::max(m_cameraSpeed, minMoveSpeed);
 		});
@@ -287,32 +287,32 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 	// Lights cbuffer
 	m_lightsUniBuffer = Buffer::Create({
-										.bufferName = L"LightsCBuffer",
-										.size = sizeof(LightsUniformBuffer),
-										.bindFlags = BindFlags::UniformBuffer,
-										.usage = ResourceUsage::Dynamic,
-										.cpuAccess = CPUAccess::Write
-		});
+		.bufferName = L"LightsCBuffer",
+		.size = sizeof(LightsUniformBuffer),
+		.bindFlags = BindFlags::UniformBuffer,
+		.usage = ResourceUsage::Dynamic,
+		.cpuAccess = CPUAccess::Write
+	});
 	m_lightsUniBufferView = m_lightsUniBuffer->CreateDefaultCBVView();
 
 	// PerLight cbuffer
 	m_perLightUniBuffer = Buffer::Create({
-										.bufferName = L"PerLightCBuffer",
-										.size = sizeof(PerLightUniformBuffer),
-										.bindFlags = BindFlags::UniformBuffer,
-										.usage = ResourceUsage::Dynamic,
-										.cpuAccess = CPUAccess::Write
-		});
+		.bufferName = L"PerLightCBuffer",
+		.size = sizeof(PerLightUniformBuffer),
+		.bindFlags = BindFlags::UniformBuffer,
+		.usage = ResourceUsage::Dynamic,
+		.cpuAccess = CPUAccess::Write
+	});
 	m_perLightUniBufferView = m_perLightUniBuffer->CreateDefaultCBVView();
 
 	// Scene shadow cbuffer
 	m_sceneShadowUniformBuffer = Buffer::Create({
-										.bufferName = L"SceneShadowCBuffer",
-										.size = sizeof(SceneUniformBuffer),
-										.bindFlags = BindFlags::UniformBuffer,
-										.usage = ResourceUsage::Dynamic,
-										.cpuAccess = CPUAccess::Write
-									});
+		.bufferName = L"SceneShadowCBuffer",
+		.size = sizeof(SceneUniformBuffer),
+		.bindFlags = BindFlags::UniformBuffer,
+		.usage = ResourceUsage::Dynamic,
+		.cpuAccess = CPUAccess::Write
+	});
 	m_sceneShadowView = m_sceneShadowUniformBuffer->CreateDefaultCBVView();
 
 	// Load sponza
@@ -591,14 +591,50 @@ void SandboxLayer::UpdateImGui(Duration delta)
 	using namespace Prism::Render;
 	Layer::UpdateImGui(delta);
 
-	//ImGui::ShowDemoWindow();
-
+	static bool s_showImGuiDemoWindow = false;
 	static bool s_showStatWindow = true;
-	static bool s_debugMenuOpen = true;
+	static bool s_showDebugMenu = true;
+	static bool s_showLogMenu = true;
 
-	ImGui::DockSpaceOverViewport();
-	
+	// Menu bar
 	{
+		ImGui::BeginMainMenuBar();
+
+		if (ImGui::BeginMenu("Show"))
+		{
+			ImGui::MenuItem("Show stat window", nullptr, &s_showStatWindow);
+			ImGui::MenuItem("Show debug window", nullptr, &s_showDebugMenu);
+			ImGui::MenuItem("Show log window", nullptr, &s_showLogMenu);
+			ImGui::MenuItem("Show ImGui demo window", nullptr, &s_showImGuiDemoWindow);
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMainMenuBar();
+
+		ImGui::BeginMainMenuBar();
+
+		if (ImGui::BeginMenu("Tools"))
+		{
+			if (ImGui::MenuItem("Recompile Shaders"))
+				RenderDevice::Get().GetShaderCompiler()->RecompileCachedShaders();
+
+			ImGui::EndMenu();
+		}
+
+		ImGui::EndMainMenuBar();
+	}
+
+	// ImGui demo
+	if (s_showImGuiDemoWindow)
+	{
+		ImGui::ShowDemoWindow(&s_showImGuiDemoWindow);
+	}
+
+	// Viewport
+	{
+		ImGui::DockSpaceOverViewport();
+
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(0, 0));
 
 		ImGui::Begin("Viewport");
@@ -652,36 +688,10 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		ImGui::PopStyleVar();
 	}
 
-	// Menu bar
+	// Debug menu
+	if (s_showDebugMenu)
 	{
-		ImGui::BeginMainMenuBar();
-
-		if (ImGui::BeginMenu("Show"))
-		{
-			ImGui::MenuItem("Show stat window", nullptr, &s_showStatWindow);
-			ImGui::MenuItem("Show debug window", nullptr, &s_debugMenuOpen);
-
-			ImGui::EndMenu();
-		}
-
-		ImGui::EndMainMenuBar();
-
-		ImGui::BeginMainMenuBar();
-
-		if (ImGui::BeginMenu("Tools"))
-		{
-			if (ImGui::MenuItem("Recompile Shaders"))
-				RenderDevice::Get().GetShaderCompiler()->RecompileCachedShaders();
-
-			ImGui::EndMenu();
-		}
-
-		ImGui::EndMainMenuBar();
-	}
-
-	if (s_debugMenuOpen)
-	{
-		ImGui::Begin("Debug", &s_debugMenuOpen, ImGuiWindowFlags_HorizontalScrollbar);
+		ImGui::Begin("Debug", &s_showDebugMenu, ImGuiWindowFlags_HorizontalScrollbar);
 
 		if (ImGui::CollapsingHeader("GBuffer"))
 		{
@@ -749,6 +759,73 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 		ImGui::End();
 	}
+
+	// Log
+	if (s_showLogMenu)
+	{
+		ImGui::Begin("Log", &s_showLogMenu);
+
+		auto imguiSink = Log::LogsRegistry::Get().GetImGuiSink();
+
+		if (ImGui::Button("Clear"))
+			imguiSink->Clear();
+
+		ImGui::Separator();
+
+		if (ImGui::BeginChild("Scrolling", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar))
+		{
+			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
+
+			ImGuiListClipper clipper;
+			clipper.Begin((int32_t)imguiSink->GetLineOffsets().size());
+			while (clipper.Step())
+			{
+				for (int line = clipper.DisplayStart; line < clipper.DisplayEnd; line++)
+				{
+					const char* lineStart = imguiSink->GetLogBuffer().data() + imguiSink->GetLineOffsets()[line];
+					const char* lineEnd = (line + 1 < imguiSink->GetLineOffsets().size()) ? (imguiSink->GetLogBuffer().data() + imguiSink->GetLineOffsets()[line + 1] - 1) : imguiSink->GetLogBuffer().end();
+
+					std::string_view view(lineStart, lineEnd);
+
+					auto lastDateBracket = view.find_first_of(']');
+					auto firstLabelBracket = view.find_first_of('[', lastDateBracket);
+					auto secLabelBracket = view.find_first_of(']', firstLabelBracket);
+					if (firstLabelBracket != std::string_view::npos && secLabelBracket != std::string_view::npos)
+					{
+						std::string_view label(lineStart + firstLabelBracket + 1, lineStart + secLabelBracket);
+						static std::unordered_map<std::string, glm::float3> colorMap = {
+							{"error", {1.f, 0.f, 0.f}},
+							{"warning", {1.f, 1.f, 0.f}},
+							{"info", {0.f, 1.f, 0.f}},
+							{"trace", {1.f, 1.f, 1.f}},
+						};
+
+						auto it = std::ranges::find_if(colorMap, 
+							[&label](auto val)
+							{
+								return val.first == label;
+							});
+						glm::float3 logColor = it != colorMap.end() ? it->second : glm::float3{1.f, 1.f, 1.f};
+						int64_t lineLength = imguiSink->GetLineOffsets()[line + 1] - imguiSink->GetLineOffsets()[line] - 1;
+						ImGui::TextColored({logColor.r, logColor.g, logColor.b, 1.f}, "%.*s", lineLength, lineStart);
+					}
+					else
+					{
+						ImGui::TextUnformatted(lineStart, lineEnd);
+					}
+				}
+			}
+			clipper.End();
+
+			if (ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 0.5f)
+				ImGui::SetScrollHereY(1.0f);
+
+			ImGui::PopStyleVar();
+		}
+		ImGui::EndChild();
+
+		ImGui::End();
+	}
 }
 
 void SandboxLayer::Update(Duration delta)
@@ -762,17 +839,17 @@ void SandboxLayer::Update(Duration delta)
 	if (m_viewportRelativeMouse && Core::Platform::Get().IsKeyPressed(KeyCode::RightMouseButton))
 	{
 		if (Core::Platform::Get().IsKeyPressed(KeyCode::W))
-			m_camera->AddPosition(m_camera->GetForwardVector() * m_cameraSpeed);
+			m_camera->AddPosition(m_camera->GetForwardVector() * m_cameraSpeed * (float)delta.GetSeconds());
 		if (Core::Platform::Get().IsKeyPressed(KeyCode::S))
-			m_camera->AddPosition(-m_camera->GetForwardVector() * m_cameraSpeed);
+			m_camera->AddPosition(-m_camera->GetForwardVector() * m_cameraSpeed * (float)delta.GetSeconds());
 		if (Core::Platform::Get().IsKeyPressed(KeyCode::A))
-			m_camera->AddPosition(-m_camera->GetRightVector() * m_cameraSpeed);
+			m_camera->AddPosition(-m_camera->GetRightVector() * m_cameraSpeed * (float)delta.GetSeconds());
 		if (Core::Platform::Get().IsKeyPressed(KeyCode::D))
-			m_camera->AddPosition(m_camera->GetRightVector() * m_cameraSpeed);
+			m_camera->AddPosition(m_camera->GetRightVector() * m_cameraSpeed * (float)delta.GetSeconds());
 		if (Core::Platform::Get().IsKeyPressed(KeyCode::Q))
-			m_camera->AddPosition(-m_camera->GetUpVector() * m_cameraSpeed);
+			m_camera->AddPosition(-m_camera->GetUpVector() * m_cameraSpeed * (float)delta.GetSeconds());
 		if (Core::Platform::Get().IsKeyPressed(KeyCode::E))
-			m_camera->AddPosition(m_camera->GetUpVector() * m_cameraSpeed);
+			m_camera->AddPosition(m_camera->GetUpVector() * m_cameraSpeed * (float)delta.GetSeconds());
 	}
 
 	Ref<RenderContext> renderContext = RenderDevice::Get().AllocateContext(L"SandboxUpdate");
