@@ -170,10 +170,6 @@ D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineS
 		desc.primitiveTopologyType != Render::TopologyType::TriangleStripAdj,
 		"We don't support strips for now, check IBStripCutValue below");
 
-	std::array<D3D12_RENDER_TARGET_BLEND_DESC, 8> renderTargetBlends;
-	for (int32_t i = 0; i < (int32_t)renderTargetBlends.size(); ++i)
-		renderTargetBlends[i] = GetD3D12RenderTargetBlendDesc(desc.blendState.renderTargetBlendDescs[i]);
-
 	D3D12InputLayout inputLayout = GetD3D12InputLayoutFromVertexShader(vs);
 
 	D3D12_GRAPHICS_PIPELINE_STATE_DESC d3d12Desc = {
@@ -185,7 +181,7 @@ D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineS
 		.GS = {}, // We don't support this shader for now
 		.BlendState = {
 			.AlphaToCoverageEnable = desc.blendState.alphaToCoverageEnable,
-			.IndependentBlendEnable = desc.blendState.independentBlendEnable,
+			.IndependentBlendEnable = std::holds_alternative<RenderTargetBlendDescSeparate>(desc.blendState.renderTargetBlendDesc),
 			.RenderTarget = {}
 		},
 		.SampleMask = desc.sampleMask,
@@ -224,8 +220,16 @@ D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineS
 		.SampleDesc = GetDXGISampleDesc(desc.sampleDesc)
 	};
 
-	for (int32_t i = 0; i < (int32_t)_countof(d3d12Desc.BlendState.RenderTarget); ++i)
-		d3d12Desc.BlendState.RenderTarget[i] = GetD3D12RenderTargetBlendDesc(desc.blendState.renderTargetBlendDescs[i]);
+	if (d3d12Desc.BlendState.IndependentBlendEnable)
+	{
+		for (int32_t i = 0; i < (int32_t)_countof(d3d12Desc.BlendState.RenderTarget); ++i)
+			d3d12Desc.BlendState.RenderTarget[i] = GetD3D12RenderTargetBlendDesc(std::get<RenderTargetBlendDescSeparate>(desc.blendState.renderTargetBlendDesc)[i]);
+	}
+	else
+	{
+		d3d12Desc.BlendState.RenderTarget[0] = GetD3D12RenderTargetBlendDesc(std::get<RenderTargetBlendDesc>(desc.blendState.renderTargetBlendDesc));
+	}
+
 	for (int32_t i = 0; i < rtvs.size(); ++i)
 		d3d12Desc.RTVFormats[i] = rtvs[i] ? GetDXGIFormat(rtvs[i]->GetViewDesc().format) : DXGI_FORMAT_UNKNOWN;
 

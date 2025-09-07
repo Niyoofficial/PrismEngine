@@ -41,7 +41,7 @@ Ref<BufferView> Buffer::CreateView(const BufferViewDesc& desc)
 	return BufferView::Create(desc, this);
 }
 
-Ref<BufferView> Buffer::CreateDefaultCBVView()
+Ref<BufferView> Buffer::CreateDefaultUniformBufferView()
 {
 	auto desc = GetBufferDesc();
 	return CreateView({

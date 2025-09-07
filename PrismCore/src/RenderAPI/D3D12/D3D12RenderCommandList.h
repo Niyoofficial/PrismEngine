@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include "Prism/Base/AppEvents.h"
+#include "Prism/Base/AppEvents.h"
 #include "Prism/Render/RenderCommandList.h"
 #include "Prism/Render/RenderResourceView.h"
 #include "RenderAPI/D3D12/D3D12Base.h"
@@ -14,7 +16,7 @@ public:
 
 	virtual void Draw(DrawCommandDesc desc) override;
 	virtual void DrawIndexed(DrawIndexedCommandDesc desc) override;
-	virtual void Dispatch(int32_t threadGroupCountX, int32_t threadGroupCountY, int32_t threadGroupCountZ) override;
+	virtual void Dispatch(glm::int3 threadGroupCount) override;
 
 	virtual void SetPSO(const GraphicsPipelineStateDesc& desc) override;
 	virtual void SetPSO(const ComputePipelineStateDesc& desc) override;

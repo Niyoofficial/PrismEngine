@@ -42,7 +42,7 @@ public:
 	virtual void Draw(DrawCommandDesc desc) = 0;
 	virtual void DrawIndexed(DrawIndexedCommandDesc desc) = 0;
 
-	virtual void Dispatch(int32_t threadGroupCountX, int32_t threadGroupCountY, int32_t threadGroupCountZ) = 0;
+	virtual void Dispatch(glm::int3 threadGroupCount) = 0;
 
 	virtual void SetPSO(const GraphicsPipelineStateDesc& desc) = 0;
 	virtual void SetPSO(const ComputePipelineStateDesc& desc) = 0;

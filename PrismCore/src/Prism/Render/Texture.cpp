@@ -323,7 +323,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 					.data = &info,
 					.sizeInBytes = sizeof(info)
 				});
-			renderContext->SetBuffer(mipMapGenInfoBuffer->CreateDefaultCBVView(), L"g_infoBuffer");
+			renderContext->SetBuffer(mipMapGenInfoBuffer->CreateDefaultUniformBufferView(), L"g_infoBuffer");
 
 			if (topMip == 0)
 			{
@@ -365,7 +365,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 				renderContext->SetTexture(view, std::wstring(L"g_outMip") + std::to_wstring(j + 1));
 			}
 
-			renderContext->Dispatch(dstWidth, dstHeight, 1);
+			renderContext->Dispatch({dstWidth, dstHeight, 1});
 
 			if (topMip != numMipMaps - 1)
 			{

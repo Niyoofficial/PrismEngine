@@ -3,6 +3,8 @@
 
 #include "imgui.h"
 #include "imgui_impl_dx12.h"
+#include "Prism/Base/AppEvents.h"
+#include "Prism/Base/AppEvents.h"
 #include "Prism/Base/Application.h"
 #include "RenderAPI/D3D12/D3D12Buffer.h"
 #include "RenderAPI/D3D12/D3D12BufferView.h"
@@ -92,11 +94,11 @@ void D3D12RenderCommandList::DrawIndexed(DrawIndexedCommandDesc desc)
 	m_commandList->DrawIndexedInstanced((UINT)desc.numIndices, (UINT)desc.numInstances, (UINT)desc.startIndexLocation, (UINT)desc.baseVertexLocation, 0);
 }
 
-void D3D12RenderCommandList::Dispatch(int32_t threadGroupCountX, int32_t threadGroupCountY, int32_t threadGroupCountZ)
+void D3D12RenderCommandList::Dispatch(glm::int3 threadGroupCount)
 {
 	SetupDrawOrDispatch(PipelineStateType::Compute);
 
-	m_commandList->Dispatch((UINT)threadGroupCountX, (UINT)threadGroupCountY, (UINT)threadGroupCountZ);
+	m_commandList->Dispatch((UINT)threadGroupCount.x, (UINT)threadGroupCount.y, (UINT)threadGroupCount.z);
 }
 
 void D3D12RenderCommandList::SetPSO(const GraphicsPipelineStateDesc& desc)

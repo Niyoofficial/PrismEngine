@@ -70,7 +70,7 @@ public:
 							   BarrierLayout initLayout = BarrierLayout::Common);
 	static Ref<Texture> Create(std::wstring filepath, bool loadAsCubemap = false, bool waitForLoadFinish = true);
 
-	Ref<TextureView> CreateView(const TextureViewDesc& desc = {});
+	Ref<TextureView> CreateView(const TextureViewDesc& desc);
 
 	// Usage: pass the desired mip levels to texture desc during creation,
 	// fill out the mip 0 of the texture, and then call this function to generate the rest of the mip maps

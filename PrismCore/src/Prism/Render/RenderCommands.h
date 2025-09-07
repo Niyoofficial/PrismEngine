@@ -85,19 +85,17 @@ DEFINE_RENDER_COMMAND(DrawIndexedRenderCommand)
 
 DEFINE_RENDER_COMMAND(DispatchRenderCommand)
 {
-	DispatchRenderCommand(int32_t inThreadGroupCountX, int32_t inThreadGroupCountY, int32_t inThreadGroupCountZ)
-		: threadGroupCountX(inThreadGroupCountX), threadGroupCountY(inThreadGroupCountY), threadGroupCountZ(inThreadGroupCountZ)
+	DispatchRenderCommand(glm::int3 inThreadGroupCount)
+		: threadGroupCount(inThreadGroupCount)
 	{
 	}
 
 	void Execute(RenderCommandList* cmdList)
 	{
-		cmdList->Dispatch(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
+		cmdList->Dispatch(threadGroupCount);
 	}
 
-	int32_t threadGroupCountX = -1;
-	int32_t threadGroupCountY = -1;
-	int32_t threadGroupCountZ = -1;
+	glm::int3 threadGroupCount = {-1, -1, -1};
 };
 
 DEFINE_RENDER_COMMAND(SetGraphicsPSORenderCommand)

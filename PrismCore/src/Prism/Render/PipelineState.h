@@ -41,7 +41,7 @@ struct std::hash<Prism::Render::GraphicsPipelineStateDesc>
 		using namespace Prism::Render;
 
 #ifdef PE_BUILD_DEBUG
-		static_assert(sizeof(desc) == 560,
+		static_assert(sizeof(desc) == 568,
 					  "If new field was added, add it to the hash function and update this assert");
 #endif
 

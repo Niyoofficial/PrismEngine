@@ -22,7 +22,7 @@ public:
 	static Ref<Buffer> Create(const BufferDesc& desc, RawData initData = {});
 
 	Ref<BufferView> CreateView(const BufferViewDesc& desc);
-	Ref<BufferView> CreateDefaultCBVView();
+	Ref<BufferView> CreateDefaultUniformBufferView();
 	Ref<BufferView> CreateDefaultSRVView(int64_t elementSize);
 	Ref<BufferView> CreateDefaultUAVView(int64_t elementSize, bool bNeedsCounter = false);
 

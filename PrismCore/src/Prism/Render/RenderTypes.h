@@ -337,13 +337,16 @@ struct RenderTargetBlendDesc
 	ColorMask renderTargetWriteMask = ColorMask::All;
 };
 
+using RenderTargetBlendDescSeparate = std::array<RenderTargetBlendDesc, 8>;
+using RenderTargetBlend = std::variant<RenderTargetBlendDesc, RenderTargetBlendDescSeparate>;
+
 struct BlendStateDesc
 {
 	bool operator==(const BlendStateDesc& other) const;
 
 	bool alphaToCoverageEnable = false;
 	bool independentBlendEnable = false;
-	std::array<RenderTargetBlendDesc, 8> renderTargetBlendDescs = {};
+	RenderTargetBlend renderTargetBlendDesc = {};
 };
 
 enum class FillMode
@@ -966,13 +969,13 @@ struct std::hash<Prism::Render::BlendStateDesc>
 	{
 		using namespace Prism::Render;
 
-		static_assert(sizeof(BlendStateDesc) == 292,
+		static_assert(sizeof(BlendStateDesc) == 296,
 			"If new field was added, add it to the hash function and update this assert");
 
 		return
 			std::hash<bool>()(desc.alphaToCoverageEnable) ^
 			std::hash<bool>()(desc.independentBlendEnable) ^
-			std::hash<std::array<RenderTargetBlendDesc, 8>>()(desc.renderTargetBlendDescs);
+			std::hash<RenderTargetBlend>()(desc.renderTargetBlendDesc);
 	}
 };
 

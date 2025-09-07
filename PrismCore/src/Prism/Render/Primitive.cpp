@@ -61,7 +61,7 @@ void Primitive::SetPrimitiveUniformBuffer(std::wstring bufferParamName, int64_t 
 			.usage = ResourceUsage::Dynamic,
 			.cpuAccess = CPUAccess::Write
 		});
-	m_primitiveUniformBufferView = m_primitiveUniformBuffer->CreateDefaultCBVView();
+	m_primitiveUniformBufferView = m_primitiveUniformBuffer->CreateDefaultUniformBufferView();
 	m_primitiveParamName = bufferParamName;
 }
 

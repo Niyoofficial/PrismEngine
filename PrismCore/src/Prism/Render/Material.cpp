@@ -53,7 +53,7 @@ void Material::SetDynamicData(const std::wstring& paramName, void* data, int64_t
 
 		m_params[paramName] = DynamicDataInfo{
 			.cbuffer = buffer,
-			.view = buffer->CreateDefaultCBVView()
+			.view = buffer->CreateDefaultUniformBufferView()
 		};
 	}
 	else

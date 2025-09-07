@@ -79,7 +79,7 @@ struct Material
 	float ao = 0.f;
 };
 
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferModel
+struct alignas(Render::Constants::CBUFFER_ALIGNMENT) ModelUniformBuffer
 {
 	glm::float4x4 world;
 	alignas(16)
@@ -92,9 +92,16 @@ struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferModel
 	Material material;
 };
 
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) CBufferModelShadow
+struct alignas(Render::Constants::CBUFFER_ALIGNMENT) ModelShadowUniformBuffer
 {
 	glm::float4x4 world;
+};
+
+struct alignas(Render::Constants::CBUFFER_ALIGNMENT) BloomSettingsUniformBuffer
+{
+	float threshold = 1.f;
+	float knee = 0.1f;
+	int32_t lod = 0;
 };
 
 struct GBuffer
@@ -183,6 +190,15 @@ private:
 	Ref<Render::Texture> m_sunShadowMap;
 	Ref<Render::TextureView> m_sunShadowMapDSV;
 	Ref<Render::TextureView> m_sunShadowMapSRV;
+
+	Ref<Render::Texture> m_bloomDownsampleTexture;
+	Ref<Render::TextureView> m_bloomDownsampleTextureSRV;
+	Ref<Render::Texture> m_bloomUpsampleTexture;
+	Ref<Render::TextureView> m_bloomUpsampleTextureSRV;
+	Ref<Render::Buffer> m_bloomSettingsBuffer;
+	Ref<Render::BufferView> m_bloomSettingsBufferView;
+	float m_bloomThreshold = 1.f;
+	float m_bloomKnee = 0.1f;
 
 	Ref<Render::Buffer> m_sceneUniBuffer;
 	Ref<Render::BufferView> m_sceneUniBufferView;

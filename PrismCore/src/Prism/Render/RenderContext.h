@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "Prism/Base/AppEvents.h"
+#include "Prism/Base/AppEvents.h"
 #include "Prism/Render/DeferredCommandRecorder.h"
 #include "Prism/Render/RenderCommandList.h"
 #include "Prism/Utilities/PreservingObjectContainer.h"
@@ -20,7 +22,7 @@ public:
 	void Draw(DrawCommandDesc desc);
 	void DrawIndexed(DrawIndexedCommandDesc desc);
 
-	void Dispatch(int32_t threadGroupCountX, int32_t threadGroupCountY, int32_t threadGroupCountZ);
+	void Dispatch(glm::int3 threadGroupCount);
 
 	void SetPSO(const GraphicsPipelineStateDesc& pso);
 	void SetPSO(const ComputePipelineStateDesc& pso);

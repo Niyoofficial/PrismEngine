@@ -17,9 +17,9 @@ void RenderContext::DrawIndexed(DrawIndexedCommandDesc desc)
 	m_commandRecorder.AllocateCommand<Commands::DrawIndexedRenderCommand>(desc);
 }
 
-void RenderContext::Dispatch(int32_t threadGroupCountX, int32_t threadGroupCountY, int32_t threadGroupCountZ)
+void RenderContext::Dispatch(glm::int3 threadGroupCount)
 {
-	m_commandRecorder.AllocateCommand<Commands::DispatchRenderCommand>(threadGroupCountX, threadGroupCountY, threadGroupCountZ);
+	m_commandRecorder.AllocateCommand<Commands::DispatchRenderCommand>(threadGroupCount);
 }
 
 void RenderContext::SetPSO(const GraphicsPipelineStateDesc& pso)

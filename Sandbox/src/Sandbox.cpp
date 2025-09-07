@@ -273,8 +273,8 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	m_sunShadowMapSRV = m_sunShadowMap->CreateView({.type = TextureViewType::SRV, .format = TextureFormat::R32_Float});
 
 	m_environmentTexture = Texture::Create(L"textures/pisa.hdr");
-	m_environmentTextureSRV = m_environmentTexture->CreateView();
-	
+	m_environmentTextureSRV = m_environmentTexture->CreateView({.type = TextureViewType::SRV});
+
 	// Scene cbuffer
 	m_sceneUniBuffer = Buffer::Create({
 										.bufferName = L"SceneCBuffer",
@@ -283,37 +283,46 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 										.usage = ResourceUsage::Dynamic,
 										.cpuAccess = CPUAccess::Write
 									});
-	m_sceneUniBufferView = m_sceneUniBuffer->CreateDefaultCBVView();
+	m_sceneUniBufferView = m_sceneUniBuffer->CreateDefaultUniformBufferView();
 
-	// Lights cbuffer
+	// Lights uniform buffer
 	m_lightsUniBuffer = Buffer::Create({
-		.bufferName = L"LightsCBuffer",
+		.bufferName = L"LightsBuffer",
 		.size = sizeof(LightsUniformBuffer),
 		.bindFlags = BindFlags::UniformBuffer,
 		.usage = ResourceUsage::Dynamic,
 		.cpuAccess = CPUAccess::Write
 	});
-	m_lightsUniBufferView = m_lightsUniBuffer->CreateDefaultCBVView();
+	m_lightsUniBufferView = m_lightsUniBuffer->CreateDefaultUniformBufferView();
 
-	// PerLight cbuffer
+	// PerLight uniform buffer
 	m_perLightUniBuffer = Buffer::Create({
-		.bufferName = L"PerLightCBuffer",
+		.bufferName = L"PerLightBuffer",
 		.size = sizeof(PerLightUniformBuffer),
 		.bindFlags = BindFlags::UniformBuffer,
 		.usage = ResourceUsage::Dynamic,
 		.cpuAccess = CPUAccess::Write
 	});
-	m_perLightUniBufferView = m_perLightUniBuffer->CreateDefaultCBVView();
+	m_perLightUniBufferView = m_perLightUniBuffer->CreateDefaultUniformBufferView();
 
-	// Scene shadow cbuffer
+	// Scene shadow uniform buffer
 	m_sceneShadowUniformBuffer = Buffer::Create({
-		.bufferName = L"SceneShadowCBuffer",
+		.bufferName = L"SceneShadowBuffer",
 		.size = sizeof(SceneUniformBuffer),
 		.bindFlags = BindFlags::UniformBuffer,
 		.usage = ResourceUsage::Dynamic,
 		.cpuAccess = CPUAccess::Write
 	});
-	m_sceneShadowView = m_sceneShadowUniformBuffer->CreateDefaultCBVView();
+	m_sceneShadowView = m_sceneShadowUniformBuffer->CreateDefaultUniformBufferView();
+
+	m_bloomSettingsBuffer = Buffer::Create({
+		.bufferName = L"BloomSettingsBuffer",
+		.size = sizeof(BloomSettingsUniformBuffer),
+		.bindFlags = BindFlags::UniformBuffer,
+		.usage = ResourceUsage::Dynamic,
+		.cpuAccess = CPUAccess::Write
+	});
+	m_bloomSettingsBufferView = m_bloomSettingsBuffer->CreateDefaultUniformBufferView();
 
 	// Load sponza
 	m_sponza = SandboxApplication::LoadMeshFromFilePBR(L"Sponza", L"meshes/SponzaCrytek/Sponza.gltf");
@@ -344,7 +353,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 			material.SetTexture(L"g_skybox", m_prefilteredEnvMapCubeSRV);
 			return material;
-		}, L"g_modelBuffer", sizeof(CBufferModel));
+		}, L"g_modelBuffer", sizeof(ModelUniformBuffer));
 
 	// Load sphere
 	m_sphere = SandboxApplication::LoadMeshFromFile(L"Sphere", L"meshes/Sphere.gltf",
@@ -362,7 +371,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 				.shaderType = ShaderType::PS
 			});
 			return material;
-		}, L"g_modelBuffer", sizeof(CBufferModel));
+		}, L"g_modelBuffer", sizeof(ModelUniformBuffer));
 
 	{
 		auto renderContext = RenderDevice::Get().AllocateContext(L"Initialization");
@@ -380,7 +389,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			renderContext->SetTexture(m_environmentTextureSRV, L"g_environment");
 			renderContext->SetTexture(m_skyboxUAV, L"g_skybox");
 
-			renderContext->Dispatch(64, 64, 6);
+			renderContext->Dispatch({64, 64, 6});
 
 			renderContext->Barrier(TextureBarrier{
 				.texture = m_skybox,
@@ -426,7 +435,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			renderContext->SetTexture(m_skyboxCubeSRV, L"g_skybox");
 			renderContext->SetBuffer(coeffBufferView, L"g_coefficients");
 
-			renderContext->Dispatch(1, 1, 1);
+			renderContext->Dispatch({1, 1, 1});
 
 			m_irradianceSHBuffer = Buffer::Create({
 				.bufferName = L"IrradianceSH",
@@ -434,7 +443,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 				.bindFlags = BindFlags::UniformBuffer,
 				.usage = ResourceUsage::Default
 			});
-			m_irradianceSHBufferView = m_irradianceSHBuffer->CreateDefaultCBVView();
+			m_irradianceSHBufferView = m_irradianceSHBuffer->CreateDefaultUniformBufferView();
 
 			renderContext->Barrier(BufferBarrier{
 				.buffer = coeffGenerationBuffer,
@@ -540,9 +549,9 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 															  .sizeInBytes = sizeof(data)
 														  });
 
-				renderContext->SetBuffer(prefilterDataBuffer->CreateDefaultCBVView(), L"g_prefilterData");
+				renderContext->SetBuffer(prefilterDataBuffer->CreateDefaultUniformBufferView(), L"g_prefilterData");
 
-				renderContext->Dispatch(threadGroupSize, threadGroupSize, 6);
+				renderContext->Dispatch({threadGroupSize, threadGroupSize, 6});
 			}
 		}
 
@@ -574,11 +583,11 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 															.sizeInBytes = sizeof(integrationData)
 														});
 
-			renderContext->SetBuffer(integrationDataBuffer->CreateDefaultCBVView(), L"g_integrationData");
+			renderContext->SetBuffer(integrationDataBuffer->CreateDefaultUniformBufferView(), L"g_integrationData");
 
 			renderContext->SetTexture(m_BRDFLUT->CreateView({.type = TextureViewType::UAV}), L"g_outputTexture");
 
-			renderContext->Dispatch(integrationData.resolution / 8, integrationData.resolution / 8, 1);
+			renderContext->Dispatch({integrationData.resolution / 8, integrationData.resolution / 8, 1});
 		}
 
 		RenderDevice::Get().SubmitContext(renderContext);
@@ -757,6 +766,37 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			ImGui::Image(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), {256, 256});
 		}
 
+		if (ImGui::CollapsingHeader("Bloom"))
+		{
+			ImGui::Text("Bloom downscale");
+
+			ImGui::DragFloat("Threshold", &m_bloomThreshold, 0.005f);
+			ImGui::DragFloat("Knee", &m_bloomKnee, 0.005f);
+
+			static int32_t s_downsampleMipIndex = 0;
+			ImGui::SliderInt("Downsample Mip Index", &s_downsampleMipIndex, 0, 6);
+
+			float texWidth = (float)m_bloomDownsampleTexture->GetTextureDesc().GetWidth() / (float)m_bloomDownsampleTexture->GetTextureDesc().GetHeight() * 256.f;
+			auto viewDesc = TextureViewDesc{
+				.type = TextureViewType::SRV,
+				.dimension = ResourceDimension::Tex2D,
+				.subresourceRange = {.firstMipLevel = s_downsampleMipIndex, .numMipLevels = 1}
+			};
+			ImGui::Image(m_bloomDownsampleTexture->CreateView(viewDesc), {texWidth, 256});
+
+			ImGui::Text("Bloom downscale");
+
+			static int32_t s_upsampleMipIndex = 0;
+			ImGui::SliderInt("Upsample Mip Index", &s_upsampleMipIndex, 0, 5);
+
+			viewDesc = TextureViewDesc{
+				.type = TextureViewType::SRV,
+				.dimension = ResourceDimension::Tex2D,
+				.subresourceRange = {.firstMipLevel = s_upsampleMipIndex, .numMipLevels = 1}
+			};
+			ImGui::Image(m_bloomUpsampleTexture->CreateView(viewDesc), { texWidth, 256 });
+		}
+
 		ImGui::End();
 	}
 
@@ -909,7 +949,7 @@ void SandboxLayer::Update(Duration delta)
 
 		// Sponza
 		{
-			CBufferModelShadow modelShadow = {
+			ModelShadowUniformBuffer modelShadow = {
 				.world = glm::float4x4(1.f)
 			};
 			m_sponza->Draw(renderContext, &modelShadow, sizeof(modelShadow), false);
@@ -972,7 +1012,7 @@ void SandboxLayer::Update(Duration delta)
 
 		// Sponza
 		{
-			CBufferModel modelData = {
+			ModelUniformBuffer modelData = {
 				.world = glm::float4x4(1.f),
 				.normalMatrix = glm::transpose(glm::inverse(modelData.world)),
 
@@ -983,13 +1023,13 @@ void SandboxLayer::Update(Duration delta)
 					.ao = 1.f
 				}
 			};
-			m_sponza->Draw(renderContext, &modelData, sizeof(CBufferModel));
+			m_sponza->Draw(renderContext, &modelData, sizeof(ModelUniformBuffer));
 		}
 
 		// Skybox
 		if (0)
 		{
-			CBufferModel modelData = {
+			ModelUniformBuffer modelData = {
 				.world = glm::float4x4(1.f),
 				.normalMatrix = glm::transpose(glm::inverse(glm::float3x3(modelData.world))),
 
@@ -1000,13 +1040,13 @@ void SandboxLayer::Update(Duration delta)
 					.ao = 0.3f
 				}
 			};
-			m_cube->Draw(renderContext, &modelData, sizeof(CBufferModel));
+			m_cube->Draw(renderContext, &modelData, sizeof(ModelUniformBuffer));
 		}
 
 		// Spheres
 		if (0)
 		{
-			CBufferModel modelData = {
+			ModelUniformBuffer modelData = {
 				.world = glm::translate(glm::float4x4(1.f), glm::float3(0.f, -5.f, 0.f)),
 				.normalMatrix = glm::transpose(glm::inverse(glm::float3x3(modelData.world))),
 
@@ -1025,7 +1065,7 @@ void SandboxLayer::Update(Duration delta)
 				modelData.world = glm::translate(modelData.world, glm::float3(2.f, 0.f, 0.f));
 				modelData.mipLevel += 1.f;
 			
-				m_sphere->Draw(renderContext, &modelData, sizeof(CBufferModel));
+				m_sphere->Draw(renderContext, &modelData, sizeof(ModelUniformBuffer));
 			}
 		}
 
@@ -1050,7 +1090,7 @@ void SandboxLayer::Update(Duration delta)
 		// Env light
 		{
 			BlendStateDesc blendState;
-			blendState.renderTargetBlendDescs[0] = {.blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One};
+			blendState.renderTargetBlendDesc = RenderTargetBlendDesc{.blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One};
 			renderContext->SetPSO(GraphicsPipelineStateDesc{
 			   .vs = {
 				   .filepath = L"shaders/DeferredLightingIndirect.hlsl",
@@ -1080,7 +1120,7 @@ void SandboxLayer::Update(Duration delta)
 		}
 
 		BlendStateDesc blendState;
-		blendState.renderTargetBlendDescs[0] = { .blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One };
+		blendState.renderTargetBlendDesc = RenderTargetBlendDesc{.blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One};
 		renderContext->SetPSO(GraphicsPipelineStateDesc{
 			.vs = {
 				.filepath = L"shaders/DeferredLightingDirect.hlsl",
@@ -1144,6 +1184,147 @@ void SandboxLayer::Update(Duration delta)
 		renderContext->EndEvent();
 	}
 
+
+	// Bloom
+	{
+		renderContext->BeginEvent({}, L"Bloom");
+
+		BloomSettingsUniformBuffer bloomSettingsUniformBuffer = {
+			.threshold = m_bloomThreshold,
+			.knee = m_bloomKnee,
+			.lod = 0,
+		};
+
+		renderContext->SetBuffer(m_bloomSettingsBufferView, L"g_bloomSettings");
+
+		// Prefilter
+		{
+			renderContext->BeginEvent({}, L"Prefilter");
+
+			renderContext->SetTexture(m_sceneColorSRV, L"g_inputTexture");
+			renderContext->SetTexture(m_bloomDownsampleTexture->CreateView({.type = TextureViewType::UAV}), L"g_outputTexture");
+
+			void* bloomSettingsData = m_bloomSettingsBuffer->Map(CPUAccess::Write);
+			memcpy_s(bloomSettingsData, m_bloomSettingsBuffer->GetBufferDesc().size, &bloomSettingsUniformBuffer, sizeof(bloomSettingsUniformBuffer));
+			m_bloomSettingsBuffer->Unmap();
+
+			renderContext->SetPSO(ComputePipelineStateDesc{
+				.cs = {
+					.filepath = L"shaders/Bloom.hlsl",
+					.entryName = L"Prefilter",
+					.shaderType = ShaderType::CS
+				}
+			});
+
+			renderContext->Dispatch({m_bloomDownsampleTexture->GetTextureDesc().GetWidth() / 4, m_bloomDownsampleTexture->GetTextureDesc().GetHeight() / 4, 1});
+
+			renderContext->EndEvent();
+		}
+
+		// Downsample
+		{
+			renderContext->BeginEvent({}, L"Downsample");
+
+			for (int32_t i = 1; i < m_bloomDownsampleTexture->GetTextureDesc().GetMipLevels(); ++i)
+			{
+				TextureViewDesc uavDesc = {
+					.type = TextureViewType::UAV, .subresourceRange = {.firstMipLevel = i, .numMipLevels = 1}
+				};
+				renderContext->SetTexture(m_bloomDownsampleTexture->CreateView(uavDesc), L"g_outputTexture");
+				renderContext->SetTexture(m_bloomDownsampleTextureSRV, L"g_inputTexture");
+
+				bloomSettingsUniformBuffer.lod = i - 1;
+				void* bloomSettingsData = m_bloomSettingsBuffer->Map(CPUAccess::Write);
+				memcpy_s(bloomSettingsData, m_bloomSettingsBuffer->GetBufferDesc().size, &bloomSettingsUniformBuffer, sizeof(bloomSettingsUniformBuffer));
+				m_bloomSettingsBuffer->Unmap();
+
+				renderContext->SetPSO(ComputePipelineStateDesc{
+					.cs = {
+						.filepath = L"shaders/Bloom.hlsl",
+						.entryName = L"Downsample",
+						.shaderType = ShaderType::CS
+					}
+				});
+
+				renderContext->Dispatch({
+					std::ceil((float)m_bloomDownsampleTexture->GetTextureDesc().GetWidth() / std::pow(2.f, (float)i) / 4.f),
+					std::ceil((float)m_bloomDownsampleTexture->GetTextureDesc().GetHeight() / std::pow(2.f, (float)i) / 4.f),
+					1
+				});
+			}
+
+			renderContext->EndEvent();
+		}
+
+		// Upsample
+		{
+			renderContext->BeginEvent({}, L"Upsample");
+
+			renderContext->Barrier(TextureBarrier{
+				.texture = m_bloomDownsampleTexture,
+				.syncBefore = BarrierSync::ComputeShading,
+				.syncAfter = BarrierSync::ComputeShading,
+				.accessBefore = BarrierAccess::UnorderedAccess,
+				.accessAfter = BarrierAccess::ShaderResource,
+				.layoutBefore = BarrierLayout::UnorderedAccess,
+				.layoutAfter = BarrierLayout::ShaderResource,
+			});
+
+			for (int32_t i = m_bloomDownsampleTexture->GetTextureDesc().GetMipLevels() - 2; i >= 0; --i)
+			{
+				TextureViewDesc uavDesc = {
+					.type = TextureViewType::UAV, .subresourceRange = {.firstMipLevel = i, .numMipLevels = 1}
+				};
+				renderContext->SetTexture(m_bloomUpsampleTexture->CreateView(uavDesc), L"g_outputTexture");
+				renderContext->SetTexture(m_bloomDownsampleTextureSRV, L"g_inputTexture");
+				renderContext->SetTexture(i == 5 ? m_bloomDownsampleTextureSRV : m_bloomUpsampleTextureSRV, L"g_accumulationTexture");
+
+				bloomSettingsUniformBuffer.lod = i;
+				void* bloomSettingsData = m_bloomSettingsBuffer->Map(CPUAccess::Write);
+				memcpy_s(bloomSettingsData, m_bloomSettingsBuffer->GetBufferDesc().size, &bloomSettingsUniformBuffer, sizeof(bloomSettingsUniformBuffer));
+				m_bloomSettingsBuffer->Unmap();
+
+				renderContext->SetPSO(ComputePipelineStateDesc{
+					.cs = {
+						.filepath = L"shaders/Bloom.hlsl",
+						.entryName = L"Upsample",
+						.shaderType = ShaderType::CS
+					}
+				});
+
+				renderContext->Dispatch({
+					std::ceil((float)m_bloomUpsampleTexture->GetTextureDesc().GetWidth() / std::pow(2.f, (float)i) / 4.f),
+					std::ceil((float)m_bloomUpsampleTexture->GetTextureDesc().GetHeight() / std::pow(2.f, (float)i) / 4.f),
+					1
+				});
+
+				/*renderContext->Barrier(TextureBarrier{
+					.texture = m_bloomUpsampleTexture,
+					.syncBefore = BarrierSync::ComputeShading,
+					.syncAfter = BarrierSync::ComputeShading,
+					.accessBefore = BarrierAccess::UnorderedAccess,
+					.accessAfter = BarrierAccess::UnorderedAccess,
+					.layoutBefore = BarrierLayout::UnorderedAccess,
+					.layoutAfter = BarrierLayout::UnorderedAccess,
+				});*/
+			}
+
+			renderContext->Barrier(TextureBarrier{
+				.texture = m_bloomDownsampleTexture,
+				.syncBefore = BarrierSync::ComputeShading,
+				.syncAfter = BarrierSync::ComputeShading,
+				.accessBefore = BarrierAccess::ShaderResource,
+				.accessAfter = BarrierAccess::UnorderedAccess,
+				.layoutBefore = BarrierLayout::ShaderResource,
+				.layoutAfter = BarrierLayout::UnorderedAccess,
+			});
+
+			renderContext->EndEvent();
+		}
+
+		renderContext->EndEvent();
+	}
+
 	RenderDevice::Get().SubmitContext(renderContext);
 }
 
@@ -1176,6 +1357,27 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 									   }, BarrierLayout::RenderTarget);
 		m_sceneColorRTV = m_sceneColor->CreateView({.type = TextureViewType::RTV});
 		m_sceneColorSRV = m_sceneColor->CreateView({.type = TextureViewType::SRV});
+
+		m_bloomDownsampleTexture = Texture::Create({
+			.textureName = L"DownsampleBloomTexture",
+			.width = m_viewportSize.x,
+			.height = m_viewportSize.y,
+			.mipLevels = 7,
+			.dimension = ResourceDimension::Tex2D,
+			.format = TextureFormat::R11G11B10_Float,
+			.bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
+		}, BarrierLayout::UnorderedAccess);
+		m_bloomDownsampleTextureSRV = m_bloomDownsampleTexture->CreateView({.type = TextureViewType::SRV});
+		m_bloomUpsampleTexture = Texture::Create({
+			.textureName = L"UpsampleBloomTexture",
+			.width = m_viewportSize.x,
+			.height = m_viewportSize.y,
+			.mipLevels = 6,
+			.dimension = ResourceDimension::Tex2D,
+			.format = TextureFormat::R11G11B10_Float,
+			.bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
+		}, BarrierLayout::UnorderedAccess);
+		m_bloomUpsampleTextureSRV = m_bloomUpsampleTexture->CreateView({.type = TextureViewType::SRV});
 
 		m_camera->SetPerspective(45.f,
 			(float)m_viewportSize.x / (float)m_viewportSize.y,
@@ -1354,14 +1556,15 @@ Ref<Render::PrimitiveBatch> SandboxApplication::LoadMeshFromFilePBR(const std::w
 								  [](const MeshUtils::PrimitiveData& primitiveData)
 								  {
 									  Render::Material material;
+									  Render::TextureViewDesc srvDesc = {.type = Render::TextureViewType::SRV};
 									  if (primitiveData.textures.contains(MeshUtils::TextureType::Albedo))
-										  material.SetTexture(L"g_albedoTexture", primitiveData.textures.at(MeshUtils::TextureType::Albedo)->CreateView());
+										  material.SetTexture(L"g_albedoTexture", primitiveData.textures.at(MeshUtils::TextureType::Albedo)->CreateView(srvDesc));
 									  if (primitiveData.textures.contains(MeshUtils::TextureType::Normals))
-										  material.SetTexture(L"g_normalTexture", primitiveData.textures.at(MeshUtils::TextureType::Normals)->CreateView());
+										  material.SetTexture(L"g_normalTexture", primitiveData.textures.at(MeshUtils::TextureType::Normals)->CreateView(srvDesc));
 									  if (primitiveData.textures.contains(MeshUtils::TextureType::Metallic))
-										  material.SetTexture(L"g_metallicTexture", primitiveData.textures.at(MeshUtils::TextureType::Metallic)->CreateView());
+										  material.SetTexture(L"g_metallicTexture", primitiveData.textures.at(MeshUtils::TextureType::Metallic)->CreateView(srvDesc));
 									  if (primitiveData.textures.contains(MeshUtils::TextureType::Roughness))
-										  material.SetTexture(L"g_roughnessTexture", primitiveData.textures.at(MeshUtils::TextureType::Roughness)->CreateView());
+										  material.SetTexture(L"g_roughnessTexture", primitiveData.textures.at(MeshUtils::TextureType::Roughness)->CreateView(srvDesc));
 
 									  material.SetVertexShader({
 										  .filepath = L"shaders/DeferredBasePass.hlsl",
@@ -1383,7 +1586,7 @@ Ref<Render::PrimitiveBatch> SandboxApplication::LoadMeshFromFilePBR(const std::w
 									  material.SetTopologyType(Render::TopologyType::TriangleList);
 
 									  return material;
-								  }, L"g_modelBuffer", sizeof(CBufferModel), &meshData);
+								  }, L"g_modelBuffer", sizeof(ModelUniformBuffer), &meshData);
 
 	return batch;
 }

@@ -21,7 +21,7 @@ bool Prism::Render::BlendStateDesc::operator==(const BlendStateDesc& other) cons
 	return
 		other.alphaToCoverageEnable == alphaToCoverageEnable &&
 		other.independentBlendEnable == independentBlendEnable &&
-		other.renderTargetBlendDescs == renderTargetBlendDescs;
+		other.renderTargetBlendDesc == renderTargetBlendDesc;
 }
 
 bool Prism::Render::RasterizerStateDesc::operator==(const RasterizerStateDesc& other) const
