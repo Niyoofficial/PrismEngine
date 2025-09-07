@@ -200,6 +200,10 @@ private:
 	float m_bloomThreshold = 1.f;
 	float m_bloomKnee = 0.1f;
 
+	Ref<Render::Texture> m_finalComposite;
+	Ref<Render::TextureView> m_finalCompositeSRV;
+	Ref<Render::TextureView> m_finalCompositeRTV;
+
 	Ref<Render::Buffer> m_sceneUniBuffer;
 	Ref<Render::BufferView> m_sceneUniBufferView;
 

@@ -108,11 +108,7 @@ float4 psmain(VertexOut pin) : SV_Target
 	
 	float3 Lo = analyticLight;
 	
-	float3 color = Lo;
-
-	// Gamma correction
-	color = color / (color + 1.f);
-	color = pow(color, 1.f / 2.2f);
+	float3 color = Lo * 10.f;
 	
 	return float4(color, 1.f);
 }
