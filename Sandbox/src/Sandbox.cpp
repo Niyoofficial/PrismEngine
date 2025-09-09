@@ -768,24 +768,35 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 		if (ImGui::CollapsingHeader("Bloom"))
 		{
-			ImGui::Text("Bloom downscale");
 
 			ImGui::DragFloat("Threshold", &m_bloomThreshold, 0.005f);
 			ImGui::DragFloat("Knee", &m_bloomKnee, 0.005f);
 
-			static int32_t s_downsampleMipIndex = 0;
-			ImGui::SliderInt("Downsample Mip Index", &s_downsampleMipIndex, 0, 6);
+			ImGui::Text("Bloom downsample A");
+			static int32_t s_downsampleAMipIndex = 0;
+			ImGui::SliderInt("Downsample A Mip Index", &s_downsampleAMipIndex, 0, 6);
 
-			float texWidth = (float)m_bloomDownsampleTexture->GetTextureDesc().GetWidth() / (float)m_bloomDownsampleTexture->GetTextureDesc().GetHeight() * 256.f;
+			float texWidth = (float)m_bloomDownsampleA->GetTextureDesc().GetWidth() / (float)m_bloomDownsampleA->GetTextureDesc().GetHeight() * 256.f;
 			auto viewDesc = TextureViewDesc{
 				.type = TextureViewType::SRV,
 				.dimension = ResourceDimension::Tex2D,
-				.subresourceRange = {.firstMipLevel = s_downsampleMipIndex, .numMipLevels = 1}
+				.subresourceRange = {.firstMipLevel = s_downsampleAMipIndex, .numMipLevels = 1}
 			};
-			ImGui::Image(m_bloomDownsampleTexture->CreateView(viewDesc), {texWidth, 256});
+			ImGui::Image(m_bloomDownsampleA->CreateView(viewDesc), {texWidth, 256});
 
-			ImGui::Text("Bloom downscale");
+			ImGui::Text("Bloom downsample B");
+			static int32_t s_downsampleBMipIndex = 0;
+			ImGui::SliderInt("Downsample B Mip Index", &s_downsampleBMipIndex, 0, 6);
 
+			texWidth = (float)m_bloomDownsampleB->GetTextureDesc().GetWidth() / (float)m_bloomDownsampleB->GetTextureDesc().GetHeight() * 256.f;
+			viewDesc = TextureViewDesc{
+				.type = TextureViewType::SRV,
+				.dimension = ResourceDimension::Tex2D,
+				.subresourceRange = {.firstMipLevel = s_downsampleBMipIndex, .numMipLevels = 1}
+			};
+			ImGui::Image(m_bloomDownsampleB->CreateView(viewDesc), {texWidth, 256});
+
+			ImGui::Text("Bloom upsample");
 			static int32_t s_upsampleMipIndex = 0;
 			ImGui::SliderInt("Upsample Mip Index", &s_upsampleMipIndex, 0, 5);
 
@@ -794,7 +805,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 				.dimension = ResourceDimension::Tex2D,
 				.subresourceRange = {.firstMipLevel = s_upsampleMipIndex, .numMipLevels = 1}
 			};
-			ImGui::Image(m_bloomUpsampleTexture->CreateView(viewDesc), { texWidth, 256 });
+			ImGui::Image(m_bloomUpsampleTexture->CreateView(viewDesc), {texWidth, 256});
 		}
 
 		ImGui::End();
@@ -1202,7 +1213,7 @@ void SandboxLayer::Update(Duration delta)
 			renderContext->BeginEvent({}, L"Prefilter");
 
 			renderContext->SetTexture(m_sceneColorSRV, L"g_inputTexture");
-			renderContext->SetTexture(m_bloomDownsampleTexture->CreateView({.type = TextureViewType::UAV}), L"g_outputTexture");
+			renderContext->SetTexture(m_bloomDownsampleA->CreateView({.type = TextureViewType::UAV}), L"g_outputTexture");
 
 			void* bloomSettingsData = m_bloomSettingsBuffer->Map(CPUAccess::Write);
 			memcpy_s(bloomSettingsData, m_bloomSettingsBuffer->GetBufferDesc().size, &bloomSettingsUniformBuffer, sizeof(bloomSettingsUniformBuffer));
@@ -1216,7 +1227,7 @@ void SandboxLayer::Update(Duration delta)
 				}
 			});
 
-			renderContext->Dispatch({m_bloomDownsampleTexture->GetTextureDesc().GetWidth() / 4, m_bloomDownsampleTexture->GetTextureDesc().GetHeight() / 4, 1});
+			renderContext->Dispatch({m_bloomDownsampleA->GetTextureDesc().GetWidth() / 4, m_bloomDownsampleA->GetTextureDesc().GetHeight() / 4, 1});
 
 			renderContext->EndEvent();
 		}
@@ -1225,32 +1236,41 @@ void SandboxLayer::Update(Duration delta)
 		{
 			renderContext->BeginEvent({}, L"Downsample");
 
-			for (int32_t i = 1; i < m_bloomDownsampleTexture->GetTextureDesc().GetMipLevels(); ++i)
-			{
-				TextureViewDesc uavDesc = {
-					.type = TextureViewType::UAV, .subresourceRange = {.firstMipLevel = i, .numMipLevels = 1}
+			auto dispatchDownsample =
+				[&bloomSettingsUniformBuffer, &renderContext, this](Texture* uavTexture, int32_t uavMipIndex, TextureView* srv, int32_t srvMipReadIndex)
+				{
+					TextureViewDesc uavDesc = {
+						.type = TextureViewType::UAV, .subresourceRange = {.firstMipLevel = uavMipIndex, .numMipLevels = 1}
+					};
+					renderContext->SetTexture(uavTexture->CreateView(uavDesc), L"g_outputTexture");
+					renderContext->SetTexture(srv, L"g_inputTexture");
+
+					bloomSettingsUniformBuffer.lod = srvMipReadIndex;
+					void* bloomSettingsData = m_bloomSettingsBuffer->Map(CPUAccess::Write);
+					memcpy_s(bloomSettingsData, m_bloomSettingsBuffer->GetBufferDesc().size, &bloomSettingsUniformBuffer,
+							 sizeof(bloomSettingsUniformBuffer));
+					m_bloomSettingsBuffer->Unmap();
+
+					renderContext->SetPSO(ComputePipelineStateDesc{
+						.cs = {
+							.filepath = L"shaders/Bloom.hlsl",
+							.entryName = L"Downsample",
+							.shaderType = ShaderType::CS
+						}
+					});
+
+					renderContext->Dispatch({
+						std::ceil((float)m_bloomDownsampleA->GetTextureDesc().GetWidth() / std::pow(2.f, (float)uavMipIndex) / 4.f),
+						std::ceil((float)m_bloomDownsampleA->GetTextureDesc().GetHeight() / std::pow(2.f, (float)uavMipIndex) / 4.f),
+						1
+					});
 				};
-				renderContext->SetTexture(m_bloomDownsampleTexture->CreateView(uavDesc), L"g_outputTexture");
-				renderContext->SetTexture(m_bloomDownsampleTextureSRV, L"g_inputTexture");
 
-				bloomSettingsUniformBuffer.lod = i - 1;
-				void* bloomSettingsData = m_bloomSettingsBuffer->Map(CPUAccess::Write);
-				memcpy_s(bloomSettingsData, m_bloomSettingsBuffer->GetBufferDesc().size, &bloomSettingsUniformBuffer, sizeof(bloomSettingsUniformBuffer));
-				m_bloomSettingsBuffer->Unmap();
-
-				renderContext->SetPSO(ComputePipelineStateDesc{
-					.cs = {
-						.filepath = L"shaders/Bloom.hlsl",
-						.entryName = L"Downsample",
-						.shaderType = ShaderType::CS
-					}
-				});
-
-				renderContext->Dispatch({
-					std::ceil((float)m_bloomDownsampleTexture->GetTextureDesc().GetWidth() / std::pow(2.f, (float)i) / 4.f),
-					std::ceil((float)m_bloomDownsampleTexture->GetTextureDesc().GetHeight() / std::pow(2.f, (float)i) / 4.f),
-					1
-				});
+			dispatchDownsample(m_bloomDownsampleB, 0, m_bloomDownsampleAsrv, 0);
+			for (int32_t i = 1; i < m_bloomDownsampleA->GetTextureDesc().GetMipLevels(); ++i)
+			{
+				dispatchDownsample(m_bloomDownsampleA, i, m_bloomDownsampleBsrv, i - 1);
+				dispatchDownsample(m_bloomDownsampleB, i, m_bloomDownsampleAsrv, i);
 			}
 
 			renderContext->EndEvent();
@@ -1261,7 +1281,7 @@ void SandboxLayer::Update(Duration delta)
 			renderContext->BeginEvent({}, L"Upsample");
 
 			renderContext->Barrier(TextureBarrier{
-				.texture = m_bloomDownsampleTexture,
+				.texture = m_bloomDownsampleA,
 				.syncBefore = BarrierSync::ComputeShading,
 				.syncAfter = BarrierSync::ComputeShading,
 				.accessBefore = BarrierAccess::UnorderedAccess,
@@ -1270,14 +1290,14 @@ void SandboxLayer::Update(Duration delta)
 				.layoutAfter = BarrierLayout::ShaderResource,
 			});
 
-			for (int32_t i = m_bloomDownsampleTexture->GetTextureDesc().GetMipLevels() - 2; i >= 0; --i)
+			for (int32_t i = m_bloomDownsampleA->GetTextureDesc().GetMipLevels() - 2; i >= 0; --i)
 			{
 				TextureViewDesc uavDesc = {
 					.type = TextureViewType::UAV, .subresourceRange = {.firstMipLevel = i, .numMipLevels = 1}
 				};
 				renderContext->SetTexture(m_bloomUpsampleTexture->CreateView(uavDesc), L"g_outputTexture");
-				renderContext->SetTexture(m_bloomDownsampleTextureSRV, L"g_inputTexture");
-				renderContext->SetTexture(i == 5 ? m_bloomDownsampleTextureSRV : m_bloomUpsampleTextureSRV, L"g_accumulationTexture");
+				renderContext->SetTexture(m_bloomDownsampleBsrv, L"g_inputTexture");
+				renderContext->SetTexture(i == 5 ? m_bloomDownsampleBsrv : m_bloomUpsampleTextureSRV, L"g_accumulationTexture");
 
 				bloomSettingsUniformBuffer.lod = i;
 				void* bloomSettingsData = m_bloomSettingsBuffer->Map(CPUAccess::Write);
@@ -1310,7 +1330,7 @@ void SandboxLayer::Update(Duration delta)
 			}
 
 			renderContext->Barrier(TextureBarrier{
-				.texture = m_bloomDownsampleTexture,
+				.texture = m_bloomDownsampleA,
 				.syncBefore = BarrierSync::ComputeShading,
 				.syncAfter = BarrierSync::ComputeShading,
 				.accessBefore = BarrierAccess::ShaderResource,
@@ -1358,8 +1378,8 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 		m_sceneColorRTV = m_sceneColor->CreateView({.type = TextureViewType::RTV});
 		m_sceneColorSRV = m_sceneColor->CreateView({.type = TextureViewType::SRV});
 
-		m_bloomDownsampleTexture = Texture::Create({
-			.textureName = L"DownsampleBloomTexture",
+		m_bloomDownsampleA = Texture::Create({
+			.textureName = L"DownsampleBloomTextureA",
 			.width = m_viewportSize.x,
 			.height = m_viewportSize.y,
 			.mipLevels = 7,
@@ -1367,7 +1387,17 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 			.format = TextureFormat::R11G11B10_Float,
 			.bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
 		}, BarrierLayout::UnorderedAccess);
-		m_bloomDownsampleTextureSRV = m_bloomDownsampleTexture->CreateView({.type = TextureViewType::SRV});
+		m_bloomDownsampleAsrv = m_bloomDownsampleA->CreateView({.type = TextureViewType::SRV});
+		m_bloomDownsampleB = Texture::Create({
+			.textureName = L"DownsampleBloomTextureB",
+			.width = m_viewportSize.x,
+			.height = m_viewportSize.y,
+			.mipLevels = 7,
+			.dimension = ResourceDimension::Tex2D,
+			.format = TextureFormat::R11G11B10_Float,
+			.bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
+			}, BarrierLayout::UnorderedAccess);
+		m_bloomDownsampleBsrv = m_bloomDownsampleB->CreateView({ .type = TextureViewType::SRV });
 		m_bloomUpsampleTexture = Texture::Create({
 			.textureName = L"UpsampleBloomTexture",
 			.width = m_viewportSize.x,

@@ -90,7 +90,7 @@ float4 psmain(VertexOut pin) : SV_Target
 	float3 diffuseIrradiance = SH::CalculateIrradiance(sceneIrradiance.irradianceSH, surface.normal); // Does the cosine lobe scale
 	float3 envLight = EnvironmentBRDF(surface, toCamera, diffuseIrradiance, prefilteredSpecularColor, F0ScaleBias);
 	
-	float3 color = envLight;
+	float3 color = envLight / 4.f;
 
 	// Gamma correction
 	color = color / (color + 1.f);
