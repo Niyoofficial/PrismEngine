@@ -655,7 +655,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		{
 			float viewportStartHeight = ImGui::GetCursorPos().y;
 
-			ImGui::Image(m_sceneColorSRV, viewportSize);
+			ImGui::Image(m_finalCompositeSRV, viewportSize);
 
 			// Stats overlay
 			if (s_showStatWindow)
@@ -1317,16 +1317,6 @@ void SandboxLayer::Update(Duration delta)
 					std::ceil((float)m_bloomUpsampleTexture->GetTextureDesc().GetHeight() / std::pow(2.f, (float)i) / 4.f),
 					1
 				});
-
-				/*renderContext->Barrier(TextureBarrier{
-					.texture = m_bloomUpsampleTexture,
-					.syncBefore = BarrierSync::ComputeShading,
-					.syncAfter = BarrierSync::ComputeShading,
-					.accessBefore = BarrierAccess::UnorderedAccess,
-					.accessAfter = BarrierAccess::UnorderedAccess,
-					.layoutBefore = BarrierLayout::UnorderedAccess,
-					.layoutAfter = BarrierLayout::UnorderedAccess,
-				});*/
 			}
 
 			renderContext->Barrier(TextureBarrier{
@@ -1343,6 +1333,37 @@ void SandboxLayer::Update(Duration delta)
 		}
 
 		renderContext->EndEvent();
+	}
+
+	// Final composite
+	{
+		renderContext->SetRenderTarget(m_finalCompositeRTV, nullptr);
+
+		renderContext->SetPSO(GraphicsPipelineStateDesc{
+			.vs = {
+				.filepath = L"shaders/FinalComposite.hlsl",
+				.entryName = L"vsmain",
+				.shaderType = ShaderType::VS
+			},
+			.ps = {
+				.filepath = L"shaders/FinalComposite.hlsl",
+				.entryName = L"psmain",
+				.shaderType = ShaderType::PS
+			},
+			.rasterizerState = {
+				.cullMode = CullMode::Front
+			},
+			.depthStencilState = {
+				.depthEnable = false,
+				.depthWriteEnable = false,
+				.stencilEnable = false
+			},
+		});
+
+		renderContext->SetTexture(m_sceneColorSRV, L"g_sceneColorTexture");
+		renderContext->SetTexture(m_bloomUpsampleTextureSRV, L"g_bloomTexture");
+
+		renderContext->Draw({.numVertices = 3 });
 	}
 
 	RenderDevice::Get().SubmitContext(renderContext);
@@ -1408,6 +1429,21 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 			.bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
 		}, BarrierLayout::UnorderedAccess);
 		m_bloomUpsampleTextureSRV = m_bloomUpsampleTexture->CreateView({.type = TextureViewType::SRV});
+
+		m_finalComposite = Texture::Create({
+										   .textureName = L"FinalComposite",
+										   .width = m_viewportSize.x,
+										   .height = m_viewportSize.y,
+										   .dimension = ResourceDimension::Tex2D,
+										   .format = TextureFormat::R11G11B10_Float,
+										   .bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
+										   .optimizedClearValue = RenderTargetClearValue{
+											   .format = TextureFormat::R11G11B10_Float,
+											   .color = {0.f, 0.f, 0.f, 1.f}
+										   }
+			}, BarrierLayout::RenderTarget);
+		m_finalCompositeRTV = m_finalComposite->CreateView({.type = TextureViewType::RTV});
+		m_finalCompositeSRV = m_finalComposite->CreateView({.type = TextureViewType::SRV});
 
 		m_camera->SetPerspective(45.f,
 			(float)m_viewportSize.x / (float)m_viewportSize.y,

@@ -49,9 +49,5 @@ float4 psmain(PixelInputCube pin) : SV_TARGET
 
 	float3 color = skybox.SampleLevel(g_samLinearWrap, pin.positionLocal, 0).rgb;
 	
-	// Gamma correction
-	color = color / (color + 1.f);
-	color = pow(color, 1.f / 2.2f);
-
 	return float4(color, 1.f);
 }
