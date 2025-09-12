@@ -831,6 +831,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			clipper.Begin((int32_t)imguiSink->GetLineOffsets().size());
 			while (clipper.Step())
 			{
+				glm::float3 lastLogColor = {1.f, 1.f, 1.f};
 				for (int line = clipper.DisplayStart; line < clipper.DisplayEnd; line++)
 				{
 					const char* lineStart = imguiSink->GetLogBuffer().data() + imguiSink->GetLineOffsets()[line];
@@ -859,10 +860,15 @@ void SandboxLayer::UpdateImGui(Duration delta)
 						glm::float3 logColor = it != colorMap.end() ? it->second : glm::float3{1.f, 1.f, 1.f};
 						int64_t lineLength = imguiSink->GetLineOffsets()[line + 1] - imguiSink->GetLineOffsets()[line] - 1;
 						ImGui::TextColored({logColor.r, logColor.g, logColor.b, 1.f}, "%.*s", lineLength, lineStart);
+						lastLogColor = logColor;
 					}
 					else
 					{
-						ImGui::TextUnformatted(lineStart, lineEnd);
+						if (imguiSink->GetLineOffsets().size() > line + 1)
+						{
+							int64_t lineLength = imguiSink->GetLineOffsets()[line + 1] - imguiSink->GetLineOffsets()[line] - 1;
+							ImGui::TextColored({ lastLogColor.r, lastLogColor.g, lastLogColor.b, 1.f }, "%.*s", lineLength, lineStart);
+						}
 					}
 				}
 			}
@@ -1337,6 +1343,7 @@ void SandboxLayer::Update(Duration delta)
 
 	// Final composite
 	{
+		renderContext->ClearRenderTargetView(m_finalCompositeRTV);
 		renderContext->SetRenderTarget(m_finalCompositeRTV, nullptr);
 
 		renderContext->SetPSO(GraphicsPipelineStateDesc{
