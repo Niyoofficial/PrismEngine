@@ -9,6 +9,8 @@
 #include <any>
 #include <span>
 #include <ranges>
+#include <filesystem>
+#include <fstream>
 
 #include "Prism/Base/Base.h"
 

@@ -61,3 +61,8 @@ namespace Prism::Core
 void InitCore();
 void ShutdownCore();
 }
+
+namespace std
+{
+	namespace fs = std::filesystem;
+}

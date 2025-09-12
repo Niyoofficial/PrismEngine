@@ -3,8 +3,6 @@
 
 #include "Prism/Base/Base.h"
 #include "Prism/Render/RenderDevice.h"
-#include <fstream>
-#include <filesystem>
 
 #include "Prism/Base/Paths.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
@@ -21,13 +19,13 @@ D3D12ShaderCompiler::D3D12ShaderCompiler()
 	PE_ASSERT_HR(m_dxcUtils->CreateDefaultIncludeHandler(&m_dxcIncludeHandler));
 
 	std::error_code error;
-	for (const auto& file : std::filesystem::directory_iterator(Core::Paths::Get().GetIntermediateDir(), error))
+	for (const auto& file : std::fs::directory_iterator(Core::Paths::Get().GetIntermediateDir(), error))
 	{
 		if (file.is_regular_file())
 		{
 			if (file.path().extension().compare(".bin") == 0)
 			{
-				std::filesystem::path metaFile = file.path();
+				std::fs::path metaFile = file.path();
 				metaFile.replace_extension(".meta");
 				if (!exists(metaFile) || !is_regular_file(metaFile))
 				{
@@ -68,13 +66,25 @@ D3D12ShaderCompiler::D3D12ShaderCompiler()
 					.shaderType = (ShaderType)metadata["ShaderDesc"]["shaderType"].as<int32_t>()
 				};
 
-				m_shaderCache[desc] = {hash, output};
+				std::fs::path shaderEnginePath = Core::Paths::Get().GetEngineDir() + L"/" + desc.filepath;
+				if ((std::fs::exists(desc.filepath.c_str()) && std::fs::is_regular_file(desc.filepath.c_str())) ||
+					(std::fs::exists(shaderEnginePath) && std::fs::is_regular_file(shaderEnginePath)))
+				{
+					m_shaderCache[desc] = {hash, output};
 
-				// Try to compile the shader anyway in case the cached file is outdated
-				D3D12ShaderCompiler::CompileShader(desc);
+					PE_D3D12_LOG(Info, "Loaded cached shader binary file {} for shader {}, Entryname: {}, Shader code hash: {}",
+						file.path().generic_string(), WStringToString(desc.filepath), WStringToString(desc.entryName), hash);
 
-				PE_D3D12_LOG(Info, "Loaded cached shader binary file {} for shader {}, Entryname: {}, Shader code hash: {}",
-					file.path().generic_string(), WStringToString(desc.filepath), WStringToString(desc.entryName), hash);
+					// Try to compile the shader anyway in case the cached file is outdated
+					D3D12ShaderCompiler::CompileShader(desc);
+				}
+				else
+				{
+					PE_D3D12_LOG(Info, "Removing outdated cache for shader {}, Entryname: {}, Shader code hash: {}",
+						WStringToString(desc.filepath), WStringToString(desc.entryName), hash);
+
+					RemoveShaderCache(hash);
+				}
 			}
 		}
 	}
@@ -100,7 +110,7 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 	if (FAILED(result))
 	{
 		// If shader wasn't found in the project directory, try to load it from the engine directory
-		result = m_dxcUtils->LoadFile((Core::Paths::Get().GetEngineDir() + L"/" + desc.filepath).c_str(), nullptr, &source);
+		result = m_dxcUtils->LoadFile(engineInputPath.c_str(), nullptr, &source);
 	}
 
 	PE_ASSERT(SUCCEEDED(result) && source, "Shader file not found: {}", desc.filepath);
@@ -180,18 +190,16 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 				}
 				else
 				{
-					// As soon as we know that the shader cached files are outdated, get rid of them so they won't be mistakenly loaded at the next program load
-					std::filesystem::path cacheFile(Core::Paths::Get().GetIntermediateDir() + L"/" + std::to_wstring(m_shaderCache.at(desc).hash));
+					// As soon as we know that the shader cached files are outdated, get rid of them, so they won't be mistakenly loaded at the next program load
+					std::fs::path cacheFile(Core::Paths::Get().GetIntermediateDir() + L"/" + std::to_wstring(m_shaderCache.at(desc).hash));
 
-					std::filesystem::remove(cacheFile.replace_extension(L".bin"));
-					std::filesystem::remove(cacheFile.replace_extension(L".pdb"));
-					std::filesystem::remove(cacheFile.replace_extension(L".meta"));
+					RemoveShaderCache(m_shaderCache.at(desc).hash);
 				}
 			}
 		}
 	}
 
-	std::filesystem::path outputFilepathNoExt = Core::Paths::Get().GetIntermediateDir() + L"/" + std::to_wstring(shaderHash);
+	std::fs::path outputFilepathNoExt = Core::Paths::Get().GetIntermediateDir() + L"/" + std::to_wstring(shaderHash);
 
 	D3D12ShaderCompilerOutput output;
 
@@ -219,7 +227,7 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 			ComPtr<IDxcBlobUtf16> shaderName;
 			PE_ASSERT_HR(results->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&output.bytecode), &shaderName));
 
-			std::filesystem::create_directory(Core::Paths::Get().GetIntermediateDir());
+			std::fs::create_directory(Core::Paths::Get().GetIntermediateDir());
 
 			auto outputFilepath = outputFilepathNoExt;
 			outputFilepath.replace_extension(".bin");
@@ -250,7 +258,7 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 			ComPtr<IDxcBlobUtf16> pdbName;
 			PE_ASSERT_HR(results->GetOutput(DXC_OUT_PDB, IID_PPV_ARGS(&pdb), &pdbName));
 
-			std::filesystem::create_directory(Core::Paths::Get().GetIntermediateDir());
+			std::fs::create_directory(Core::Paths::Get().GetIntermediateDir());
 
 			auto outputFilepath = outputFilepathNoExt;
 			outputFilepath.replace_extension(".pdb");
@@ -317,5 +325,14 @@ std::wstring D3D12ShaderCompiler::GetStringForShader(ShaderType shaderType) cons
 std::wstring D3D12ShaderCompiler::GetTargetStringForShader(ShaderType shaderType, int32_t major, int32_t minor) const
 {
 	return std::format(L"{}_{}_{}", GetStringForShader(shaderType), major, minor);
+}
+
+void D3D12ShaderCompiler::RemoveShaderCache(XXH64_hash_t shaderHash)
+{
+	std::fs::path cacheFile(Core::Paths::Get().GetIntermediateDir() + L"/" + std::to_wstring(shaderHash));
+
+	std::fs::remove(cacheFile.replace_extension(L".bin"));
+	std::fs::remove(cacheFile.replace_extension(L".pdb"));
+	std::fs::remove(cacheFile.replace_extension(L".meta"));
 }
 }

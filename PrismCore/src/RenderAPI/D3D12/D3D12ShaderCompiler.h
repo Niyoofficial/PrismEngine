@@ -35,6 +35,8 @@ private:
 	std::wstring GetStringForShader(ShaderType shaderType) const;
 	std::wstring GetTargetStringForShader(ShaderType shaderType, int32_t major, int32_t minor) const;
 
+	void RemoveShaderCache(XXH64_hash_t shaderHash);
+
 private:
 	ComPtr<IDxcUtils> m_dxcUtils;
 	ComPtr<IDxcCompiler3> m_dxcCompiler;

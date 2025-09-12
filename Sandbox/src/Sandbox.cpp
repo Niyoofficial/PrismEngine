@@ -655,7 +655,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		{
 			float viewportStartHeight = ImGui::GetCursorPos().y;
 
-			ImGui::Image(m_finalCompositeSRV, viewportSize);
+			ImGui::Image(m_finalCompositionSRV, viewportSize);
 
 			// Stats overlay
 			if (s_showStatWindow)
@@ -823,7 +823,8 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 		ImGui::Separator();
 
-		if (ImGui::BeginChild("Scrolling", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar))
+		if (ImGui::BeginChild("Scrolling", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar) &&
+			imguiSink->GetLogBuffer().size())
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
 
@@ -1341,19 +1342,19 @@ void SandboxLayer::Update(Duration delta)
 		renderContext->EndEvent();
 	}
 
-	// Final composite
+	// Final composition
 	{
-		renderContext->ClearRenderTargetView(m_finalCompositeRTV);
-		renderContext->SetRenderTarget(m_finalCompositeRTV, nullptr);
+		renderContext->ClearRenderTargetView(m_finalCompositionRTV);
+		renderContext->SetRenderTarget(m_finalCompositionRTV, nullptr);
 
 		renderContext->SetPSO(GraphicsPipelineStateDesc{
 			.vs = {
-				.filepath = L"shaders/FinalComposite.hlsl",
+				.filepath = L"shaders/FinalComposition.hlsl",
 				.entryName = L"vsmain",
 				.shaderType = ShaderType::VS
 			},
 			.ps = {
-				.filepath = L"shaders/FinalComposite.hlsl",
+				.filepath = L"shaders/FinalComposition.hlsl",
 				.entryName = L"psmain",
 				.shaderType = ShaderType::PS
 			},
@@ -1437,8 +1438,8 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 		}, BarrierLayout::UnorderedAccess);
 		m_bloomUpsampleTextureSRV = m_bloomUpsampleTexture->CreateView({.type = TextureViewType::SRV});
 
-		m_finalComposite = Texture::Create({
-										   .textureName = L"FinalComposite",
+		m_finalComposition = Texture::Create({
+										   .textureName = L"FinalComposition",
 										   .width = m_viewportSize.x,
 										   .height = m_viewportSize.y,
 										   .dimension = ResourceDimension::Tex2D,
@@ -1449,8 +1450,8 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 											   .color = {0.f, 0.f, 0.f, 1.f}
 										   }
 			}, BarrierLayout::RenderTarget);
-		m_finalCompositeRTV = m_finalComposite->CreateView({.type = TextureViewType::RTV});
-		m_finalCompositeSRV = m_finalComposite->CreateView({.type = TextureViewType::SRV});
+		m_finalCompositionRTV = m_finalComposition->CreateView({.type = TextureViewType::RTV});
+		m_finalCompositionSRV = m_finalComposition->CreateView({.type = TextureViewType::SRV});
 
 		m_camera->SetPerspective(45.f,
 			(float)m_viewportSize.x / (float)m_viewportSize.y,
