@@ -191,8 +191,10 @@ private:
 	Ref<Render::TextureView> m_sunShadowMapDSV;
 	Ref<Render::TextureView> m_sunShadowMapSRV;
 
-	Ref<Render::Texture> m_bloomDownsampleTexture;
-	Ref<Render::TextureView> m_bloomDownsampleTextureSRV;
+	Ref<Render::Texture> m_bloomDownsampleA;
+	Ref<Render::TextureView> m_bloomDownsampleAsrv;
+	Ref<Render::Texture> m_bloomDownsampleB;
+	Ref<Render::TextureView> m_bloomDownsampleBsrv;
 	Ref<Render::Texture> m_bloomUpsampleTexture;
 	Ref<Render::TextureView> m_bloomUpsampleTextureSRV;
 	Ref<Render::Buffer> m_bloomSettingsBuffer;

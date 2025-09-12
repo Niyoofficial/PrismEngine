@@ -162,8 +162,27 @@ void imgui_sink::sink_it_(const details::log_msg& msg)
 	memory_buf_t formatted;
 	base_sink<std::mutex>::formatter_->format(msg, formatted);
 
+	//if (formatted[formatted.size() - 1] != '\n')
+	//	formatted.push_back('\n');
+
 	m_buffer.append(formatted);
-	m_lineOffsets.push_back((int64_t)m_buffer.size());
+
+	int64_t lastOffset = m_lineOffsets.back();
+	auto it = formatted.begin();
+	while (true)
+	{
+		it = std::ranges::find(it, formatted.end(), '\n');
+		if (it != formatted.end())
+		{
+			m_lineOffsets.push_back(lastOffset + it - formatted.begin() + 1);
+			++it;
+		}
+		else
+		{
+			break;
+		}
+	}
+	//m_lineOffsets.push_back((int64_t)m_buffer.size());
 }
 
 void imgui_sink::flush_() {}
