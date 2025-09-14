@@ -179,6 +179,11 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			}
 		});
 
+	m_scene = Scene::Create(L"Test Scene");
+	m_scene->AddEntity(L"");
+	m_scene->AddEntity(L"");
+	m_scene->AddEntity(L"");
+
 	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
 	m_camera = new Camera(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
@@ -604,6 +609,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 	static bool s_showStatWindow = true;
 	static bool s_showDebugMenu = true;
 	static bool s_showLogMenu = true;
+	static bool s_showSceneOutline = true;
 
 	// Menu bar
 	{
@@ -611,6 +617,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 		if (ImGui::BeginMenu("Show"))
 		{
+			ImGui::MenuItem("Show scene hierarchy", nullptr, &s_showSceneOutline);
 			ImGui::MenuItem("Show stat window", nullptr, &s_showStatWindow);
 			ImGui::MenuItem("Show debug window", nullptr, &s_showDebugMenu);
 			ImGui::MenuItem("Show log window", nullptr, &s_showLogMenu);
@@ -823,7 +830,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 		ImGui::Separator();
 
-		if (ImGui::BeginChild("Scrolling", ImVec2(0, 0), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar) &&
+		if (ImGui::BeginChild("Child_Log", ImVec2(0, 0), ImGuiChildFlags_NavFlattened, ImGuiWindowFlags_HorizontalScrollbar) &&
 			imguiSink->GetLogBuffer().size())
 		{
 			ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0, 0));
@@ -882,6 +889,46 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		}
 		ImGui::EndChild();
 
+		ImGui::End();
+	}
+
+	// Scene Hierarchy
+	if (s_showSceneOutline)
+	{
+		if (ImGui::Begin("SceneOutline", &s_showSceneOutline, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+		{
+			if (ImGui::BeginChild("SceneOutline_Hierarchy", {0, 0}))
+			{
+				if (ImGui::BeginTable("SceneHierarchy_Table", 1, ImGuiTableFlags_RowBg))
+				{
+					auto drawTreeNode =
+						[this](entt::entity entity)
+						{
+							ImGui::TableNextRow();
+							ImGui::TableNextColumn();
+							ImGuiTreeNodeFlags treeFlags =
+								ImGuiTreeNodeFlags_OpenOnArrow |
+								ImGuiTreeNodeFlags_OpenOnDoubleClick |
+								ImGuiTreeNodeFlags_NavLeftJumpsBackHere |
+								ImGuiTreeNodeFlags_SpanFullWidth |
+								ImGuiTreeNodeFlags_Leaf;
+
+							std::string entityID = std::to_string((std::underlying_type_t<entt::entity>)entity);
+							if (ImGui::TreeNodeEx(entityID.c_str(), treeFlags, "<unnamed ID: %s>", entityID.c_str()))
+							{
+								ImGui::TreePop();
+							}
+						};
+
+					for (entt::entity entity : m_scene->GetRegistry().storage<entt::entity>())
+					{
+						drawTreeNode(entity);
+					}
+				}
+				ImGui::EndTable();
+			}
+			ImGui::EndChild();
+		}
 		ImGui::End();
 	}
 }

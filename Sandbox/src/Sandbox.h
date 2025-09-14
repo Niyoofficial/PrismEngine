@@ -3,6 +3,7 @@
 #include "Prism/Base/AppEvents.h"
 #include "Prism/Base/AppEvents.h"
 #include "Prism/Base/Application.h"
+#include "Prism/Scene/Scene.h"
 #include "Prism/Render/Buffer.h"
 #include "Prism/Render/Camera.h"
 #include "Prism/Render/Layer.h"
@@ -158,6 +159,8 @@ private:
 
 private:
 	WeakRef<Core::Window> m_owningWindow;
+
+	Ref<Scene> m_scene;
 
 	float m_environmentLightScale = 1.f;
 	glm::float3 m_sunRotation = {0.f, glm::radians(-7.f), glm::radians(-101.f)};

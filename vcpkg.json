@@ -24,7 +24,8 @@
 		},
 		"winpixevent",
 		"xxhash",
-		"yaml-cpp"
+		"yaml-cpp",
+		"entt"
 	],
 	"overrides": [
 		{
@@ -34,6 +35,10 @@
 		{
 			"name": "directx-dxc",
 			"version-date": "2025-05-30"
+		},
+		{
+			"name": "imgui",
+			"version": "1.91.9#0"
 		}
 	]
 }
