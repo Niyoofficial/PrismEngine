@@ -86,6 +86,8 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 		D3D12RenderDevice::Get().SubmitContext(context);
 		D3D12RenderDevice::Get().GetRenderCommandQueue()->Flush();
 
+		stbi_image_free(loadedData);
+
 		PE_ASSERT(m_resource);
 
 		auto loadedResDesc = m_resource->GetDesc();
