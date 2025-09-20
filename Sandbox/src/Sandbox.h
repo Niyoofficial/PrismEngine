@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include "Prism/Base/AppEvents.h"
-#include "Prism/Base/AppEvents.h"
 #include "Prism/Base/Application.h"
 #include "Prism/Scene/Scene.h"
 #include "Prism/Render/Buffer.h"
@@ -11,7 +9,7 @@
 #include "Prism/Render/PrimitiveBatch.h"
 #include "Prism/Render/Primitive.h"
 #include "Prism/Render/RenderConstants.h"
-#include "Prism/Utilities/MeshUtils.h"
+#include "Prism/Utilities/MeshLoading.h"
 
 
 using namespace Prism;
@@ -240,7 +238,7 @@ public:
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
 
-		std::unordered_map<MeshUtils::TextureType, Ref<Render::Texture>> textures;
+		std::unordered_map<MeshLoading::TextureType, Ref<Render::Texture>> textures;
 	};
 
 	struct MeshData
@@ -256,8 +254,8 @@ public:
 	Core::Window* GetWindow() const;
 
 	static Ref<Render::PrimitiveBatch> LoadMeshFromFile(const std::wstring& primitiveBatchName, const std::wstring& filepath,
-														std::function<Render::Material(const MeshUtils::PrimitiveData&)> createMaterialFunc,
-														std::wstring primitiveBufferParamName, int64_t primitiveBufferSize, MeshUtils::MeshData* outMeshData = nullptr);
+														std::function<Render::Material(const MeshLoading::PrimitiveData&)> createMaterialFunc,
+														std::wstring primitiveBufferParamName, int64_t primitiveBufferSize, MeshLoading::MeshData* outMeshData = nullptr);
 	static Ref<Render::PrimitiveBatch> LoadMeshFromFilePBR(const std::wstring& primitiveBatchName, const std::wstring& filepath);
 
 private:

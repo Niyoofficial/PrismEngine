@@ -1,5 +1,6 @@
 #pragma once
 #include "entt/entt.hpp"
+#include "SceneRenderPipeline.h"
 
 namespace Prism
 {
@@ -13,6 +14,11 @@ public:
 	entt::registry& GetRegistry() { return m_registry; }
 	const entt::registry& GetRegistry() const { return m_registry; }
 
+	void SetRenderPipeline(SceneRenderPipeline* renderPipeline);
+
+
+
+
 private:
 	explicit Scene(const std::wstring& name);
 
@@ -20,5 +26,6 @@ private:
 
 private:
 	entt::registry m_registry;
+	Ref<SceneRenderPipeline> m_renderPipeline;
 };
 }

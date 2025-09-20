@@ -1,11 +1,12 @@
 ﻿#pragma once
+#include "assimp/Importer.hpp"
 
 namespace Prism::Render
 {
 class Texture;
 }
 
-namespace Prism::MeshUtils
+namespace Prism::MeshLoading
 {
 struct VertexData
 {
@@ -43,4 +44,20 @@ struct MeshData
 
 void InitMeshLoading();
 MeshData LoadMeshFromFile(const std::wstring& filePath);
+
+class MeshAsset : public RefCounted
+{
+public:
+	MeshAsset() = default;
+
+	void LoadMesh(const std::wstring& filePath);
+
+
+
+private:
+	Assimp::Importer m_importer;
+};
+
+using PerNodeFunc = std::function<void()>;
+using PerMeshFunc = std::function<void()>;
 }

@@ -941,6 +941,8 @@ void SandboxLayer::Update(Duration delta)
 	if (m_viewportSize.x == 0 || m_viewportSize.y == 0)
 		return;
 
+	m_scene->Update(delta);
+
 	if (m_viewportRelativeMouse && Core::Platform::Get().IsKeyPressed(KeyCode::RightMouseButton))
 	{
 		if (Core::Platform::Get().IsKeyPressed(KeyCode::W))
@@ -1050,10 +1052,10 @@ void SandboxLayer::Update(Duration delta)
 		renderContext->SetScissor({{0.f, 0.f}, m_viewportSize});
 
 		renderContext->SetRenderTargets({
-										   m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV),
-										   m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::RTV),
-										   m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::RTV)
-									   }, m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::DSV));
+											m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV),
+											m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::RTV),
+											m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::RTV)
+										}, m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::DSV));
 
 		glm::float4 clearColor = {0.f, 0.f, 0.f, 1.f};
 		renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV), &clearColor);
@@ -1626,12 +1628,12 @@ Core::Window* SandboxApplication::GetWindow() const
 
 Ref<Render::PrimitiveBatch> SandboxApplication::LoadMeshFromFile(const std::wstring& primitiveBatchName,
 																 const std::wstring& filepath,
-																 std::function<Render::Material(const MeshUtils::PrimitiveData&)> createMaterialFunc,
+																 std::function<Render::Material(const MeshLoading::PrimitiveData&)> createMaterialFunc,
 																 std::wstring primitiveBufferParamName,
 																 int64_t primitiveBufferSize,
-																 MeshUtils::MeshData* outMeshData)
+																 MeshLoading::MeshData* outMeshData)
 {
-	auto fillBatchData = [&primitiveBatchName, &createMaterialFunc, &primitiveBufferParamName, &primitiveBufferSize](MeshUtils::MeshData& meshData)
+	auto fillBatchData = [&primitiveBatchName, &createMaterialFunc, &primitiveBufferParamName, &primitiveBufferSize](MeshLoading::MeshData& meshData)
 		{
 			Ref batch = new Render::PrimitiveBatch(primitiveBatchName);
 
@@ -1660,32 +1662,32 @@ Ref<Render::PrimitiveBatch> SandboxApplication::LoadMeshFromFile(const std::wstr
 
 	if (outMeshData)
 	{
-		*outMeshData = MeshUtils::LoadMeshFromFile(filepath);
+		*outMeshData = MeshLoading::LoadMeshFromFile(filepath);
 		return fillBatchData(*outMeshData);
 	}
 	else
 	{
-		auto meshData = MeshUtils::LoadMeshFromFile(filepath);
+		auto meshData = MeshLoading::LoadMeshFromFile(filepath);
 		return fillBatchData(meshData);
 	}
 }
 
 Ref<Render::PrimitiveBatch> SandboxApplication::LoadMeshFromFilePBR(const std::wstring& primitiveBatchName, const std::wstring& filepath)
 {
-	MeshUtils::MeshData meshData;
+	MeshLoading::MeshData meshData;
 	auto batch = LoadMeshFromFile(primitiveBatchName, filepath,
-								  [](const MeshUtils::PrimitiveData& primitiveData)
+								  [](const MeshLoading::PrimitiveData& primitiveData)
 								  {
 									  Render::Material material;
 									  Render::TextureViewDesc srvDesc = {.type = Render::TextureViewType::SRV};
-									  if (primitiveData.textures.contains(MeshUtils::TextureType::Albedo))
-										  material.SetTexture(L"g_albedoTexture", primitiveData.textures.at(MeshUtils::TextureType::Albedo)->CreateView(srvDesc));
-									  if (primitiveData.textures.contains(MeshUtils::TextureType::Normals))
-										  material.SetTexture(L"g_normalTexture", primitiveData.textures.at(MeshUtils::TextureType::Normals)->CreateView(srvDesc));
-									  if (primitiveData.textures.contains(MeshUtils::TextureType::Metallic))
-										  material.SetTexture(L"g_metallicTexture", primitiveData.textures.at(MeshUtils::TextureType::Metallic)->CreateView(srvDesc));
-									  if (primitiveData.textures.contains(MeshUtils::TextureType::Roughness))
-										  material.SetTexture(L"g_roughnessTexture", primitiveData.textures.at(MeshUtils::TextureType::Roughness)->CreateView(srvDesc));
+									  if (primitiveData.textures.contains(MeshLoading::TextureType::Albedo))
+										  material.SetTexture(L"g_albedoTexture", primitiveData.textures.at(MeshLoading::TextureType::Albedo)->CreateView(srvDesc));
+									  if (primitiveData.textures.contains(MeshLoading::TextureType::Normals))
+										  material.SetTexture(L"g_normalTexture", primitiveData.textures.at(MeshLoading::TextureType::Normals)->CreateView(srvDesc));
+									  if (primitiveData.textures.contains(MeshLoading::TextureType::Metallic))
+										  material.SetTexture(L"g_metallicTexture", primitiveData.textures.at(MeshLoading::TextureType::Metallic)->CreateView(srvDesc));
+									  if (primitiveData.textures.contains(MeshLoading::TextureType::Roughness))
+										  material.SetTexture(L"g_roughnessTexture", primitiveData.textures.at(MeshLoading::TextureType::Roughness)->CreateView(srvDesc));
 
 									  material.SetVertexShader({
 										  .filepath = L"shaders/DeferredBasePass.hlsl",

@@ -3,7 +3,7 @@
 
 #include "Prism/Render/RenderCommandQueue.h"
 #include "Prism/Render/RenderResourceCreation.h"
-#include "Prism/Utilities/MeshUtils.h"
+#include "Prism/Utilities/MeshLoading.h"
 
 
 namespace Prism::Render
@@ -35,7 +35,7 @@ RenderDevice* RenderDevice::TryGet()
 
 RenderDevice::RenderDevice(RenderDeviceParams params)
 {
-	MeshUtils::InitMeshLoading();
+	MeshLoading::InitMeshLoading();
 
 	m_shaderCompiler.reset(Private::CreateShaderCompiler());
 }

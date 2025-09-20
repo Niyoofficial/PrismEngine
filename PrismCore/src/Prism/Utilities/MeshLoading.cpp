@@ -1,5 +1,5 @@
 ﻿#include "pcpch.h"
-#include "MeshUtils.h"
+#include "MeshLoading.h"
 
 #include "assimp/DefaultLogger.hpp"
 #include "assimp/Importer.hpp"
@@ -10,7 +10,7 @@
 
 DECLARE_LOG_CATEGORY(AssimpLog, "Assimp");
 
-namespace Prism::MeshUtils
+namespace Prism::MeshLoading
 {
 glm::float4x4 AssimpMatToPrismMat(const aiMatrix4x4& aiMat)
 {
@@ -291,5 +291,56 @@ MeshData LoadMeshFromFile(const std::wstring& filePath)
 	}
 
 	return data;
+}
+
+void MeshAsset::LoadMesh(const std::wstring& filePath)
+{
+	const aiScene* scene = m_importer.ReadFile(WStringToString(filePath).c_str(),
+		aiProcess_Triangulate |
+		aiProcess_ConvertToLeftHanded |
+		aiProcess_OptimizeMeshes |
+		aiProcess_ValidateDataStructure |
+		aiProcess_PreTransformVertices |
+		aiProcess_GlobalScale |
+		aiProcess_SortByPType |
+		aiProcess_JoinIdenticalVertices |
+		aiProcess_GenSmoothNormals |
+		aiProcess_CalcTangentSpace |
+		aiProcess_GenUVCoords);
+
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+	{
+		PE_ASSERT(false, "{}", m_importer.GetErrorString());
+	}
+}
+
+void ProcessNode(const aiScene* scene, aiNode* node, const PerNodeFunc& perNode, const PerMeshFunc& perMesh)
+{
+	
+}
+
+void LoadMeshFromFile(const std::wstring& filePath, const PerNodeFunc& perNode, const PerMeshFunc& perMesh)
+{
+	Assimp::Importer importer;
+	const aiScene* scene = importer.ReadFile(WStringToString(filePath),
+		aiProcess_Triangulate |
+		aiProcess_ConvertToLeftHanded |
+		aiProcess_OptimizeMeshes |
+		aiProcess_ValidateDataStructure |
+		aiProcess_PreTransformVertices |
+		aiProcess_GlobalScale |
+		aiProcess_SortByPType |
+		aiProcess_JoinIdenticalVertices |
+		aiProcess_GenSmoothNormals |
+		aiProcess_CalcTangentSpace |
+		aiProcess_GenUVCoords);
+
+	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+	{
+		PE_ASSERT(false, "{}", importer.GetErrorString());
+		return;
+	}
+
+	ProcessNode(scene, scene->mRootNode, perNode, perMesh);
 }
 }
