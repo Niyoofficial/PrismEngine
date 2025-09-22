@@ -1,14 +1,27 @@
 #pragma once
-#include "Prism/Render/VertexFactory.h"
 
 namespace Prism
 {
-namespace MeshLoading
-{
-class MeshAsset;
-}
+class Entity;
 
-struct TransformComponent
+class Component
+{
+	friend Entity;
+public:
+	Component() = default;
+	virtual ~Component() = default;
+
+	Entity* GetParent() const { return m_parent; }
+
+protected:
+	// Used by the Entity class to initialize the parent
+	void InitializeOwnership(Entity* parent);
+
+protected:
+	Entity* m_parent = nullptr;
+};
+
+class TransformComponent : public Component
 {
 public:
 	void SetTranslation(glm::float3 translation);

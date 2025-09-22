@@ -1,12 +1,22 @@
 #pragma once
 
 
-namespace Prism
+namespace Prism::Render
 {
-namespace MeshLoading
+
+enum class AttributeVariableType
 {
-class MeshAsset;
-}
+	Int,
+	Uint,
+	Float,
+};
+
+struct VertexAttribute
+{
+	int32_t componentCount = 1;
+	int32_t bytesPerComponent = 32;
+	AttributeVariableType type = AttributeVariableType::Float;
+};
 
 /**
  * VertexFactory is a class that describes what vertex attributes should be included in the vertex buffer,
@@ -16,9 +26,9 @@ class MeshAsset;
  */
 class VertexFactory : public RefCounted
 {
-private:
+public:
 	VertexFactory() = default;
 
-	virtual std::vector<uint8_t> GatherVertexAttributes(MeshLoading::MeshAsset* meshAsset, int32_t primitiveIndex) const = 0;
+	virtual std::vector<VertexAttribute> GatherVertexAttributes() const = 0;
 };
 }

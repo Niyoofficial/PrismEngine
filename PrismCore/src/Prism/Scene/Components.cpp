@@ -1,9 +1,15 @@
 #include "pcpch.h"
 #include "Components.h"
-#include "Prism/Utilities/MeshLoading.h"
+
 
 namespace Prism
 {
+void Component::InitializeOwnership(Entity* parent)
+{
+	PE_ASSERT(m_parent == nullptr);
+	m_parent = parent;
+}
+
 void TransformComponent::SetTranslation(glm::float3 translation)
 {
 	m_translation = translation;

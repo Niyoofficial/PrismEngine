@@ -1,6 +1,6 @@
 #include "SceneRenderPipeline.h"
 
-namespace Prism
+namespace Prism::Render
 {
 
 }
