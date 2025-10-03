@@ -14,49 +14,7 @@
 
 using namespace Prism;
 
-struct CBufferCamera
-{
-	glm::float4x4 view;
-	glm::float4x4 proj;
-	glm::float4x4 viewProj;
-	glm::float4x4 invView;
-	glm::float4x4 invProj;
-	glm::float4x4 invViewProj;
-
-	glm::float3 camPos;
-};
-
-struct DirectionalLight
-{
-	alignas(16)
-	glm::float3 direction;
-	alignas(16)
-	glm::float3 lightColor;
-};
-
-struct PointLight
-{
-	alignas(16)
-	glm::float3 position;
-	alignas(16)
-	glm::float3 lightColor;
-};
-
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) SceneUniformBuffer
-{
-	alignas(16)
-	CBufferCamera camera;
-};
-
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) LightsUniformBuffer
-{
-	alignas(16)
-	DirectionalLight directionalLights[16];
-	alignas(16)
-	PointLight pointLights[16];
-};
-
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) PerLightUniformBuffer
+struct alignas(Render::Constants::UNIFORM_BUFFER_ALIGNMENT) PerLightUniformBuffer
 {
 	alignas(16)
 	int32_t lightIndex = -1;
@@ -64,7 +22,7 @@ struct alignas(Render::Constants::CBUFFER_ALIGNMENT) PerLightUniformBuffer
 	glm::float4x4 shadowViewProj;
 };
 
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) ShadowUniformBuffer
+struct alignas(Render::Constants::UNIFORM_BUFFER_ALIGNMENT) ShadowUniformBuffer
 {
 	alignas(16)
 	glm::float4x4 lightViewProj;
@@ -78,7 +36,7 @@ struct Material
 	float ao = 0.f;
 };
 
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) ModelUniformBuffer
+struct alignas(Render::Constants::UNIFORM_BUFFER_ALIGNMENT) ModelUniformBuffer
 {
 	glm::float4x4 world;
 	alignas(16)
@@ -91,12 +49,7 @@ struct alignas(Render::Constants::CBUFFER_ALIGNMENT) ModelUniformBuffer
 	Material material;
 };
 
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) ModelShadowUniformBuffer
-{
-	glm::float4x4 world;
-};
-
-struct alignas(Render::Constants::CBUFFER_ALIGNMENT) BloomSettingsUniformBuffer
+struct alignas(Render::Constants::UNIFORM_BUFFER_ALIGNMENT) BloomSettingsUniformBuffer
 {
 	float threshold = 1.f;
 	float knee = 0.1f;
@@ -175,22 +128,6 @@ private:
 	Ref<Render::TextureView> m_sceneColorRTV;
 	Ref<Render::TextureView> m_sceneColorSRV;
 
-	Ref<Render::Texture> m_skybox;
-	Ref<Render::TextureView> m_skyboxCubeSRV;
-	Ref<Render::TextureView> m_skyboxArraySRV;
-	Ref<Render::TextureView> m_skyboxUAV;
-
-	Ref<Render::Texture> m_prefilteredSkybox;
-	Ref<Render::TextureView> m_prefilteredEnvMapCubeSRV;
-
-	Ref<Render::Texture> m_BRDFLUT;
-
-	Ref<Render::Texture> m_environmentTexture;
-	Ref<Render::TextureView> m_environmentTextureSRV;
-
-	Ref<Render::Texture> m_sunShadowMap;
-	Ref<Render::TextureView> m_sunShadowMapDSV;
-	Ref<Render::TextureView> m_sunShadowMapSRV;
 
 	Ref<Render::Texture> m_bloomDownsampleA;
 	Ref<Render::TextureView> m_bloomDownsampleAsrv;
@@ -215,12 +152,6 @@ private:
 
 	Ref<Render::Buffer> m_perLightUniBuffer;
 	Ref<Render::BufferView> m_perLightUniBufferView;
-
-	Ref<Render::Buffer> m_sceneShadowUniformBuffer;
-	Ref<Render::BufferView> m_sceneShadowView;
-
-	Ref<Render::Buffer> m_irradianceSHBuffer;
-	Ref<Render::BufferView> m_irradianceSHBufferView;
 
 	Ref<Render::PrimitiveBatch> m_sponza;
 	Ref<Render::PrimitiveBatch> m_cube;

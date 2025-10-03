@@ -10,6 +10,10 @@
 #include "Prism/Render/RenderUtils.h"
 #include "Prism/Render/Texture.h"
 #include "Prism/Render/TextureView.h"
+#include "Prism/Render/PBR/PBRSceneRenderPipeline.h"
+#include "Prism/Scene/Entity.h"
+#include "Prism/Scene/LightRendererComponent.h"
+#include "Prism/Scene/MeshRendererComponent.h"
 
 IMPLEMENT_APPLICATION(SandboxApplication);
 
@@ -179,107 +183,19 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			}
 		});
 
+	// TODO: Add create function on Ref class and make RefCounted not allow object creation on stack
+	Ref sponza = new MeshLoading::MeshAsset(L"meshes/SponzaCrytek/Sponza.gltf");
+
 	m_scene = Scene::Create(L"Test Scene");
-	m_scene->AddEntity(L"");
-	m_scene->AddEntity(L"");
-	m_scene->AddEntity(L"");
+	m_scene->SetRenderPipeline(new PBRSceneRenderPipeline);
+	m_scene->CreateEntityHierarchyForMeshAsset(sponza);
 
 	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
 	m_camera = new Camera(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
 	m_camera->SetPosition({0.f, 0.f, 0.f});
 
-	m_skybox = Texture::Create({
-		.textureName = L"Skybox",
-		.width = 2048,
-		.height = 2048,
-		.depthOrArraySize = 6,
-		.mipLevels = (int32_t)std::log2f(2048) + 1,
-		.dimension = ResourceDimension::TexCube,
-		.format = TextureFormat::RGBA32_Float,
-		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
-		.optimizedClearValue = {}
-	});
-	m_skyboxCubeSRV = m_skybox->CreateView({
-		.type = TextureViewType::SRV,
-		.dimension = ResourceDimension::TexCube,
-		.subresourceRange = {
-			.firstArraySlice = 0,
-			.numArraySlices = 6
-		}
-	});
-	m_skyboxArraySRV = m_skybox->CreateView({
-		.type = TextureViewType::SRV,
-		.dimension = ResourceDimension::Tex2D,
-		.subresourceRange = {
-			.firstMipLevel = 0,
-			.numMipLevels = 1,
-			.firstArraySlice = 0,
-			.numArraySlices = 6
-		}
-	});
-	m_skyboxUAV = m_skybox->CreateView({
-		.type = TextureViewType::UAV,
-		.dimension = ResourceDimension::Tex2D,
-		.subresourceRange = {
-			.firstMipLevel = 0,
-			.numMipLevels = 1,
-			.firstArraySlice = 0,
-			.numArraySlices = 6
-		}
-	});
-
-	m_prefilteredSkybox = Texture::Create({
-		.textureName = L"PrefilteredSkybox",
-		.width = 2048,
-		.height = 2048,
-		.depthOrArraySize = 6,
-		.mipLevels = 6,
-		.dimension = ResourceDimension::TexCube,
-		.format = TextureFormat::RGBA32_Float,
-		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
-		.optimizedClearValue = {}
-	});
-	m_prefilteredEnvMapCubeSRV = m_prefilteredSkybox->CreateView({
-		.type = TextureViewType::SRV,
-		.dimension = ResourceDimension::TexCube,
-		.subresourceRange = {
-			.firstMipLevel = 0,
-			.numMipLevels = 6,
-			.firstArraySlice = 0,
-			.numArraySlices = 6
-		}
-	});
-
-	m_BRDFLUT = Texture::Create({
-		.textureName = L"BRDFLUT",
-		.width = 1024,
-		.height = 1024,
-		.dimension = ResourceDimension::Tex2D,
-		.format = TextureFormat::RG32_Float,
-		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
-	});
-
-	m_sunShadowMap = Texture::Create({
-		.textureName = L"SunShadowMap",
-		.width = 8192,
-		.height = 8192,
-		.dimension = ResourceDimension::Tex2D,
-		.format = TextureFormat::D32_Float,
-		.bindFlags = Flags(BindFlags::DepthStencil) | Flags(BindFlags::ShaderResource),
-		.optimizedClearValue = DepthStencilClearValue{
-			.format = TextureFormat::D32_Float,
-			.depthStencil = {
-				.depth = 1.f
-			}
-		}
-	}, BarrierLayout::DepthStencilWrite);
-	m_sunShadowMapDSV = m_sunShadowMap->CreateView({.type = TextureViewType::DSV});
-	m_sunShadowMapSRV = m_sunShadowMap->CreateView({.type = TextureViewType::SRV, .format = TextureFormat::R32_Float});
-
-	m_environmentTexture = Texture::Create(L"textures/pisa.hdr");
-	m_environmentTextureSRV = m_environmentTexture->CreateView({.type = TextureViewType::SRV});
-
+	/*
 	// Scene cbuffer
 	m_sceneUniBuffer = Buffer::Create({
 										.bufferName = L"SceneCBuffer",
@@ -289,7 +205,9 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 										.cpuAccess = CPUAccess::Write
 									});
 	m_sceneUniBufferView = m_sceneUniBuffer->CreateDefaultUniformBufferView();
+	*/
 
+	/*
 	// Lights uniform buffer
 	m_lightsUniBuffer = Buffer::Create({
 		.bufferName = L"LightsBuffer",
@@ -299,6 +217,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		.cpuAccess = CPUAccess::Write
 	});
 	m_lightsUniBufferView = m_lightsUniBuffer->CreateDefaultUniformBufferView();
+	*/
 
 	// PerLight uniform buffer
 	m_perLightUniBuffer = Buffer::Create({
@@ -310,15 +229,6 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	});
 	m_perLightUniBufferView = m_perLightUniBuffer->CreateDefaultUniformBufferView();
 
-	// Scene shadow uniform buffer
-	m_sceneShadowUniformBuffer = Buffer::Create({
-		.bufferName = L"SceneShadowBuffer",
-		.size = sizeof(SceneUniformBuffer),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
-	m_sceneShadowView = m_sceneShadowUniformBuffer->CreateDefaultUniformBufferView();
 
 	m_bloomSettingsBuffer = Buffer::Create({
 		.bufferName = L"BloomSettingsBuffer",
@@ -332,6 +242,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	// Load sponza
 	m_sponza = SandboxApplication::LoadMeshFromFilePBR(L"Sponza", L"meshes/SponzaCrytek/Sponza.gltf");
 
+	/*
 	// Load cube
 	m_cube = SandboxApplication::LoadMeshFromFile(L"Cube", L"meshes/Cube.fbx",
 		[this](auto& primitiveData)
@@ -359,6 +270,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			material.SetTexture(L"g_skybox", m_prefilteredEnvMapCubeSRV);
 			return material;
 		}, L"g_modelBuffer", sizeof(ModelUniformBuffer));
+		*/
 
 	// Load sphere
 	m_sphere = SandboxApplication::LoadMeshFromFile(L"Sphere", L"meshes/Sphere.gltf",
@@ -378,226 +290,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			return material;
 		}, L"g_modelBuffer", sizeof(ModelUniformBuffer));
 
-	{
-		auto renderContext = RenderDevice::Get().AllocateContext(L"Initialization");
-
-		// HDRI to cubemap skybox
-		{
-			renderContext->SetPSO({
-				.cs = {
-					.filepath = L"shaders/EquirectToCubemap.hlsl",
-					.entryName = L"main",
-					.shaderType = ShaderType::CS
-				},
-			});
-
-			renderContext->SetTexture(m_environmentTextureSRV, L"g_environment");
-			renderContext->SetTexture(m_skyboxUAV, L"g_skybox");
-
-			renderContext->Dispatch({64, 64, 6});
-
-			renderContext->Barrier(TextureBarrier{
-				.texture = m_skybox,
-				.syncBefore = BarrierSync::ComputeShading,
-				.syncAfter = BarrierSync::ComputeShading,
-				.accessBefore = BarrierAccess::Common,
-				.accessAfter = BarrierAccess::Common,
-				.layoutBefore = BarrierLayout::Common,
-				.layoutAfter = BarrierLayout::Common
-			});
-
-			m_skybox->GenerateMipMaps(renderContext);
-		}
-
-		// Generate env diffuse irradiance
-		{
-			auto coeffGenerationBuffer = Buffer::Create({
-				.bufferName = L"SHCoefficientsGeneration",
-				.size = sizeof(glm::float4) * 9, // RGB channels + one for padding * numOfCoefficients
-				.bindFlags = BindFlags::UnorderedAccess,
-				.usage = ResourceUsage::Default
-			});
-			auto coeffBufferView = coeffGenerationBuffer->CreateDefaultUAVView(sizeof(glm::float4)); // Single element
-
-			renderContext->SetPSO({
-				.cs = {
-					.filepath = L"shaders/DiffuseIrradianceIntegration.hlsl",
-					.entryName = L"main",
-					.shaderType = ShaderType::CS
-				},
-			});
-
-			renderContext->Barrier(TextureBarrier{
-				.texture = m_skybox,
-				.syncBefore = BarrierSync::Copy,
-				.syncAfter = BarrierSync::ComputeShading,
-				.accessBefore = BarrierAccess::CopyDest,
-				.accessAfter = BarrierAccess::ShaderResource,
-				.layoutBefore = BarrierLayout::CopyDest,
-				.layoutAfter = BarrierLayout::ShaderResource
-			});
-
-			renderContext->SetTexture(m_skyboxCubeSRV, L"g_skybox");
-			renderContext->SetBuffer(coeffBufferView, L"g_coefficients");
-
-			renderContext->Dispatch({1, 1, 1});
-
-			m_irradianceSHBuffer = Buffer::Create({
-				.bufferName = L"IrradianceSH",
-				.size = sizeof(glm::float3) * 9, // RGB channels * numOfCoefficients
-				.bindFlags = BindFlags::UniformBuffer,
-				.usage = ResourceUsage::Default
-			});
-			m_irradianceSHBufferView = m_irradianceSHBuffer->CreateDefaultUniformBufferView();
-
-			renderContext->Barrier(BufferBarrier{
-				.buffer = coeffGenerationBuffer,
-				.syncBefore = BarrierSync::ComputeShading,
-				.syncAfter = BarrierSync::Copy,
-				.accessBefore = BarrierAccess::UnorderedAccess,
-				.accessAfter = BarrierAccess::CopySource
-			});
-
-			renderContext->CopyBufferRegion(m_irradianceSHBuffer, 0, coeffGenerationBuffer, 0, coeffGenerationBuffer->GetBufferDesc().size);
-		}
-
-		// Generate env specular irradiance (prefiltered skybox)
-		{
-			renderContext->Barrier(TextureBarrier{
-				.texture = m_skybox,
-				.syncBefore = BarrierSync::ComputeShading,
-				.syncAfter = BarrierSync::Copy,
-				.accessBefore = BarrierAccess::ShaderResource,
-				.accessAfter = BarrierAccess::CopySource,
-				.layoutBefore = BarrierLayout::ShaderResource,
-				.layoutAfter = BarrierLayout::CopySource
-			});
-
-			for (int32_t i = 0; i < 6; ++i)
-				renderContext->CopyTextureRegion(m_prefilteredSkybox, {},
-					GetSubresourceIndex(0, m_prefilteredSkybox->GetTextureDesc().GetMipLevels(), i, 6),
-					m_skybox, GetSubresourceIndex(0, m_skybox->GetTextureDesc().GetMipLevels(), i, 6));
-
-			renderContext->Barrier(TextureBarrier{
-				.texture = m_skybox,
-				.syncBefore = BarrierSync::Copy,
-				.syncAfter = BarrierSync::ComputeShading,
-				.accessBefore = BarrierAccess::CopySource,
-				.accessAfter = BarrierAccess::ShaderResource,
-				.layoutBefore = BarrierLayout::CopySource,
-				.layoutAfter = BarrierLayout::ShaderResource
-			});
-
-			renderContext->Barrier(TextureBarrier{
-				.texture = m_prefilteredSkybox,
-				.syncBefore = BarrierSync::Copy,
-				.syncAfter = BarrierSync::ComputeShading,
-				.accessBefore = BarrierAccess::Common,
-				.accessAfter = BarrierAccess::UnorderedAccess,
-				.layoutBefore = BarrierLayout::Common,
-				.layoutAfter = BarrierLayout::UnorderedAccess
-			});
-
-			renderContext->SetPSO({
-				.cs = {
-					.filepath = L"shaders/SpecularIrradianceIntegration.hlsl",
-					.entryName = L"main",
-					.shaderType = ShaderType::CS
-				},
-			});
-
-			renderContext->SetTexture(m_skyboxCubeSRV, L"g_skybox");
-
-			struct alignas(Constants::CBUFFER_ALIGNMENT) PrefilterData
-			{
-				float roughness = 0.f;
-				int32_t totalResolution = 0;
-				int32_t mipResolution = 0;
-				int32_t sampleCount = 0;
-			};
-
-			for (int32_t i = 1; i < m_prefilteredSkybox->GetTextureDesc().GetMipLevels(); ++i)
-			{
-				int32_t threadGroupSize = m_prefilteredSkybox->GetTextureDesc().GetWidth() / (int32_t)std::pow(2, i) / 32;
-
-				renderContext->SetTexture(m_prefilteredSkybox->CreateView({
-					.type = TextureViewType::UAV,
-					.dimension = ResourceDimension::Tex2D,
-					.subresourceRange = {
-						.firstMipLevel = i,
-						.numMipLevels = 1,
-						.firstArraySlice = 0,
-						.numArraySlices = 6
-					}
-				}), L"g_outputTexture");
-
-				std::array sampleCounts = {
-					8, 16, 64, 128, 128
-				};
-
-				PrefilterData data = {
-					.roughness = (float)i / (float)(m_prefilteredSkybox->GetTextureDesc().GetMipLevels() - 1),
-					.totalResolution = m_prefilteredSkybox->GetTextureDesc().GetWidth(),
-					.mipResolution = m_prefilteredSkybox->GetTextureDesc().GetWidth() / (int32_t)std::pow(2, i),
-					.sampleCount = sampleCounts.size() >= i ? sampleCounts[i - 1] : sampleCounts.back()
-				};
-
-				auto prefilterDataBuffer = Buffer::Create({
-															  .bufferName = std::wstring(L"PrefilterDataBuffer_") + std::to_wstring(data.mipResolution),
-															  .size = sizeof(PrefilterData),
-															  .bindFlags = BindFlags::UniformBuffer,
-															  .usage = ResourceUsage::Default,
-															  .cpuAccess = CPUAccess::None
-														  },
-														  {
-															  .data = &data,
-															  .sizeInBytes = sizeof(data)
-														  });
-
-				renderContext->SetBuffer(prefilterDataBuffer->CreateDefaultUniformBufferView(), L"g_prefilterData");
-
-				renderContext->Dispatch({threadGroupSize, threadGroupSize, 6});
-			}
-		}
-
-		// Generate BRDF integration LUT
-		{
-			renderContext->SetPSO({
-				.cs = {
-					.filepath = L"shaders/BRDFIntegration.hlsl",
-					.entryName = L"main",
-					.shaderType = ShaderType::CS
-				},
-			});
-
-			struct
-			{
-				int32_t resolution;
-			} integrationData;
-			integrationData.resolution = m_BRDFLUT->GetTextureDesc().GetWidth();
-
-			auto integrationDataBuffer = Buffer::Create({
-															.bufferName = L"IntegrationDataBuffer",
-															.size = sizeof(integrationData),
-															.bindFlags = BindFlags::UniformBuffer,
-															.usage = ResourceUsage::Default,
-															.cpuAccess = CPUAccess::None
-														},
-														{
-															.data = &integrationData,
-															.sizeInBytes = sizeof(integrationData)
-														});
-
-			renderContext->SetBuffer(integrationDataBuffer->CreateDefaultUniformBufferView(), L"g_integrationData");
-
-			renderContext->SetTexture(m_BRDFLUT->CreateView({.type = TextureViewType::UAV}), L"g_outputTexture");
-
-			renderContext->Dispatch({integrationData.resolution / 8, integrationData.resolution / 8, 1});
-		}
-
-		RenderDevice::Get().SubmitContext(renderContext);
-		RenderDevice::Get().GetRenderCommandQueue()->Flush();
-	}
+	
 }
 
 void SandboxLayer::UpdateImGui(Duration delta)
@@ -705,7 +398,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 	}
 
 	// Debug menu
-	if (s_showDebugMenu)
+	/*if (s_showDebugMenu)
 	{
 		ImGui::Begin("Debug", &s_showDebugMenu, ImGuiWindowFlags_HorizontalScrollbar);
 
@@ -816,7 +509,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		}
 
 		ImGui::End();
-	}
+	}*/
 
 	// Log
 	if (s_showLogMenu)
@@ -901,28 +594,21 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			{
 				if (ImGui::BeginTable("SceneHierarchy_Table", 1, ImGuiTableFlags_RowBg))
 				{
-					auto drawTreeNode =
-						[this](entt::entity entity)
-						{
-							ImGui::TableNextRow();
-							ImGui::TableNextColumn();
-							ImGuiTreeNodeFlags treeFlags =
-								ImGuiTreeNodeFlags_OpenOnArrow |
-								ImGuiTreeNodeFlags_OpenOnDoubleClick |
-								ImGuiTreeNodeFlags_NavLeftJumpsBackHere |
-								ImGuiTreeNodeFlags_SpanFullWidth |
-								ImGuiTreeNodeFlags_Leaf;
-
-							std::string entityID = std::to_string((std::underlying_type_t<entt::entity>)entity);
-							if (ImGui::TreeNodeEx(entityID.c_str(), treeFlags, "<unnamed ID: %s>", entityID.c_str()))
-							{
-								ImGui::TreePop();
-							}
-						};
-
-					for (entt::entity entity : m_scene->GetRegistry().storage<entt::entity>())
+					for (int32_t i = 0; i < m_scene->GetEntityCount(); ++i)
 					{
-						drawTreeNode(entity);
+						ImGui::TableNextRow();
+						ImGui::TableNextColumn();
+						ImGuiTreeNodeFlags treeFlags =
+							ImGuiTreeNodeFlags_OpenOnArrow |
+							ImGuiTreeNodeFlags_OpenOnDoubleClick |
+							ImGuiTreeNodeFlags_NavLeftJumpsBackHere |
+							ImGuiTreeNodeFlags_SpanFullWidth |
+							ImGuiTreeNodeFlags_Leaf;
+
+						if (ImGui::TreeNodeEx(std::to_string(i).c_str(), treeFlags, "<unnamed ID: %i>", i))
+						{
+							ImGui::TreePop();
+						}
 					}
 				}
 				ImGui::EndTable();
@@ -941,8 +627,6 @@ void SandboxLayer::Update(Duration delta)
 	if (m_viewportSize.x == 0 || m_viewportSize.y == 0)
 		return;
 
-	m_scene->Update(delta);
-
 	if (m_viewportRelativeMouse && Core::Platform::Get().IsKeyPressed(KeyCode::RightMouseButton))
 	{
 		if (Core::Platform::Get().IsKeyPressed(KeyCode::W))
@@ -959,72 +643,10 @@ void SandboxLayer::Update(Duration delta)
 			m_camera->AddPosition(m_camera->GetUpVector() * m_cameraSpeed * (float)delta.GetSeconds());
 	}
 
-	Ref<RenderContext> renderContext = RenderDevice::Get().AllocateContext(L"SandboxUpdate");
+	m_scene->Update(delta);
+	m_scene->RenderScene(m_finalCompositionRTV, m_camera);
 
-	glm::float3 sunDir = glm::rotate(glm::quat(m_sunRotation), {1.f, 0.f, 0.f});
-
-	glm::float4x4 lightView = glm::lookAt(m_sponza->GetBounds().GetRadius() * -sunDir, sunDir, {0.f, 1.f, 0.f});
-	glm::float4x4 lightProj = glm::ortho(-m_sponza->GetBounds().GetRadius(),
-										 m_sponza->GetBounds().GetRadius(),
-										 -m_sponza->GetBounds().GetRadius(),
-										 m_sponza->GetBounds().GetRadius(),
-										 0.f, m_sponza->GetBounds().GetRadius() * 2.f);
-
-	// Shadows
-	{
-		renderContext->BeginEvent({}, L"Shadows");
-
-		glm::float2 shadowMapSize = { (float)m_sunShadowMap->GetTextureDesc().GetWidth(), (float)m_sunShadowMap->GetTextureDesc().GetHeight() };
-		renderContext->SetViewport({ {0.f, 0.f}, shadowMapSize, {0.f, 1.f} });
-		renderContext->SetScissor({ {0.f, 0.f}, shadowMapSize });
-		renderContext->SetRenderTarget(nullptr, m_sunShadowMapDSV);
-
-		renderContext->ClearDepthStencilView(m_sunShadowMapDSV, ClearFlags::ClearDepth);
-
-		renderContext->SetPSO({
-			.vs = {
-				.filepath = L"shaders/ShadowMap.hlsl",
-				.entryName = L"vsmain",
-				.shaderType = ShaderType::VS
-			},
-			.ps = {
-				.filepath = L"shaders/ShadowMap.hlsl",
-				.entryName = L"psmain",
-				.shaderType = ShaderType::PS
-			},
-			.rasterizerState = {
-				.fillMode = FillMode::Solid,
-				.cullMode = CullMode::Back,
-				.depthBias = 10000,
-				.depthBiasClamp = 0.f,
-				.slopeScaledDepthBias = 1.5f,
-			},
-		});
-
-		// Shadow scene
-		{
-			ShadowUniformBuffer sceneShadow = {
-				.lightViewProj = lightProj * lightView,
-			};
-
-			void* sceneBufferData = m_sceneShadowUniformBuffer->Map(CPUAccess::Write);
-			memcpy_s(sceneBufferData, m_sceneShadowUniformBuffer->GetBufferDesc().size, &sceneShadow, sizeof(sceneShadow));
-			m_sceneShadowUniformBuffer->Unmap();
-
-			renderContext->SetBuffer(m_sceneShadowView, L"g_shadowSceneBuffer");
-		}
-
-		// Sponza
-		{
-			ModelShadowUniformBuffer modelShadow = {
-				.world = glm::float4x4(1.f)
-			};
-			m_sponza->Draw(renderContext, &modelShadow, sizeof(modelShadow), false);
-		}
-
-		renderContext->EndEvent();
-	}
-
+	/*
 	SceneUniformBuffer sceneUniformBuffer = {
 				.camera = {
 					.view = m_camera->GetViewMatrix(),
@@ -1422,8 +1044,7 @@ void SandboxLayer::Update(Duration delta)
 
 		renderContext->Draw({.numVertices = 3 });
 	}
-
-	RenderDevice::Get().SubmitContext(renderContext);
+	*/
 }
 
 bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)

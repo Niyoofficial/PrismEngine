@@ -23,9 +23,9 @@ public:
 	void AddPrimitive(int64_t vertexSize, IndexBufferFormat indexFormat,
 					  void* vertexBuffer, int64_t vertexCount, void* indexBuffer, int64_t indexCount,
 					  std::wstring primitiveBufferParamName, int64_t primitiveBufferSize,
-					  const Material& material, Bounds3F bounds);
+					  const Material& material, Bounds3f bounds);
 	const std::vector<PrimitiveWithMaterial>& GetPrimitives() const { return m_primitives; }
-	Bounds3F GetBounds() const { return m_bounds; }
+	Bounds3f GetBounds() const { return m_bounds; }
 
 	void Draw(RenderContext* renderContext, void* cbufferData, int64_t dataSize, bool bBindMaterial = true);
 
@@ -33,6 +33,6 @@ private:
 	std::wstring m_primitiveBatchName;
 
 	std::vector<PrimitiveWithMaterial> m_primitives;
-	Bounds3F m_bounds;
+	Bounds3f m_bounds;
 };
 }

@@ -298,7 +298,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 			dstWidth = std::max(dstWidth, 1);
 			dstHeight = std::max(dstHeight, 1);
 
-			struct alignas(Constants::CBUFFER_ALIGNMENT) MipMapGenerationInfo
+			struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) MipMapGenerationInfo
 			{
 				uint32_t srcMipLevel;
 				uint32_t numMipLevels;

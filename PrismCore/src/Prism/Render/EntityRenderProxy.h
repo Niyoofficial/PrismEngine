@@ -1,18 +1,31 @@
 #pragma once
-#include "Prism/Render/SceneRenderPipeline.h"
+#include "Prism/Utilities/MeshLoading.h"
 
 namespace Prism::Render
 {
-class VertexFactory;
+struct RenderProxyInitInfo
+{
+	glm::float4x4 wordTransform;
+	Bounds3f bounds;
+
+	MeshLoading::MeshAsset* meshAsset;
+	MeshLoading::MeshNode meshNode;
+};
 
 class EntityRenderProxy : public RefCounted
 {
 public:
-	explicit EntityRenderProxy(SceneRenderPipeline* renderPipeline);
+	explicit EntityRenderProxy(const RenderProxyInitInfo& initInfo);
 
-	VertexFactory* GetVertexFactory() const;
+	glm::float4x4 GetWorldTransform() const { return m_worldTransform; }
+	Bounds3f GetBounds() const { return m_bounds; }
+	MeshLoading::MeshAsset* GetMeshAsset() const { return m_meshAsset; }
+	MeshLoading::MeshNode GetMeshNode() const { return m_meshNode; }
 
 protected:
-	WeakRef<SceneRenderPipeline> m_renderPipeline;
+	glm::float4x4 m_worldTransform = {1.f};
+	Bounds3f m_bounds;
+	Ref<MeshLoading::MeshAsset> m_meshAsset;
+	MeshLoading::MeshNode m_meshNode;
 };
 }

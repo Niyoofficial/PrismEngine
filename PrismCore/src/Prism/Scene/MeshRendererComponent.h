@@ -1,5 +1,6 @@
 #pragma once
 #include "Prism/Scene/Components.h"
+#include "Prism/Utilities/MeshLoading.h"
 
 namespace Prism
 {
@@ -15,12 +16,15 @@ class MeshAsset;
 class MeshRendererComponent : public Component
 {
 public:
-	void SetPrimitive(MeshLoading::MeshAsset* mesh, int32_t primitiveIndex);
+	MeshRendererComponent() = default;
+	MeshRendererComponent(MeshLoading::MeshAsset* mesh, MeshLoading::MeshNode meshNode);
+
+	void SetPrimitive(MeshLoading::MeshAsset* mesh, MeshLoading::MeshNode meshNode);
 
 	virtual Render::EntityRenderProxy* CreateRenderProxy() const;
 
 private:
 	Ref<MeshLoading::MeshAsset> m_meshAsset;
-	int32_t m_primitiveIndex = -1;
+	MeshLoading::MeshNode m_meshNode = -1;
 };
 }

@@ -5,7 +5,7 @@
 
 namespace Prism::Render::D3D12
 {
-ID3D12PipelineState* D3D12PipelineStateCache::GetOrCreatePipelineState(const GraphicsPipelineStateDesc& desc, std::vector<TextureView*> rtvs, TextureView* dsv)
+ID3D12PipelineState* D3D12PipelineStateCache::GetOrCreatePipelineState(const GraphicsPipelineStateDesc& desc, const std::vector<Ref<TextureView>>& rtvs, TextureView* dsv)
 {
 	auto vsOutput = D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetOrCreateShader(desc.vs);
 	auto psOutput = D3D12RenderDevice::Get().GetD3D12ShaderCompiler()->GetOrCreateShader(desc.ps);
@@ -46,7 +46,7 @@ ID3D12PipelineState* D3D12PipelineStateCache::GetOrCreatePipelineState(const Com
 	return pipelineState.Get();
 }
 
-XXH64_hash_t D3D12PipelineStateCache::HashPipelineStateDesc(const GraphicsPipelineStateDesc& desc, std::vector<TextureView*> rtvs, TextureView* dsv) const
+XXH64_hash_t D3D12PipelineStateCache::HashPipelineStateDesc(const GraphicsPipelineStateDesc& desc, const std::vector<Ref<TextureView>>& rtvs, TextureView* dsv) const
 {
 	auto hash = XXH3_64bits(&desc, sizeof(desc));
 

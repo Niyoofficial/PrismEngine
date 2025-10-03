@@ -14,7 +14,7 @@ public:
 
 	void AddComponent(Component* component);
 
-	template<typename T, typename... Args> requires std::is_base_of_v<T, Component>
+	template<typename T, typename... Args> requires std::is_base_of_v<Component, T>
 	T* AddComponent(Args&&... args)
 	{
 		T* comp = new T(std::forward<Args>(args)...);
@@ -24,7 +24,23 @@ public:
 
 	Scene* GetOwningScene() const { return m_scene; }
 	int64_t GetComponentCount() const;
-	Component* GetComponentByIndex(int64_t index) const;
+	template<typename T>
+	bool HasComponent() const
+	{
+		return m_components.contains(typeid(T).hash_code());
+	}
+	template<typename T>
+	T* GetComponent() const
+	{
+		if (m_components.contains(typeid(T).hash_code()))
+			return static_cast<T*>(m_components.at(typeid(T).hash_code()).Raw());
+		return nullptr;
+	}
+	template<typename T>
+	T* GetComponentChecked() const
+	{
+		return static_cast<T*>(m_components.at(typeid(T).hash_code()).Raw());
+	}
 
 protected:
 	// Used by the Scene class to initialize the parent
@@ -34,6 +50,6 @@ protected:
 	Ref<Scene> m_scene;
 
 	// TODO: Replace ref with unique_ptr equivalent
-	std::vector<Ref<Component>> m_components;
+	std::unordered_map<size_t, Ref<Component>> m_components;
 };
 }

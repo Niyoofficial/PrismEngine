@@ -130,7 +130,7 @@ void D3D12RenderCommandList::SetRenderTargets(std::vector<TextureView*> rtvs, Te
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
 	if (m_depthStencilView)
-		dsvHandle = static_cast<D3D12TextureView*>(m_depthStencilView)->GetDescriptor().GetCPUHandle();
+		dsvHandle = static_cast<D3D12TextureView*>(m_depthStencilView.Raw())->GetDescriptor().GetCPUHandle();
 
 	m_commandList->OMSetRenderTargets((UINT)rtvHandles.size(), rtvHandles.data(), false, m_depthStencilView ? &dsvHandle : nullptr);
 }

@@ -46,7 +46,7 @@ void Primitive::SetVertices(int64_t vertexSize, void* vertexBuffer, int64_t vert
 		});
 }
 
-void Primitive::SetBounds(Bounds3F bounds)
+void Primitive::SetBounds(Bounds3f bounds)
 {
 	m_bounds = bounds;
 }

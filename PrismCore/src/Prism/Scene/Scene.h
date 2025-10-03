@@ -19,13 +19,16 @@ public:
 
 	void AddEntity(Entity* entity);
 
-	template<typename T, typename... Args>
+	template<typename T = Entity, typename... Args>
 	T* AddEntity(Args&&... args)
 	{
 		T* entity = new T(std::forward<Args>(args)...);
 		AddEntity(entity);
 		return entity;
 	}
+
+	// Create an entity hierarchy representing the mesh assset, returns root entity
+	Entity* CreateEntityHierarchyForMeshAsset(MeshLoading::MeshAsset* asset);
 
 	// Scene will take ownership of the render pipeline
 	void SetRenderPipeline(Render::SceneRenderPipeline* renderPipeline);
@@ -54,5 +57,6 @@ private:
 	std::vector<Ref<Entity>> m_entities;
 
 	std::vector<Ref<Render::EntityRenderProxy>> m_renderProxies;
+	std::vector<Render::DirectionalLight> m_dirLights;
 };
 }

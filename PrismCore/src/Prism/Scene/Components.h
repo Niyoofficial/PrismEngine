@@ -4,7 +4,7 @@ namespace Prism
 {
 class Entity;
 
-class Component
+class Component : public RefCounted
 {
 	friend Entity;
 public:

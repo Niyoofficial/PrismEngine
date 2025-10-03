@@ -34,7 +34,7 @@ void Material::SetTexture(const std::wstring& paramName, Ref<TextureView> textur
 void Material::SetDynamicData(const std::wstring& paramName, void* data, int64_t size)
 {
 	PE_ASSERT(data);
-	PE_ASSERT(size > 0 && size == Align(size, Constants::CBUFFER_ALIGNMENT));
+	PE_ASSERT(size > 0 && size == Align(size, Constants::UNIFORM_BUFFER_ALIGNMENT));
 
 	if (!m_params.contains(paramName))
 	{

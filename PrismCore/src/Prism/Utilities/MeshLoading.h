@@ -1,5 +1,10 @@
 ﻿#pragma once
+#include <variant>
+
 #include "assimp/Importer.hpp"
+
+struct aiMesh;
+struct aiNode;
 
 namespace Prism::Render
 {
@@ -33,31 +38,68 @@ struct PrimitiveData
 
 	std::unordered_map<TextureType, Ref<Render::Texture>> textures;
 
-	Bounds3F bounds;
+	Bounds3f bounds;
 };
 
 struct MeshData
 {
 	std::vector<PrimitiveData> primitives;
-	Bounds3F bounds;
+	Bounds3f bounds;
 };
 
 void InitMeshLoading();
 MeshData LoadMeshFromFile(const std::wstring& filePath);
 
+using MeshNode = int32_t;
+
+struct MeshNodeIterator
+{
+	MeshNodeIterator(MeshNode node);
+
+	constexpr auto operator<=>(MeshNodeIterator const&) const = default;
+	MeshNode operator*() const;
+	void operator++();
+	void operator--();
+
+	MeshNode value = -1;
+};
+
 class MeshAsset : public RefCounted
 {
 public:
-	MeshAsset() = default;
+	explicit MeshAsset(const std::wstring& filePath);
 
-	void LoadMesh(const std::wstring& filePath);
+	MeshNode GetRootNode() const;
 
+	int32_t GetNodeChildrenCount(MeshNode node) const;
+	MeshNode GetNodeChild(MeshNode node, int32_t index) const;
+	MeshNode GetNodeParent(MeshNode node) const;
+	bool DoesNodeContainVertices(MeshNode node) const;
+	int64_t GetNodeVertexCount(MeshNode node) const;
 
+	Bounds3f GetBoundingBox(MeshNode node) const;
+
+	glm::float3 GetPosition(MeshNode node, int32_t vertexIndex) const;
+	glm::float3 GetNormal(MeshNode node, int32_t vertexIndex) const;
+	glm::float2 GetTexCoord(MeshNode node, int32_t vertexIndex, int32_t texCoordIndex = 0) const;
+	glm::float3 GetTangent(MeshNode node, int32_t vertexIndex) const;
+	glm::float3 GetBitangent(MeshNode node, int32_t vertexIndex) const;
+	glm::float4 GetColor(MeshNode node, int32_t vertexIndex, int32_t colorIndex = 0) const;
+
+	std::vector<uint32_t> GetIndices(MeshNode node) const;
+	int64_t GetIndexCount(MeshNode node) const;
+
+	MeshNodeIterator begin() const;
+	MeshNodeIterator end() const;
 
 private:
 	Assimp::Importer m_importer;
-};
 
-using PerNodeFunc = std::function<void()>;
-using PerMeshFunc = std::function<void()>;
+	struct NodeInfo
+	{
+		std::variant<aiNode*, aiMesh*> assimpNode;
+		MeshNode parent;
+	};
+	std::vector<NodeInfo> m_nodes;
+};
 }

@@ -1,6 +1,9 @@
 #include "Scene.h"
 
+#include "Prism/Render/Camera.h"
+#include "Prism/Render/TextureView.h"
 #include "Prism/Scene/Entity.h"
+#include "Prism/Scene/LightRendererComponent.h"
 #include "Prism/Scene/MeshRendererComponent.h"
 
 namespace Prism
@@ -18,20 +21,40 @@ Entity* Scene::GetEntityByIndex(int64_t index) const
 void Scene::Update(Duration delta)
 {
 	m_renderProxies.clear();
+	m_dirLights.clear();
 
 	for (auto& entity : m_entities)
 	{
-		for(auto& comp : entity->m_components)
+		glm::float4x4 transfrom(1.f);
+		if (auto* comp = entity->GetComponent<TransformComponent>())
+			transfrom = comp->GetTransform();
+
+		if (auto* comp = entity->GetComponent<MeshRendererComponent>())
 		{
-			if (auto* renderComp = dynamic_cast<MeshRendererComponent*>(comp.Raw()))
-				m_renderProxies.emplace_back(renderComp->CreateRenderProxy());
+			if (auto* proxy = comp->CreateRenderProxy())
+				m_renderProxies.emplace_back(proxy);
 		}
+		if (auto* comp = entity->GetComponent<LightRendererComponent>())
+			m_dirLights.emplace_back(glm::rotate(glm::quat(transfrom), glm::float3{1.f, 0.f, 0.f}), comp->GetColor() * comp->GetIntensity());
 	}
 }
 
 void Scene::RenderScene(Render::TextureView* rtv, Render::Camera* camera)
 {
-	m_renderPipeline
+	Render::RenderInfo renderInfo = {
+		.renderTarget = rtv,
+
+		.view = camera->GetViewMatrix(),
+		.invView = camera->GetInvViewMatrix(),
+		.proj = camera->GetProjectionMatrix(),
+		.invProj = camera->GetInvProjectionMatrix(),
+		.viewProj = camera->GetViewProjectionMatrix(),
+		.invViewProj = camera->GetInvViewProjectionMatrix(),
+	};
+	renderInfo.proxies = std::move(m_renderProxies);
+	renderInfo.directionalLights = m_dirLights;
+
+	m_renderPipeline->Render(renderInfo);
 }
 
 Scene::Scene(const std::wstring& name)
@@ -47,10 +70,33 @@ Scene* Scene::Create(std::wstring name)
 void Scene::AddEntity(Entity* entity)
 {
 	PE_ASSERT(entity);
-	PE_ASSERT(entity->GetOwningScene(), "Entity is already owned by a different scene!");
+	PE_ASSERT(!entity->GetOwningScene(), "Entity is already owned by a different scene!");
 
 	entity->InitializeOwnership(this);
 	m_entities.emplace_back(entity);
+}
+
+Entity* Scene::CreateEntityHierarchyForMeshAsset(MeshLoading::MeshAsset* asset)
+{
+	PE_ASSERT(asset);
+
+	Entity* root = nullptr;
+	std::function<void(MeshLoading::MeshNode)> processNode =
+		[this, &processNode, asset, &root](MeshLoading::MeshNode node)
+		{
+			Entity* entity = AddEntity();
+			entity->AddComponent<MeshRendererComponent>(asset, node);
+
+			if (!root)
+				root = entity;
+
+			for (int32_t i = 0; i < asset->GetNodeChildrenCount(node); ++i)
+				processNode(asset->GetNodeChild(node, i));
+		};
+
+	processNode(asset->GetRootNode());
+
+	return root;
 }
 
 void Scene::SetRenderPipeline(Render::SceneRenderPipeline* renderPipeline)

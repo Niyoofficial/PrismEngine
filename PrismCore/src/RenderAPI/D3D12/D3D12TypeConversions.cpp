@@ -161,7 +161,9 @@ DXGI_RATIONAL GetDXGIRational(int32_t numerator, int32_t denominator)
 	};
 }
 
-D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc, const D3D12ShaderCompilerOutput& vs, const D3D12ShaderCompilerOutput& ps, std::vector<TextureView*> rtvs, TextureView* dsv)
+D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc,
+														 const D3D12ShaderCompilerOutput& vs, const D3D12ShaderCompilerOutput& ps,
+														 const std::vector<Ref<TextureView>>& rtvs, TextureView* dsv)
 {
 	PE_ASSERT(
 		desc.primitiveTopologyType != Render::TopologyType::LineStrip &&

@@ -2,14 +2,11 @@
 
 namespace Prism::Render
 {
-EntityRenderProxy::EntityRenderProxy(SceneRenderPipeline* renderPipeline)
-	: m_renderPipeline(renderPipeline)
+EntityRenderProxy::EntityRenderProxy(const RenderProxyInitInfo& initInfo)
+	: m_worldTransform(initInfo.wordTransform),
+	  m_bounds(initInfo.bounds),
+	  m_meshAsset(initInfo.meshAsset),
+	  m_meshNode(initInfo.meshNode)
 {
-}
-
-VertexFactory* EntityRenderProxy::GetVertexFactory() const
-{
-	PE_ASSERT(m_renderPipeline.IsValid());
-	return m_renderPipeline->GetDefaultVertexFactory();
 }
 }

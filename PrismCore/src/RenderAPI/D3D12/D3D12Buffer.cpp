@@ -13,7 +13,7 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc)
 	DISABLE_DESTRUCTION_SCOPE_GUARD(this);
 
 	if (m_originalDesc.bindFlags.HasAllFlags(BindFlags::UniformBuffer))
-		m_originalDesc.size = Align(m_originalDesc.size, Constants::CBUFFER_ALIGNMENT);
+		m_originalDesc.size = Align(m_originalDesc.size, Constants::UNIFORM_BUFFER_ALIGNMENT);
 
 	if (desc.usage == ResourceUsage::Default)
 	{

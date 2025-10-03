@@ -293,54 +293,212 @@ MeshData LoadMeshFromFile(const std::wstring& filePath)
 	return data;
 }
 
-void MeshAsset::LoadMesh(const std::wstring& filePath)
+MeshNodeIterator::MeshNodeIterator(MeshNode node)
+	: value(node)
+{
+}
+
+MeshNode MeshNodeIterator::operator*() const
+{
+	return value;
+}
+
+void MeshNodeIterator::operator++()
+{
+	++value;
+}
+
+void MeshNodeIterator::operator--()
+{
+	--value;
+}
+
+MeshAsset::MeshAsset(const std::wstring& filePath)
 {
 	const aiScene* scene = m_importer.ReadFile(WStringToString(filePath).c_str(),
-		aiProcess_Triangulate |
-		aiProcess_ConvertToLeftHanded |
-		aiProcess_OptimizeMeshes |
-		aiProcess_ValidateDataStructure |
-		aiProcess_PreTransformVertices |
-		aiProcess_GlobalScale |
-		aiProcess_SortByPType |
-		aiProcess_JoinIdenticalVertices |
-		aiProcess_GenSmoothNormals |
-		aiProcess_CalcTangentSpace |
-		aiProcess_GenUVCoords);
+											   aiProcess_Triangulate |
+											   aiProcess_ConvertToLeftHanded |
+											   aiProcess_OptimizeMeshes |
+											   aiProcess_ValidateDataStructure |
+											   aiProcess_PreTransformVertices |
+											   aiProcess_GlobalScale |
+											   aiProcess_SortByPType |
+											   aiProcess_JoinIdenticalVertices |
+											   aiProcess_GenSmoothNormals |
+											   aiProcess_CalcTangentSpace |
+											   aiProcess_GenUVCoords);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
-	{
 		PE_ASSERT(false, "{}", m_importer.GetErrorString());
-	}
+
+	std::function<void(aiNode*)> processNode =
+		[this, &processNode, scene](aiNode* assimpNode)
+		{
+			m_nodes.emplace_back(assimpNode, (MeshNode)m_nodes.size() - 1);
+			MeshNode currNode = (MeshNode)(m_nodes.size() - 1);
+			for (int32_t i = 0; i < assimpNode->mNumMeshes; ++i)
+				m_nodes.emplace_back(scene->mMeshes[assimpNode->mMeshes[i]], currNode);
+
+			for (int32_t i = 0; i < assimpNode->mNumChildren; ++i)
+				processNode(assimpNode->mChildren[i]);
+		};
+
+	processNode(scene->mRootNode);
 }
 
-void ProcessNode(const aiScene* scene, aiNode* node, const PerNodeFunc& perNode, const PerMeshFunc& perMesh)
+MeshNode MeshAsset::GetRootNode() const
 {
-	
+	return 0;
 }
 
-void LoadMeshFromFile(const std::wstring& filePath, const PerNodeFunc& perNode, const PerMeshFunc& perMesh)
+int32_t MeshAsset::GetNodeChildrenCount(MeshNode node) const
 {
-	Assimp::Importer importer;
-	const aiScene* scene = importer.ReadFile(WStringToString(filePath),
-		aiProcess_Triangulate |
-		aiProcess_ConvertToLeftHanded |
-		aiProcess_OptimizeMeshes |
-		aiProcess_ValidateDataStructure |
-		aiProcess_PreTransformVertices |
-		aiProcess_GlobalScale |
-		aiProcess_SortByPType |
-		aiProcess_JoinIdenticalVertices |
-		aiProcess_GenSmoothNormals |
-		aiProcess_CalcTangentSpace |
-		aiProcess_GenUVCoords);
-
-	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
+	if (std::holds_alternative<aiNode*>(m_nodes[node].assimpNode))
 	{
-		PE_ASSERT(false, "{}", importer.GetErrorString());
-		return;
+		return
+			std::get<aiNode*>(m_nodes[node].assimpNode)->mNumChildren +
+			std::get<aiNode*>(m_nodes[node].assimpNode)->mNumMeshes;
+	}
+	return 0;
+}
+
+MeshNode MeshAsset::GetNodeChild(MeshNode node, int32_t index) const
+{
+	if (std::holds_alternative<aiNode*>(m_nodes[node].assimpNode))
+	{
+		aiNode* assimpNode = std::get<aiNode*>(m_nodes[node].assimpNode);
+		std::variant<aiNode*, aiMesh*> assimpChild;
+		if (index >= assimpNode->mNumChildren)
+			assimpChild = m_importer.GetScene()->mMeshes[assimpNode->mMeshes[index - assimpNode->mNumChildren]];
+		else
+			assimpChild = assimpNode->mChildren[index];
+
+		auto it = std::ranges::find_if(m_nodes, 
+			[&assimpChild](auto info)
+			{
+				return info.assimpNode == assimpChild;
+			});
+		if (it != m_nodes.end())
+			return (MeshNode)(it - m_nodes.begin());
 	}
 
-	ProcessNode(scene, scene->mRootNode, perNode, perMesh);
+	return -1;
+}
+
+MeshNode MeshAsset::GetNodeParent(MeshNode node) const
+{
+	return m_nodes[node].parent;
+}
+
+bool MeshAsset::DoesNodeContainVertices(MeshNode node) const
+{
+	return std::holds_alternative<aiMesh*>(m_nodes[node].assimpNode);
+}
+
+int64_t MeshAsset::GetNodeVertexCount(MeshNode node) const
+{
+	if (DoesNodeContainVertices(node))
+		return std::get<aiMesh*>(m_nodes[node].assimpNode)->mNumVertices;
+
+	return 0;
+}
+
+Bounds3f MeshAsset::GetBoundingBox(MeshNode node) const
+{
+	PE_ASSERT(DoesNodeContainVertices(node));
+
+	aiAABB aabb = std::get<aiMesh*>(m_nodes[node].assimpNode)->mAABB;
+	return {{aabb.mMin.x, aabb.mMin.y, aabb.mMin.z}, {aabb.mMax.x, aabb.mMax.y, aabb.mMax.z}};
+}
+
+glm::float3 MeshAsset::GetPosition(MeshNode node, int32_t vertexIndex) const
+{
+	PE_ASSERT(DoesNodeContainVertices(node));
+
+	auto aiPos = std::get<aiMesh*>(m_nodes[node].assimpNode)->mVertices[vertexIndex];
+	return {aiPos.x, aiPos.y, aiPos.z};
+}
+
+glm::float3 MeshAsset::GetNormal(MeshNode node, int32_t vertexIndex) const
+{
+	PE_ASSERT(DoesNodeContainVertices(node));
+
+	auto aiNorm = std::get<aiMesh*>(m_nodes[node].assimpNode)->mNormals[vertexIndex];
+	return {aiNorm.x, aiNorm.y, aiNorm.z};
+}
+
+glm::float2 MeshAsset::GetTexCoord(MeshNode node, int32_t vertexIndex, int32_t texCoordIndex) const
+{
+	PE_ASSERT(DoesNodeContainVertices(node));
+
+	auto aiTexCoord = std::get<aiMesh*>(m_nodes[node].assimpNode)->mTextureCoords[texCoordIndex][vertexIndex];
+	return {aiTexCoord.x, aiTexCoord.y};
+}
+
+glm::float3 MeshAsset::GetTangent(MeshNode node, int32_t vertexIndex) const
+{
+	PE_ASSERT(DoesNodeContainVertices(node));
+
+	auto aiTan = std::get<aiMesh*>(m_nodes[node].assimpNode)->mTangents[vertexIndex];
+	return { aiTan.x, aiTan.y, aiTan.z };
+}
+
+glm::float3 MeshAsset::GetBitangent(MeshNode node, int32_t vertexIndex) const
+{
+	PE_ASSERT(DoesNodeContainVertices(node));
+
+	auto aiBitan = std::get<aiMesh*>(m_nodes[node].assimpNode)->mBitangents[vertexIndex];
+	return {aiBitan.x, aiBitan.y, aiBitan.z};
+}
+
+glm::float4 MeshAsset::GetColor(MeshNode node, int32_t vertexIndex, int32_t colorIndex) const
+{
+	PE_ASSERT(DoesNodeContainVertices(node));
+
+	auto aiColor = std::get<aiMesh*>(m_nodes[node].assimpNode)->mColors[colorIndex][vertexIndex];
+	return {aiColor.r, aiColor.g, aiColor.b, aiColor.a};
+}
+
+std::vector<uint32_t> MeshAsset::GetIndices(MeshNode node) const
+{
+	PE_ASSERT(std::holds_alternative<aiMesh*>(m_nodes[node].assimpNode));
+	aiMesh* mesh = std::get<aiMesh*>(m_nodes[node].assimpNode);
+	PE_ASSERT(mesh->HasFaces());
+
+	std::vector<uint32_t> indices;
+	for (int32_t i = 0; i < (int32_t)mesh->mNumFaces; ++i)
+	{
+		aiFace face = mesh->mFaces[i];
+		for (int32_t j = 0; j < (int32_t)face.mNumIndices; ++j)
+			indices.push_back(face.mIndices[j]);
+	}
+
+	return indices;
+}
+
+int64_t MeshAsset::GetIndexCount(MeshNode node) const
+{
+	PE_ASSERT(std::holds_alternative<aiMesh*>(m_nodes[node].assimpNode));
+	aiMesh* mesh = std::get<aiMesh*>(m_nodes[node].assimpNode);
+	PE_ASSERT(mesh->HasFaces());
+
+	int64_t indexCount = 0;
+	for (int32_t i = 0; i < (int32_t)mesh->mNumFaces; ++i)
+	{
+		aiFace face = mesh->mFaces[i];
+		indexCount += face.mNumIndices;
+	}
+
+	return indexCount;
+}
+
+MeshNodeIterator MeshAsset::begin() const
+{
+	return 0;
+}
+
+MeshNodeIterator MeshAsset::end() const
+{
+	return (MeshNode)m_nodes.size();
 }
 }
