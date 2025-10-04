@@ -79,11 +79,6 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	PE_ASSERT_HR(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_dxgiFactory)));
 
 	DXGI_ADAPTER_DESC1 desc;
-	if (SUCCEEDED(m_dxgiFactory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&m_dxgiAdapter))))
-	{
-		PE_ASSERT_HR(m_dxgiAdapter->GetDesc1(&desc));
-	}
-	else
 	{
 		uint32_t adapter = 0;
 		SIZE_T maxDedicatedVideoMemory = 0;
@@ -103,6 +98,7 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 
 		PE_ASSERT_HR(m_dxgiAdapter->GetDesc1(&desc));
 	}
+
 	PE_ASSERT(m_dxgiAdapter, "Could not find a suitable GPU to render the application");
 	PE_RENDER_LOG(Info, "Selected GPU for rendering: {}", WStringToString(std::wstring(desc.Description)));
 

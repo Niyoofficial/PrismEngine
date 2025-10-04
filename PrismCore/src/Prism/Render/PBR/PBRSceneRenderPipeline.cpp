@@ -36,6 +36,38 @@ void PBRSceneRenderPipeline::Render(RenderInfo renderInfo)
 	Ref<RenderContext> renderContext = RenderDevice::Get().AllocateContext(L"PBRSceneRenderPipeline_Render");
 
 	RenderShadowPass(renderInfo, renderContext);
+
+	renderContext->BeginEvent({}, L"BasePass");
+
+	auto renderTargetDesc = renderInfo.renderTarget->GetTexture()->GetTextureDesc();
+	renderContext->SetViewport({{0.f, 0.f}, {renderTargetDesc.GetWidth(), renderTargetDesc.GetHeight()}, {0.f, 1.f}});
+	renderContext->SetScissor({{0.f, 0.f}, {renderTargetDesc.GetWidth(), renderTargetDesc.GetHeight()}});
+
+	renderContext->SetRenderTargets({
+										m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV),
+										m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::RTV),
+										m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::RTV)
+									}, m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::DSV));
+
+	glm::float4 clearColor = {0.f, 0.f, 0.f, 1.f};
+	renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV), &clearColor);
+	renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::RTV), &clearColor);
+	renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::RTV), &clearColor);
+	renderContext->ClearDepthStencilView(m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::DSV),
+										 Flags(ClearFlags::ClearDepth) | Flags(ClearFlags::ClearStencil));
+
+	renderContext->Barrier(TextureBarrier{
+		.texture = m_sunShadowMap,
+		.syncBefore = BarrierSync::DepthStencil,
+		.syncAfter = BarrierSync::PixelShading,
+		.accessBefore = BarrierAccess::DepthStencilWrite,
+		.accessAfter = BarrierAccess::ShaderResource,
+		.layoutBefore = BarrierLayout::DepthStencilWrite,
+		.layoutAfter = BarrierLayout::ShaderResource,
+		});
+
+	renderContext->SetTexture(m_sunShadowMapSRV, L"g_shadowMap");
+
 }
 
 void PBRSceneRenderPipeline::ConvertSkyboxToCubemap(RenderContext* renderContext)

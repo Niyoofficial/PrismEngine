@@ -76,6 +76,7 @@ public:
 	MeshNode GetNodeParent(MeshNode node) const;
 	bool DoesNodeContainVertices(MeshNode node) const;
 	int64_t GetNodeVertexCount(MeshNode node) const;
+	std::wstring GetNodeName(MeshNode node);
 
 	Bounds3f GetBoundingBox(MeshNode node) const;
 

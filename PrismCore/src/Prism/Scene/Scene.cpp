@@ -84,7 +84,7 @@ Entity* Scene::CreateEntityHierarchyForMeshAsset(MeshLoading::MeshAsset* asset)
 	std::function<void(MeshLoading::MeshNode)> processNode =
 		[this, &processNode, asset, &root](MeshLoading::MeshNode node)
 		{
-			Entity* entity = AddEntity();
+			Entity* entity = AddEntity(asset->GetNodeName(node));
 			entity->AddComponent<MeshRendererComponent>(asset, node);
 
 			if (!root)

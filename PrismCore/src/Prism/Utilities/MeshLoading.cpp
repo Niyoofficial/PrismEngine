@@ -403,6 +403,15 @@ int64_t MeshAsset::GetNodeVertexCount(MeshNode node) const
 	return 0;
 }
 
+std::wstring MeshAsset::GetNodeName(MeshNode node)
+{
+	if (std::holds_alternative<aiNode*>(m_nodes[node].assimpNode))
+		return StringToWString(std::get<aiNode*>(m_nodes[node].assimpNode)->mName.C_Str());
+	else if (std::holds_alternative<aiMesh*>(m_nodes[node].assimpNode))
+		return StringToWString(std::get<aiMesh*>(m_nodes[node].assimpNode)->mName.C_Str());
+	return {};
+}
+
 Bounds3f MeshAsset::GetBoundingBox(MeshNode node) const
 {
 	PE_ASSERT(DoesNodeContainVertices(node));
@@ -482,14 +491,8 @@ int64_t MeshAsset::GetIndexCount(MeshNode node) const
 	aiMesh* mesh = std::get<aiMesh*>(m_nodes[node].assimpNode);
 	PE_ASSERT(mesh->HasFaces());
 
-	int64_t indexCount = 0;
-	for (int32_t i = 0; i < (int32_t)mesh->mNumFaces; ++i)
-	{
-		aiFace face = mesh->mFaces[i];
-		indexCount += face.mNumIndices;
-	}
-
-	return indexCount;
+	// We triangulate all the meshes on import, so we can assume 3 indices per face
+	return (int64_t)mesh->mNumFaces * 3;
 }
 
 MeshNodeIterator MeshAsset::begin() const

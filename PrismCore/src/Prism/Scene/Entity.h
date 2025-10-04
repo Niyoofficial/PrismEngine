@@ -10,7 +10,7 @@ class Entity : public RefCounted
 {
 	friend Scene;
 public:
-	Entity() = default;
+	explicit Entity(const std::wstring& name = L"");
 
 	void AddComponent(Component* component);
 
@@ -42,11 +42,15 @@ public:
 		return static_cast<T*>(m_components.at(typeid(T).hash_code()).Raw());
 	}
 
+	void SetName(const std::wstring& name) { m_name = name; }
+	std::wstring GetName() const { return m_name; }
+
 protected:
 	// Used by the Scene class to initialize the parent
 	void InitializeOwnership(Scene* scene);
 
 protected:
+	std::wstring m_name;
 	Ref<Scene> m_scene;
 
 	// TODO: Replace ref with unique_ptr equivalent

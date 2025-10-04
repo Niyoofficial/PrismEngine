@@ -189,6 +189,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	m_scene = Scene::Create(L"Test Scene");
 	m_scene->SetRenderPipeline(new PBRSceneRenderPipeline);
 	m_scene->CreateEntityHierarchyForMeshAsset(sponza);
+	m_scene->AddEntity(L"Light")->AddComponent<LightRendererComponent>();
 
 	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
@@ -605,7 +606,8 @@ void SandboxLayer::UpdateImGui(Duration delta)
 							ImGuiTreeNodeFlags_SpanFullWidth |
 							ImGuiTreeNodeFlags_Leaf;
 
-						if (ImGui::TreeNodeEx(std::to_string(i).c_str(), treeFlags, "<unnamed ID: %i>", i))
+						std::wstring entityName = m_scene->GetEntityByIndex(i)->GetName();
+						if (ImGui::TreeNodeEx(std::to_string(i).c_str(), treeFlags, "%s", entityName.empty() ? "<unnamed>" : WStringToString(entityName).c_str()))
 						{
 							ImGui::TreePop();
 						}

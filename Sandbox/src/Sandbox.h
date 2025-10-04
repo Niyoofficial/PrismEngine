@@ -56,37 +56,6 @@ struct alignas(Render::Constants::UNIFORM_BUFFER_ALIGNMENT) BloomSettingsUniform
 	int32_t lod = 0;
 };
 
-struct GBuffer
-{
-	enum class Type
-	{
-		Depth,
-		Color,
-		Normal,
-		Roughness_Metal_AO,
-		Count
-	};
-
-	void CreateResources(glm::int2 windowSize);
-
-	Render::Texture* GetTexture(Type type)
-	{
-		return entries[(size_t)type].texture.Raw();
-	}
-	Render::TextureView* GetView(Type type, Render::TextureViewType view)
-	{
-		return entries[(size_t)type].views.at(view).Raw();
-	}
-	
-	struct Entry
-	{
-		Ref<Render::Texture> texture;
-		std::unordered_map<Render::TextureViewType, Ref<Render::TextureView>> views;
-	};
-
-	std::array<Entry, (size_t)Type::Count> entries;
-};
-
 struct Vertex
 {
 	glm::float3 position;
@@ -121,8 +90,6 @@ private:
 	bool m_viewportRelativeMouse = false;
 
 	Ref<Render::Camera> m_camera;
-
-	GBuffer m_gbuffer;
 
 	Ref<Render::Texture> m_sceneColor;
 	Ref<Render::TextureView> m_sceneColorRTV;

@@ -8,6 +8,37 @@ namespace Prism::Render
 {
 class RenderContext;
 
+struct GBuffer
+{
+	enum class Type
+	{
+		Depth,
+		Color,
+		Normal,
+		Roughness_Metal_AO,
+		Count
+	};
+
+	void CreateResources(glm::int2 windowSize);
+
+	Render::Texture* GetTexture(Type type)
+	{
+		return entries[(size_t)type].texture.Raw();
+	}
+	Render::TextureView* GetView(Type type, Render::TextureViewType view)
+	{
+		return entries[(size_t)type].views.at(view).Raw();
+	}
+
+	struct Entry
+	{
+		Ref<Render::Texture> texture;
+		std::unordered_map<Render::TextureViewType, Ref<Render::TextureView>> views;
+	};
+
+	std::array<Entry, (size_t)Type::Count> entries;
+};
+
 struct CameraInfo
 {
 	glm::float4x4 view;
@@ -53,6 +84,8 @@ private:
 		VertexAttribute::Bitangent
 	};
 
+
+	GBuffer m_gbuffer;
 
 	Ref<Texture> m_skybox;
 	Ref<TextureView> m_skyboxCubeSRV;
