@@ -120,7 +120,6 @@ private:
 	Ref<Render::Buffer> m_perLightUniBuffer;
 	Ref<Render::BufferView> m_perLightUniBufferView;
 
-	Ref<Render::PrimitiveBatch> m_sponza;
 	Ref<Render::PrimitiveBatch> m_cube;
 	Ref<Render::PrimitiveBatch> m_sphere;
 

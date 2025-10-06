@@ -128,9 +128,6 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	});
 	m_bloomSettingsBufferView = m_bloomSettingsBuffer->CreateDefaultUniformBufferView();
 
-	// Load sponza
-	m_sponza = SandboxApplication::LoadMeshFromFilePBR(L"Sponza", L"meshes/SponzaCrytek/Sponza.gltf");
-
 	/*
 	// Load cube
 	m_cube = SandboxApplication::LoadMeshFromFile(L"Cube", L"meshes/Cube.fbx",
