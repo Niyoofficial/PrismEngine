@@ -21,7 +21,7 @@ struct PointLight
 
 struct RenderInfo
 {
-	Ref<TextureView> renderTarget;
+	Ref<TextureView> renderTargetView;
 
 	glm::float4x4 view;
 	glm::float4x4 invView;
@@ -29,6 +29,7 @@ struct RenderInfo
 	glm::float4x4 invProj;
 	glm::float4x4 viewProj;
 	glm::float4x4 invViewProj;
+	glm::float3 cameraPos;
 
 	std::vector<Ref<EntityRenderProxy>> proxies;
 	Bounds3f sceneBounds;

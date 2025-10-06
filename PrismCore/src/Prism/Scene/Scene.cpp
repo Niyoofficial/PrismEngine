@@ -32,7 +32,10 @@ void Scene::Update(Duration delta)
 		if (auto* comp = entity->GetComponent<MeshRendererComponent>())
 		{
 			if (auto* proxy = comp->CreateRenderProxy())
+			{
 				m_renderProxies.emplace_back(proxy);
+				m_sceneBounds += proxy->GetBounds();
+			}
 		}
 		if (auto* comp = entity->GetComponent<LightRendererComponent>())
 			m_dirLights.emplace_back(glm::rotate(glm::quat(transfrom), glm::float3{1.f, 0.f, 0.f}), comp->GetColor() * comp->GetIntensity());
@@ -42,7 +45,7 @@ void Scene::Update(Duration delta)
 void Scene::RenderScene(Render::TextureView* rtv, Render::Camera* camera)
 {
 	Render::RenderInfo renderInfo = {
-		.renderTarget = rtv,
+		.renderTargetView = rtv,
 
 		.view = camera->GetViewMatrix(),
 		.invView = camera->GetInvViewMatrix(),
@@ -50,6 +53,9 @@ void Scene::RenderScene(Render::TextureView* rtv, Render::Camera* camera)
 		.invProj = camera->GetInvProjectionMatrix(),
 		.viewProj = camera->GetViewProjectionMatrix(),
 		.invViewProj = camera->GetInvViewProjectionMatrix(),
+		.cameraPos = camera->GetPosition(),
+
+		.sceneBounds = m_sceneBounds
 	};
 	renderInfo.proxies = std::move(m_renderProxies);
 	renderInfo.directionalLights = m_dirLights;

@@ -57,6 +57,7 @@ private:
 	std::vector<Ref<Entity>> m_entities;
 
 	std::vector<Ref<Render::EntityRenderProxy>> m_renderProxies;
+	Bounds3f m_sceneBounds;
 	std::vector<Render::DirectionalLight> m_dirLights;
 };
 }

@@ -95,6 +95,11 @@ bool TextureDesc::IsCube() const
 		depthOrArraySize % 6 == 0;
 }
 
+glm::int2 TextureDesc::GetSize() const
+{
+	return {GetWidth(), GetHeight()};
+}
+
 int32_t TextureDesc::GetWidth() const
 {
 	return width;
@@ -178,9 +183,14 @@ Ref<Texture> Texture::Create(const TextureDesc& desc, Buffer* initDataBuffer, Ba
 	return texture;
 }
 
-Ref<Texture> Texture::Create(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish)
+Ref<Texture> Texture::CreateFromFile(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish)
 {
 	return Private::CreateTexture(filepath, loadAsCubemap, waitForLoadFinish);
+}
+
+Ref<Texture> Texture::CreateFromMemory(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap, bool waitForLoadFinish)
+{
+	return Private::CreateTexture(name, imageData, dataSize, loadAsCubemap, waitForLoadFinish);
 }
 
 Ref<TextureView> Texture::CreateView(const TextureViewDesc& desc)

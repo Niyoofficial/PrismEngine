@@ -5,7 +5,7 @@ cbuffer Resources
 	int g_sceneBuffer;
 	int g_lightsBuffer;
 	int g_perLightBuffer;
-	int g_shadowMap;
+	int g_shadowMaps[MAX_LIGHT_COUNT];
 
 	int g_colorTexture;
 	int g_normalTexture;

@@ -22,7 +22,7 @@
 
 namespace Prism::Render::D3D12
 {
-void BuildDynamicResourceDescriptor(RenderResourceView* view, CD3DX12_CPU_DESCRIPTOR_HANDLE d3d12DescriptorHandle)
+static void BuildDynamicResourceDescriptor(RenderResourceView* view, CD3DX12_CPU_DESCRIPTOR_HANDLE d3d12DescriptorHandle)
 {
 	if (view->GetResourceType() == ResourceType::Buffer)
 	{
@@ -177,28 +177,44 @@ void D3D12RenderCommandList::SetIndexBuffer(Buffer* buffer, IndexBufferFormat fo
 
 void D3D12RenderCommandList::SetTexture(TextureView* textureView, const std::wstring& paramName)
 {
-	PE_ASSERT(textureView);
+	SetTextures({textureView}, paramName);
+}
+
+void D3D12RenderCommandList::SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName)
+{
+	PE_ASSERT(!textureViews.empty());
 	PE_ASSERT(!paramName.empty(), "Param name cannot be empty");
 
 	// We need to save the previous resource descriptor because GPU might still be using it
 	auto it = m_rootResources.find(paramName);
-	if (it != m_rootResources.end() && it->second)
-		m_overriddenRootResources.push_back(it->second);
+	if (it != m_rootResources.end() && !it->second.empty())
+		m_overriddenRootResources.insert(m_overriddenRootResources.end(), it->second.begin(), it->second.end());
 
-	m_rootResources[paramName] = textureView;
+	auto& resources = m_rootResources[paramName];
+	resources = {};
+	for (auto& texView : textureViews)
+		resources.emplace_back(texView);
 }
 
 void D3D12RenderCommandList::SetBuffer(BufferView* bufferView, const std::wstring& paramName)
 {
-	PE_ASSERT(bufferView);
+	SetBuffers({bufferView}, paramName);
+}
+
+void D3D12RenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName)
+{
+	PE_ASSERT(!bufferViews.empty());
 	PE_ASSERT(!paramName.empty(), "Param name cannot be empty");
 
 	// We need to save the previous resource descriptor because GPU might still be using it
 	auto it = m_rootResources.find(paramName);
-	if (it != m_rootResources.end() && it->second)
-		m_overriddenRootResources.push_back(it->second);
+	if (it != m_rootResources.end() && !it->second.empty())
+		m_overriddenRootResources.insert(m_overriddenRootResources.end(), it->second.begin(), it->second.end());
 
-	m_rootResources[paramName] = bufferView;
+	auto& resources = m_rootResources[paramName];
+	resources = {};
+	for (auto& bufView : bufferViews)
+		resources.emplace_back(bufView);
 }
 
 void D3D12RenderCommandList::ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor)
@@ -497,28 +513,35 @@ void D3D12RenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
 
 				PE_ASSERT(varTypeDesc.Type == D3D_SVT_INT, "Indices must by of type int");
 
-				UINT data = 0;
-
 				auto rootResIt = m_rootResources.find(StringToWString(varDesc.Name));
 				if (rootResIt != m_rootResources.end())
 				{
-					PE_ASSERT(rootResIt->second);
-
-					if (rootResIt->second->IsViewOfDynamicResource())
+					for (auto& res : rootResIt->second)
 					{
-						auto allocation = D3D12RenderDevice::Get().AllocateDescriptors(GetDescriptorHeapTypeFromView(rootResIt->second));
-						BuildDynamicResourceDescriptor(rootResIt->second, allocation.GetCPUHandle());
-						int32_t handleIndex = allocation.GetHandleIndexInHeap();
+						PE_ASSERT(res);
 
-						data = std::bit_cast<UINT>(handleIndex);
+						UINT data;
+						if (res->IsViewOfDynamicResource())
+						{
+							auto allocation = D3D12RenderDevice::Get().AllocateDescriptors(GetDescriptorHeapTypeFromView(res));
+							BuildDynamicResourceDescriptor(res, allocation.GetCPUHandle());
+							int32_t handleIndex = allocation.GetHandleIndexInHeap();
 
-						m_dynamicDescriptors.push_back(std::move(allocation));
-					}
-					else
-					{
-						int32_t handleIndex = GetDescriptorFromView(rootResIt->second).GetHandleIndexInHeap();
+							data = std::bit_cast<UINT>(handleIndex);
 
-						data = std::bit_cast<UINT>(handleIndex);
+							m_dynamicDescriptors.push_back(std::move(allocation));
+						}
+						else
+						{
+							int32_t handleIndex = GetDescriptorFromView(res).GetHandleIndexInHeap();
+
+							data = std::bit_cast<UINT>(handleIndex);
+						}
+
+						if constexpr (std::is_same_v<T, GraphicsPipelineStateDesc>)
+							m_commandList->SetGraphicsRoot32BitConstant(rootParamIndex, data, i);
+						else if constexpr (std::is_same_v<T, ComputePipelineStateDesc>)
+							m_commandList->SetComputeRoot32BitConstant(rootParamIndex, data, i);
 					}
 				}
 				else
@@ -527,14 +550,13 @@ void D3D12RenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
 					//	varDesc.Name, shader->GetCreateInfo().filepath, shader->GetCreateInfo().entryName);
 
 					// We set the handle to -1 to indicate that nothing is bound to it
-					int32_t handleIndex = -1;
-					data = std::bit_cast<UINT>(handleIndex);
-				}
+					UINT data = std::bit_cast<UINT>(-1);
 
-				if constexpr (std::is_same_v<T, GraphicsPipelineStateDesc>)
-					m_commandList->SetGraphicsRoot32BitConstant(rootParamIndex, data, i);
-				else if constexpr (std::is_same_v<T, ComputePipelineStateDesc>)
-					m_commandList->SetComputeRoot32BitConstant(rootParamIndex, data, i);
+					if constexpr (std::is_same_v<T, GraphicsPipelineStateDesc>)
+						m_commandList->SetGraphicsRoot32BitConstant(rootParamIndex, data, i);
+					else if constexpr (std::is_same_v<T, ComputePipelineStateDesc>)
+						m_commandList->SetComputeRoot32BitConstant(rootParamIndex, data, i);
+				}
 			}
 		}
 	};

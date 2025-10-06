@@ -96,6 +96,7 @@ private:
 template<typename T>
 class Ref
 {
+	template<typename U> friend class Ref;
 public:
 	Ref() = default;
 	Ref(T* object)

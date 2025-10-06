@@ -4,7 +4,7 @@ cbuffer Resources
 {
 	int g_sceneBuffer;
 
-	int g_modelBuffer;
+	int g_primitiveBuffer;
 	int g_albedoTexture;
 	int g_metallicTexture;
 	int g_roughnessTexture;
@@ -17,13 +17,11 @@ struct SceneBuffer
 	CameraInfo camera;
 };
 
-struct ModelBuffer
+struct PrimitiveBuffer
 {
 	float4x4 world;
 	float4x4 normalMatrix;
 	
-	float mipLevel;
-
 	Material material;
 };
 
@@ -31,10 +29,9 @@ struct VertexInput
 {
 	float3 positionLocal : POSITION;
 	float3 normalLocal : NORMAL;
+	float2 texCoords : TEXCOORD;
 	float3 tangentlLocal : TANGENT;
 	float3 bitangentlLocal : BITANGENT;
-	float3 color : COLOR;
-	float2 texCoords : TEXCOORD;
 };
 
 struct PixelInput
@@ -44,18 +41,17 @@ struct PixelInput
 	float3 normalWorld : NORMAL;
 	float3 tangentWorld : TANGENT;
 	float3 bitangentWorld : BITANGENT;
-	float3 color : COLOR;
 	float2 texCoords : TEXCOORD;
 };
 
 PixelInput vsmain(VertexInput vin)
 {
 	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_sceneBuffer];
-	ConstantBuffer<ModelBuffer> modelBuffer = ResourceDescriptorHeap[g_modelBuffer];
+	ConstantBuffer<PrimitiveBuffer> primitiveBuffer = ResourceDescriptorHeap[g_primitiveBuffer];
 
 	PixelInput vout;
 	
-	float4 posWorld = mul(modelBuffer.world, float4(vin.positionLocal, 1.f));
+	float4 posWorld = mul(primitiveBuffer.world, float4(vin.positionLocal, 1.f));
 	vout.positionWorld = (float3)posWorld;
 	vout.positionClip = mul(sceneBuffer.camera.viewProj, posWorld);
 	
@@ -77,18 +73,16 @@ struct PixelOutput
 
 PixelOutput psmain(PixelInput pin)
 {
-	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_sceneBuffer];
-	ConstantBuffer<ModelBuffer> modelBuffer = ResourceDescriptorHeap[g_modelBuffer];
+	ConstantBuffer<PrimitiveBuffer> primitiveBuffer = ResourceDescriptorHeap[g_primitiveBuffer];
 	
 	float3 normal = normalize(pin.normalWorld);
 	float3 tangent = normalize(pin.tangentWorld);
 	float3 bitangent = normalize(pin.bitangentWorld);
-	float3 toCamera = normalize(sceneBuffer.camera.camPos - pin.positionWorld);
 	
-	float3 albedo = modelBuffer.material.albedo;
-	float metallic = modelBuffer.material.metallic;
-	float roughness = modelBuffer.material.roughness;
-	float ao = modelBuffer.material.ao;
+	float3 albedo = primitiveBuffer.material.albedo;
+	float metallic = primitiveBuffer.material.metallic;
+	float roughness = primitiveBuffer.material.roughness;
+	float ao = primitiveBuffer.material.ao;
 	float alpha = 1.f;
 	if (g_albedoTexture != -1)
 	{
@@ -117,7 +111,7 @@ PixelOutput psmain(PixelInput pin)
 	if (g_normalTexture != -1)
 	{
 		Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
-		normal = NormalSampleToWorldSpace(normalTexture.Sample(g_samLinearWrap, pin.texCoords).rgb, modelBuffer.normalMatrix, normal, tangent, bitangent);
+		normal = NormalSampleToWorldSpace(normalTexture.Sample(g_samLinearWrap, pin.texCoords).rgb, primitiveBuffer.normalMatrix, normal, tangent, bitangent);
 	}
 	
 	PixelOutput pout;

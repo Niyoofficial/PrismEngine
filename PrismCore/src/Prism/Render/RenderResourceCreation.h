@@ -14,6 +14,7 @@ Buffer* CreateBuffer(const BufferDesc& desc);
 BufferView* CreateBufferView(const BufferViewDesc& desc, class Buffer* buffer);
 Texture* CreateTexture(const TextureDesc& desc, BarrierLayout initLayout);
 Texture* CreateTexture(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish);
+Texture* CreateTexture(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap, bool waitForLoadFinish);
 TextureView* CreateTextureView(const TextureViewDesc& desc, Texture* texture);
 ShaderCompiler* CreateShaderCompiler();
 }

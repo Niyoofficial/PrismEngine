@@ -49,6 +49,11 @@ Texture* CreateTexture(std::wstring filepath, bool loadAsCubemap, bool waitForLo
 	return new D3D12::D3D12Texture(filepath, loadAsCubemap, waitForLoadFinish);
 }
 
+Texture* CreateTexture(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap, bool waitForLoadFinish)
+{
+	return new D3D12::D3D12Texture(name, imageData, loadAsCubemap, waitForLoadFinish);
+}
+
 TextureView* CreateTextureView(const TextureViewDesc& desc, Texture* texture)
 {
 	return new D3D12::D3D12TextureView(desc, texture);

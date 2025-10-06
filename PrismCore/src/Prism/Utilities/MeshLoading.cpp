@@ -202,9 +202,12 @@ void ProcessPrimitive(PrimitiveData& data, aiNode* node, aiMesh* mesh, const aiS
 			{
 				aiString path;
 				material->GetTexture(textureType, 0, &path);
-				std::wstring texturePath = L"textures/" + meshName + L"/" + StringToWString(path.C_Str());
 
-				PE_ASSERT(!scene->GetEmbeddedTexture(path.C_Str()), "Embedded textures are not supported! {}", path.C_Str());
+				const aiTexture* embeddedTexture = scene->GetEmbeddedTexture(path.C_Str());
+
+				std::wstring texturePath = embeddedTexture
+											   ? StringToWString(embeddedTexture->mFilename.C_Str())
+											   : L"textures/" + meshName + L"/" + StringToWString(path.C_Str());
 
 				// Check if this texture has already been loaded
 				bool foundTexture = false;
@@ -221,7 +224,19 @@ void ProcessPrimitive(PrimitiveData& data, aiNode* node, aiMesh* mesh, const aiS
 
 				if (!foundTexture)
 				{
-					Ref<Render::Texture> texture = Render::Texture::Create(texturePath, false, false);
+					Ref<Render::Texture> texture;
+					if (embeddedTexture)
+					{
+						texture = Render::Texture::CreateFromMemory(texturePath, embeddedTexture->pcData,
+																	embeddedTexture->mHeight
+																		? embeddedTexture->mHeight * embeddedTexture->mWidth
+																		: embeddedTexture->mWidth, false, false);
+					}
+					else
+					{
+						texture = Render::Texture::CreateFromFile(texturePath, false, false);
+					}
+
 					data.textures[assimpTextureTypeToPrismTextureType(textureType)] = texture;
 					textures.push_back(texture);
 				}
@@ -313,6 +328,99 @@ void MeshNodeIterator::operator--()
 	--value;
 }
 
+static std::unordered_map<TextureType, Ref<Render::Texture>> LoadTexturesForMesh(const std::wstring& filePath, const aiScene* scene, aiMesh* assimpMesh, std::vector<Ref<Render::Texture>>& loadedTextures)
+{
+	if (!scene->HasMaterials())
+		return {};
+
+	std::unordered_map<TextureType, Ref<Render::Texture>> textures;
+
+	std::array textureTypesToTry = {
+		aiTextureType_BASE_COLOR,
+		aiTextureType_NORMALS,
+		aiTextureType_METALNESS,
+		aiTextureType_DIFFUSE_ROUGHNESS
+	};
+
+	for (aiTextureType textureType : textureTypesToTry)
+	{
+		PE_ASSERT(scene->mNumMaterials > assimpMesh->mMaterialIndex);
+		aiMaterial* material = scene->mMaterials[assimpMesh->mMaterialIndex];
+		int32_t textureCount = (int32_t)material->GetTextureCount(textureType);
+
+		if (textureCount > 1)
+		{
+			PE_CORE_LOG(Warn, "Texture count for texture type {} is {}, only first texture will be read",
+				aiTextureTypeToString(textureType), textureCount);
+		}
+
+		auto assimpTextureTypeToPrismTextureType =
+			[](aiTextureType assimpType)
+			{
+				switch (assimpType)
+				{
+				case aiTextureType_BASE_COLOR:
+					return TextureType::Albedo;
+				case aiTextureType_NORMALS:
+					return TextureType::Normals;
+				case aiTextureType_METALNESS:
+					return TextureType::Metallic;
+				case aiTextureType_DIFFUSE_ROUGHNESS:
+					return TextureType::Roughness;
+				default:
+					PE_ASSERT_NO_ENTRY();
+					return TextureType::Albedo;
+				}
+			};
+
+		if (textureCount > 0)
+		{
+			aiString path;
+			material->GetTexture(textureType, 0, &path);
+
+			const aiTexture* embeddedTexture = scene->GetEmbeddedTexture(path.C_Str());
+
+			std::wstring texturePath = embeddedTexture
+				? StringToWString(embeddedTexture->mFilename.C_Str())
+				: (std::fs::path(filePath).parent_path() / path.C_Str()).generic_wstring();
+
+			// Check if this texture has already been loaded
+			bool foundTexture = false;
+			for (auto& texture : loadedTextures)
+			{
+				PE_ASSERT(texture);
+				if (texture->GetTextureDesc().textureName == texturePath)
+				{
+					textures[assimpTextureTypeToPrismTextureType(textureType)] = texture;
+					foundTexture = true;
+					break;
+				}
+			}
+
+			if (!foundTexture)
+			{
+				Ref<Render::Texture> texture;
+				if (embeddedTexture)
+				{
+					texture = Render::Texture::CreateFromMemory(texturePath, embeddedTexture->pcData,
+						embeddedTexture->mHeight
+						? embeddedTexture->mHeight * embeddedTexture->mWidth
+						: embeddedTexture->mWidth, false, false);
+				}
+				else
+				{
+					texture = Render::Texture::CreateFromFile(texturePath, false, false);
+				}
+
+				textures[assimpTextureTypeToPrismTextureType(textureType)] = texture;
+				loadedTextures.push_back(texture);
+			}
+		}
+	}
+
+	return textures;
+}
+
 MeshAsset::MeshAsset(const std::wstring& filePath)
 {
 	const aiScene* scene = m_importer.ReadFile(WStringToString(filePath).c_str(),
@@ -326,24 +434,43 @@ MeshAsset::MeshAsset(const std::wstring& filePath)
 											   aiProcess_JoinIdenticalVertices |
 											   aiProcess_GenSmoothNormals |
 											   aiProcess_CalcTangentSpace |
-											   aiProcess_GenUVCoords);
+											   aiProcess_GenUVCoords |
+											   aiProcess_GenBoundingBoxes);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		PE_ASSERT(false, "{}", m_importer.GetErrorString());
 
+	std::vector<Ref<Render::Texture>> loadedTextures;
+
 	std::function<void(aiNode*)> processNode =
-		[this, &processNode, scene](aiNode* assimpNode)
+		[this, &processNode, scene, &loadedTextures, &filePath](aiNode* assimpNode)
 		{
 			m_nodes.emplace_back(assimpNode, (MeshNode)m_nodes.size() - 1);
 			MeshNode currNode = (MeshNode)(m_nodes.size() - 1);
 			for (int32_t i = 0; i < assimpNode->mNumMeshes; ++i)
-				m_nodes.emplace_back(scene->mMeshes[assimpNode->mMeshes[i]], currNode);
+			{
+				aiMesh* assimpMesh = scene->mMeshes[assimpNode->mMeshes[i]];
+
+				NodeInfo nodeInfo = {
+					.assimpNode = assimpMesh,
+					.parent = currNode,
+					.textures = LoadTexturesForMesh(filePath, scene, assimpMesh, loadedTextures)
+				};
+
+				m_nodes.push_back(nodeInfo);
+			}
 
 			for (int32_t i = 0; i < assimpNode->mNumChildren; ++i)
 				processNode(assimpNode->mChildren[i]);
 		};
 
 	processNode(scene->mRootNode);
+
+	for (auto& texture : loadedTextures)
+	{
+		PE_ASSERT(texture);
+		texture->WaitForLoadFinish();
+	}
 }
 
 MeshNode MeshAsset::GetRootNode() const
@@ -403,13 +530,20 @@ int64_t MeshAsset::GetNodeVertexCount(MeshNode node) const
 	return 0;
 }
 
-std::wstring MeshAsset::GetNodeName(MeshNode node)
+std::wstring MeshAsset::GetNodeName(MeshNode node) const
 {
 	if (std::holds_alternative<aiNode*>(m_nodes[node].assimpNode))
 		return StringToWString(std::get<aiNode*>(m_nodes[node].assimpNode)->mName.C_Str());
 	else if (std::holds_alternative<aiMesh*>(m_nodes[node].assimpNode))
 		return StringToWString(std::get<aiMesh*>(m_nodes[node].assimpNode)->mName.C_Str());
 	return {};
+}
+
+Render::Texture* MeshAsset::GetNodeTexture(MeshNode node, TextureType type)
+{
+	if (m_nodes[node].textures.contains(type))
+		return m_nodes[node].textures.at(type);
+	return nullptr;
 }
 
 Bounds3f MeshAsset::GetBoundingBox(MeshNode node) const

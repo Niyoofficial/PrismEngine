@@ -76,7 +76,9 @@ public:
 	MeshNode GetNodeParent(MeshNode node) const;
 	bool DoesNodeContainVertices(MeshNode node) const;
 	int64_t GetNodeVertexCount(MeshNode node) const;
-	std::wstring GetNodeName(MeshNode node);
+	std::wstring GetNodeName(MeshNode node) const;
+
+	Render::Texture* GetNodeTexture(MeshNode node, TextureType type);
 
 	Bounds3f GetBoundingBox(MeshNode node) const;
 
@@ -100,6 +102,7 @@ private:
 	{
 		std::variant<aiNode*, aiMesh*> assimpNode;
 		MeshNode parent;
+		std::unordered_map<TextureType, Ref<Render::Texture>> textures;
 	};
 	std::vector<NodeInfo> m_nodes;
 };

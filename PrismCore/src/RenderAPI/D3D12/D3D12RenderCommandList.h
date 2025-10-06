@@ -30,7 +30,9 @@ public:
 	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) override;
 
 	virtual void SetTexture(TextureView* textureView, const std::wstring& paramName) override;
+	virtual void SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName) override;
 	virtual void SetBuffer(BufferView* bufferView, const std::wstring& paramName) override;
+	virtual void SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName) override;
 
 	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor) override;
 	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue) override;
@@ -71,7 +73,7 @@ private:
 	std::vector<Ref<TextureView>> m_renderTargetViews;
 	Ref<TextureView> m_depthStencilView;
 
-	std::unordered_map<std::wstring, Ref<RenderResourceView>> m_rootResources;
+	std::unordered_map<std::wstring, std::vector<Ref<RenderResourceView>>> m_rootResources;
 	std::vector<Ref<RenderResourceView>> m_overriddenRootResources;
 	std::vector<DescriptorHeapAllocation> m_dynamicDescriptors;
 };

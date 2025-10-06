@@ -55,7 +55,9 @@ public:
 	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) = 0;
 
 	virtual void SetTexture(TextureView* textureView, const std::wstring& paramName) = 0;
+	virtual void SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName) = 0;
 	virtual void SetBuffer(BufferView* bufferView, const std::wstring& paramName) = 0;
+	virtual void SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName) = 0;
 
 	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr) = 0;
 	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr) = 0;

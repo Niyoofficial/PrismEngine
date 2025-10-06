@@ -3,7 +3,7 @@
 cbuffer Resources
 {
 	int g_shadowSceneBuffer;
-	int g_modelBuffer;
+	int g_primitiveBuffer;
 }
 
 struct ShadowSceneBuffer
@@ -11,7 +11,7 @@ struct ShadowSceneBuffer
 	float4x4 lightViewProj;
 };
 
-struct ModelBuffer
+struct PrimitiveBuffer
 {
 	float4x4 world;
 };
@@ -34,11 +34,11 @@ struct PixelInput
 PixelInput vsmain(VertexInput vin)
 {
 	ConstantBuffer<ShadowSceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_shadowSceneBuffer];
-	ConstantBuffer<ModelBuffer> modelBuffer = ResourceDescriptorHeap[g_modelBuffer];
+	ConstantBuffer<PrimitiveBuffer> primitiveBuffer = ResourceDescriptorHeap[g_primitiveBuffer];
 
 	PixelInput vout;
 	
-	float4 posWorld = mul(modelBuffer.world, float4(vin.positionLocal, 1.f));
+	float4 posWorld = mul(primitiveBuffer.world, float4(vin.positionLocal, 1.f));
 	vout.positionClip = mul(sceneBuffer.lightViewProj, posWorld);
 	
 	return vout;

@@ -80,9 +80,19 @@ void RenderContext::SetTexture(TextureView* textureView, const std::wstring& par
 	m_commandRecorder.AllocateCommand<Commands::SetTextureRenderCommand>(textureView, paramName);
 }
 
+void RenderContext::SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName)
+{
+	m_commandRecorder.AllocateCommand<Commands::SetTexturesRenderCommand>(textureViews, paramName);
+}
+
 void RenderContext::SetBuffer(BufferView* bufferView, const std::wstring& paramName)
 {
 	m_commandRecorder.AllocateCommand<Commands::SetBufferRenderCommand>(bufferView, paramName);
+}
+
+void RenderContext::SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName)
+{
+	m_commandRecorder.AllocateCommand<Commands::SetBuffersRenderCommand>(bufferViews, paramName);
 }
 
 void RenderContext::ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor)

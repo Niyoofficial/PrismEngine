@@ -17,118 +17,6 @@
 
 IMPLEMENT_APPLICATION(SandboxApplication);
 
-void GBuffer::CreateResources(glm::int2 windowSize)
-{
-	using namespace Prism::Render;
-
-	auto depthStencil = Texture::Create({
-		.textureName = L"GBuffer_Depth",
-		.width = windowSize.x,
-		.height = windowSize.y,
-		.dimension = ResourceDimension::Tex2D,
-		.format = TextureFormat::R32_Typeless,
-		.bindFlags = Flags(BindFlags::DepthStencil) | Flags(BindFlags::ShaderResource),
-		.optimizedClearValue = DepthStencilClearValue{
-			.format = TextureFormat::D32_Float
-		}
-	},
-	BarrierLayout::DepthStencilWrite);
-	auto depthStencilDSV = depthStencil->CreateView({
-		.type = TextureViewType::DSV, .format = TextureFormat::D32_Float
-	});
-	auto depthStencilSRV = depthStencil->CreateView({
-		.type = TextureViewType::SRV, .format = TextureFormat::R32_Float
-	});
-
-	auto color = Texture::Create({
-		.textureName = L"GBuffer_Color",
-		.width = windowSize.x,
-		.height = windowSize.y,
-		.dimension = ResourceDimension::Tex2D,
-		.format = TextureFormat::RGBA16_UNorm,
-		.bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
-		.optimizedClearValue = RenderTargetClearValue{
-			.format = TextureFormat::RGBA16_UNorm,
-			.color = {0.f, 0.f, 0.f, 1.f}
-		}
-	}, BarrierLayout::RenderTarget);
-	auto colorRTV = color->CreateView({
-		.type = TextureViewType::RTV
-	});
-	auto colorSRV = color->CreateView({
-		.type = TextureViewType::SRV
-	});
-
-	auto normals = Texture::Create({
-		.textureName = L"GBuffer_Normals",
-		.width = windowSize.x,
-		.height = windowSize.y,
-		.dimension = ResourceDimension::Tex2D,
-		.format = TextureFormat::RGBA16_Float,
-		.bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
-		.optimizedClearValue = RenderTargetClearValue{
-			.format = TextureFormat::RGBA16_Float,
-			.color = {0.f, 0.f, 0.f, 1.f}
-		}
-	}, BarrierLayout::RenderTarget);
-	auto normalsRTV = normals->CreateView({
-		.type = TextureViewType::RTV
-	});
-	auto normalsSRV = normals->CreateView({
-		.type = TextureViewType::SRV
-	});
-
-	auto roughnessMetalAO = Texture::Create({
-		.textureName = L"GBuffer_RoughnessMetalAO",
-		.width = windowSize.x,
-		.height = windowSize.y,
-		.dimension = ResourceDimension::Tex2D,
-		.format = TextureFormat::RGBA16_UNorm,
-		.bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
-		.optimizedClearValue = RenderTargetClearValue{
-			.format = TextureFormat::RGBA16_UNorm,
-			.color = {0.f, 0.f, 0.f, 1.f}
-		}
-	}, BarrierLayout::RenderTarget);
-	auto roughnessMetalAORTV = roughnessMetalAO->CreateView({
-		.type = TextureViewType::RTV
-	});
-	auto roughnessMetalAOSRV = roughnessMetalAO->CreateView({
-		.type = TextureViewType::SRV
-	});
-
-	entries.fill({});
-
-	entries[(size_t)Type::Depth] = {
-		.texture = depthStencil,
-		.views = {
-			{ TextureViewType::DSV, depthStencilDSV },
-			{ TextureViewType::SRV, depthStencilSRV }
-		}
-	};
-	entries[(size_t)Type::Color] = {
-		.texture = color,
-		.views = {
-			{ TextureViewType::RTV, colorRTV },
-			{ TextureViewType::SRV, colorSRV }
-		}
-	};
-	entries[(size_t)Type::Normal] = {
-		.texture = normals,
-		.views = {
-			{ TextureViewType::RTV, normalsRTV },
-			{ TextureViewType::SRV, normalsSRV }
-		}
-	};
-	entries[(size_t)Type::Roughness_Metal_AO] = {
-		.texture = roughnessMetalAO,
-		.views = {
-			{ TextureViewType::RTV, roughnessMetalAORTV },
-			{ TextureViewType::SRV, roughnessMetalAOSRV }
-		}
-	};
-}
-
 SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	: m_owningWindow(owningWindow)
 {
@@ -184,7 +72,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		});
 
 	// TODO: Add create function on Ref class and make RefCounted not allow object creation on stack
-	Ref sponza = new MeshLoading::MeshAsset(L"meshes/SponzaCrytek/Sponza.gltf");
+	Ref sponza = new MeshLoading::MeshAsset(L"assets/SponzaCrytek/Sponza.gltf");
 
 	m_scene = Scene::Create(L"Test Scene");
 	m_scene->SetRenderPipeline(new PBRSceneRenderPipeline);
@@ -646,6 +534,7 @@ void SandboxLayer::Update(Duration delta)
 	}
 
 	m_scene->Update(delta);
+	
 	m_scene->RenderScene(m_finalCompositionRTV, m_camera);
 
 	/*
@@ -1062,8 +951,6 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 		if (m_viewportSize.x == 0 || m_viewportSize.y == 0)
 			return false;
 
-		m_gbuffer.CreateResources(m_viewportSize);
-
 		m_sceneColor = Texture::Create({
 										   .textureName = L"SceneColor",
 										   .width = m_viewportSize.x,
@@ -1080,23 +967,23 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 		m_sceneColorSRV = m_sceneColor->CreateView({.type = TextureViewType::SRV});
 
 		m_bloomDownsampleA = Texture::Create({
-			.textureName = L"DownsampleBloomTextureA",
-			.width = m_viewportSize.x,
-			.height = m_viewportSize.y,
-			.mipLevels = 7,
-			.dimension = ResourceDimension::Tex2D,
-			.format = TextureFormat::R11G11B10_Float,
-			.bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
-		}, BarrierLayout::UnorderedAccess);
+				.textureName = L"DownsampleBloomTextureA",
+				.width = m_viewportSize.x,
+				.height = m_viewportSize.y,
+				.mipLevels = 7,
+				.dimension = ResourceDimension::Tex2D,
+				.format = TextureFormat::R11G11B10_Float,
+				.bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
+			}, BarrierLayout::UnorderedAccess);
 		m_bloomDownsampleAsrv = m_bloomDownsampleA->CreateView({.type = TextureViewType::SRV});
 		m_bloomDownsampleB = Texture::Create({
-			.textureName = L"DownsampleBloomTextureB",
-			.width = m_viewportSize.x,
-			.height = m_viewportSize.y,
-			.mipLevels = 7,
-			.dimension = ResourceDimension::Tex2D,
-			.format = TextureFormat::R11G11B10_Float,
-			.bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
+				.textureName = L"DownsampleBloomTextureB",
+				.width = m_viewportSize.x,
+				.height = m_viewportSize.y,
+				.mipLevels = 7,
+				.dimension = ResourceDimension::Tex2D,
+				.format = TextureFormat::R11G11B10_Float,
+				.bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
 			}, BarrierLayout::UnorderedAccess);
 		m_bloomDownsampleBsrv = m_bloomDownsampleB->CreateView({ .type = TextureViewType::SRV });
 		m_bloomUpsampleTexture = Texture::Create({

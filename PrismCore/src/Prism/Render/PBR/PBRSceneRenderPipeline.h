@@ -39,24 +39,6 @@ struct GBuffer
 	std::array<Entry, (size_t)Type::Count> entries;
 };
 
-struct CameraInfo
-{
-	glm::float4x4 view;
-	glm::float4x4 proj;
-	glm::float4x4 viewProj;
-	glm::float4x4 invView;
-	glm::float4x4 invProj;
-	glm::float4x4 invViewProj;
-
-	glm::float3 camPos;
-};
-
-struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) SceneUniformBuffer
-{
-	alignas(16)
-	CameraInfo camera;
-};
-
 class PBRSceneRenderPipeline : public SceneRenderPipeline
 {
 public:
@@ -71,9 +53,10 @@ private:
 	void GenerateBRDFIntegrationLUT(RenderContext* renderContext);
 
 	void RenderShadowPass(const RenderInfo& renderInfo, RenderContext* renderContext);
+	void RenderBasePass(const RenderInfo& renderInfo, RenderContext* renderContext);
 
 	template<typename Res, typename Desc> requires (std::is_same_v<Res, Texture> && std::is_same_v<Desc, TextureDesc>) || (std::is_same_v<Res, Buffer>&& std::is_same_v <Desc, BufferDesc>)
-	void ResizeResourceArrayIfNeeded(std::vector<Ref<Res>>& resArray, int32_t sizeToFit, Desc resDesc);
+	void ResizeResourceArrayIfNeeded(std::vector<Ref<Res>>& resArray, int32_t sizeToFit, Desc resDesc, BarrierLayout initLayout = BarrierLayout::Common);
 
 private:
 	VertexAttributeList m_defaultVertexAttributeList = {
@@ -101,10 +84,14 @@ private:
 
 	Ref<Texture> m_BRDFLUT;
 
+	// Shadow pass
+	std::vector<Ref<Buffer>> m_sceneShadowPassBuffers;
+	std::vector<Ref<Buffer>> m_primitiveShadowPassBuffers;
 	std::vector<Ref<Texture>> m_dirLightShadowMaps;
 
-	Ref<Buffer> m_sceneShadowPassBuffer;
-	Ref<BufferView> m_sceneShadowPassBufferView;
-	std::vector<Ref<Buffer>> m_primitiveShadowPassBuffers;
+	// Base pass
+	Ref<Buffer> m_sceneBasePassBuffer;
+	Ref<BufferView> m_sceneBasePassBufferView;
+	std::vector<Ref<Buffer>> m_primitiveBasePassBuffers;
 };
 }

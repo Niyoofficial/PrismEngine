@@ -77,7 +77,7 @@ VertexBufferCache::NodeInfo VertexBufferCache::GetNodeIndexInfo(MeshLoading::Mes
 void VertexBufferCache::CreateVertexBuffer(const VertexAttributeList& attributeList, MeshLoading::MeshAsset* mesh)
 {
 	std::vector<uint8_t> vertices;
-	for (auto node : (*mesh))
+	for (auto node : *mesh)
 	{
 		auto appendAttribute =
 			[&vertices](auto att)
