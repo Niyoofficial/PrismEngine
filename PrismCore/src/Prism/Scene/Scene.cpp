@@ -31,7 +31,7 @@ void Scene::Update(Duration delta)
 
 		if (auto* comp = entity->GetComponent<MeshRendererComponent>())
 		{
-			if (auto* proxy = comp->CreateRenderProxy())
+			if (auto* proxy = comp->CreateRenderProxy(transfrom))
 			{
 				m_renderProxies.emplace_back(proxy);
 				m_sceneBounds += proxy->GetBounds();

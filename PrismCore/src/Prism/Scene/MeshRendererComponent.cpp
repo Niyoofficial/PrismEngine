@@ -19,14 +19,10 @@ void MeshRendererComponent::SetPrimitive(MeshLoading::MeshAsset* mesh, MeshLoadi
 	m_meshNode = meshNode;
 }
 
-Render::EntityRenderProxy* MeshRendererComponent::CreateRenderProxy() const
+Render::EntityRenderProxy* MeshRendererComponent::CreateRenderProxy(glm::float4x4 transform) const
 {
 	if (m_meshAsset && m_meshNode != -1 && m_meshAsset->DoesNodeContainVertices(m_meshNode))
 	{
-		auto transform = GetParent()->HasComponent<TransformComponent>()
-							? GetParent()->GetComponentChecked<TransformComponent>()->GetTransform()
-							: glm::float4x4(1.f);
-
 		Render::RenderProxyInitInfo initInfo = {
 			.wordTransform = transform,
 			.bounds = m_meshAsset->GetBoundingBox(m_meshNode),

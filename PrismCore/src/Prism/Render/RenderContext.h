@@ -63,8 +63,8 @@ public:
 
 	void RenderImGui();
 
-	void SetMarker(glm::float3 color, std::wstring string);
-	void BeginEvent(glm::float3 color, std::wstring string);
+	void SetMarker(std::wstring string, glm::float3 color = {});
+	void BeginEvent(std::wstring string, glm::float3 color = {});
 	void EndEvent();
 
 

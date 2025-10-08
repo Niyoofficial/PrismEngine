@@ -82,7 +82,6 @@ private:
 
 	Ref<Scene> m_scene;
 
-	float m_environmentLightScale = 1.f;
 	glm::float3 m_sunRotation = {0.f, glm::radians(-7.f), glm::radians(-101.f)};
 
 	glm::int2 m_viewportSize;
@@ -91,34 +90,9 @@ private:
 
 	Ref<Render::Camera> m_camera;
 
-	Ref<Render::Texture> m_sceneColor;
-	Ref<Render::TextureView> m_sceneColorRTV;
-	Ref<Render::TextureView> m_sceneColorSRV;
-
-
-	Ref<Render::Texture> m_bloomDownsampleA;
-	Ref<Render::TextureView> m_bloomDownsampleAsrv;
-	Ref<Render::Texture> m_bloomDownsampleB;
-	Ref<Render::TextureView> m_bloomDownsampleBsrv;
-	Ref<Render::Texture> m_bloomUpsampleTexture;
-	Ref<Render::TextureView> m_bloomUpsampleTextureSRV;
-	Ref<Render::Buffer> m_bloomSettingsBuffer;
-	Ref<Render::BufferView> m_bloomSettingsBufferView;
-	float m_bloomThreshold = 1.f;
-	float m_bloomKnee = 0.1f;
-
-	Ref<Render::Texture> m_finalComposition;
-	Ref<Render::TextureView> m_finalCompositionSRV;
-	Ref<Render::TextureView> m_finalCompositionRTV;
-
-	Ref<Render::Buffer> m_sceneUniBuffer;
-	Ref<Render::BufferView> m_sceneUniBufferView;
-
-	Ref<Render::Buffer> m_lightsUniBuffer;
-	Ref<Render::BufferView> m_lightsUniBufferView;
-
-	Ref<Render::Buffer> m_perLightUniBuffer;
-	Ref<Render::BufferView> m_perLightUniBufferView;
+	Ref<Render::Texture> m_editorViewport;
+	Ref<Render::TextureView> m_editorViewportSRV;
+	Ref<Render::TextureView> m_editorViewportRTV;
 
 	Ref<Render::PrimitiveBatch> m_cube;
 	Ref<Render::PrimitiveBatch> m_sphere;

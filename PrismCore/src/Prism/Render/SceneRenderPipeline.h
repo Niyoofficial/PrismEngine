@@ -36,6 +36,9 @@ struct RenderInfo
 
 	std::vector<DirectionalLight> directionalLights;
 	std::vector<PointLight> pointLights;
+
+	float bloomThreshold = 1.f;
+	float bloomKnee = 0.1f;
 };
 
 class SceneRenderPipeline : public RefCounted

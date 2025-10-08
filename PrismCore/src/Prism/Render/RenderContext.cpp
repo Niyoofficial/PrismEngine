@@ -1,6 +1,10 @@
 ﻿#include "pcpch.h"
 #include "RenderContext.h"
 
+#include "Prism/Base/AppEvents.h"
+#include "Prism/Base/AppEvents.h"
+#include "Prism/Base/AppEvents.h"
+#include "Prism/Base/AppEvents.h"
 #include "Prism/Render/RenderCommands.h"
 #include "Prism/Render/RenderResourceCreation.h"
 #include "Prism/Render/RenderUtils.h"
@@ -282,7 +286,7 @@ void RenderContext::RenderImGui()
 		});
 }
 
-void RenderContext::SetMarker(glm::float3 color, std::wstring string)
+void RenderContext::SetMarker(std::wstring string, glm::float3 color)
 {
 	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
 		[markerColor = color, formatString = string](RenderCommandList* cmdList)
@@ -291,7 +295,7 @@ void RenderContext::SetMarker(glm::float3 color, std::wstring string)
 		});
 }
 
-void RenderContext::BeginEvent(glm::float3 color, std::wstring string)
+void RenderContext::BeginEvent(std::wstring string, glm::float3 color)
 {
 	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
 		[markerColor = color, formatString = string](RenderCommandList* cmdList)

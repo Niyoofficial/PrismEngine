@@ -1,4 +1,6 @@
 #pragma once
+#include "Prism/Base/AppEvents.h"
+#include "Prism/Base/AppEvents.h"
 #include "Prism/Scene/Components.h"
 #include "Prism/Utilities/MeshLoading.h"
 
@@ -21,7 +23,7 @@ public:
 
 	void SetPrimitive(MeshLoading::MeshAsset* mesh, MeshLoading::MeshNode meshNode);
 
-	virtual Render::EntityRenderProxy* CreateRenderProxy() const;
+	virtual Render::EntityRenderProxy* CreateRenderProxy(glm::float4x4 transform) const;
 
 private:
 	Ref<MeshLoading::MeshAsset> m_meshAsset;

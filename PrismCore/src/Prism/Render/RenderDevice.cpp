@@ -73,7 +73,7 @@ Ref<RenderContext> RenderDevice::AllocateContext(std::wstring debugName)
 	if (!debugName.empty())
 		eventName += L"_" + debugName;
 
-	context->BeginEvent({}, eventName);
+	context->BeginEvent(eventName, {});
 
 	return context;
 }

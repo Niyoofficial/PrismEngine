@@ -141,6 +141,13 @@ struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) DirectionalLightingPassInfo
 	glm::float4x4 shadowViewProj;
 };
 
+struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) SettingsBloomPass
+{
+	float threshold = 1.f;
+	float knee = 0.1f;
+	int32_t lod = 0;
+};
+
 PBRSceneRenderPipeline::PBRSceneRenderPipeline()
 {
 	auto renderContext = RenderDevice::Get().AllocateContext(L"PBRSceneRenderPipeline_Initialization");
@@ -167,6 +174,15 @@ PBRSceneRenderPipeline::PBRSceneRenderPipeline()
 		.cpuAccess = CPUAccess::Write
 	});
 	m_dirLightingPassBufferView = m_dirLightingPassBuffer->CreateDefaultUniformBufferView();
+
+	m_bloomPassSettingsBuffer = Buffer::Create({
+		.bufferName = L"SettingsBloomPass_UniformBuffer",
+		.size = sizeof(SettingsBloomPass),
+		.bindFlags = BindFlags::UniformBuffer,
+		.usage = ResourceUsage::Dynamic,
+		.cpuAccess = CPUAccess::Write
+	});
+	m_bloomPassSettingsBufferView = m_bloomPassSettingsBuffer->CreateDefaultUniformBufferView();
 
 	RenderDevice::Get().SubmitContext(renderContext);
 	RenderDevice::Get().GetRenderCommandQueue()->Flush();
@@ -197,11 +213,45 @@ void PBRSceneRenderPipeline::Render(RenderInfo renderInfo)
 									   }, BarrierLayout::RenderTarget);
 		m_sceneColorRTV = m_sceneColor->CreateDefaultRTV();
 		m_sceneColorSRV = m_sceneColor->CreateDefaultSRV();
+
+		m_bloomDownsampleA = Texture::Create({
+												 .textureName = L"DownsampleBloomTextureA",
+												 .width = renderTargetSize.x,
+												 .height = renderTargetSize.y,
+												 .mipLevels = 7,
+												 .dimension = ResourceDimension::Tex2D,
+												 .format = TextureFormat::R11G11B10_Float,
+												 .bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
+											 }, BarrierLayout::UnorderedAccess);
+		m_bloomDownsampleAsrv = m_bloomDownsampleA->CreateDefaultSRV();
+		m_bloomDownsampleB = Texture::Create({
+												 .textureName = L"DownsampleBloomTextureB",
+												 .width = renderTargetSize.x,
+												 .height = renderTargetSize.y,
+												 .mipLevels = 7,
+												 .dimension = ResourceDimension::Tex2D,
+												 .format = TextureFormat::R11G11B10_Float,
+												 .bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
+											 }, BarrierLayout::UnorderedAccess);
+		m_bloomDownsampleBsrv = m_bloomDownsampleB->CreateDefaultSRV();
+		m_bloomUpsampleTexture = Texture::Create({
+													 .textureName = L"UpsampleBloomTexture",
+													 .width = renderTargetSize.x,
+													 .height = renderTargetSize.y,
+													 .mipLevels = 6,
+													 .dimension = ResourceDimension::Tex2D,
+													 .format = TextureFormat::R11G11B10_Float,
+													 .bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
+												 }, BarrierLayout::UnorderedAccess);
+		m_bloomUpsampleTextureSRV = m_bloomUpsampleTexture->CreateDefaultSRV();
+
 	}
 
 	RenderShadowPass(renderInfo, renderContext);
 	RenderBasePass(renderInfo, renderContext);
 	RenderLightingPass(renderInfo, renderContext);
+	RenderBloomPass(renderInfo, renderContext);
+	RenderFinalCompositionPass(renderInfo, renderContext);
 
 	RenderDevice::Get().SubmitContext(renderContext);
 }
@@ -263,7 +313,7 @@ void PBRSceneRenderPipeline::ConvertSkyboxToCubemap(RenderContext* renderContext
 	renderContext->SetTexture(m_environmentTextureSRV, L"g_environment");
 	renderContext->SetTexture(m_skyboxUAV, L"g_skybox");
 
-	renderContext->Dispatch({ 64, 64, 6 });
+	renderContext->Dispatch({64, 64, 6});
 
 	renderContext->Barrier(TextureBarrier{
 		.texture = m_skybox,
@@ -498,7 +548,7 @@ void PBRSceneRenderPipeline::GenerateBRDFIntegrationLUT(RenderContext* renderCon
 
 void PBRSceneRenderPipeline::RenderShadowPass(const RenderInfo& renderInfo, RenderContext* renderContext)
 {
-	renderContext->BeginEvent({}, L"Shadows");
+	renderContext->BeginEvent(L"Shadows", {});
 
 	renderContext->SetPSO({
 		.vs = {
@@ -627,7 +677,7 @@ void PBRSceneRenderPipeline::RenderShadowPass(const RenderInfo& renderInfo, Rend
 
 void PBRSceneRenderPipeline::RenderBasePass(const RenderInfo& renderInfo, RenderContext* renderContext)
 {
-	renderContext->BeginEvent({}, L"BasePass");
+	renderContext->BeginEvent(L"BasePass", {});
 
 	auto renderTargetDesc = renderInfo.renderTargetView->GetTexture()->GetTextureDesc();
 	renderContext->SetViewport({{0.f, 0.f}, {renderTargetDesc.GetWidth(), renderTargetDesc.GetHeight()}, {0.f, 1.f}});
@@ -749,7 +799,7 @@ void PBRSceneRenderPipeline::RenderBasePass(const RenderInfo& renderInfo, Render
 
 void PBRSceneRenderPipeline::RenderLightingPass(const RenderInfo& renderInfo, RenderContext* renderContext)
 {
-	renderContext->BeginEvent({}, L"LightingPass");
+	renderContext->BeginEvent(L"LightingPass", {});
 
 	renderContext->SetRenderTarget(m_sceneColorRTV, nullptr);
 
@@ -762,7 +812,7 @@ void PBRSceneRenderPipeline::RenderLightingPass(const RenderInfo& renderInfo, Re
 	renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::SRV), L"g_depthTexture");
 
 	{
-		renderContext->BeginEvent({}, L"IndirectLighting");
+		renderContext->BeginEvent(L"IndirectLighting", {});
 
 		BlendStateDesc blendState;
 		blendState.renderTargetBlendDesc = RenderTargetBlendDesc{.blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One};
@@ -797,7 +847,7 @@ void PBRSceneRenderPipeline::RenderLightingPass(const RenderInfo& renderInfo, Re
 	}
 
 	{
-		renderContext->BeginEvent({}, L"DirectLighting");
+		renderContext->BeginEvent(L"DirectLighting", {});
 
 		BlendStateDesc blendState;
 		blendState.renderTargetBlendDesc = RenderTargetBlendDesc{.blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One};
@@ -858,6 +908,180 @@ void PBRSceneRenderPipeline::RenderLightingPass(const RenderInfo& renderInfo, Re
 
 		renderContext->EndEvent();
 	}
+
+	renderContext->EndEvent();
+}
+
+void PBRSceneRenderPipeline::RenderBloomPass(const RenderInfo& renderInfo, RenderContext* renderContext)
+{
+	renderContext->BeginEvent(L"Bloom", {});
+
+	SettingsBloomPass bloomPassSettings = {
+		.threshold = renderInfo.bloomThreshold,
+		.knee = renderInfo.bloomKnee,
+		.lod = 0,
+	};
+
+	renderContext->SetBuffer(m_bloomPassSettingsBufferView, L"g_bloomSettings");
+
+	// Prefilter
+	{
+		renderContext->BeginEvent(L"Prefilter", {});
+
+		renderContext->SetTexture(m_sceneColorSRV, L"g_inputTexture");
+		renderContext->SetTexture(m_bloomDownsampleA->CreateView({ .type = TextureViewType::UAV }), L"g_outputTexture");
+
+		void* bloomSettingsData = m_bloomPassSettingsBuffer->Map(CPUAccess::Write);
+		memcpy_s(bloomSettingsData, m_bloomPassSettingsBuffer->GetBufferDesc().size, &bloomPassSettings, sizeof(bloomPassSettings));
+		m_bloomPassSettingsBuffer->Unmap();
+
+		renderContext->SetPSO(ComputePipelineStateDesc{
+			.cs = {
+				.filepath = L"shaders/Bloom.hlsl",
+				.entryName = L"Prefilter",
+				.shaderType = ShaderType::CS
+			}
+		});
+
+		renderContext->Dispatch({ m_bloomDownsampleA->GetTextureDesc().GetWidth() / 4, m_bloomDownsampleA->GetTextureDesc().GetHeight() / 4, 1 });
+
+		renderContext->EndEvent();
+	}
+
+	// Downsample
+	{
+		renderContext->BeginEvent(L"Downsample", {});
+
+		auto dispatchDownsample =
+			[&bloomPassSettings, &renderContext, this](Texture* uavTexture, int32_t uavMipIndex, TextureView* srv, int32_t srvMipReadIndex)
+		{
+			TextureViewDesc uavDesc = {
+				.type = TextureViewType::UAV, .subresourceRange = {.firstMipLevel = uavMipIndex, .numMipLevels = 1}
+			};
+			renderContext->SetTexture(uavTexture->CreateView(uavDesc), L"g_outputTexture");
+			renderContext->SetTexture(srv, L"g_inputTexture");
+
+			bloomPassSettings.lod = srvMipReadIndex;
+			void* bloomSettingsData = m_bloomPassSettingsBuffer->Map(CPUAccess::Write);
+			memcpy_s(bloomSettingsData, m_bloomPassSettingsBuffer->GetBufferDesc().size, &bloomPassSettings, sizeof(bloomPassSettings));
+			m_bloomPassSettingsBuffer->Unmap();
+
+			renderContext->SetPSO(ComputePipelineStateDesc{
+				.cs = {
+					.filepath = L"shaders/Bloom.hlsl",
+					.entryName = L"Downsample",
+					.shaderType = ShaderType::CS
+				}
+			});
+
+			renderContext->Dispatch({
+				std::ceil((float)m_bloomDownsampleA->GetTextureDesc().GetWidth() / std::pow(2.f, (float)uavMipIndex) / 4.f),
+				std::ceil((float)m_bloomDownsampleA->GetTextureDesc().GetHeight() / std::pow(2.f, (float)uavMipIndex) / 4.f),
+				1
+			});
+		};
+
+		dispatchDownsample(m_bloomDownsampleB, 0, m_bloomDownsampleAsrv, 0);
+		for (int32_t i = 1; i < m_bloomDownsampleA->GetTextureDesc().GetMipLevels(); ++i)
+		{
+			dispatchDownsample(m_bloomDownsampleA, i, m_bloomDownsampleBsrv, i - 1);
+			dispatchDownsample(m_bloomDownsampleB, i, m_bloomDownsampleAsrv, i);
+		}
+
+		renderContext->EndEvent();
+	}
+
+	// Upsample
+	{
+		renderContext->BeginEvent(L"Upsample", {});
+
+		renderContext->Barrier(TextureBarrier{
+			.texture = m_bloomDownsampleA,
+			.syncBefore = BarrierSync::ComputeShading,
+			.syncAfter = BarrierSync::ComputeShading,
+			.accessBefore = BarrierAccess::UnorderedAccess,
+			.accessAfter = BarrierAccess::ShaderResource,
+			.layoutBefore = BarrierLayout::UnorderedAccess,
+			.layoutAfter = BarrierLayout::ShaderResource,
+		});
+
+		for (int32_t i = m_bloomDownsampleA->GetTextureDesc().GetMipLevels() - 2; i >= 0; --i)
+		{
+			TextureViewDesc uavDesc = {
+				.type = TextureViewType::UAV, .subresourceRange = {.firstMipLevel = i, .numMipLevels = 1}
+			};
+			renderContext->SetTexture(m_bloomUpsampleTexture->CreateView(uavDesc), L"g_outputTexture");
+			renderContext->SetTexture(m_bloomDownsampleBsrv, L"g_inputTexture");
+			renderContext->SetTexture(i == 5 ? m_bloomDownsampleBsrv : m_bloomUpsampleTextureSRV, L"g_accumulationTexture");
+
+			bloomPassSettings.lod = i;
+			void* bloomSettingsData = m_bloomPassSettingsBuffer->Map(CPUAccess::Write);
+			memcpy_s(bloomSettingsData, m_bloomPassSettingsBuffer->GetBufferDesc().size, &bloomPassSettings, sizeof(bloomPassSettings));
+			m_bloomPassSettingsBuffer->Unmap();
+
+			renderContext->SetPSO(ComputePipelineStateDesc{
+				.cs = {
+					.filepath = L"shaders/Bloom.hlsl",
+					.entryName = L"Upsample",
+					.shaderType = ShaderType::CS
+				}
+			});
+
+			renderContext->Dispatch({
+				std::ceil((float)m_bloomUpsampleTexture->GetTextureDesc().GetWidth() / std::pow(2.f, (float)i) / 4.f),
+				std::ceil((float)m_bloomUpsampleTexture->GetTextureDesc().GetHeight() / std::pow(2.f, (float)i) / 4.f),
+				1
+			});
+		}
+
+		renderContext->Barrier(TextureBarrier{
+			.texture = m_bloomDownsampleA,
+			.syncBefore = BarrierSync::ComputeShading,
+			.syncAfter = BarrierSync::ComputeShading,
+			.accessBefore = BarrierAccess::ShaderResource,
+			.accessAfter = BarrierAccess::UnorderedAccess,
+			.layoutBefore = BarrierLayout::ShaderResource,
+			.layoutAfter = BarrierLayout::UnorderedAccess,
+		});
+
+		renderContext->EndEvent();
+	}
+
+	renderContext->EndEvent();
+}
+
+void PBRSceneRenderPipeline::RenderFinalCompositionPass(const RenderInfo& renderInfo, RenderContext* renderContext)
+{
+	renderContext->BeginEvent(L"FinalComposition");
+
+	renderContext->ClearRenderTargetView(renderInfo.renderTargetView);
+	renderContext->SetRenderTarget(renderInfo.renderTargetView, nullptr);
+
+	renderContext->SetPSO(GraphicsPipelineStateDesc{
+		.vs = {
+			.filepath = L"shaders/FinalComposition.hlsl",
+			.entryName = L"vsmain",
+			.shaderType = ShaderType::VS
+		},
+		.ps = {
+			.filepath = L"shaders/FinalComposition.hlsl",
+			.entryName = L"psmain",
+			.shaderType = ShaderType::PS
+		},
+		.rasterizerState = {
+			.cullMode = CullMode::Front
+		},
+		.depthStencilState = {
+			.depthEnable = false,
+			.depthWriteEnable = false,
+			.stencilEnable = false
+		},
+	});
+
+	renderContext->SetTexture(m_sceneColorSRV, L"g_sceneColorTexture");
+	renderContext->SetTexture(m_bloomUpsampleTextureSRV, L"g_bloomTexture");
+
+	renderContext->Draw({.numVertices = 3});
 
 	renderContext->EndEvent();
 }

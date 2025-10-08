@@ -225,7 +225,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 	if (context)
 	{
 		renderContext = context;
-		renderContext->BeginEvent({1.f, 0.f, 1.f}, std::format(L"GenerateMipMaps_{}", GetTextureDesc().textureName));
+		renderContext->BeginEvent(std::format(L"GenerateMipMaps_{}", GetTextureDesc().textureName), {1.f, 0.f, 1.f});
 	}
 	else
 	{
@@ -288,7 +288,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 
 	for (int32_t i = 0; i < GetTextureDesc().GetDepthOrArraySize(); ++i)
 	{
-		renderContext->BeginEvent({}, std::format(L"ArrayIndex_{}", i));
+		renderContext->BeginEvent(std::format(L"ArrayIndex_{}", i), {});
 
 		for (int32_t topMip = 0; topMip < numMipMaps;)
 		{
@@ -307,7 +307,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 			if (topMip + mipsToGenerate > numMipMaps)
 				mipsToGenerate = numMipMaps - topMip;
 
-			renderContext->BeginEvent({}, std::format(L"GenerateLevels {}..{}", topMip + 1, mipsToGenerate + topMip + 1));
+			renderContext->BeginEvent(std::format(L"GenerateLevels {}..{}", topMip + 1, mipsToGenerate + topMip + 1), {});
 
 			// Determine if the first downsample is more than 2:1. This happens whenever
 			// the source width or height is odd.
@@ -435,7 +435,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 		}*/
 	});
 
-	context->BeginEvent({}, L"MipMapCopy");
+	context->BeginEvent(L"MipMapCopy", {});
 	for (int32_t i = 0; i < GetTextureDesc().GetDepthOrArraySize(); ++i)
 	{
 		for (int32_t j = 0; j < numMipMaps; ++j)

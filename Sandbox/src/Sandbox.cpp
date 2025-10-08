@@ -13,7 +13,6 @@
 #include "Prism/Render/PBR/PBRSceneRenderPipeline.h"
 #include "Prism/Scene/Entity.h"
 #include "Prism/Scene/LightRendererComponent.h"
-#include "Prism/Scene/MeshRendererComponent.h"
 
 IMPLEMENT_APPLICATION(SandboxApplication);
 
@@ -77,56 +76,14 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	m_scene = Scene::Create(L"Test Scene");
 	m_scene->SetRenderPipeline(new PBRSceneRenderPipeline);
 	m_scene->CreateEntityHierarchyForMeshAsset(sponza);
-	m_scene->AddEntity(L"Light")->AddComponent<LightRendererComponent>();
+	auto lightEntity = m_scene->AddEntity(L"Light");
+	lightEntity->AddComponent<LightRendererComponent>();
+	lightEntity->AddComponent<TransformComponent>()->SetRotation(m_sunRotation);
 
 	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
 	m_camera = new Camera(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
 	m_camera->SetPosition({0.f, 0.f, 0.f});
-
-	/*
-	// Scene cbuffer
-	m_sceneUniBuffer = Buffer::Create({
-										.bufferName = L"SceneCBuffer",
-										.size = sizeof(SceneUniformBuffer),
-										.bindFlags = BindFlags::UniformBuffer,
-										.usage = ResourceUsage::Dynamic,
-										.cpuAccess = CPUAccess::Write
-									});
-	m_sceneUniBufferView = m_sceneUniBuffer->CreateDefaultUniformBufferView();
-	*/
-
-	/*
-	// Lights uniform buffer
-	m_lightsUniBuffer = Buffer::Create({
-		.bufferName = L"LightsBuffer",
-		.size = sizeof(LightsUniformBuffer),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
-	m_lightsUniBufferView = m_lightsUniBuffer->CreateDefaultUniformBufferView();
-	*/
-
-	// PerLight uniform buffer
-	m_perLightUniBuffer = Buffer::Create({
-		.bufferName = L"PerLightBuffer",
-		.size = sizeof(PerLightUniformBuffer),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
-	m_perLightUniBufferView = m_perLightUniBuffer->CreateDefaultUniformBufferView();
-
-
-	m_bloomSettingsBuffer = Buffer::Create({
-		.bufferName = L"BloomSettingsBuffer",
-		.size = sizeof(BloomSettingsUniformBuffer),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
-	m_bloomSettingsBufferView = m_bloomSettingsBuffer->CreateDefaultUniformBufferView();
 
 	/*
 	// Load cube
@@ -241,7 +198,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		{
 			float viewportStartHeight = ImGui::GetCursorPos().y;
 
-			ImGui::Image(m_finalCompositionSRV, viewportSize);
+			ImGui::Image(m_editorViewportSRV, viewportSize);
 
 			// Stats overlay
 			if (s_showStatWindow)
@@ -532,407 +489,7 @@ void SandboxLayer::Update(Duration delta)
 
 	m_scene->Update(delta);
 	
-	m_scene->RenderScene(m_finalCompositionRTV, m_camera);
-
-	/*
-	SceneUniformBuffer sceneUniformBuffer = {
-				.camera = {
-					.view = m_camera->GetViewMatrix(),
-					.proj = m_camera->GetProjectionMatrix(),
-					.viewProj = m_camera->GetViewProjectionMatrix(),
-					.invView = m_camera->GetInvViewMatrix(),
-					.invProj = m_camera->GetInvProjectionMatrix(),
-					.invViewProj = m_camera->GetInvViewProjectionMatrix(),
-
-					.camPos = m_camera->GetPosition()
-				}
-	};
-
-	void* sceneData = m_sceneUniBuffer->Map(CPUAccess::Write);
-	memcpy_s(sceneData, m_sceneUniBuffer->GetBufferDesc().size, &sceneUniformBuffer, sizeof(sceneUniformBuffer));
-	m_sceneUniBuffer->Unmap();
-
-	renderContext->SetBuffer(m_sceneUniBufferView, L"g_sceneBuffer");
-
-	// Base Pass
-	{
-		renderContext->BeginEvent({}, L"BasePass");
-
-		renderContext->SetViewport({{0.f, 0.f}, m_viewportSize, {0.f, 1.f}});
-		renderContext->SetScissor({{0.f, 0.f}, m_viewportSize});
-
-		renderContext->SetRenderTargets({
-											m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV),
-											m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::RTV),
-											m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::RTV)
-										}, m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::DSV));
-
-		glm::float4 clearColor = {0.f, 0.f, 0.f, 1.f};
-		renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV), &clearColor);
-		renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::RTV), &clearColor);
-		renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::RTV),
-											 &clearColor);
-		renderContext->ClearDepthStencilView(m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::DSV),
-											 Flags(ClearFlags::ClearDepth) | Flags(ClearFlags::ClearStencil));
-
-		renderContext->Barrier(TextureBarrier{
-			.texture = m_sunShadowMap,
-			.syncBefore = BarrierSync::DepthStencil,
-			.syncAfter = BarrierSync::PixelShading,
-			.accessBefore = BarrierAccess::DepthStencilWrite,
-			.accessAfter = BarrierAccess::ShaderResource,
-			.layoutBefore = BarrierLayout::DepthStencilWrite,
-			.layoutAfter = BarrierLayout::ShaderResource,
-		});
-
-		renderContext->SetTexture(m_sunShadowMapSRV, L"g_shadowMap");
-
-		// Sponza
-		{
-			ModelUniformBuffer modelData = {
-				.world = glm::float4x4(1.f),
-				.normalMatrix = glm::transpose(glm::inverse(modelData.world)),
-
-				.material = {
-					.albedo = glm::float3(1.f, 1.f, 1.f),
-					.metallic = 1.f,
-					.roughness = 1.f,
-					.ao = 1.f
-				}
-			};
-			m_sponza->Draw(renderContext, &modelData, sizeof(ModelUniformBuffer));
-		}
-
-		// Skybox
-		if (0)
-		{
-			ModelUniformBuffer modelData = {
-				.world = glm::float4x4(1.f),
-				.normalMatrix = glm::transpose(glm::inverse(glm::float3x3(modelData.world))),
-
-				.material = {
-					.albedo = glm::float3(0.2f, 0.3f, 0.8f),
-					.metallic = 0.2f,
-					.roughness = 0.4f,
-					.ao = 0.3f
-				}
-			};
-			m_cube->Draw(renderContext, &modelData, sizeof(ModelUniformBuffer));
-		}
-
-		// Spheres
-		if (0)
-		{
-			ModelUniformBuffer modelData = {
-				.world = glm::translate(glm::float4x4(1.f), glm::float3(0.f, -5.f, 0.f)),
-				.normalMatrix = glm::transpose(glm::inverse(glm::float3x3(modelData.world))),
-
-				.mipLevel = -1.f,
-
-				.material = {
-					.albedo = glm::float3(1.f, 1.f, 1.f),
-					.metallic = 0.f,
-					.roughness = 0.1f,
-					.ao = 0.3f
-				}
-			};
-
-			for (int32_t i = 0; i < 6; ++i)
-			{
-				modelData.world = glm::translate(modelData.world, glm::float3(2.f, 0.f, 0.f));
-				modelData.mipLevel += 1.f;
-			
-				m_sphere->Draw(renderContext, &modelData, sizeof(ModelUniformBuffer));
-			}
-		}
-
-		renderContext->EndEvent();
-	}
-
-	// Lighting Pass
-	{
-		renderContext->BeginEvent({}, L"LightingPass");
-
-		//auto* currentBackBuffer = SandboxApplication::Get().GetWindow()->GetSwapchain()->GetCurrentBackBufferRTV();
-		renderContext->SetRenderTarget(m_sceneColorRTV, nullptr);
-
-		glm::float4 clearColor = {0.f, 0.f, 0.f, 1.f};
-		renderContext->ClearRenderTargetView(m_sceneColorRTV, &clearColor);
-
-		renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::SRV), L"g_colorTexture");
-		renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::SRV), L"g_normalTexture");
-		renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::SRV), L"g_roughnessMetalAOTexture");
-		renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::SRV), L"g_depthTexture");
-
-		// Env light
-		{
-			BlendStateDesc blendState;
-			blendState.renderTargetBlendDesc = RenderTargetBlendDesc{.blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One};
-			renderContext->SetPSO(GraphicsPipelineStateDesc{
-			   .vs = {
-				   .filepath = L"shaders/DeferredLightingIndirect.hlsl",
-				   .entryName = L"vsmain",
-				   .shaderType = ShaderType::VS
-			   },
-			   .ps = {
-				   .filepath = L"shaders/DeferredLightingIndirect.hlsl",
-				   .entryName = L"psmain",
-				   .shaderType = ShaderType::PS
-			   },
-			   .rasterizerState = {
-				   .cullMode = CullMode::Front
-			   },
-			   .depthStencilState = {
-				   .depthEnable = false,
-				   .depthWriteEnable = false,
-				   .stencilEnable = false
-			   },
-			});
-
-			renderContext->SetBuffer(m_irradianceSHBufferView, L"g_irradiance");
-			renderContext->SetTexture(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), L"g_brdfLUT");
-			renderContext->SetTexture(m_prefilteredEnvMapCubeSRV, L"g_envMap");
-
-			renderContext->Draw({.numVertices = 3});
-		}
-
-		BlendStateDesc blendState;
-		blendState.renderTargetBlendDesc = RenderTargetBlendDesc{.blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One};
-		renderContext->SetPSO(GraphicsPipelineStateDesc{
-			.vs = {
-				.filepath = L"shaders/DeferredLightingDirect.hlsl",
-				.entryName = L"vsmain",
-				.shaderType = ShaderType::VS
-			},
-			.ps = {
-				.filepath = L"shaders/DeferredLightingDirect.hlsl",
-				.entryName = L"psmain",
-				.shaderType = ShaderType::PS
-			},
-			.blendState = blendState,
-			.rasterizerState = {
-				.cullMode = CullMode::Front
-			},
-			.depthStencilState = {
-				.depthEnable = false,
-				.depthWriteEnable = false,
-				.stencilEnable = false
-			},
-		});
-
-		LightsUniformBuffer lightsUniformBuffer = {
-			.directionalLights = {
-				{.direction = sunDir, .lightColor = {1.f, 1.f, 1.f}}
-			}
-		};
-
-		void* lightsData = m_lightsUniBuffer->Map(CPUAccess::Write);
-		memcpy_s(lightsData, m_lightsUniBuffer->GetBufferDesc().size, &lightsUniformBuffer, sizeof(lightsUniformBuffer));
-		m_lightsUniBuffer->Unmap();
-
-		renderContext->SetBuffer(m_lightsUniBufferView, L"g_lightsBuffer");
-
-		// Loop over all lights (currently 1)
-		{
-			PerLightUniformBuffer perLightUniformBuffer = {
-				.lightIndex = 0,
-				.shadowViewProj = lightProj * lightView
-			};
-
-			void* perLightData = m_perLightUniBuffer->Map(CPUAccess::Write);
-			memcpy_s(perLightData, m_perLightUniBuffer->GetBufferDesc().size, &perLightUniformBuffer, sizeof(perLightUniformBuffer));
-			m_perLightUniBuffer->Unmap();
-
-			renderContext->SetBuffer(m_perLightUniBufferView, L"g_perLightBuffer");
-
-			renderContext->Draw({.numVertices = 3});
-		}
-
-		renderContext->Barrier(TextureBarrier{
-			.texture = m_sunShadowMap,
-			.syncBefore = BarrierSync::PixelShading,
-			.syncAfter = BarrierSync::None,
-			.accessBefore = BarrierAccess::ShaderResource,
-			.accessAfter = BarrierAccess::NoAccess,
-			.layoutBefore = BarrierLayout::ShaderResource,
-			.layoutAfter = BarrierLayout::DepthStencilWrite,
-		});
-
-		renderContext->EndEvent();
-	}
-
-
-	// Bloom
-	{
-		renderContext->BeginEvent({}, L"Bloom");
-
-		BloomSettingsUniformBuffer bloomSettingsUniformBuffer = {
-			.threshold = m_bloomThreshold,
-			.knee = m_bloomKnee,
-			.lod = 0,
-		};
-
-		renderContext->SetBuffer(m_bloomSettingsBufferView, L"g_bloomSettings");
-
-		// Prefilter
-		{
-			renderContext->BeginEvent({}, L"Prefilter");
-
-			renderContext->SetTexture(m_sceneColorSRV, L"g_inputTexture");
-			renderContext->SetTexture(m_bloomDownsampleA->CreateView({.type = TextureViewType::UAV}), L"g_outputTexture");
-
-			void* bloomSettingsData = m_bloomSettingsBuffer->Map(CPUAccess::Write);
-			memcpy_s(bloomSettingsData, m_bloomSettingsBuffer->GetBufferDesc().size, &bloomSettingsUniformBuffer, sizeof(bloomSettingsUniformBuffer));
-			m_bloomSettingsBuffer->Unmap();
-
-			renderContext->SetPSO(ComputePipelineStateDesc{
-				.cs = {
-					.filepath = L"shaders/Bloom.hlsl",
-					.entryName = L"Prefilter",
-					.shaderType = ShaderType::CS
-				}
-			});
-
-			renderContext->Dispatch({m_bloomDownsampleA->GetTextureDesc().GetWidth() / 4, m_bloomDownsampleA->GetTextureDesc().GetHeight() / 4, 1});
-
-			renderContext->EndEvent();
-		}
-
-		// Downsample
-		{
-			renderContext->BeginEvent({}, L"Downsample");
-
-			auto dispatchDownsample =
-				[&bloomSettingsUniformBuffer, &renderContext, this](Texture* uavTexture, int32_t uavMipIndex, TextureView* srv, int32_t srvMipReadIndex)
-				{
-					TextureViewDesc uavDesc = {
-						.type = TextureViewType::UAV, .subresourceRange = {.firstMipLevel = uavMipIndex, .numMipLevels = 1}
-					};
-					renderContext->SetTexture(uavTexture->CreateView(uavDesc), L"g_outputTexture");
-					renderContext->SetTexture(srv, L"g_inputTexture");
-
-					bloomSettingsUniformBuffer.lod = srvMipReadIndex;
-					void* bloomSettingsData = m_bloomSettingsBuffer->Map(CPUAccess::Write);
-					memcpy_s(bloomSettingsData, m_bloomSettingsBuffer->GetBufferDesc().size, &bloomSettingsUniformBuffer,
-							 sizeof(bloomSettingsUniformBuffer));
-					m_bloomSettingsBuffer->Unmap();
-
-					renderContext->SetPSO(ComputePipelineStateDesc{
-						.cs = {
-							.filepath = L"shaders/Bloom.hlsl",
-							.entryName = L"Downsample",
-							.shaderType = ShaderType::CS
-						}
-					});
-
-					renderContext->Dispatch({
-						std::ceil((float)m_bloomDownsampleA->GetTextureDesc().GetWidth() / std::pow(2.f, (float)uavMipIndex) / 4.f),
-						std::ceil((float)m_bloomDownsampleA->GetTextureDesc().GetHeight() / std::pow(2.f, (float)uavMipIndex) / 4.f),
-						1
-					});
-				};
-
-			dispatchDownsample(m_bloomDownsampleB, 0, m_bloomDownsampleAsrv, 0);
-			for (int32_t i = 1; i < m_bloomDownsampleA->GetTextureDesc().GetMipLevels(); ++i)
-			{
-				dispatchDownsample(m_bloomDownsampleA, i, m_bloomDownsampleBsrv, i - 1);
-				dispatchDownsample(m_bloomDownsampleB, i, m_bloomDownsampleAsrv, i);
-			}
-
-			renderContext->EndEvent();
-		}
-
-		// Upsample
-		{
-			renderContext->BeginEvent({}, L"Upsample");
-
-			renderContext->Barrier(TextureBarrier{
-				.texture = m_bloomDownsampleA,
-				.syncBefore = BarrierSync::ComputeShading,
-				.syncAfter = BarrierSync::ComputeShading,
-				.accessBefore = BarrierAccess::UnorderedAccess,
-				.accessAfter = BarrierAccess::ShaderResource,
-				.layoutBefore = BarrierLayout::UnorderedAccess,
-				.layoutAfter = BarrierLayout::ShaderResource,
-			});
-
-			for (int32_t i = m_bloomDownsampleA->GetTextureDesc().GetMipLevels() - 2; i >= 0; --i)
-			{
-				TextureViewDesc uavDesc = {
-					.type = TextureViewType::UAV, .subresourceRange = {.firstMipLevel = i, .numMipLevels = 1}
-				};
-				renderContext->SetTexture(m_bloomUpsampleTexture->CreateView(uavDesc), L"g_outputTexture");
-				renderContext->SetTexture(m_bloomDownsampleBsrv, L"g_inputTexture");
-				renderContext->SetTexture(i == 5 ? m_bloomDownsampleBsrv : m_bloomUpsampleTextureSRV, L"g_accumulationTexture");
-
-				bloomSettingsUniformBuffer.lod = i;
-				void* bloomSettingsData = m_bloomSettingsBuffer->Map(CPUAccess::Write);
-				memcpy_s(bloomSettingsData, m_bloomSettingsBuffer->GetBufferDesc().size, &bloomSettingsUniformBuffer, sizeof(bloomSettingsUniformBuffer));
-				m_bloomSettingsBuffer->Unmap();
-
-				renderContext->SetPSO(ComputePipelineStateDesc{
-					.cs = {
-						.filepath = L"shaders/Bloom.hlsl",
-						.entryName = L"Upsample",
-						.shaderType = ShaderType::CS
-					}
-				});
-
-				renderContext->Dispatch({
-					std::ceil((float)m_bloomUpsampleTexture->GetTextureDesc().GetWidth() / std::pow(2.f, (float)i) / 4.f),
-					std::ceil((float)m_bloomUpsampleTexture->GetTextureDesc().GetHeight() / std::pow(2.f, (float)i) / 4.f),
-					1
-				});
-			}
-
-			renderContext->Barrier(TextureBarrier{
-				.texture = m_bloomDownsampleA,
-				.syncBefore = BarrierSync::ComputeShading,
-				.syncAfter = BarrierSync::ComputeShading,
-				.accessBefore = BarrierAccess::ShaderResource,
-				.accessAfter = BarrierAccess::UnorderedAccess,
-				.layoutBefore = BarrierLayout::ShaderResource,
-				.layoutAfter = BarrierLayout::UnorderedAccess,
-			});
-
-			renderContext->EndEvent();
-		}
-
-		renderContext->EndEvent();
-	}
-
-	// Final composition
-	{
-		renderContext->ClearRenderTargetView(m_finalCompositionRTV);
-		renderContext->SetRenderTarget(m_finalCompositionRTV, nullptr);
-
-		renderContext->SetPSO(GraphicsPipelineStateDesc{
-			.vs = {
-				.filepath = L"shaders/FinalComposition.hlsl",
-				.entryName = L"vsmain",
-				.shaderType = ShaderType::VS
-			},
-			.ps = {
-				.filepath = L"shaders/FinalComposition.hlsl",
-				.entryName = L"psmain",
-				.shaderType = ShaderType::PS
-			},
-			.rasterizerState = {
-				.cullMode = CullMode::Front
-			},
-			.depthStencilState = {
-				.depthEnable = false,
-				.depthWriteEnable = false,
-				.stencilEnable = false
-			},
-		});
-
-		renderContext->SetTexture(m_sceneColorSRV, L"g_sceneColorTexture");
-		renderContext->SetTexture(m_bloomUpsampleTextureSRV, L"g_bloomTexture");
-
-		renderContext->Draw({.numVertices = 3 });
-	}
-	*/
+	m_scene->RenderScene(m_editorViewportRTV, m_camera);
 }
 
 bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
@@ -948,66 +505,20 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 		if (m_viewportSize.x == 0 || m_viewportSize.y == 0)
 			return false;
 
-		m_sceneColor = Texture::Create({
-										   .textureName = L"SceneColor",
-										   .width = m_viewportSize.x,
-										   .height = m_viewportSize.y,
-										   .dimension = ResourceDimension::Tex2D,
-										   .format = TextureFormat::RGBA16_UNorm,
-										   .bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
-										   .optimizedClearValue = RenderTargetClearValue{
-											   .format = TextureFormat::RGBA16_UNorm,
-											   .color = {0.f, 0.f, 0.f, 1.f}
-										   }
-									   }, BarrierLayout::RenderTarget);
-		m_sceneColorRTV = m_sceneColor->CreateView({.type = TextureViewType::RTV});
-		m_sceneColorSRV = m_sceneColor->CreateView({.type = TextureViewType::SRV});
-
-		m_bloomDownsampleA = Texture::Create({
-				.textureName = L"DownsampleBloomTextureA",
-				.width = m_viewportSize.x,
-				.height = m_viewportSize.y,
-				.mipLevels = 7,
-				.dimension = ResourceDimension::Tex2D,
-				.format = TextureFormat::R11G11B10_Float,
-				.bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
-			}, BarrierLayout::UnorderedAccess);
-		m_bloomDownsampleAsrv = m_bloomDownsampleA->CreateView({.type = TextureViewType::SRV});
-		m_bloomDownsampleB = Texture::Create({
-				.textureName = L"DownsampleBloomTextureB",
-				.width = m_viewportSize.x,
-				.height = m_viewportSize.y,
-				.mipLevels = 7,
-				.dimension = ResourceDimension::Tex2D,
-				.format = TextureFormat::R11G11B10_Float,
-				.bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
-			}, BarrierLayout::UnorderedAccess);
-		m_bloomDownsampleBsrv = m_bloomDownsampleB->CreateView({ .type = TextureViewType::SRV });
-		m_bloomUpsampleTexture = Texture::Create({
-			.textureName = L"UpsampleBloomTexture",
-			.width = m_viewportSize.x,
-			.height = m_viewportSize.y,
-			.mipLevels = 6,
-			.dimension = ResourceDimension::Tex2D,
-			.format = TextureFormat::R11G11B10_Float,
-			.bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
-		}, BarrierLayout::UnorderedAccess);
-		m_bloomUpsampleTextureSRV = m_bloomUpsampleTexture->CreateView({.type = TextureViewType::SRV});
-
-		m_finalComposition = Texture::Create({
-										   .textureName = L"FinalComposition",
-										   .width = m_viewportSize.x,
-										   .height = m_viewportSize.y,
-										   .dimension = ResourceDimension::Tex2D,
-										   .format = TextureFormat::R11G11B10_Float,
-										   .bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
-										   .optimizedClearValue = RenderTargetClearValue{
+		m_editorViewport = Texture::Create({
+											   .textureName = L"FinalComposition",
+											   .width = m_viewportSize.x,
+											   .height = m_viewportSize.y,
+											   .dimension = ResourceDimension::Tex2D,
 											   .format = TextureFormat::R11G11B10_Float,
-											   .color = {0.f, 0.f, 0.f, 1.f}
-										   }
-			}, BarrierLayout::RenderTarget);
-		m_finalCompositionRTV = m_finalComposition->CreateView({.type = TextureViewType::RTV});
-		m_finalCompositionSRV = m_finalComposition->CreateView({.type = TextureViewType::SRV});
+											   .bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
+											   .optimizedClearValue = RenderTargetClearValue{
+												   .format = TextureFormat::R11G11B10_Float,
+												   .color = {0.f, 0.f, 0.f, 1.f}
+											   }
+										   }, BarrierLayout::RenderTarget);
+		m_editorViewportRTV = m_editorViewport->CreateView({.type = TextureViewType::RTV});
+		m_editorViewportSRV = m_editorViewport->CreateView({.type = TextureViewType::SRV});
 
 		m_camera->SetPerspective(45.f,
 			(float)m_viewportSize.x / (float)m_viewportSize.y,
