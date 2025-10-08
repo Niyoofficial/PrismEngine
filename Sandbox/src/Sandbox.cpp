@@ -448,9 +448,17 @@ void SandboxLayer::UpdateImGui(Duration delta)
 							ImGuiTreeNodeFlags_SpanFullWidth |
 							ImGuiTreeNodeFlags_Leaf;
 
-						std::wstring entityName = m_scene->GetEntityByIndex(i)->GetName();
+						Entity* currEntity = m_scene->GetEntityByIndex(i);
+
+						if (currEntity == m_selectedEntity)
+							treeFlags |= ImGuiTreeNodeFlags_Selected;
+
+						std::wstring entityName = currEntity->GetName();
 						if (ImGui::TreeNodeEx(std::to_string(i).c_str(), treeFlags, "%s", entityName.empty() ? "<unnamed>" : WStringToString(entityName).c_str()))
 						{
+							if (ImGui::IsItemFocused())
+								m_selectedEntity = currEntity;
+
 							ImGui::TreePop();
 						}
 					}
@@ -621,6 +629,9 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 		colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.30f, 0.30f, 0.35f, 1.00f);
 		colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.40f, 0.40f, 0.50f, 1.00f);
 		colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.45f, 0.45f, 0.55f, 1.00f);
+
+		// Table
+		colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.f, 1.f, 1.f, 0.024f);
 
 		// Style tweaks
 		style.WindowRounding = 5.0f;

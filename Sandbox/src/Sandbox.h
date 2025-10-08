@@ -81,6 +81,7 @@ private:
 	WeakRef<Core::Window> m_owningWindow;
 
 	Ref<Scene> m_scene;
+	Entity* m_selectedEntity;
 
 	glm::float3 m_sunRotation = {0.f, glm::radians(-7.f), glm::radians(-101.f)};
 
