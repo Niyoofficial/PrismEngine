@@ -198,6 +198,21 @@ Ref<TextureView> Texture::CreateView(const TextureViewDesc& desc)
 	return TextureView::Create(desc, this);
 }
 
+Ref<TextureView> Texture::CreateDefaultRTV()
+{
+	return TextureView::Create({.type = TextureViewType::RTV}, this);
+}
+
+Ref<TextureView> Texture::CreateDefaultSRV()
+{
+	return TextureView::Create({.type = TextureViewType::SRV}, this);
+}
+
+Ref<TextureView> Texture::CreateDefaultUAV()
+{
+	return TextureView::Create({.type = TextureViewType::UAV}, this);
+}
+
 void Texture::GenerateMipMaps(RenderContext* context)
 {
 	// From: https://github.com/microsoft/DirectX-Graphics-Samples/blob/909adc1d8142f403e2c1435aeae3f6e2ad4d020b/MiniEngine/Core/ColorBuffer.cpp#L163
@@ -338,40 +353,40 @@ void Texture::GenerateMipMaps(RenderContext* context)
 			if (topMip == 0)
 			{
 				auto srcView = TextureView::Create({
-						.type = TextureViewType::SRV,
-						.dimension = ResourceDimension::Tex2D,
-						.subresourceRange = {
-							.firstArraySlice = i,
-							.numArraySlices = 1
-						}
-					}, this);
+													   .type = TextureViewType::SRV,
+													   .dimension = ResourceDimension::Tex2D,
+													   .subresourceRange = {
+														   .firstArraySlice = i,
+														   .numArraySlices = 1
+													   }
+												   }, this);
 				renderContext->SetTexture(srcView, L"g_srcMip");
 			}
 			else
 			{
 				auto srcView = TextureView::Create({
-					.type = TextureViewType::SRV,
-					.dimension = ResourceDimension::Tex2D,
-					.subresourceRange = {
-							.firstArraySlice = i,
-							.numArraySlices = 1
-						}
-				}, tempTexture);
+													   .type = TextureViewType::SRV,
+													   .dimension = ResourceDimension::Tex2D,
+													   .subresourceRange = {
+														   .firstArraySlice = i,
+														   .numArraySlices = 1
+													   }
+												   }, tempTexture);
 				renderContext->SetTexture(srcView, L"g_srcMip");
 			}
 
 			for (int32_t j = 0; j < mipsToGenerate; ++j)
 			{
 				auto view = TextureView::Create({
-					.type = TextureViewType::UAV,
-					.dimension = ResourceDimension::Tex2D,
-					.subresourceRange = {
-						.firstMipLevel = topMip + j,
-						.numMipLevels = 1,
-						.firstArraySlice = i,
-						.numArraySlices = 1
-					}
-				}, tempTexture);
+													.type = TextureViewType::UAV,
+													.dimension = ResourceDimension::Tex2D,
+													.subresourceRange = {
+														.firstMipLevel = topMip + j,
+														.numMipLevels = 1,
+														.firstArraySlice = i,
+														.numArraySlices = 1
+													}
+												}, tempTexture);
 				renderContext->SetTexture(view, std::wstring(L"g_outMip") + std::to_wstring(j + 1));
 			}
 

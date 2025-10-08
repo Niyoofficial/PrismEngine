@@ -73,6 +73,9 @@ public:
 	static Ref<Texture> CreateFromMemory(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap = false, bool waitForLoadFinish = true);
 
 	Ref<TextureView> CreateView(const TextureViewDesc& desc);
+	Ref<TextureView> CreateDefaultRTV();
+	Ref<TextureView> CreateDefaultSRV();
+	Ref<TextureView> CreateDefaultUAV();
 
 	// Usage: pass the desired mip levels to texture desc during creation,
 	// fill out the mip 0 of the texture, and then call this function to generate the rest of the mip maps

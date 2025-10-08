@@ -54,6 +54,7 @@ private:
 
 	void RenderShadowPass(const RenderInfo& renderInfo, RenderContext* renderContext);
 	void RenderBasePass(const RenderInfo& renderInfo, RenderContext* renderContext);
+	void RenderLightingPass(const RenderInfo& renderInfo, RenderContext* renderContext);
 
 	template<typename Res, typename Desc> requires (std::is_same_v<Res, Texture> && std::is_same_v<Desc, TextureDesc>) || (std::is_same_v<Res, Buffer>&& std::is_same_v <Desc, BufferDesc>)
 	void ResizeResourceArrayIfNeeded(std::vector<Ref<Res>>& resArray, int32_t sizeToFit, Desc resDesc, BarrierLayout initLayout = BarrierLayout::Common);
@@ -84,6 +85,10 @@ private:
 
 	Ref<Texture> m_BRDFLUT;
 
+	Ref<Texture> m_sceneColor;
+	Ref<TextureView> m_sceneColorSRV;
+	Ref<TextureView> m_sceneColorRTV;
+
 	// Shadow pass
 	std::vector<Ref<Buffer>> m_sceneShadowPassBuffers;
 	std::vector<Ref<Buffer>> m_primitiveShadowPassBuffers;
@@ -93,5 +98,9 @@ private:
 	Ref<Buffer> m_sceneBasePassBuffer;
 	Ref<BufferView> m_sceneBasePassBufferView;
 	std::vector<Ref<Buffer>> m_primitiveBasePassBuffers;
+
+	// Lighting pass
+	Ref<Buffer> m_dirLightingPassBuffer;
+	Ref<BufferView> m_dirLightingPassBufferView;
 };
 }

@@ -3,9 +3,8 @@
 cbuffer Resources
 {
 	int g_sceneBuffer;
-	int g_lightsBuffer;
-	int g_perLightBuffer;
-	int g_shadowMaps[MAX_LIGHT_COUNT];
+	int g_dirLightPassBuffer;
+	int g_shadowMap;
 
 	int g_colorTexture;
 	int g_normalTexture;
@@ -18,15 +17,9 @@ struct SceneBuffer
 	CameraInfo camera;
 };
 
-struct LightsBuffer
+struct DirectionalLightPassBuffer
 {
-	DirectionalLight directionalLights[MAX_LIGHT_COUNT];
-	PointLight pointLights[MAX_LIGHT_COUNT];
-};
-
-struct PerLightBuffer
-{
-	int lightIndex;
+	DirectionalLight dirLight;
 	float4x4 shadowViewProj;
 };
 
@@ -74,8 +67,7 @@ float3 CalcLight(BRDFSurface surface, float3 lightColor, float3 toLight, float3 
 float4 psmain(VertexOut pin) : SV_Target
 {
 	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_sceneBuffer];
-	ConstantBuffer<LightsBuffer> lightsBuffer = ResourceDescriptorHeap[g_lightsBuffer];
-	ConstantBuffer<PerLightBuffer> perLightBuffer = ResourceDescriptorHeap[g_perLightBuffer];
+	ConstantBuffer<DirectionalLightPassBuffer> dirLightPassBuffer = ResourceDescriptorHeap[g_dirLightPassBuffer];
 	
 	Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
 	Texture2D roughnessMetalAOTexture = ResourceDescriptorHeap[g_roughnessMetalAOTexture];
@@ -97,18 +89,18 @@ float4 psmain(VertexOut pin) : SV_Target
 	float3 toCamera = normalize(sceneBuffer.camera.camPos - positionWorld.xyz);
 
 	// For now only a single directional light has shadow
-	float4 shadowPosClip = mul(perLightBuffer.shadowViewProj, float4(positionWorld.xyz, 1.f)); // Hardcoding w = 1 because the shadow map was generated from orthographic projection
-																							  //i.e. w has to be 1 while for perspective w = 0..1 depending on distance from camera
+	float4 shadowPosClip = mul(dirLightPassBuffer.shadowViewProj, float4(positionWorld.xyz, 1.f)); // Hardcoding w = 1 because the shadow map was generated from orthographic projection
+																								   //i.e. w has to be 1 while for perspective w = 0..1 depending on distance from camera
 	float shadowFactor = CalcShadowFactor(shadowPosClip, 8192, shadowMap, g_samShadow);
 
-	float3 toLight = normalize(-lightsBuffer.directionalLights[perLightBuffer.lightIndex].direction);
+	float3 toLight = normalize(-dirLightPassBuffer.dirLight.direction);
 
-	float3 analyticLight = shadowFactor * CalcLight(surface, lightsBuffer.directionalLights[perLightBuffer.lightIndex].lightColor,
+	float3 analyticLight = shadowFactor * CalcLight(surface, dirLightPassBuffer.dirLight.lightColor,
 					toLight, toCamera, 1.f);
 	
 	float3 Lo = analyticLight;
 	
-	float3 color = Lo * 10.f;
+	float3 color = Lo;
 	
 	return float4(color, 1.f);
 }

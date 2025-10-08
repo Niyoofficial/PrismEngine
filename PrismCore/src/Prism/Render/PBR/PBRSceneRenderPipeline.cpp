@@ -135,6 +135,12 @@ struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) SceneBasePassInfo
 	CameraInfo camera;
 };
 
+struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) DirectionalLightingPassInfo
+{
+	DirectionalLight dirLight;
+	glm::float4x4 shadowViewProj;
+};
+
 PBRSceneRenderPipeline::PBRSceneRenderPipeline()
 {
 	auto renderContext = RenderDevice::Get().AllocateContext(L"PBRSceneRenderPipeline_Initialization");
@@ -153,130 +159,17 @@ PBRSceneRenderPipeline::PBRSceneRenderPipeline()
 	});
 	m_sceneBasePassBufferView = m_sceneBasePassBuffer->CreateDefaultUniformBufferView();
 
-	RenderDevice::Get().SubmitContext(renderContext);
-	RenderDevice::Get().GetRenderCommandQueue()->Flush();
-}
-
-void PBRSceneRenderPipeline::RenderBasePass(const RenderInfo& renderInfo, RenderContext* renderContext)
-{
-	renderContext->BeginEvent({}, L"BasePass");
-
-	auto renderTargetDesc = renderInfo.renderTargetView->GetTexture()->GetTextureDesc();
-	renderContext->SetViewport({{0.f, 0.f}, {renderTargetDesc.GetWidth(), renderTargetDesc.GetHeight()}, {0.f, 1.f}});
-	renderContext->SetScissor({{0.f, 0.f}, {renderTargetDesc.GetWidth(), renderTargetDesc.GetHeight()}});
-
-	renderContext->SetRenderTargets({
-										m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV),
-										m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::RTV),
-										m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::RTV)
-									}, m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::DSV));
-
-	glm::float4 clearColor = {0.f, 0.f, 0.f, 1.f};
-	renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV), &clearColor);
-	renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::RTV), &clearColor);
-	renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::RTV), &clearColor);
-	renderContext->ClearDepthStencilView(m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::DSV),
-										 Flags(ClearFlags::ClearDepth) | Flags(ClearFlags::ClearStencil));
-
-	renderContext->SetPSO(GraphicsPipelineStateDesc{
-		.vs = {
-			.filepath = L"shaders/DeferredBasePass.hlsl",
-			.entryName = L"vsmain",
-			.shaderType = ShaderType::VS
-		},
-		.ps = {
-			.filepath = L"shaders/DeferredBasePass.hlsl",
-			.entryName = L"psmain",
-			.shaderType = ShaderType::PS
-		},
-	});
-
-
-	struct Material
-	{
-		glm::float3 albedo;
-		float metallic = 0.f;
-		float roughness = 0.f;
-		float ao = 0.f;
-	};
-	struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) PrimitiveBasePassInfo
-	{
-		glm::float4x4 world;
-		alignas(16)
-		glm::float4x4 normalMatrix;
-
-		alignas(16)
-		Material material;
-	};
-	BufferDesc primitiveBasePassBufDesc = {
-		.bufferName = L"PrimitiveBasePassInfo_UniformBuffer",
-		.size = sizeof(PrimitiveBasePassInfo),
+	m_dirLightingPassBuffer = Buffer::Create({
+		.bufferName = L"DirectionalLightingPassInfo_UniformBuffer",
+		.size = sizeof(DirectionalLightingPassInfo),
 		.bindFlags = BindFlags::UniformBuffer,
 		.usage = ResourceUsage::Dynamic,
 		.cpuAccess = CPUAccess::Write
-	};
-	ResizeResourceArrayIfNeeded(m_primitiveBasePassBuffers, (int32_t)renderInfo.proxies.size(), primitiveBasePassBufDesc);
+	});
+	m_dirLightingPassBufferView = m_dirLightingPassBuffer->CreateDefaultUniformBufferView();
 
-	SceneBasePassInfo sceneBasePassInfo = {
-		.camera = {
-			.view = renderInfo.view,
-			.proj = renderInfo.proj,
-			.viewProj = renderInfo.viewProj,
-			.invView = renderInfo.invView,
-			.invProj = renderInfo.invProj,
-			.invViewProj = renderInfo.invViewProj,
-
-			.camPos = renderInfo.cameraPos
-		}
-	};
-	void* sceneData = m_sceneBasePassBuffer->Map(CPUAccess::Write);
-	memcpy_s(sceneData, m_sceneBasePassBuffer->GetBufferDesc().size, &sceneBasePassInfo, sizeof(sceneBasePassInfo));
-	m_sceneBasePassBuffer->Unmap();
-	renderContext->SetBuffer(m_sceneBasePassBufferView, L"g_sceneBuffer");
-
-	int32_t proxyIndex = 0;
-	for (auto& proxy : renderInfo.proxies)
-	{
-		auto [vb, ib] = RenderDevice::Get().GetVertexBufferCache().GetOrCreateMeshBuffers(m_defaultVertexAttributeList, proxy->GetMeshAsset());
-		renderContext->SetVertexBuffer(vb, GetVertexSize(m_defaultVertexAttributeList));
-		renderContext->SetIndexBuffer(ib, IndexBufferFormat::Uint32);
-
-		PrimitiveBasePassInfo primitiveBasePassInfo = {
-			.world = proxy->GetWorldTransform(),
-			.normalMatrix = glm::transpose(glm::inverse(primitiveBasePassInfo.world)),
-			.material = {
-				.albedo = glm::float3(1.f, 1.f, 1.f),
-				.metallic = 1.f,
-				.roughness = 1.f,
-				.ao = 1.f
-			}
-		};
-		void* primitiveData = m_primitiveBasePassBuffers[proxyIndex]->Map(CPUAccess::Write);
-		memcpy_s(primitiveData, m_primitiveBasePassBuffers[proxyIndex]->GetBufferDesc().size, &primitiveBasePassInfo, sizeof(primitiveBasePassInfo));
-		m_primitiveBasePassBuffers[proxyIndex]->Unmap();
-		renderContext->SetBuffer(m_primitiveBasePassBuffers[proxyIndex]->CreateDefaultUniformBufferView(), L"g_primitiveBuffer");
-
-		if (auto albedo = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Albedo))
-			renderContext->SetTexture(albedo->CreateView({ .type = TextureViewType::SRV }), L"g_albedoTexture");
-		if (auto metallic = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Metallic))
-			renderContext->SetTexture(metallic->CreateView({ .type = TextureViewType::SRV }), L"g_metallicTexture");
-		if (auto roughness = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Roughness))
-			renderContext->SetTexture(roughness->CreateView({ .type = TextureViewType::SRV }), L"g_roughnessTexture");
-		if (auto normal = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Normals))
-			renderContext->SetTexture(normal->CreateView({ .type = TextureViewType::SRV }), L"g_normalTexture");
-
-		auto nodeInfo = RenderDevice::Get().GetVertexBufferCache().GetNodeIndexInfo(proxy->GetMeshAsset(), proxy->GetMeshNode());
-		renderContext->DrawIndexed({
-			.numIndices = proxy->GetMeshAsset()->GetIndexCount(proxy->GetMeshNode()),
-			.numInstances = 1,
-			.startIndexLocation = nodeInfo.startIndex,
-			.baseVertexLocation = nodeInfo.baseVertex
-		});
-
-		++proxyIndex;
-	}
-
-	renderContext->EndEvent();
+	RenderDevice::Get().SubmitContext(renderContext);
+	RenderDevice::Get().GetRenderCommandQueue()->Flush();
 }
 
 void PBRSceneRenderPipeline::Render(RenderInfo renderInfo)
@@ -284,14 +177,31 @@ void PBRSceneRenderPipeline::Render(RenderInfo renderInfo)
 	Ref<RenderContext> renderContext = RenderDevice::Get().AllocateContext(L"PBRSceneRenderPipeline_Render");
 
 	auto gbufferSize = m_gbuffer.GetTexture(GBuffer::Type::Color)
-								 ? m_gbuffer.GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetSize()
-								 : glm::int2{0, 0};
+						   ? m_gbuffer.GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetSize()
+						   : glm::int2{0, 0};
 	auto renderTargetSize = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().GetSize();
 	if (gbufferSize != renderTargetSize)
+	{
 		m_gbuffer.CreateResources(renderTargetSize);
+
+		m_sceneColor = Texture::Create({
+										   .textureName = L"SceneColor",
+										   .width = renderTargetSize.x,
+										   .height = renderTargetSize.y,
+										   .format = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().format,
+										   .bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::RenderTarget),
+										   .optimizedClearValue = RenderTargetClearValue{
+											   .format = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().format,
+											   .color = {0.f, 0.f, 0.f, 1.f}
+										   }
+									   }, BarrierLayout::RenderTarget);
+		m_sceneColorRTV = m_sceneColor->CreateDefaultRTV();
+		m_sceneColorSRV = m_sceneColor->CreateDefaultSRV();
+	}
 
 	RenderShadowPass(renderInfo, renderContext);
 	RenderBasePass(renderInfo, renderContext);
+	RenderLightingPass(renderInfo, renderContext);
 
 	RenderDevice::Get().SubmitContext(renderContext);
 }
@@ -710,6 +620,243 @@ void PBRSceneRenderPipeline::RenderShadowPass(const RenderInfo& renderInfo, Rend
 
 			++proxyIndex;
 		}
+	}
+
+	renderContext->EndEvent();
+}
+
+void PBRSceneRenderPipeline::RenderBasePass(const RenderInfo& renderInfo, RenderContext* renderContext)
+{
+	renderContext->BeginEvent({}, L"BasePass");
+
+	auto renderTargetDesc = renderInfo.renderTargetView->GetTexture()->GetTextureDesc();
+	renderContext->SetViewport({{0.f, 0.f}, {renderTargetDesc.GetWidth(), renderTargetDesc.GetHeight()}, {0.f, 1.f}});
+	renderContext->SetScissor({{0.f, 0.f}, {renderTargetDesc.GetWidth(), renderTargetDesc.GetHeight()}});
+
+	renderContext->SetRenderTargets({
+										m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV),
+										m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::RTV),
+										m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::RTV)
+									}, m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::DSV));
+
+	glm::float4 clearColor = {0.f, 0.f, 0.f, 1.f};
+	renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::RTV), &clearColor);
+	renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::RTV), &clearColor);
+	renderContext->ClearRenderTargetView(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::RTV), &clearColor);
+	renderContext->ClearDepthStencilView(m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::DSV),
+										 Flags(ClearFlags::ClearDepth) | Flags(ClearFlags::ClearStencil));
+
+	renderContext->SetPSO(GraphicsPipelineStateDesc{
+		.vs = {
+			.filepath = L"shaders/DeferredBasePass.hlsl",
+			.entryName = L"vsmain",
+			.shaderType = ShaderType::VS
+		},
+		.ps = {
+			.filepath = L"shaders/DeferredBasePass.hlsl",
+			.entryName = L"psmain",
+			.shaderType = ShaderType::PS
+		},
+	});
+
+
+	struct Material
+	{
+		glm::float3 albedo;
+		float metallic = 0.f;
+		float roughness = 0.f;
+		float ao = 0.f;
+	};
+	struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) PrimitiveBasePassInfo
+	{
+		glm::float4x4 world;
+		alignas(16)
+		glm::float4x4 normalMatrix;
+
+		alignas(16)
+		Material material;
+	};
+	BufferDesc primitiveBasePassBufDesc = {
+		.bufferName = L"PrimitiveBasePassInfo_UniformBuffer",
+		.size = sizeof(PrimitiveBasePassInfo),
+		.bindFlags = BindFlags::UniformBuffer,
+		.usage = ResourceUsage::Dynamic,
+		.cpuAccess = CPUAccess::Write
+	};
+	ResizeResourceArrayIfNeeded(m_primitiveBasePassBuffers, (int32_t)renderInfo.proxies.size(), primitiveBasePassBufDesc);
+
+	SceneBasePassInfo sceneBasePassInfo = {
+		.camera = {
+			.view = renderInfo.view,
+			.proj = renderInfo.proj,
+			.viewProj = renderInfo.viewProj,
+			.invView = renderInfo.invView,
+			.invProj = renderInfo.invProj,
+			.invViewProj = renderInfo.invViewProj,
+
+			.camPos = renderInfo.cameraPos
+		}
+	};
+	void* sceneData = m_sceneBasePassBuffer->Map(CPUAccess::Write);
+	memcpy_s(sceneData, m_sceneBasePassBuffer->GetBufferDesc().size, &sceneBasePassInfo, sizeof(sceneBasePassInfo));
+	m_sceneBasePassBuffer->Unmap();
+	renderContext->SetBuffer(m_sceneBasePassBufferView, L"g_sceneBuffer");
+
+	int32_t proxyIndex = 0;
+	for (auto& proxy : renderInfo.proxies)
+	{
+		auto [vb, ib] = RenderDevice::Get().GetVertexBufferCache().GetOrCreateMeshBuffers(m_defaultVertexAttributeList, proxy->GetMeshAsset());
+		renderContext->SetVertexBuffer(vb, GetVertexSize(m_defaultVertexAttributeList));
+		renderContext->SetIndexBuffer(ib, IndexBufferFormat::Uint32);
+
+		PrimitiveBasePassInfo primitiveBasePassInfo = {
+			.world = proxy->GetWorldTransform(),
+			.normalMatrix = glm::transpose(glm::inverse(primitiveBasePassInfo.world)),
+			.material = {
+				.albedo = glm::float3(1.f, 1.f, 1.f),
+				.metallic = 1.f,
+				.roughness = 1.f,
+				.ao = 1.f
+			}
+		};
+		void* primitiveData = m_primitiveBasePassBuffers[proxyIndex]->Map(CPUAccess::Write);
+		memcpy_s(primitiveData, m_primitiveBasePassBuffers[proxyIndex]->GetBufferDesc().size, &primitiveBasePassInfo, sizeof(primitiveBasePassInfo));
+		m_primitiveBasePassBuffers[proxyIndex]->Unmap();
+		renderContext->SetBuffer(m_primitiveBasePassBuffers[proxyIndex]->CreateDefaultUniformBufferView(), L"g_primitiveBuffer");
+
+		if (auto albedo = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Albedo))
+			renderContext->SetTexture(albedo->CreateView({ .type = TextureViewType::SRV }), L"g_albedoTexture");
+		if (auto metallic = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Metallic))
+			renderContext->SetTexture(metallic->CreateView({ .type = TextureViewType::SRV }), L"g_metallicTexture");
+		if (auto roughness = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Roughness))
+			renderContext->SetTexture(roughness->CreateView({ .type = TextureViewType::SRV }), L"g_roughnessTexture");
+		if (auto normal = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Normals))
+			renderContext->SetTexture(normal->CreateView({ .type = TextureViewType::SRV }), L"g_normalTexture");
+
+		auto nodeInfo = RenderDevice::Get().GetVertexBufferCache().GetNodeIndexInfo(proxy->GetMeshAsset(), proxy->GetMeshNode());
+		renderContext->DrawIndexed({
+			.numIndices = proxy->GetMeshAsset()->GetIndexCount(proxy->GetMeshNode()),
+			.numInstances = 1,
+			.startIndexLocation = nodeInfo.startIndex,
+			.baseVertexLocation = nodeInfo.baseVertex
+		});
+
+		++proxyIndex;
+	}
+
+	renderContext->EndEvent();
+}
+
+void PBRSceneRenderPipeline::RenderLightingPass(const RenderInfo& renderInfo, RenderContext* renderContext)
+{
+	renderContext->BeginEvent({}, L"LightingPass");
+
+	renderContext->SetRenderTarget(m_sceneColorRTV, nullptr);
+
+	glm::float4 clearColor = {0.f, 0.f, 0.f, 1.f};
+	renderContext->ClearRenderTargetView(m_sceneColorRTV, &clearColor);
+
+	renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::SRV), L"g_colorTexture");
+	renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::SRV), L"g_normalTexture");
+	renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::SRV), L"g_roughnessMetalAOTexture");
+	renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::SRV), L"g_depthTexture");
+
+	{
+		renderContext->BeginEvent({}, L"IndirectLighting");
+
+		BlendStateDesc blendState;
+		blendState.renderTargetBlendDesc = RenderTargetBlendDesc{.blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One};
+		renderContext->SetPSO(GraphicsPipelineStateDesc{
+			.vs = {
+				.filepath = L"shaders/DeferredLightingIndirect.hlsl",
+				.entryName = L"vsmain",
+				.shaderType = ShaderType::VS
+			},
+			.ps = {
+				.filepath = L"shaders/DeferredLightingIndirect.hlsl",
+				.entryName = L"psmain",
+				.shaderType = ShaderType::PS
+			},
+			.rasterizerState = {
+				.cullMode = CullMode::Front
+			},
+			.depthStencilState = {
+				.depthEnable = false,
+				.depthWriteEnable = false,
+				.stencilEnable = false
+			},
+		});
+
+		renderContext->SetBuffer(m_irradianceSHBufferView, L"g_irradiance");
+		renderContext->SetTexture(m_BRDFLUT->CreateView({ .type = TextureViewType::SRV }), L"g_brdfLUT");
+		renderContext->SetTexture(m_prefilteredEnvMapCubeSRV, L"g_envMap");
+
+		renderContext->Draw({.numVertices = 3});
+
+		renderContext->EndEvent();
+	}
+
+	{
+		renderContext->BeginEvent({}, L"DirectLighting");
+
+		BlendStateDesc blendState;
+		blendState.renderTargetBlendDesc = RenderTargetBlendDesc{.blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One};
+		renderContext->SetPSO(GraphicsPipelineStateDesc{
+			.vs = {
+				.filepath = L"shaders/DeferredLightingDirect.hlsl",
+				.entryName = L"vsmain",
+				.shaderType = ShaderType::VS
+			},
+			.ps = {
+				.filepath = L"shaders/DeferredLightingDirect.hlsl",
+				.entryName = L"psmain",
+				.shaderType = ShaderType::PS
+			},
+			.blendState = blendState,
+			.rasterizerState = {
+				.cullMode = CullMode::Front
+			},
+			.depthStencilState = {
+				.depthEnable = false,
+				.depthWriteEnable = false,
+				.stencilEnable = false
+			},
+		});
+
+		int32_t dirLightIndex = 0;
+		for (auto& dirLight : renderInfo.directionalLights)
+		{
+			glm::float4x4 lightView = glm::lookAt(renderInfo.sceneBounds.GetRadius() * -dirLight.direction,
+												  dirLight.direction, {0.f, 1.f, 0.f});
+			glm::float4x4 lightProj = glm::ortho(-renderInfo.sceneBounds.GetRadius(),
+												 renderInfo.sceneBounds.GetRadius(),
+												 -renderInfo.sceneBounds.GetRadius(),
+												 renderInfo.sceneBounds.GetRadius(),
+												 0.f, renderInfo.sceneBounds.GetRadius() * 2.f);
+
+			DirectionalLightingPassInfo dirLightingPassInfo = {
+				.dirLight = dirLight,
+				.shadowViewProj = lightProj * lightView
+			};
+
+			void* perLightData = m_dirLightingPassBuffer->Map(CPUAccess::Write);
+			memcpy_s(perLightData, m_dirLightingPassBuffer->GetBufferDesc().size, &dirLightingPassInfo, sizeof(dirLightingPassInfo));
+			m_dirLightingPassBuffer->Unmap();
+
+			renderContext->SetBuffer(m_dirLightingPassBufferView, L"g_dirLightPassBuffer");
+
+			Ref<TextureView> shadowMapSRV = m_dirLightShadowMaps[dirLightIndex]->CreateView({
+				.type = TextureViewType::SRV,
+				.format = TextureFormat::R32_Float
+			});
+			renderContext->SetTexture(shadowMapSRV, L"g_shadowMap");
+
+			renderContext->Draw({.numVertices = 3});
+
+			++dirLightIndex;
+		}
+
+		renderContext->EndEvent();
 	}
 
 	renderContext->EndEvent();
