@@ -47,6 +47,8 @@ public:
 	virtual void SetPSO(const GraphicsPipelineStateDesc& desc) = 0;
 	virtual void SetPSO(const ComputePipelineStateDesc& desc) = 0;
 
+	virtual void SetStencilRef(uint32_t ref) = 0;
+
 	virtual void SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv) = 0;
 	virtual void SetViewports(std::vector<Viewport> viewports) = 0;
 	virtual void SetScissors(std::vector<Scissor> scissors) = 0;
@@ -61,6 +63,8 @@ public:
 
 	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr) = 0;
 	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr) = 0;
+	virtual void ClearUnorderedAccessView(TextureView* uav, glm::float4 values) = 0;
+	virtual void ClearUnorderedAccessView(TextureView* uav, glm::uint4 values) = 0;
 
 	virtual void Barrier(BufferBarrier barrier) = 0;
 	virtual void Barrier(TextureBarrier barrier) = 0;

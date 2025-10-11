@@ -1,6 +1,9 @@
 ﻿#include "pcpch.h"
 #include "RenderUtils.h"
 
+#include "Prism/Base/AppEvents.h"
+#include "Prism/Base/AppEvents.h"
+#include "Prism/Render/RenderContext.h"
 #include "Prism/Utilities/MemoryUtils.h"
 
 namespace Prism::Render
@@ -349,5 +352,28 @@ uint32_t ReadBitsAsUInt(void* data, int32_t numBits)
 	}
 
 	return output;
+}
+
+void DrawFullscreenPixelShader(RenderContext* renderContext, glm::float2 screenSize, ShaderDesc ps, BlendStateDesc* blendState,
+							   RasterizerStateDesc* rasterizerState, DepthStencilStateDesc* depthStencilState)
+{
+	PE_ASSERT(renderContext);
+
+	renderContext->SetViewport({.topLeft = {0.f, 0.f}, .size = screenSize});
+	renderContext->SetScissor({.topLeft = {0.f, 0.f}, .size = screenSize});
+
+	renderContext->SetPSO(GraphicsPipelineStateDesc{
+		.vs = {
+			.filepath = L"shaders/FullscreenTriangleVertexShader.hlsli",
+			.entryName = L"vsmain",
+			.shaderType = ShaderType::VS
+		},
+		.ps = ps,
+		.blendState = blendState ? *blendState : BlendStateDesc{},
+		.rasterizerState = rasterizerState ? *rasterizerState : RasterizerStateDesc{.cullMode = CullMode::Front},
+		.depthStencilState = depthStencilState ? *depthStencilState : DepthStencilStateDesc{.depthEnable = false, .depthWriteEnable = false, .stencilEnable = false},
+	});
+
+	renderContext->Draw({.numVertices = 3});
 }
 }

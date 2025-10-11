@@ -1,10 +1,18 @@
 #include "Common.hlsli"
+#include "FullscreenTriangleVertexShader.hlsli"
 
 cbuffer Resources
 {
 	int g_sceneColorTexture;
 	int g_bloomTexture;
+	int g_outlineTexture;
+	int g_outlineSettings;
 }
+
+struct OutlineSettings
+{
+	float outlineWidth;
+};
 
 struct VertexOut
 {
@@ -34,35 +42,7 @@ float3 UpsampleTent9Tap(Texture2D tex, SamplerState sam, float2 uv, float lod, f
 	return color * (1.f / 16.f);
 }
 
-VertexOut vsmain(uint vertexID : SV_VertexID)
-{
-	VertexOut vout;
-	if (vertexID == 0)
-	{
-		float2 vertex = float2(1.f, -1.f);
-		vout.positionClip = float4(vertex, 0.f, 1.f);
-		vout.ndc = vertex;
-		vout.texCoords = float2(1.f, 1.f);
-	}
-	else if (vertexID == 1)
-	{
-		float2 vertex = float2(1.f, 3.f);
-		vout.positionClip = float4(vertex, 0.f, 1.f);
-		vout.ndc = vertex;
-		vout.texCoords = float2(1.f, -1.f);
-	}
-	else if (vertexID == 2)
-	{
-		float2 vertex = float2(-3.f, -1.f);
-		vout.positionClip = float4(vertex, 0.f, 1.f);
-		vout.ndc = vertex;
-		vout.texCoords = float2(-1.f, 1.f);
-	}
-	
-	return vout;
-}
-
-float4 psmain(VertexOut pin) : SV_Target
+float4 psmain(FullscreenVertexOut pin) : SV_Target
 {
 	Texture2D sceneColorTexture = ResourceDescriptorHeap[g_sceneColorTexture];
 	Texture2D bloomTexture = ResourceDescriptorHeap[g_bloomTexture];
@@ -71,7 +51,26 @@ float4 psmain(VertexOut pin) : SV_Target
 	
 	float3 color = sceneColorTexture.SampleLevel(g_samLinearClamp, pin.texCoords, 0).rgb;
 	color += bloom;
-	
+
+	// Selection outline
+	if (g_outlineTexture != -1 && g_outlineSettings != -1)
+	{
+		Texture2D<float2> outlineTexture = ResourceDescriptorHeap[g_outlineTexture];
+		ConstantBuffer<OutlineSettings> outlineSettings = ResourceDescriptorHeap[g_outlineSettings];
+
+		uint2 texSize;
+		outlineTexture.GetDimensions(texSize.x, texSize.y);
+		float2 nearestPos = outlineTexture.Load(int3(pin.texCoords * texSize, 0)).rg * texSize;
+		float2 currentPos = pin.texCoords * texSize;
+
+		// distance in pixels to the closest position
+		float dist = length(nearestPos - currentPos);
+
+		float outline = saturate(outlineSettings.outlineWidth - dist + 1.f);
+		float3 coloredOutline = outline * float3(1.f, 0.45f, 0.f);
+		color = (1.f - coloredOutline) * color + coloredOutline;
+	}
+
 	// Gamma correction
 	color = color / (color + 1.f);
 	color = pow(color, 1.f / 2.2f);

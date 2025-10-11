@@ -13,7 +13,7 @@
 
 #include <d3d12.h>
 #include <dxgi1_6.h>
-#ifdef PE_BUILD_DEBUG
+#if PE_BUILD_DEBUG || PE_BUILD_PROFILE
 #include <dxgidebug.h>
 #endif
 

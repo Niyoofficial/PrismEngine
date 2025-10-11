@@ -1,5 +1,4 @@
 #pragma once
-#include "Prism/Render/RenderConstants.h"
 #include "Prism/Render/SceneRenderPipeline.h"
 #include "Prism/Render/Texture.h"
 #include "Prism/Render/VertexBufferCache.h"
@@ -13,6 +12,7 @@ struct GBuffer
 	enum class Type
 	{
 		Depth,
+		Stencil,
 		Color,
 		Normal,
 		Roughness_Metal_AO,
@@ -21,19 +21,19 @@ struct GBuffer
 
 	void CreateResources(glm::int2 windowSize);
 
-	Texture* GetTexture(Type type)
+	Texture* GetTexture(Type type) const
 	{
 		return entries[(size_t)type].texture.Raw();
 	}
-	TextureView* GetView(Type type, Render::TextureViewType view)
+	TextureView* GetView(Type type, TextureViewType view) const
 	{
 		return entries[(size_t)type].views.at(view).Raw();
 	}
 
 	struct Entry
 	{
-		Ref<Render::Texture> texture;
-		std::unordered_map<Render::TextureViewType, Ref<Render::TextureView>> views;
+		Ref<Texture> texture;
+		std::unordered_map<TextureViewType, Ref<TextureView>> views;
 	};
 
 	std::array<Entry, (size_t)Type::Count> entries;
@@ -46,17 +46,22 @@ public:
 
 	void Render(RenderInfo renderInfo) override;
 
+	const GBuffer& GetGBuffer() const { return m_gbuffer; }
+
 private:
+	void CreateScreenSizeDependentResources(const RenderInfo& renderInfo, glm::int2 newScreenSize);
+
 	void ConvertSkyboxToCubemap(RenderContext* renderContext);
 	void GenerateEnvDiffuseIrradiance(RenderContext* renderContext);
 	void GenerateEnvSpecularIrradiance(RenderContext* renderContext);
 	void GenerateBRDFIntegrationLUT(RenderContext* renderContext);
 
-	void RenderShadowPass(const RenderInfo& renderInfo, RenderContext* renderContext);
-	void RenderBasePass(const RenderInfo& renderInfo, RenderContext* renderContext);
-	void RenderLightingPass(const RenderInfo& renderInfo, RenderContext* renderContext);
-	void RenderBloomPass(const RenderInfo& renderInfo, RenderContext* renderContext);
-	void RenderFinalCompositionPass(const RenderInfo& renderInfo, RenderContext* renderContext);
+	void RenderShadowPass(RenderContext* renderContext, const RenderInfo& renderInfo);
+	void RenderBasePass(RenderContext* renderContext, const RenderInfo& renderInfo);
+	void RenderLightingPass(RenderContext* renderContext, const RenderInfo& renderInfo);
+	void RenderBloomPass(RenderContext* renderContext, const RenderInfo& renderInfo);
+	void RenderSelectionOutlinePass(RenderContext* renderContext, const RenderInfo& renderInfo);
+	void RenderFinalCompositionPass(RenderContext* renderContext, const RenderInfo& renderInfo);
 
 	template<typename Res, typename Desc> requires (std::is_same_v<Res, Texture> && std::is_same_v<Desc, TextureDesc>) || (std::is_same_v<Res, Buffer>&& std::is_same_v <Desc, BufferDesc>)
 	void ResizeResourceArrayIfNeeded(std::vector<Ref<Res>>& resArray, int32_t sizeToFit, Desc resDesc, BarrierLayout initLayout = BarrierLayout::Common);
@@ -88,8 +93,6 @@ private:
 	Ref<Texture> m_BRDFLUT;
 
 	Ref<Texture> m_sceneColor;
-	Ref<TextureView> m_sceneColorSRV;
-	Ref<TextureView> m_sceneColorRTV;
 
 	// Shadow pass
 	std::vector<Ref<Buffer>> m_sceneShadowPassBuffers;
@@ -98,21 +101,28 @@ private:
 
 	// Base pass
 	Ref<Buffer> m_sceneBasePassBuffer;
-	Ref<BufferView> m_sceneBasePassBufferView;
 	std::vector<Ref<Buffer>> m_primitiveBasePassBuffers;
 
 	// Lighting pass
 	Ref<Buffer> m_dirLightingPassBuffer;
-	Ref<BufferView> m_dirLightingPassBufferView;
 
 	// Bloom pass
 	Ref<Buffer> m_bloomPassSettingsBuffer;
-	Ref<BufferView> m_bloomPassSettingsBufferView;
 	Ref<Texture> m_bloomDownsampleA;
-	Ref<TextureView> m_bloomDownsampleAsrv;
 	Ref<Texture> m_bloomDownsampleB;
-	Ref<TextureView> m_bloomDownsampleBsrv;
 	Ref<Texture> m_bloomUpsampleTexture;
-	Ref<TextureView> m_bloomUpsampleTextureSRV;
+
+	// Selection outline
+	int32_t m_outlineWidth = 2.f;
+	Ref<Buffer> m_primitiveSelectionOutlinePassBuffer;
+	Ref<Buffer> m_sceneSelectionOutlinePassBuffer;
+	Ref<Texture> m_outlineMask;
+	Ref<Texture> m_jumpFloodTextureA;
+	Ref<Texture> m_jumpFloodTextureB;
+	Texture* m_outlineOutput = nullptr;
+	Ref<Buffer> m_jumpFloodSettingsBuffer;
+
+	// Final composition
+	Ref<Buffer> m_outlineSettingsBuffer;
 };
 }

@@ -95,8 +95,7 @@ float4 psmain(VertexOut pin) : SV_Target
 
 	float3 toLight = normalize(-dirLightPassBuffer.dirLight.direction);
 
-	float3 analyticLight = shadowFactor * CalcLight(surface, dirLightPassBuffer.dirLight.lightColor,
-					toLight, toCamera, 1.f);
+	float3 analyticLight = shadowFactor * CalcLight(surface, dirLightPassBuffer.dirLight.lightColor, toLight, toCamera, 1.f);
 	
 	float3 Lo = analyticLight;
 	

@@ -2,7 +2,6 @@
 
 #include "Prism/Base/Application.h"
 #include "Prism/Scene/Scene.h"
-#include "Prism/Render/Buffer.h"
 #include "Prism/Render/Camera.h"
 #include "Prism/Render/Layer.h"
 #include "Prism/Render/Material.h"
@@ -11,6 +10,11 @@
 #include "Prism/Render/RenderConstants.h"
 #include "Prism/Utilities/MeshLoading.h"
 
+
+namespace Prism::Render
+{
+class PBRSceneRenderPipeline;
+}
 
 using namespace Prism;
 
@@ -81,6 +85,7 @@ private:
 	WeakRef<Core::Window> m_owningWindow;
 
 	Ref<Scene> m_scene;
+	Render::PBRSceneRenderPipeline* m_renderPipeline;
 	Entity* m_selectedEntity;
 
 	glm::float3 m_sunRotation = {0.f, glm::radians(-7.f), glm::radians(-101.f)};

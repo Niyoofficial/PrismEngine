@@ -1,5 +1,6 @@
 #pragma once
 #include "EntityRenderProxy.h"
+#include "Prism/Render/Camera.h"
 
 namespace Prism::Render
 {
@@ -23,15 +24,10 @@ struct RenderInfo
 {
 	Ref<TextureView> renderTargetView;
 
-	glm::float4x4 view;
-	glm::float4x4 invView;
-	glm::float4x4 proj;
-	glm::float4x4 invProj;
-	glm::float4x4 viewProj;
-	glm::float4x4 invViewProj;
-	glm::float3 cameraPos;
+	CameraInfo cameraInfo;
 
 	std::vector<Ref<EntityRenderProxy>> proxies;
+	EntityRenderProxy* selectedProxy;
 	Bounds3f sceneBounds;
 
 	std::vector<DirectionalLight> directionalLights;

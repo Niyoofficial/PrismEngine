@@ -23,10 +23,10 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	Layer::Attach();
 
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::KeyDown>(
-		[](Core::AppEvent event)
+		[this](Core::AppEvent event)
 		{
 			if (std::get<Core::AppEvents::KeyDown>(event).keyCode == KeyCode::Escape)
-				SandboxApplication::Get().CloseApplication();
+				m_scene->SetSelectedEntity(nullptr);
 		});
 
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseMotion>(
@@ -74,7 +74,8 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	Ref sponza = new MeshLoading::MeshAsset(L"assets/SponzaCrytek/Sponza.gltf");
 
 	m_scene = Scene::Create(L"Test Scene");
-	m_scene->SetRenderPipeline(new PBRSceneRenderPipeline);
+	m_renderPipeline = new PBRSceneRenderPipeline;
+	m_scene->SetRenderPipeline(m_renderPipeline);
 	m_scene->CreateEntityHierarchyForMeshAsset(sponza);
 	auto lightEntity = m_scene->AddEntity(L"Light");
 	lightEntity->AddComponent<LightRendererComponent>();
@@ -116,7 +117,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		*/
 
 	// Load sphere
-	m_sphere = SandboxApplication::LoadMeshFromFile(L"Sphere", L"meshes/Sphere.gltf",
+	/*m_sphere = SandboxApplication::LoadMeshFromFile(L"Sphere", L"meshes/Sphere.gltf",
 		[](auto& primitiveData)
 		{
 			Render::Material material;
@@ -131,9 +132,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 				.shaderType = ShaderType::PS
 			});
 			return material;
-		}, L"g_modelBuffer", sizeof(ModelUniformBuffer));
-
-	
+		}, L"g_modelBuffer", sizeof(ModelUniformBuffer));*/
 }
 
 void SandboxLayer::UpdateImGui(Duration delta)
@@ -196,8 +195,6 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		auto viewportSize = ImGui::GetContentRegionAvail();
 		if (CheckForViewportResize({viewportSize.x, viewportSize.y}))
 		{
-			float viewportStartHeight = ImGui::GetCursorPos().y;
-
 			ImGui::Image(m_editorViewportSRV, viewportSize);
 
 			// Stats overlay
@@ -216,16 +213,12 @@ void SandboxLayer::UpdateImGui(Duration delta)
 					ImGuiChildFlags_AutoResizeY;
 
 				constexpr float padding = 10.0f;
-				const ImGuiViewport* viewport = ImGui::GetMainViewport();
-				ImVec2 workPos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
-				ImVec2 workSize = viewport->WorkSize;
-				ImVec2 windowPos;
-				windowPos.x = workPos.x + workSize.x - padding;
-				windowPos.y = workPos.y + padding + viewportStartHeight;
-				ImGui::SetNextWindowPos(windowPos, ImGuiCond_Always, { 1.f, 0.f });
+				constexpr float width = 250.0f;
+
+				ImGui::SetCursorPos({ImGui::GetContentRegionAvail().x - width - padding, padding});
 				ImGui::SetNextWindowBgAlpha(0.55f); // Transparent background
 
-				if (ImGui::BeginChild("Stats overlay", { 250, 0 }, childFlags, windowFlags))
+				if (ImGui::BeginChild("Stats overlay", {width, 0.f}, childFlags, windowFlags))
 				{
 					auto& io = ImGui::GetIO();
 					ImGui::Text("FPS: %.1f", io.Framerate);
@@ -240,6 +233,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		ImGui::PopStyleVar();
 	}
 
+	// TODO: Make the pipeline draw this
 	// Debug menu
 	/*if (s_showDebugMenu)
 	{
@@ -247,13 +241,14 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 		if (ImGui::CollapsingHeader("GBuffer"))
 		{
-			float texWidth = (float)m_gbuffer.GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetWidth() / (float)m_gbuffer.GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetHeight() * 256.f;
+			auto gbufferSize = m_renderPipeline->GetGBuffer().GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetSize();
+			float texWidth = (float)gbufferSize.x / (float)gbufferSize.y * 256.f;
 			ImGui::Text("Color");
-			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::SRV), {texWidth, 256});
+			ImGui::Image(m_renderPipeline->GetGBuffer().GetView(GBuffer::Type::Color, TextureViewType::SRV), {texWidth, 256});
 			ImGui::Text("Depth");
-			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::SRV), {texWidth, 256});
+			ImGui::Image(m_renderPipeline->GetGBuffer().GetView(GBuffer::Type::Depth, TextureViewType::SRV), {texWidth, 256});
 			ImGui::Text("Normal");
-			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::SRV), {texWidth, 256});
+			ImGui::Image(m_renderPipeline->GetGBuffer().GetView(GBuffer::Type::Normal, TextureViewType::SRV), {texWidth, 256});
 			ImGui::Text("R:Roughness G:Metal B:AO");
 			static bool s_roughness = true;
 			ImGui::Checkbox("Roughness", &s_roughness);
@@ -263,18 +258,19 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			ImGui::SameLine();
 			static bool s_ao = true;
 			ImGui::Checkbox("AO", &s_ao);
-			ImGui::Image(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::SRV), {texWidth, 256}, {0, 0}, {1, 1}, {(float)s_roughness, (float)s_metallic, (float)s_ao, 1});
+			ImGui::Image(m_renderPipeline->GetGBuffer().GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::SRV), {texWidth, 256}, {0, 0}, {1, 1}, {(float)s_roughness, (float)s_metallic, (float)s_ao, 1});
+
 		}
 
-		if (ImGui::CollapsingHeader("Sun"))
+		/*if (ImGui::CollapsingHeader("Sun"))
 		{
 			//ImGui::SliderFloat("Environment light scale", &m_environmentLightScale, 0.f, 1.f);
 			ImGui::SliderAngle("Sun Rotation Yaw", &m_sunRotation.y, -180.f, 180.f);
 			ImGui::SliderAngle("Sun Rotation Pitch", &m_sunRotation.z, -180.f, 180.f);
 			ImGui::Image(m_sunShadowMap->CreateView({ .type = TextureViewType::SRV, .format = TextureFormat::R32_Float }), {256, 256});
-		}
+		}#1#
 
-		if (ImGui::CollapsingHeader("IBL"))
+		/*if (ImGui::CollapsingHeader("IBL"))
 		{
 			ImGui::Text("Original image");
 			ImGui::Image(m_environmentTextureSRV, {(float)m_environmentTexture->GetTextureDesc().GetWidth() / (float)m_environmentTexture->GetTextureDesc().GetHeight() * 256.f, 256.f});
@@ -307,9 +303,9 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 			ImGui::Text("BRDF LUT");
 			ImGui::Image(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), {256, 256});
-		}
+		}#1#
 
-		if (ImGui::CollapsingHeader("Bloom"))
+		/*if (ImGui::CollapsingHeader("Bloom"))
 		{
 
 			ImGui::DragFloat("Threshold", &m_bloomThreshold, 0.005f);
@@ -349,7 +345,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 				.subresourceRange = {.firstMipLevel = s_upsampleMipIndex, .numMipLevels = 1}
 			};
 			ImGui::Image(m_bloomUpsampleTexture->CreateView(viewDesc), {texWidth, 256});
-		}
+		}#1#
 
 		ImGui::End();
 	}*/
@@ -450,14 +446,14 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 						Entity* currEntity = m_scene->GetEntityByIndex(i);
 
-						if (currEntity == m_selectedEntity)
+						if (currEntity == m_scene->GetSelectedEntity())
 							treeFlags |= ImGuiTreeNodeFlags_Selected;
 
 						std::wstring entityName = currEntity->GetName();
 						if (ImGui::TreeNodeEx(std::to_string(i).c_str(), treeFlags, "%s", entityName.empty() ? "<unnamed>" : WStringToString(entityName).c_str()))
 						{
 							if (ImGui::IsItemFocused())
-								m_selectedEntity = currEntity;
+								m_scene->SetSelectedEntity(currEntity);
 
 							ImGui::TreePop();
 						}

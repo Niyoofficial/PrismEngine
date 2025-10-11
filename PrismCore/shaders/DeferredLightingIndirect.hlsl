@@ -1,4 +1,5 @@
 #include "BRDF.hlsli"
+#include "FullscreenTriangleVertexShader.hlsli"
 
 cbuffer Resources
 {
@@ -23,42 +24,7 @@ struct SceneIrradiance
 	SH::L2_RGB irradianceSH;
 };
 
-struct VertexOut
-{
-	float4 positionClip : SV_Position;
-	float2 ndc : POSITION;
-	float2 texCoords : TEXCOORD;
-};
-
-VertexOut vsmain(uint vertexID : SV_VertexID)
-{
-	VertexOut vout;
-	if (vertexID == 0)   
-	{
-		float2 vertex = float2(1.f, -1.f);
-		vout.positionClip = float4(vertex, 0.f, 1.f);
-		vout.ndc = vertex;
-		vout.texCoords = float2(1.f, 1.f);
-	}
-	else if (vertexID == 1)
-	{
-		float2 vertex = float2(1.f, 3.f);
-		vout.positionClip = float4(vertex, 0.f, 1.f);
-		vout.ndc = vertex;
-		vout.texCoords = float2(1.f, -1.f);
-	}
-	else if (vertexID == 2)
-	{
-		float2 vertex = float2(-3.f, -1.f);
-		vout.positionClip = float4(vertex, 0.f, 1.f);
-		vout.ndc = vertex;
-		vout.texCoords = float2(-1.f, 1.f);
-	}
-	
-	return vout;
-}
-
-float4 psmain(VertexOut pin) : SV_Target
+float4 psmain(FullscreenVertexOut pin) : SV_Target
 {
 	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_sceneBuffer];
 	ConstantBuffer<SceneIrradiance> sceneIrradiance = ResourceDescriptorHeap[g_irradiance];
@@ -90,7 +56,7 @@ float4 psmain(VertexOut pin) : SV_Target
 	float3 diffuseIrradiance = SH::CalculateIrradiance(sceneIrradiance.irradianceSH, surface.normal); // Does the cosine lobe scale
 	float3 envLight = EnvironmentBRDF(surface, toCamera, diffuseIrradiance, prefilteredSpecularColor, F0ScaleBias);
 	
-	float3 color = envLight;
+	float3 color = envLight / 4.f;
 
 	return float4(color, 1.f);
 }

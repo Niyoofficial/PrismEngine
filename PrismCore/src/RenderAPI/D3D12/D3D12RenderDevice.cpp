@@ -147,6 +147,8 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 
 	m_cpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, Constants::DESCRIPTOR_COUNT_PER_CPU_HEAP);
 	m_cpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, Constants::DESCRIPTOR_COUNT_PER_CPU_HEAP);
+	// This heap is required by the ClearUnorderedAccessView* functions
+	m_cpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Constants::DESCRIPTOR_COUNT_PER_CPU_HEAP);
 
 	m_gpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Constants::DESCRIPTOR_COUNT_PER_GPU_HEAP);
 	m_gpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, Constants::DESCRIPTOR_COUNT_PER_GPU_SAMPLER_HEAP);
@@ -260,10 +262,27 @@ DescriptorHeapAllocation D3D12RenderDevice::AllocateDescriptors(D3D12_DESCRIPTOR
 {
 	if (type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
 	{
+		return AllocateDescriptors(type, HeapDeviceType::GPU, count);
+	}
+	else if (type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
+	{
+		return AllocateDescriptors(type, HeapDeviceType::CPU, count);
+	}
+	else
+	{
+		PE_ASSERT_NO_ENTRY();
+		return {};
+	}
+}
+
+DescriptorHeapAllocation D3D12RenderDevice::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, HeapDeviceType deviceType, int32_t count)
+{
+	if (deviceType == HeapDeviceType::GPU)
+	{
 		PE_ASSERT(m_gpuDescriptorHeapManagers.contains(type));
 		return m_gpuDescriptorHeapManagers.at(type).Allocate(count);
 	}
-	else if (type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
+	else if (deviceType == HeapDeviceType::CPU)
 	{
 		PE_ASSERT(m_cpuDescriptorHeapManagers.contains(type));
 		return m_cpuDescriptorHeapManagers.at(type).Allocate(count);

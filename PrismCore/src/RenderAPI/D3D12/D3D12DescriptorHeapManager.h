@@ -7,6 +7,12 @@ namespace Prism::Render::D3D12
 {
 class DescriptorHeap;
 
+enum class HeapDeviceType
+{
+	GPU,
+	CPU
+};
+
 class DescriptorHeapAllocation
 {
 public:
@@ -40,7 +46,6 @@ private:
 	DescriptorHeap* m_heap = nullptr;
 	int32_t m_numHandles = -1;
 	CD3DX12_CPU_DESCRIPTOR_HANDLE m_firstCPUHandle = {};
-	// Only valid
 	CD3DX12_GPU_DESCRIPTOR_HANDLE m_firstGPUHandle = {};
 };
 

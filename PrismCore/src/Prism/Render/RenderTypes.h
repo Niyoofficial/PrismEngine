@@ -484,8 +484,8 @@ struct DepthStencilStateDesc
 	ComparisionFunction depthFunc = ComparisionFunction::Less;
 
 	bool stencilEnable = false;
-	uint8_t stencilReadMask = 0;
-	uint8_t stencilWriteMask = 0;
+	uint8_t stencilReadMask = 0xff;
+	uint8_t stencilWriteMask = 0xff;
 	DepthStencilOperationDesc frontFace;
 	DepthStencilOperationDesc backFace;
 };

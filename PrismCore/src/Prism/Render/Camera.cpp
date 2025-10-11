@@ -64,6 +64,19 @@ glm::float3 Camera::GetUpVector() const
 	return m_up;
 }
 
+CameraInfo Camera::GetCameraInfo() const
+{
+	return {
+		.view = GetViewMatrix(),
+		.proj = GetProjectionMatrix(),
+		.viewProj = GetViewProjectionMatrix(),
+		.invView = GetInvViewMatrix(),
+		.invProj = GetInvProjectionMatrix(),
+		.invViewProj = GetInvViewProjectionMatrix(),
+		.cameraPos = GetPosition(),
+	};
+}
+
 void Camera::UpdateViewMatrix()
 {
 	m_viewMatrix = glm::toMat4(GetRotationQuat()) * glm::translate(glm::mat4x4(1.f), -m_position);

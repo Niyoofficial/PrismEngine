@@ -40,6 +40,9 @@ public:
 
 	Render::SceneRenderPipeline* GetCurrentRenderPipeline() const { return m_renderPipeline; }
 
+	void SetSelectedEntity(Entity* entity);
+	Entity* GetSelectedEntity() const { return m_selectedEntity; }
+
 
 	void Update(Duration delta);
 
@@ -55,8 +58,12 @@ private:
 
 	// TODO: Replace ref with unique_ptr equivalent
 	std::vector<Ref<Entity>> m_entities;
+	// TODO: Remove this and add something like mesh processors to collect meshes for each pass
+	Entity* m_selectedEntity = nullptr;
 
 	std::vector<Ref<Render::EntityRenderProxy>> m_renderProxies;
+	// TODO: Remove this
+	Render::EntityRenderProxy* m_selectedProxy = nullptr;
 	Bounds3f m_sceneBounds;
 	std::vector<Render::DirectionalLight> m_dirLights;
 };

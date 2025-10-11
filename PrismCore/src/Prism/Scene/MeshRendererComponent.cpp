@@ -1,7 +1,6 @@
 #include "MeshRendererComponent.h"
 
 #include "Prism/Render/EntityRenderProxy.h"
-#include "Prism/Scene/Entity.h"
 
 namespace Prism
 {

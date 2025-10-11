@@ -111,6 +111,11 @@ void D3D12RenderCommandList::SetPSO(const ComputePipelineStateDesc& desc)
 	m_currentComputePSO = desc;
 }
 
+void D3D12RenderCommandList::SetStencilRef(uint32_t ref)
+{
+	m_commandList->OMSetStencilRef(ref);
+}
+
 void D3D12RenderCommandList::SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv)
 {
 	m_renderTargetViews.clear();
@@ -260,6 +265,24 @@ void D3D12RenderCommandList::ClearDepthStencilView(TextureView* dsv, Flags<Clear
 	}
 	m_commandList->ClearDepthStencilView(static_cast<D3D12TextureView*>(dsv)->GetDescriptor().GetCPUHandle(),
 		GetD3D12ClearFlags(flags), depthValue, stencilValue, 0, nullptr);
+}
+
+void D3D12RenderCommandList::ClearUnorderedAccessView(TextureView* uav, glm::float4 values)
+{
+	m_commandList->ClearUnorderedAccessViewFloat(
+		static_cast<D3D12TextureView*>(uav)->GetDescriptor().GetGPUHandle(),
+		static_cast<D3D12TextureView*>(uav)->GetUavCpuDescriptor().GetCPUHandle(),
+		static_cast<D3D12Texture*>(uav->GetTexture())->GetD3D12Resource(),
+		&values.r, 0, nullptr);
+}
+
+void D3D12RenderCommandList::ClearUnorderedAccessView(TextureView* uav, glm::uint4 values)
+{
+	m_commandList->ClearUnorderedAccessViewUint(
+		static_cast<D3D12TextureView*>(uav)->GetDescriptor().GetGPUHandle(),
+		static_cast<D3D12TextureView*>(uav)->GetUavCpuDescriptor().GetCPUHandle(),
+		static_cast<D3D12Texture*>(uav->GetTexture())->GetD3D12Resource(),
+		&values.r, 0, nullptr);
 }
 
 void D3D12RenderCommandList::Barrier(BufferBarrier barrier)

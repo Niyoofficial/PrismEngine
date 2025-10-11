@@ -27,6 +27,8 @@ public:
 	void SetPSO(const GraphicsPipelineStateDesc& pso);
 	void SetPSO(const ComputePipelineStateDesc& pso);
 
+	void SetStencilRef(uint32_t ref);
+
 	void SetRenderTarget(TextureView* rtv, TextureView* dsv);
 	void SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv);
 	void SetViewport(Viewport viewport);
@@ -44,6 +46,8 @@ public:
 
 	void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr);
 	void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr);
+	void ClearUnorderedAccessView(TextureView* uav, glm::float4 values);
+	void ClearUnorderedAccessView(TextureView* uav, glm::uint4 values);
 
 	void Barrier(BufferBarrier barrier);
 	void Barrier(TextureBarrier barrier);

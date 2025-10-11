@@ -56,6 +56,13 @@ struct std::hash<std::vector<Type>>
 	}
 };
 
+namespace glm
+{
+typedef vec<2, uint, highp> uint2;
+typedef vec<3, uint, highp> uint3;
+typedef vec<4, uint, highp> uint4;
+}
+
 namespace Prism::Core
 {
 void InitCore();

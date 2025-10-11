@@ -113,7 +113,7 @@ PixelOutput psmain(PixelInput pin)
 		Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
 		normal = NormalSampleToWorldSpace(normalTexture.Sample(g_samLinearWrap, pin.texCoords).rgb, primitiveBuffer.normalMatrix, normal, tangent, bitangent);
 	}
-	
+
 	PixelOutput pout;
 	pout.color = float4(albedo, 1.f);
 	pout.normals = float4(normal, 1.f);

@@ -426,16 +426,17 @@ MeshAsset::MeshAsset(const std::wstring& filePath)
 	const aiScene* scene = m_importer.ReadFile(WStringToString(filePath).c_str(),
 											   aiProcess_Triangulate |
 											   aiProcess_ConvertToLeftHanded |
-											   aiProcess_OptimizeMeshes |
+											   //aiProcess_OptimizeMeshes |
 											   aiProcess_ValidateDataStructure |
 											   aiProcess_PreTransformVertices |
 											   aiProcess_GlobalScale |
 											   aiProcess_SortByPType |
-											   aiProcess_JoinIdenticalVertices |
+											   //aiProcess_JoinIdenticalVertices |
 											   aiProcess_GenSmoothNormals |
 											   aiProcess_CalcTangentSpace |
 											   aiProcess_GenUVCoords |
-											   aiProcess_GenBoundingBoxes);
+											   aiProcess_GenBoundingBoxes
+	);
 
 	if (!scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode)
 		PE_ASSERT(false, "{}", m_importer.GetErrorString());

@@ -1,6 +1,4 @@
 #pragma once
-#include "Prism/Base/AppEvents.h"
-#include "Prism/Base/AppEvents.h"
 #include "Prism/Scene/Components.h"
 #include "Prism/Utilities/MeshLoading.h"
 

@@ -36,6 +36,15 @@ void RenderContext::SetPSO(const ComputePipelineStateDesc& pso)
 	m_commandRecorder.AllocateCommand<Commands::SetComputePSORenderCommand>(pso);
 }
 
+void RenderContext::SetStencilRef(uint32_t ref)
+{
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+		[ref](RenderCommandList* cmdList)
+		{
+			cmdList->SetStencilRef(ref);
+		});
+}
+
 void RenderContext::SetRenderTarget(TextureView* rtv, TextureView* dsv)
 {
 	std::vector<TextureView*> rtvs;
@@ -107,6 +116,24 @@ void RenderContext::ClearRenderTargetView(TextureView* rtv, glm::float4* clearCo
 void RenderContext::ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue)
 {
 	m_commandRecorder.AllocateCommand<Commands::ClearDepthStencilViewRenderCommand>(dsv, flags, clearValue);
+}
+
+void RenderContext::ClearUnorderedAccessView(TextureView* uav, glm::float4 values)
+{
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+		[values, uav](RenderCommandList* cmdList)
+		{
+			cmdList->ClearUnorderedAccessView(uav, values);
+		});
+}
+
+void RenderContext::ClearUnorderedAccessView(TextureView* uav, glm::uint4 values)
+{
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+		[values, uav](RenderCommandList* cmdList)
+		{
+			cmdList->ClearUnorderedAccessView(uav, values);
+		});
 }
 
 void RenderContext::Barrier(BufferBarrier barrier)
