@@ -1,4 +1,6 @@
 #pragma once
+#include "Prism/Base/AppEvents.h"
+#include "Prism/Base/AppEvents.h"
 #include "Prism/Render/SceneRenderPipeline.h"
 #include "Prism/Render/Texture.h"
 #include "Prism/Render/VertexBufferCache.h"
@@ -44,24 +46,27 @@ class PBRSceneRenderPipeline : public SceneRenderPipeline
 public:
 	PBRSceneRenderPipeline();
 
-	void Render(RenderInfo renderInfo) override;
+	virtual void Render(RenderContext* renderContext, const RenderSceneInfo& renderInfo) override;
+	virtual void RenderHitProxies(RenderContext* renderContext, const RenderHitProxiesInfo& renderInfo) override;
 
 	const GBuffer& GetGBuffer() const { return m_gbuffer; }
 
 private:
-	void CreateScreenSizeDependentResources(const RenderInfo& renderInfo, glm::int2 newScreenSize);
+	void CreateInitialResources();
+	void CheckForScreenResize(glm::int2 newScreenSize);
+	void CreateScreenSizeDependentResources(glm::int2 newScreenSize);
 
 	void ConvertSkyboxToCubemap(RenderContext* renderContext);
 	void GenerateEnvDiffuseIrradiance(RenderContext* renderContext);
 	void GenerateEnvSpecularIrradiance(RenderContext* renderContext);
 	void GenerateBRDFIntegrationLUT(RenderContext* renderContext);
 
-	void RenderShadowPass(RenderContext* renderContext, const RenderInfo& renderInfo);
-	void RenderBasePass(RenderContext* renderContext, const RenderInfo& renderInfo);
-	void RenderLightingPass(RenderContext* renderContext, const RenderInfo& renderInfo);
-	void RenderBloomPass(RenderContext* renderContext, const RenderInfo& renderInfo);
-	void RenderSelectionOutlinePass(RenderContext* renderContext, const RenderInfo& renderInfo);
-	void RenderFinalCompositionPass(RenderContext* renderContext, const RenderInfo& renderInfo);
+	void RenderShadowPass(RenderContext* renderContext, const RenderSceneInfo& renderInfo);
+	void RenderBasePass(RenderContext* renderContext, const RenderSceneInfo& renderInfo);
+	void RenderLightingPass(RenderContext* renderContext, const RenderSceneInfo& renderInfo);
+	void RenderBloomPass(RenderContext* renderContext, const RenderSceneInfo& renderInfo);
+	void RenderSelectionOutlinePass(RenderContext* renderContext, const RenderSceneInfo& renderInfo);
+	void RenderFinalCompositionPass(RenderContext* renderContext, const RenderSceneInfo& renderInfo);
 
 	template<typename Res, typename Desc> requires (std::is_same_v<Res, Texture> && std::is_same_v<Desc, TextureDesc>) || (std::is_same_v<Res, Buffer>&& std::is_same_v <Desc, BufferDesc>)
 	void ResizeResourceArrayIfNeeded(std::vector<Ref<Res>>& resArray, int32_t sizeToFit, Desc resDesc, BarrierLayout initLayout = BarrierLayout::Common);
@@ -113,7 +118,7 @@ private:
 	Ref<Texture> m_bloomUpsampleTexture;
 
 	// Selection outline
-	int32_t m_outlineWidth = 2.f;
+	int32_t m_outlineWidth = 1.f;
 	Ref<Buffer> m_primitiveSelectionOutlinePassBuffer;
 	Ref<Buffer> m_sceneSelectionOutlinePassBuffer;
 	Ref<Texture> m_outlineMask;
@@ -124,5 +129,8 @@ private:
 
 	// Final composition
 	Ref<Buffer> m_outlineSettingsBuffer;
+
+	// Hit proxies
+	Ref<Buffer> m_sceneHitProxiesBuffer;
 };
 }

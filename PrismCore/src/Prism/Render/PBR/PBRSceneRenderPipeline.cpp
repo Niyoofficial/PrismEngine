@@ -20,7 +20,7 @@ void GBuffer::CreateResources(glm::int2 windowSize)
 		.optimizedClearValue = DepthStencilClearValue{
 			.format = TextureFormat::D32_Float_S8X24_UInt
 		}
-		},
+	},
 		BarrierLayout::DepthStencilWrite);
 	auto depthStencilDSV = depthStencil->CreateView({
 		.type = TextureViewType::DSV, .format = TextureFormat::D32_Float_S8X24_UInt
@@ -128,7 +128,7 @@ void GBuffer::CreateResources(glm::int2 windowSize)
 	};
 }
 
-struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) SceneBasePassInfo
+struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) SceneInfo
 {
 	CameraInfo camera;
 };
@@ -146,11 +146,6 @@ struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) SettingsBloomPass
 	int32_t lod = 0;
 };
 
-struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) SceneSelectionOutlinePassInfo
-{
-	CameraInfo camera;
-};
-
 struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) JumpFloodSettings
 {
 	int32_t stepWidth;
@@ -166,8 +161,17 @@ struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) PrimitiveSelectionOutlinePas
 	glm::float4x4 world;
 };
 
+struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) PrimitiveHitProxiesInfo
+{
+	glm::float4x4 world;
+	alignas(16)
+	uint32_t ID;
+};
+
 PBRSceneRenderPipeline::PBRSceneRenderPipeline()
 {
+	CreateInitialResources();
+
 	auto renderContext = RenderDevice::Get().AllocateContext(L"PBRSceneRenderPipeline_Initialization");
 
 	ConvertSkyboxToCubemap(renderContext);
@@ -175,9 +179,109 @@ PBRSceneRenderPipeline::PBRSceneRenderPipeline()
 	GenerateEnvSpecularIrradiance(renderContext);
 	GenerateBRDFIntegrationLUT(renderContext);
 
+	RenderDevice::Get().SubmitContext(renderContext);
+	RenderDevice::Get().GetRenderCommandQueue()->Flush();
+}
+
+void PBRSceneRenderPipeline::Render(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
+{
+	renderContext->BeginEvent(L"PBRSceneRenderPipeline_Render");
+
+	CheckForScreenResize(renderInfo.renderTargetView->GetTexture()->GetTextureDesc().GetSize());
+
+	RenderShadowPass(renderContext, renderInfo);
+	RenderBasePass(renderContext, renderInfo);
+	RenderLightingPass(renderContext, renderInfo);
+	RenderBloomPass(renderContext, renderInfo);
+	// TODO: This step should only happen in editor and outside of this pipeline
+	// or maybe inherit this pipeline and implement EditorPBRPipeline?
+	RenderSelectionOutlinePass(renderContext, renderInfo);
+	RenderFinalCompositionPass(renderContext, renderInfo);
+
+	renderContext->EndEvent();
+}
+
+void PBRSceneRenderPipeline::RenderHitProxies(RenderContext* renderContext, const RenderHitProxiesInfo& renderInfo)
+{
+	renderContext->BeginEvent(L"PBRSceneRenderPipeline_RenderHitProxies");
+
+	auto renderTargetDesc = renderInfo.renderTargetView->GetTexture()->GetTextureDesc();
+
+	Ref<Texture> depth = Texture::Create({
+		.textureName = L"HitProxies_Depth",
+		.width = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().GetWidth(),
+		.height = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().GetHeight(),
+		.format = TextureFormat::D32_Float,
+		.bindFlags = Flags(BindFlags::DepthStencil),
+		.optimizedClearValue = DepthStencilClearValue{
+			.format = TextureFormat::D32_Float
+		}
+	}, BarrierLayout::DepthStencilWrite);
+	auto depthView = depth->CreateView({.type = TextureViewType::DSV, .format = TextureFormat::D32_Float});
+
+	renderContext->SetViewport({{0.f, 0.f}, {renderTargetDesc.GetWidth(), renderTargetDesc.GetHeight()}, {0.f, 1.f}});
+	renderContext->SetScissor({{0.f, 0.f}, {renderTargetDesc.GetWidth(), renderTargetDesc.GetHeight()}});
+
+	renderContext->SetRenderTarget(renderInfo.renderTargetView, depthView);
+	renderContext->ClearDepthStencilView(depthView, ClearFlags::ClearDepth);
+
+	renderContext->SetPSO(GraphicsPipelineStateDesc{
+		.vs = {
+			.filepath = L"shaders/HitProxy.hlsl",
+			.entryName = L"vsmain",
+			.shaderType = ShaderType::VS
+		},
+		.ps = {
+			.filepath = L"shaders/HitProxy.hlsl",
+			.entryName = L"psmain",
+			.shaderType = ShaderType::PS
+		}
+	});
+
+	SceneInfo sceneBasePassInfo = {
+		.camera = renderInfo.cameraInfo
+	};
+	void* sceneData = m_sceneBasePassBuffer->Map(CPUAccess::Write);
+	memcpy_s(sceneData, m_sceneBasePassBuffer->GetBufferDesc().size, &sceneBasePassInfo, sizeof(sceneBasePassInfo));
+	m_sceneBasePassBuffer->Unmap();
+	renderContext->SetBuffer(m_sceneBasePassBuffer->CreateDefaultUniformBufferView(), L"g_sceneBuffer");
+
+
+	int32_t proxyIndex = 0;
+	for (auto& proxy : renderInfo.proxies)
+	{
+		auto [vb, ib] = RenderDevice::Get().GetVertexBufferCache().GetOrCreateMeshBuffers(m_defaultVertexAttributeList, proxy->GetMeshAsset());
+		renderContext->SetVertexBuffer(vb, GetVertexSize(m_defaultVertexAttributeList));
+		renderContext->SetIndexBuffer(ib, IndexBufferFormat::Uint32);
+
+		PrimitiveHitProxiesInfo primitiveBasePassInfo = {
+			.world = proxy->GetWorldTransform(),
+			.ID = (uint32_t)proxyIndex
+		};
+		void* primitiveData = m_primitiveBasePassBuffers[proxyIndex]->Map(CPUAccess::Write);
+		memcpy_s(primitiveData, m_primitiveBasePassBuffers[proxyIndex]->GetBufferDesc().size, &primitiveBasePassInfo, sizeof(primitiveBasePassInfo));
+		m_primitiveBasePassBuffers[proxyIndex]->Unmap();
+		renderContext->SetBuffer(m_primitiveBasePassBuffers[proxyIndex]->CreateDefaultUniformBufferView(), L"g_primitiveBuffer");
+
+		auto nodeInfo = RenderDevice::Get().GetVertexBufferCache().GetNodeIndexInfo(proxy->GetMeshAsset(), proxy->GetMeshNode());
+		renderContext->DrawIndexed({
+			.numIndices = proxy->GetMeshAsset()->GetIndexCount(proxy->GetMeshNode()),
+			.numInstances = 1,
+			.startIndexLocation = nodeInfo.startIndex,
+			.baseVertexLocation = nodeInfo.baseVertex
+		});
+
+		++proxyIndex;
+	}
+
+	renderContext->EndEvent();
+}
+
+void PBRSceneRenderPipeline::CreateInitialResources()
+{
 	m_sceneBasePassBuffer = Buffer::Create({
 		.bufferName = L"SceneBasePassInfo_UniformBuffer",
-		.size = sizeof(SceneBasePassInfo),
+		.size = sizeof(SceneInfo),
 		.bindFlags = BindFlags::UniformBuffer,
 		.usage = ResourceUsage::Dynamic,
 		.cpuAccess = CPUAccess::Write
@@ -208,7 +312,7 @@ PBRSceneRenderPipeline::PBRSceneRenderPipeline()
 	});
 	m_sceneSelectionOutlinePassBuffer = Buffer::Create({
 		.bufferName = L"SceneSelectionOutlineInfo_UniformBuffer",
-		.size = sizeof(SceneSelectionOutlinePassInfo),
+		.size = sizeof(SceneInfo),
 		.bindFlags = BindFlags::UniformBuffer,
 		.usage = ResourceUsage::Dynamic,
 		.cpuAccess = CPUAccess::Write
@@ -230,32 +334,26 @@ PBRSceneRenderPipeline::PBRSceneRenderPipeline()
 		.cpuAccess = CPUAccess::Write
 	});
 
-	RenderDevice::Get().SubmitContext(renderContext);
-	RenderDevice::Get().GetRenderCommandQueue()->Flush();
+
+	m_sceneHitProxiesBuffer = Buffer::Create({
+		.bufferName = L"SceneHitProxiesInfo_UniformBuffer",
+		.size = sizeof(SceneInfo),
+		.bindFlags = BindFlags::UniformBuffer,
+		.usage = ResourceUsage::Dynamic,
+		.cpuAccess = CPUAccess::Write
+	});
 }
 
-void PBRSceneRenderPipeline::Render(RenderInfo renderInfo)
+void PBRSceneRenderPipeline::CheckForScreenResize(glm::int2 newScreenSize)
 {
-	Ref<RenderContext> renderContext = RenderDevice::Get().AllocateContext(L"PBRSceneRenderPipeline_Render");
-
 	auto gbufferSize = m_gbuffer.GetTexture(GBuffer::Type::Color)
 						   ? m_gbuffer.GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetSize()
 						   : glm::int2{0, 0};
-	auto renderTargetSize = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().GetSize();
-	if (gbufferSize != renderTargetSize)
-		CreateScreenSizeDependentResources(renderInfo, renderTargetSize);
-
-	RenderShadowPass(renderContext, renderInfo);
-	RenderBasePass(renderContext, renderInfo);
-	RenderLightingPass(renderContext, renderInfo);
-	RenderBloomPass(renderContext, renderInfo);
-	RenderSelectionOutlinePass(renderContext, renderInfo);
-	RenderFinalCompositionPass(renderContext, renderInfo);
-
-	RenderDevice::Get().SubmitContext(renderContext);
+	if (gbufferSize != newScreenSize)
+		CreateScreenSizeDependentResources(newScreenSize);
 }
 
-void PBRSceneRenderPipeline::CreateScreenSizeDependentResources(const RenderInfo& renderInfo, glm::int2 newScreenSize)
+void PBRSceneRenderPipeline::CreateScreenSizeDependentResources(glm::int2 newScreenSize)
 {
 	m_gbuffer.CreateResources(newScreenSize);
 
@@ -263,10 +361,10 @@ void PBRSceneRenderPipeline::CreateScreenSizeDependentResources(const RenderInfo
 									   .textureName = L"SceneColor",
 									   .width = newScreenSize.x,
 									   .height = newScreenSize.y,
-									   .format = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().format,
+									   .format = TextureFormat::R11G11B10_Float,
 									   .bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::RenderTarget),
 									   .optimizedClearValue = RenderTargetClearValue{
-										   .format = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().format,
+										   .format = TextureFormat::R11G11B10_Float,
 										   .color = {0.f, 0.f, 0.f, 1.f}
 									   }
 								   }, BarrierLayout::RenderTarget);
@@ -430,7 +528,7 @@ void PBRSceneRenderPipeline::GenerateEnvDiffuseIrradiance(RenderContext* renderC
 		.bindFlags = BindFlags::UnorderedAccess,
 		.usage = ResourceUsage::Default
 	});
-	auto coeffBufferView = coeffGenerationBuffer->CreateDefaultUAVView(sizeof(glm::float4)); // Single element
+	auto coeffBufferView = coeffGenerationBuffer->CreateDefaultUAV(sizeof(glm::float4)); // Single element
 
 	renderContext->SetPSO({
 		.cs = {
@@ -618,7 +716,7 @@ void PBRSceneRenderPipeline::GenerateBRDFIntegrationLUT(RenderContext* renderCon
 	renderContext->Dispatch({integrationData.resolution / 8, integrationData.resolution / 8, 1});
 }
 
-void PBRSceneRenderPipeline::RenderShadowPass(RenderContext* renderContext, const RenderInfo& renderInfo)
+void PBRSceneRenderPipeline::RenderShadowPass(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
 	renderContext->BeginEvent(L"Shadows");
 
@@ -747,7 +845,7 @@ void PBRSceneRenderPipeline::RenderShadowPass(RenderContext* renderContext, cons
 	renderContext->EndEvent();
 }
 
-void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const RenderInfo& renderInfo)
+void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
 	renderContext->BeginEvent(L"BasePass", {});
 
@@ -807,7 +905,7 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 	};
 	ResizeResourceArrayIfNeeded(m_primitiveBasePassBuffers, (int32_t)renderInfo.proxies.size(), primitiveBasePassBufDesc);
 
-	SceneBasePassInfo sceneBasePassInfo = {
+	SceneInfo sceneBasePassInfo = {
 		.camera = renderInfo.cameraInfo
 	};
 	void* sceneData = m_sceneBasePassBuffer->Map(CPUAccess::Write);
@@ -818,8 +916,6 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 	int32_t proxyIndex = 0;
 	for (auto& proxy : renderInfo.proxies)
 	{
-		renderContext->SetStencilRef(renderInfo.selectedProxy == proxy ? 1 : 0);
-
 		auto [vb, ib] = RenderDevice::Get().GetVertexBufferCache().GetOrCreateMeshBuffers(m_defaultVertexAttributeList, proxy->GetMeshAsset());
 		renderContext->SetVertexBuffer(vb, GetVertexSize(m_defaultVertexAttributeList));
 		renderContext->SetIndexBuffer(ib, IndexBufferFormat::Uint32);
@@ -862,7 +958,7 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 	renderContext->EndEvent();
 }
 
-void PBRSceneRenderPipeline::RenderLightingPass(RenderContext* renderContext, const RenderInfo& renderInfo)
+void PBRSceneRenderPipeline::RenderLightingPass(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
 	renderContext->BeginEvent(L"LightingPass", {});
 
@@ -949,7 +1045,7 @@ void PBRSceneRenderPipeline::RenderLightingPass(RenderContext* renderContext, co
 	renderContext->EndEvent();
 }
 
-void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const RenderInfo& renderInfo)
+void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
 	renderContext->BeginEvent(L"Bloom", {});
 
@@ -1080,7 +1176,7 @@ void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const
 	renderContext->EndEvent();
 }
 
-void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderContext, const RenderInfo& renderInfo)
+void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
 	if (renderInfo.selectedProxy)
 	{
@@ -1105,6 +1201,9 @@ void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderCon
 				.entryName = L"PsMask",
 				.shaderType = ShaderType::PS
 			},
+			.rasterizerState = {
+				.cullMode = CullMode::None
+			},
 			.depthStencilState = {
 				.depthEnable = false,
 				.depthWriteEnable = false
@@ -1115,7 +1214,7 @@ void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderCon
 		renderContext->SetVertexBuffer(vb, GetVertexSize(m_defaultVertexAttributeList));
 		renderContext->SetIndexBuffer(ib, IndexBufferFormat::Uint32);
 
-		SceneSelectionOutlinePassInfo sceneInfo = {
+		SceneInfo sceneInfo = {
 			.camera = renderInfo.cameraInfo,
 		};
 		void* sceneData = m_sceneSelectionOutlinePassBuffer->Map(CPUAccess::Write);
@@ -1190,7 +1289,7 @@ void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderCon
 	}
 }
 
-void PBRSceneRenderPipeline::RenderFinalCompositionPass(RenderContext* renderContext, const RenderInfo& renderInfo)
+void PBRSceneRenderPipeline::RenderFinalCompositionPass(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
 	renderContext->BeginEvent(L"FinalComposition");
 

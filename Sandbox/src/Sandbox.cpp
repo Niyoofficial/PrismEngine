@@ -59,6 +59,10 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 				ImGui::SetWindowFocus("Viewport");
 				Core::Platform::Get().SetMouseRelativeMode(m_owningWindow.Raw(), true);
 			}
+			else if (std::get<Core::AppEvents::MouseButtonDown>(event).keyCode == KeyCode::LeftMouseButton)
+			{
+				m_lastTimeButtonDown = Core::Platform::Get().GetApplicationTime();
+			}
 		});
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseButtonUp>(
 		[this](Core::AppEvent event)
@@ -67,6 +71,12 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			{
 				m_viewportRelativeMouse = false;
 				Core::Platform::Get().SetMouseRelativeMode(m_owningWindow.Raw(), false);
+			}
+			else if (std::get<Core::AppEvents::MouseButtonUp>(event).keyCode == KeyCode::LeftMouseButton && m_viewportHovered)
+			{
+				// Consider this a click
+				if ((Core::Platform::Get().GetApplicationTime() - m_lastTimeButtonDown).GetSeconds() < 0.2)
+					SelectEntityUnderCursor();
 			}
 		});
 
@@ -191,6 +201,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		ImGui::Begin("Viewport");
 
 		m_viewportHovered = ImGui::IsWindowHovered();
+		m_viewportPosition = {ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y};
 
 		auto viewportSize = ImGui::GetContentRegionAvail();
 		if (CheckForViewportResize({viewportSize.x, viewportSize.y}))
@@ -492,15 +503,19 @@ void SandboxLayer::Update(Duration delta)
 	}
 
 	m_scene->Update(delta);
-	
-	m_scene->RenderScene(m_editorViewportRTV, m_camera);
+
+	Ref renderContext = RenderDevice::Get().AllocateContext();
+
+	m_scene->RenderScene(renderContext, m_editorViewportRTV, m_camera);
+
+	RenderDevice::Get().SubmitContext(renderContext);
 }
 
 bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 {
 	using namespace Render;
 
-	if (viewportSize.x != m_viewportSize.x || viewportSize.y != m_viewportSize.y)
+	if (viewportSize != m_viewportSize)
 	{
 		m_viewportSize = {viewportSize.x, viewportSize.y};
 
@@ -510,7 +525,7 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 			return false;
 
 		m_editorViewport = Texture::Create({
-											   .textureName = L"FinalComposition",
+											   .textureName = L"EditorViewport",
 											   .width = m_viewportSize.x,
 											   .height = m_viewportSize.y,
 											   .dimension = ResourceDimension::Tex2D,
@@ -521,17 +536,93 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 												   .color = {0.f, 0.f, 0.f, 1.f}
 											   }
 										   }, BarrierLayout::RenderTarget);
-		m_editorViewportRTV = m_editorViewport->CreateView({.type = TextureViewType::RTV});
-		m_editorViewportSRV = m_editorViewport->CreateView({.type = TextureViewType::SRV});
+		m_editorViewportRTV = m_editorViewport->CreateDefaultRTV();
+		m_editorViewportSRV = m_editorViewport->CreateDefaultSRV();
+
+		m_hitProxiesTexture = Texture::Create({
+												  .textureName = L"HitProxiesTexture",
+												  .width = m_viewportSize.x,
+												  .height = m_viewportSize.y,
+												  .dimension = ResourceDimension::Tex2D,
+												  .format = TextureFormat::R32_UInt,
+												  .bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
+												  .optimizedClearValue = RenderTargetClearValue{
+													  .format = TextureFormat::R32_UInt,
+													  .color = {0.f, 0.f, 0.f, 0.f}
+												  }
+											  }, BarrierLayout::RenderTarget);
 
 		m_camera->SetPerspective(45.f,
-			(float)m_viewportSize.x / (float)m_viewportSize.y,
-			0.1f, 10000.f);
+								 (float)m_viewportSize.x / (float)m_viewportSize.y,
+								 0.1f, 10000.f);
 
 		return true;
 	}
 
 	return true;
+}
+
+void SandboxLayer::SelectEntityUnderCursor()
+{
+	using namespace Prism::Render;
+
+	auto renderContext = RenderDevice::Get().AllocateContext(L"HitProxies");
+
+	auto entities = m_scene->RenderHitProxies(renderContext, m_hitProxiesTexture->CreateDefaultRTV(), m_camera);
+	renderContext->SetPSO(ComputePipelineStateDesc{
+		.cs = {
+			.filepath = L"shaders/HitProxy.hlsl",
+			.entryName = L"CsReadPixel",
+			.shaderType = ShaderType::CS,
+		}
+		});
+
+	struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) HitProxyReadSettings
+	{
+		glm::uint2 relMousePos;
+	};
+	Ref<Buffer> hitProxyReadSettings = Buffer::Create({
+		.bufferName = L"HitProxyOutputBuffer",
+		.size = sizeof(HitProxyReadSettings),
+		.bindFlags = BindFlags::UniformBuffer,
+		.usage = ResourceUsage::Dynamic,
+		.cpuAccess = CPUAccess::Write
+	});
+	Ref<Buffer> hitProxyOutput = Buffer::Create({
+		.bufferName = L"HitProxyOutputBuffer",
+		.size = sizeof(uint32_t),
+		.bindFlags = BindFlags::UnorderedAccess,
+		.usage = ResourceUsage::Staging,
+		.cpuAccess = CPUAccess::Read
+	});
+
+	glm::int2 mousePos = { ImGui::GetMousePos().x, ImGui::GetMousePos().y };
+	auto relMousePos = mousePos - m_viewportPosition;
+	PE_ASSERT(relMousePos.x > 0 && relMousePos.y > 0);
+
+	void* data = hitProxyReadSettings->Map(CPUAccess::Write);
+	HitProxyReadSettings readSettings = {
+		.relMousePos = relMousePos
+	};
+	memcpy(data, &readSettings, sizeof(readSettings));
+	hitProxyReadSettings->Unmap();
+
+	renderContext->SetBuffer(hitProxyReadSettings->CreateDefaultUniformBufferView(), L"g_hitProxyReadSettingsBuffer");
+	renderContext->SetTexture(m_hitProxiesTexture->CreateDefaultSRV(), L"g_hitProxiesTexture");
+	renderContext->SetBuffer(hitProxyOutput->CreateDefaultUAV(sizeof(uint32_t)), L"g_hitProxyOutputBuffer");
+	renderContext->Dispatch({1, 1, 1});
+	renderContext->AddGPUCompletionCallback(
+		[hitProxyOutput, entities, this]()
+		{
+			void* data = hitProxyOutput->Map(CPUAccess::Read);
+
+			uint32_t ID = *(uint32_t*)data;
+			m_scene->SetSelectedEntity(entities.at(ID));
+
+			hitProxyOutput->Unmap();
+		});
+
+	RenderDevice::Get().SubmitContext(renderContext);
 }
 
 SandboxApplication& SandboxApplication::Get()
@@ -565,6 +656,7 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 	};
 	m_window = Core::Window::Create(windowParams, swapchainDesc);
 
+	// TODO: Remove depth format
 	InitImGui(m_window, Render::TextureFormat::D24_UNorm_S8_UInt);
 
 	{

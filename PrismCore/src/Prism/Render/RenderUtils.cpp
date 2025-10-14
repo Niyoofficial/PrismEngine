@@ -1,8 +1,6 @@
 ﻿#include "pcpch.h"
 #include "RenderUtils.h"
 
-#include "Prism/Base/AppEvents.h"
-#include "Prism/Base/AppEvents.h"
 #include "Prism/Render/RenderContext.h"
 #include "Prism/Utilities/MemoryUtils.h"
 

@@ -23,8 +23,8 @@ public:
 
 	Ref<BufferView> CreateView(const BufferViewDesc& desc);
 	Ref<BufferView> CreateDefaultUniformBufferView();
-	Ref<BufferView> CreateDefaultSRVView(int64_t elementSize);
-	Ref<BufferView> CreateDefaultUAVView(int64_t elementSize, bool bNeedsCounter = false);
+	Ref<BufferView> CreateDefaultSRV(int64_t elementSize);
+	Ref<BufferView> CreateDefaultUAV(int64_t elementSize, bool bNeedsCounter = false);
 
 	ResourceType GetResourceType() const override { return ResourceType::Buffer; }
 

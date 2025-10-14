@@ -10,7 +10,7 @@
 #include "stb_image.h"
 #include "Prism/Render/RenderCommandQueue.h"
 
-#if PE_USE_PIX
+#if USE_PIX
 #include "pix3.h"
 #endif
 
@@ -109,7 +109,7 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 		auto func =
 			[loadAsCubemap, d3d12Device, filepath, this]()
 			{
-#if PE_USE_PIX
+#if USE_PIX
 				// This will show up in the PIX event viewer incorrectly because its called asynchronously,
 				// it'd work correctly if the event was called on the cmd list, but we cannot access is from ResourceUploadBatch
 				// and I want to keep this function async since CreateWICTextureFromFileEx can take a while
@@ -122,7 +122,7 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 					D3D12_RESOURCE_FLAG_NONE, DX::WIC_LOADER_FORCE_RGBA32 | DX::WIC_LOADER_MIP_AUTOGEN, &m_resource));
 				batch.End(D3D12RenderDevice::Get().GetD3D12CommandQueue()).wait_for(std::chrono::seconds(0));
 
-#if PE_USE_PIX
+#if USE_PIX
 				PIXEndEvent(D3D12RenderDevice::Get().GetD3D12CommandQueue());
 #endif
 
@@ -155,7 +155,7 @@ D3D12Texture::D3D12Texture(std::wstring name, void* imageData, int64_t dataSize,
 	auto func =
 		[loadAsCubemap, d3d12Device, name, imageData, dataSize, this]()
 		{
-#if PE_USE_PIX
+#if USE_PIX
 			// This will show up in the PIX event viewer incorrectly because its called asynchronously,
 			// it'd work correctly if the event was called on the cmd list, but we cannot access is from ResourceUploadBatch
 			// and I want to keep this function async since CreateWICTextureFromFileEx can take a while
@@ -168,7 +168,7 @@ D3D12Texture::D3D12Texture(std::wstring name, void* imageData, int64_t dataSize,
 				D3D12_RESOURCE_FLAG_NONE, DX::WIC_LOADER_FORCE_RGBA32 | DX::WIC_LOADER_MIP_AUTOGEN, &m_resource));
 			batch.End(D3D12RenderDevice::Get().GetD3D12CommandQueue()).wait_for(std::chrono::seconds(0));
 
-#if PE_USE_PIX
+#if USE_PIX
 			PIXEndEvent(D3D12RenderDevice::Get().GetD3D12CommandQueue());
 #endif
 

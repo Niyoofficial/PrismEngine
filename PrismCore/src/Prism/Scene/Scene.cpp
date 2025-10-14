@@ -1,6 +1,7 @@
 #include "Scene.h"
 
 #include "Prism/Render/Camera.h"
+#include "Prism/Render/RenderContext.h"
 #include "Prism/Render/TextureView.h"
 #include "Prism/Scene/Entity.h"
 #include "Prism/Scene/LightRendererComponent.h"
@@ -41,7 +42,7 @@ void Scene::Update(Duration delta)
 		{
 			if (Ref proxy = comp->CreateRenderProxy(transfrom))
 			{
-				m_renderProxies.emplace_back(proxy);
+				m_renderProxies.try_emplace(proxy, entity.Raw());
 				m_sceneBounds += proxy->GetBounds();
 
 				if (m_selectedEntity == entity)
@@ -53,20 +54,40 @@ void Scene::Update(Duration delta)
 	}
 }
 
-void Scene::RenderScene(Render::TextureView* rtv, Render::Camera* camera)
+void Scene::RenderScene(Render::RenderContext* renderContext, Render::TextureView* rtv, Render::Camera* camera)
 {
-	Render::RenderInfo renderInfo = {
+	Render::RenderSceneInfo renderInfo = {
 		.renderTargetView = rtv,
 
 		.cameraInfo = camera->GetCameraInfo(),
 
 		.sceneBounds = m_sceneBounds
 	};
-	renderInfo.proxies = std::move(m_renderProxies);
+	for (auto& [proxy, entity] : m_renderProxies)
+		renderInfo.proxies.emplace_back(proxy);
 	renderInfo.selectedProxy = m_selectedProxy;
-	renderInfo.directionalLights = std::move(m_dirLights);
+	renderInfo.directionalLights = m_dirLights;
 
-	m_renderPipeline->Render(renderInfo);
+	m_renderPipeline->Render(renderContext, renderInfo);
+}
+
+std::vector<Entity*> Scene::RenderHitProxies(Render::RenderContext* renderContext, Render::TextureView* rtv, Render::Camera* camera)
+{
+	Render::RenderHitProxiesInfo renderInfo = {
+		.renderTargetView = rtv,
+		.cameraInfo = camera->GetCameraInfo(),
+	};
+
+	std::vector<Entity*> hitProxyEntities;
+	for (auto& [proxy, entity] : m_renderProxies)
+	{
+		renderInfo.proxies.emplace_back(proxy);
+		hitProxyEntities.emplace_back(entity);
+	}
+
+	m_renderPipeline->RenderHitProxies(renderContext, renderInfo);
+
+	return hitProxyEntities;
 }
 
 Scene::Scene(const std::wstring& name)

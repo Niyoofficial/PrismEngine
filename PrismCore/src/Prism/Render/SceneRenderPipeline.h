@@ -2,8 +2,14 @@
 #include "EntityRenderProxy.h"
 #include "Prism/Render/Camera.h"
 
+namespace Prism {
+class Entity;
+}
+
 namespace Prism::Render
 {
+class RenderContext;
+
 struct DirectionalLight
 {
 	alignas(16)
@@ -20,14 +26,15 @@ struct PointLight
 	glm::float3 lightColor;
 };
 
-struct RenderInfo
+struct RenderSceneInfo
 {
 	Ref<TextureView> renderTargetView;
 
 	CameraInfo cameraInfo;
 
 	std::vector<Ref<EntityRenderProxy>> proxies;
-	EntityRenderProxy* selectedProxy;
+	EntityRenderProxy* selectedProxy = nullptr;
+
 	Bounds3f sceneBounds;
 
 	std::vector<DirectionalLight> directionalLights;
@@ -37,11 +44,21 @@ struct RenderInfo
 	float bloomKnee = 0.1f;
 };
 
+struct RenderHitProxiesInfo
+{
+	Ref<TextureView> renderTargetView;
+
+	CameraInfo cameraInfo;
+
+	std::vector<Ref<EntityRenderProxy>> proxies;
+};
+
 class SceneRenderPipeline : public RefCounted
 {
 public:
 	virtual ~SceneRenderPipeline() = default;
 
-	virtual void Render(RenderInfo renderInfo) = 0;
+	virtual void Render(RenderContext* renderContext, const RenderSceneInfo& renderInfo) = 0;
+	virtual void RenderHitProxies(RenderContext* renderContext, const RenderHitProxiesInfo& renderInfo) = 0;
 };
 }

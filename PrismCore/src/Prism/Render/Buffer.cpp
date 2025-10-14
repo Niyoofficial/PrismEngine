@@ -51,7 +51,7 @@ Ref<BufferView> Buffer::CreateDefaultUniformBufferView()
 	});
 }
 
-Ref<BufferView> Buffer::CreateDefaultSRVView(int64_t elementSize)
+Ref<BufferView> Buffer::CreateDefaultSRV(int64_t elementSize)
 {
 	auto desc = GetBufferDesc();
 	return CreateView({
@@ -62,7 +62,7 @@ Ref<BufferView> Buffer::CreateDefaultSRVView(int64_t elementSize)
 	});
 }
 
-Ref<BufferView> Buffer::CreateDefaultUAVView(int64_t elementSize, bool bNeedsCounter)
+Ref<BufferView> Buffer::CreateDefaultUAV(int64_t elementSize, bool bNeedsCounter)
 {
 	auto desc = GetBufferDesc();
 	return CreateView({

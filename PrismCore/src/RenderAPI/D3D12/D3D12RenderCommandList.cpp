@@ -16,7 +16,7 @@
 #include "Prism/Render/RenderTypes.h"
 #include "RenderAPI/D3D12/D3D12RootSignature.h"
 
-#if PE_USE_PIX
+#if USE_PIX
 #include "pix3.h"
 #endif
 
@@ -432,21 +432,21 @@ void D3D12RenderCommandList::RenderImGui()
 
 void D3D12RenderCommandList::SetMarker(glm::float3 color, std::wstring string)
 {
-#if PE_USE_PIX
+#if USE_PIX
 	PIXSetMarker(m_commandList.Get(), PIX_COLOR(color.r * 255, color.g * 255, color.b * 255), string.c_str());
 #endif
 }
 
 void D3D12RenderCommandList::BeginEvent(glm::float3 color, std::wstring string)
 {
-#if PE_USE_PIX
+#if USE_PIX
 	PIXBeginEvent(m_commandList.Get(), PIX_COLOR(color.r * 255, color.g * 255, color.b * 255), string.c_str());
 #endif
 }
 
 void D3D12RenderCommandList::EndEvent()
 {
-#if PE_USE_PIX
+#if USE_PIX
 	PIXEndEvent(m_commandList.Get());
 #endif
 }

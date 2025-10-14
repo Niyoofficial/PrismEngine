@@ -7,6 +7,7 @@ namespace Prism
 {
 namespace Render
 {
+class RenderContext;
 class Camera;
 }
 
@@ -46,7 +47,8 @@ public:
 
 	void Update(Duration delta);
 
-	void RenderScene(Render::TextureView* rtv, Render::Camera* camera);
+	void RenderScene(Render::RenderContext* renderContext, Render::TextureView* rtv, Render::Camera* camera);
+	std::vector<Entity*> RenderHitProxies(Render::RenderContext* renderContext, Render::TextureView* rtv, Render::Camera* camera);
 
 private:
 	explicit Scene(const std::wstring& name);
@@ -61,7 +63,7 @@ private:
 	// TODO: Remove this and add something like mesh processors to collect meshes for each pass
 	Entity* m_selectedEntity = nullptr;
 
-	std::vector<Ref<Render::EntityRenderProxy>> m_renderProxies;
+	std::unordered_map<Ref<Render::EntityRenderProxy>, Entity*> m_renderProxies;
 	// TODO: Remove this
 	Render::EntityRenderProxy* m_selectedProxy = nullptr;
 	Bounds3f m_sceneBounds;

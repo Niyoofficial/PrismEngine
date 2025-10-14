@@ -81,17 +81,19 @@ public:
 private:
 	bool CheckForViewportResize(glm::int2 viewportSize);
 
+	void SelectEntityUnderCursor();
+
 private:
 	WeakRef<Core::Window> m_owningWindow;
 
 	Ref<Scene> m_scene;
 	Render::PBRSceneRenderPipeline* m_renderPipeline;
-	Entity* m_selectedEntity;
 
 	glm::float3 m_sunRotation = {0.f, glm::radians(-7.f), glm::radians(-101.f)};
 
 	glm::int2 m_viewportSize;
 	bool m_viewportHovered = false;
+	glm::int2 m_viewportPosition = {};
 	bool m_viewportRelativeMouse = false;
 
 	Ref<Render::Camera> m_camera;
@@ -100,11 +102,15 @@ private:
 	Ref<Render::TextureView> m_editorViewportSRV;
 	Ref<Render::TextureView> m_editorViewportRTV;
 
+	Ref<Render::Texture> m_hitProxiesTexture;
+
 	Ref<Render::PrimitiveBatch> m_cube;
 	Ref<Render::PrimitiveBatch> m_sphere;
 
 	float m_cameraSpeed = 5.f;
 	float m_mouseSpeed = 0.003f;
+
+	Duration m_lastTimeButtonDown;
 };
 
 class SandboxApplication final : public Core::Application
