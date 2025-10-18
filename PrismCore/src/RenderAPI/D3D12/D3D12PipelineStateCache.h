@@ -21,6 +21,9 @@ private:
 	XXH64_hash_t HashPipelineStateDesc(const GraphicsPipelineStateDesc& desc, const std::vector<Ref<TextureView>>& rtvs, TextureView* dsv) const;
 	XXH64_hash_t HashPipelineStateDesc(const ComputePipelineStateDesc& desc) const;
 
+	XXH64_hash_t HashShaderDesc(const ShaderDesc& shaderDesc) const;
+	XXH64_hash_t HashBlendStateDesc(const BlendStateDesc& blendState) const;
+
 private:
 	std::unordered_map<XXH64_hash_t, ComPtr<ID3D12PipelineState>> m_graphicsPipelineStates;
 	std::unordered_map<XXH64_hash_t, ComPtr<ID3D12PipelineState>> m_computePipelineStates;
