@@ -2,7 +2,6 @@
 
 #include "Prism/Render/Camera.h"
 #include "Prism/Render/RenderContext.h"
-#include "Prism/Render/TextureView.h"
 #include "Prism/Scene/Entity.h"
 #include "Prism/Scene/LightRendererComponent.h"
 #include "Prism/Scene/MeshRendererComponent.h"
@@ -120,6 +119,8 @@ Entity* Scene::CreateEntityHierarchyForMeshAsset(MeshLoading::MeshAsset* asset)
 			Entity* entity = AddEntity(asset->GetNodeName(node));
 			if (!root)
 				root = entity;
+
+			entity->AddComponent<TransformComponent>();
 
 			if (asset->GetNodeChildrenCount(node) == 1)
 			{

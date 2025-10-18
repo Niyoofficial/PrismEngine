@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include "Prism/Base/AppEvents.h"
-#include "Prism/Base/AppEvents.h"
 #include "Prism/Render/DeferredCommandRecorder.h"
 #include "Prism/Render/RenderCommandList.h"
 #include "Prism/Utilities/PreservingObjectContainer.h"

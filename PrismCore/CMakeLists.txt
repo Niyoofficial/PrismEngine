@@ -52,6 +52,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE SDL3::SDL3)
 find_package(imgui CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE imgui::imgui)
 
+find_package(imguizmo CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE imguizmo::imguizmo)
+
 find_package(assimp CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE assimp::assimp)
 
@@ -84,6 +87,3 @@ target_link_libraries(${PROJECT_NAME} PRIVATE xxHash::xxhash)
 
 find_package(yaml-cpp CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE yaml-cpp::yaml-cpp)
-
-find_package(EnTT CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE EnTT::EnTT)

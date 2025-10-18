@@ -1,7 +1,6 @@
 ﻿#include "pcpch.h"
 #include "D3D12Swapchain.h"
 
-#include "Prism/Base/AppEvents.h"
 #include "Prism/Base/Platform.h"
 #include "Prism/Base/Window.h"
 #include "Prism/Render/RenderCommandQueue.h"

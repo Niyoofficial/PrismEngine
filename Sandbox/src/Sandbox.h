@@ -9,14 +9,14 @@
 #include "Prism/Render/Primitive.h"
 #include "Prism/Render/RenderConstants.h"
 #include "Prism/Utilities/MeshLoading.h"
+#include "ImGuizmo.h"
 
+using namespace Prism;
 
 namespace Prism::Render
 {
 class PBRSceneRenderPipeline;
 }
-
-using namespace Prism;
 
 struct alignas(Render::Constants::UNIFORM_BUFFER_ALIGNMENT) PerLightUniformBuffer
 {
@@ -90,6 +90,9 @@ private:
 	Render::PBRSceneRenderPipeline* m_renderPipeline;
 
 	glm::float3 m_sunRotation = {0.f, glm::radians(-7.f), glm::radians(-101.f)};
+
+	ImGuizmo::OPERATION m_gizmoOperation = ImGuizmo::UNIVERSAL;
+	ImGuizmo::MODE m_gizmoMode = ImGuizmo::LOCAL;
 
 	glm::int2 m_viewportSize;
 	bool m_viewportHovered = false;

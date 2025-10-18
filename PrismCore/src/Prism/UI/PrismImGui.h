@@ -1,5 +1,11 @@
 #pragma once
+
+#define IMGUI_USER_CONFIG "PrismImGuiConfig.h"
+
 #include "imgui.h"
+#include "ImGuizmo.h"
+
+
 
 namespace Prism::Render
 {

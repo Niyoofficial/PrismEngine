@@ -1,6 +1,4 @@
 #pragma once
-#include "Prism/Base/AppEvents.h"
-#include "Prism/Base/AppEvents.h"
 #include "Prism/Render/SceneRenderPipeline.h"
 #include "Prism/Render/Texture.h"
 #include "Prism/Render/VertexBufferCache.h"

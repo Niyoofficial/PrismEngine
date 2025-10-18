@@ -1,10 +1,6 @@
 ﻿#include "pcpch.h"
 #include "RenderContext.h"
 
-#include "Prism/Base/AppEvents.h"
-#include "Prism/Base/AppEvents.h"
-#include "Prism/Base/AppEvents.h"
-#include "Prism/Base/AppEvents.h"
 #include "Prism/Render/RenderCommands.h"
 #include "Prism/Render/RenderResourceCreation.h"
 #include "Prism/Render/RenderUtils.h"

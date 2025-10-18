@@ -154,7 +154,8 @@ void SandboxLayer::UpdateImGui(Duration delta)
 	static bool s_showStatWindow = true;
 	static bool s_showDebugMenu = true;
 	static bool s_showLogMenu = true;
-	static bool s_showSceneOutline = true;
+	static bool s_showSceneOutliner = true;
+	static bool s_showInspector = true;
 
 	// Menu bar
 	{
@@ -162,7 +163,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 		if (ImGui::BeginMenu("Show"))
 		{
-			ImGui::MenuItem("Show scene hierarchy", nullptr, &s_showSceneOutline);
+			ImGui::MenuItem("Show scene outliner", nullptr, &s_showSceneOutliner);
 			ImGui::MenuItem("Show stat window", nullptr, &s_showStatWindow);
 			ImGui::MenuItem("Show debug window", nullptr, &s_showDebugMenu);
 			ImGui::MenuItem("Show log window", nullptr, &s_showLogMenu);
@@ -208,6 +209,90 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		{
 			ImGui::Image(m_editorViewportSRV, viewportSize);
 
+			// Gizmo
+			if (Entity* selectedEntity = m_scene->GetSelectedEntity())
+			{
+				ImGuizmo::SetDrawlist();
+				ImGuizmo::SetRect((float)m_viewportPosition.x, (float)m_viewportPosition.y, (float)m_viewportSize.x, (float)m_viewportSize.y);
+
+				auto viewMatrix = m_camera->GetViewMatrix();
+				auto projMatrix = m_camera->GetProjectionMatrix();
+				if (auto comp = selectedEntity->GetComponent<TransformComponent>())
+				{
+					auto transform = comp->GetTransform();
+					if (ImGuizmo::Manipulate(glm::value_ptr(viewMatrix),
+											 glm::value_ptr(projMatrix),
+											 m_gizmoOperation, m_gizmoMode,
+											 glm::value_ptr(transform)))
+					{
+						glm::float3 translation, rotation, scale;
+						ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(transform), glm::value_ptr(translation), glm::value_ptr(rotation), glm::value_ptr(scale));
+
+						comp->SetTranslation(translation);
+						comp->SetRotation(glm::radians(rotation));
+						comp->SetScale(scale);
+					}
+				}
+			}
+
+			// Gizmo toolbar
+			{
+				ImGuiWindowFlags windowFlags =
+					ImGuiWindowFlags_NoDecoration |
+					ImGuiWindowFlags_NoDocking |
+					ImGuiWindowFlags_NoSavedSettings |
+					ImGuiWindowFlags_NoFocusOnAppearing |
+					ImGuiWindowFlags_NoNav |
+					ImGuiWindowFlags_NoMove;
+
+				ImGuiChildFlags childFlags =
+					ImGuiChildFlags_FrameStyle |
+					ImGuiChildFlags_AutoResizeX |
+					ImGuiChildFlags_AutoResizeY;
+
+				constexpr float padding = 10.0f;
+				ImGui::SetCursorPos({ImGui::GetCursorStartPos().x + padding, ImGui::GetCursorStartPos().y + padding});
+				ImGui::SetNextWindowBgAlpha(0.55f); // Transparent background
+
+				if (ImGui::BeginChild("##gizmo_toolbar", {0.f, 0.f}, childFlags, windowFlags))
+				{
+					auto drawGizmoTool =
+						[this](ImGuizmo::OPERATION operation, const char* label)
+						{
+							constexpr glm::float2 buttonSize = {30.f, 30.f};
+							glm::float2 startPos = ImGui::GetCursorScreenPos();
+							ImGui::PushID(label);
+							if (ImGui::Button("", buttonSize))
+								m_gizmoOperation = operation;
+							ImGui::PopID();
+
+							ImGui::SameLine();
+							glm::float2 nextCursorPos = ImGui::GetCursorScreenPos();
+
+							if (m_gizmoOperation == operation)
+							{
+								constexpr glm::float4 selectColor = {1.f, 0.45f, 0.f, 0.25f};
+								ImGui::GetWindowDrawList()->AddRectFilled(startPos, startPos + buttonSize, ImGui::GetColorU32(selectColor), ImGui::GetStyle().FrameRounding);
+							}
+
+							ImGui::SetCursorScreenPos({startPos.x + (buttonSize.x / 2.f) - (ImGui::CalcTextSize(label).x / 2.f), startPos.y});
+							ImGui::Text("%s", label);
+
+							return nextCursorPos;
+						};
+
+					glm::float2 nextCursorPos;
+					nextCursorPos = drawGizmoTool(ImGuizmo::UNIVERSAL, "U");
+					ImGui::SetCursorScreenPos(nextCursorPos);
+					nextCursorPos = drawGizmoTool(ImGuizmo::TRANSLATE, "T");
+					ImGui::SetCursorScreenPos(nextCursorPos);
+					nextCursorPos = drawGizmoTool(ImGuizmo::ROTATE, "R");
+					ImGui::SetCursorScreenPos(nextCursorPos);
+					nextCursorPos = drawGizmoTool(ImGuizmo::SCALE, "S");
+				}
+				ImGui::EndChild();
+			}
+
 			// Stats overlay
 			if (s_showStatWindow)
 			{
@@ -226,10 +311,10 @@ void SandboxLayer::UpdateImGui(Duration delta)
 				constexpr float padding = 10.0f;
 				constexpr float width = 250.0f;
 
-				ImGui::SetCursorPos({ImGui::GetContentRegionAvail().x - width - padding, padding});
+				ImGui::SetCursorPos({ImGui::GetContentRegionAvail().x - width - padding, ImGui::GetCursorStartPos().y + padding});
 				ImGui::SetNextWindowBgAlpha(0.55f); // Transparent background
 
-				if (ImGui::BeginChild("Stats overlay", {width, 0.f}, childFlags, windowFlags))
+				if (ImGui::BeginChild("##stats_overlay", {width, 0.f}, childFlags, windowFlags))
 				{
 					auto& io = ImGui::GetIO();
 					ImGui::Text("FPS: %.1f", io.Framerate);
@@ -435,12 +520,12 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		ImGui::End();
 	}
 
-	// Scene Hierarchy
-	if (s_showSceneOutline)
+	// Scene Outliner
+	if (s_showSceneOutliner)
 	{
-		if (ImGui::Begin("SceneOutline", &s_showSceneOutline, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+		if (ImGui::Begin("SceneOutliner", &s_showSceneOutliner, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
 		{
-			if (ImGui::BeginChild("SceneOutline_Hierarchy", {0, 0}))
+			if (ImGui::BeginChild("SceneOutliner_Hierarchy", {0, 0}))
 			{
 				if (ImGui::BeginTable("SceneHierarchy_Table", 1, ImGuiTableFlags_RowBg))
 				{
@@ -476,6 +561,15 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		}
 		ImGui::End();
 	}
+
+	/*if (s_showInspector && m_scene->GetSelectedEntity())
+	{
+		if (ImGui::Begin("SceneInspector", &s_showInspector, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+		{
+			
+		}
+		ImGui::End();
+	}*/
 }
 
 void SandboxLayer::Update(Duration delta)
@@ -639,7 +733,7 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 	auto displayInfo = Core::Platform::Get().GetDisplayInfo(Core::Platform::Get().GetPrimaryDisplayID());
 
 	Core::WindowDesc windowParams = {
-		.windowTitle = L"Test",
+		.windowTitle = L"Prism Editor",
 		.windowSize = {displayInfo.width / 1.25f, displayInfo.height / 1.25f},
 		.fullscreen = false
 	};
@@ -732,6 +826,11 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 		style.FramePadding = ImVec2(6, 4);
 		style.ItemSpacing = ImVec2(8, 6);
 		style.PopupBorderSize = 0.f;
+	}
+
+	// ImGuizmo
+	{
+		auto& colors = ImGuizmo::GetStyle().Colors;
 	}
 
 	m_sandboxLayer = new SandboxLayer(m_window);
