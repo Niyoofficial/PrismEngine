@@ -41,6 +41,7 @@ public:
 	{
 		return static_cast<T*>(m_components.at(typeid(T).hash_code()).Raw());
 	}
+	const std::unordered_map<size_t, Ref<Component>>& GetAllComponents() const { return m_components; }
 
 	void SetName(const std::wstring& name) { m_name = name; }
 	std::wstring GetName() const { return m_name; }

@@ -19,6 +19,8 @@ public:
 	MeshRendererComponent() = default;
 	MeshRendererComponent(MeshLoading::MeshAsset* mesh, MeshLoading::MeshNode meshNode);
 
+	virtual std::wstring GetComponentName() const override { return L"Mesh Renderer Component"; }
+
 	void SetPrimitive(MeshLoading::MeshAsset* mesh, MeshLoading::MeshNode meshNode);
 
 	virtual Render::EntityRenderProxy* CreateRenderProxy(glm::float4x4 transform) const;

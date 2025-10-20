@@ -37,4 +37,23 @@ glm::float4x4 TransformComponent::GetTransform() const
 		glm::toMat4(m_rotation) *
 		glm::scale(glm::float4x4(1.f), m_scale);
 }
+
+void TransformComponent::DrawImGuiInspector() const
+{
+	Component::DrawImGuiInspector();
+
+	ImGui::BeginTable("##component_table", 2, ImGuiTableFlags_SizingFixedFit | ImGuiTableFlags_BordersInnerV);
+	ImGui::TableSetupColumn("label", 0, 100.f);
+	ImGui::TableSetupColumn("value", 0, ImGui::GetContentRegionAvail().x - 100.f);
+
+	ImGui::TableNextRow();
+
+	ImGui::TableSetColumnIndex(0);
+	ImGui::Text("Translation");
+	ImGui::TableSetColumnIndex(1);
+	glm::float3 test = {};
+	ImGui::DragFloat3("test", glm::value_ptr(test));
+
+	ImGui::EndTable();
+}
 }

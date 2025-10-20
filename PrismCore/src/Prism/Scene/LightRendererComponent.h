@@ -6,6 +6,8 @@ namespace Prism
 class LightRendererComponent : public Component
 {
 public:
+	virtual std::wstring GetComponentName() const override { return L"Light Renderer Component"; }
+
 	void SetColor(glm::float3 color);
 	void SetIntensity(float intensity);
 
