@@ -36,8 +36,7 @@ public:
 
 	const std::wstring& GetSceneName() const { return m_sceneName; }
 
-	int64_t GetEntityCount() const;
-	Entity* GetEntityByIndex(int64_t index) const;
+	const std::vector<Ref<Entity>>& GetAllEntities() const;
 
 	Render::SceneRenderPipeline* GetCurrentRenderPipeline() const { return m_renderPipeline; }
 
@@ -52,6 +51,8 @@ public:
 
 private:
 	explicit Scene(const std::wstring& name);
+
+	void PrepareRenderProxiesForEntity(Entity* entity, glm::float4x4 parentTransform);
 
 private:
 	std::wstring m_sceneName;

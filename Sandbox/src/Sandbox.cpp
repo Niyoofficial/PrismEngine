@@ -529,29 +529,44 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			{
 				if (ImGui::BeginTable("SceneHierarchy_Table", 1, ImGuiTableFlags_RowBg))
 				{
-					for (int32_t i = 0; i < m_scene->GetEntityCount(); ++i)
+					for (auto& entity : m_scene->GetAllEntities())
 					{
-						ImGui::TableNextRow();
-						ImGui::TableNextColumn();
-						ImGuiTreeNodeFlags treeFlags =
-							ImGuiTreeNodeFlags_OpenOnArrow |
-							ImGuiTreeNodeFlags_OpenOnDoubleClick |
-							ImGuiTreeNodeFlags_NavLeftJumpsBackHere |
-							ImGuiTreeNodeFlags_SpanFullWidth |
-							ImGuiTreeNodeFlags_Leaf;
-
-						Entity* currEntity = m_scene->GetEntityByIndex(i);
-
-						if (currEntity == m_scene->GetSelectedEntity())
-							treeFlags |= ImGuiTreeNodeFlags_Selected;
-
-						std::wstring entityName = currEntity->GetName();
-						if (ImGui::TreeNodeEx(std::to_string(i).c_str(), treeFlags, "%s", entityName.empty() ? "<unnamed>" : WStringToString(entityName).c_str()))
+						if (entity->IsRootEntity())
 						{
-							if (ImGui::IsItemFocused())
-								m_scene->SetSelectedEntity(currEntity);
+							std::function<void(Entity*)> drawEntityNode =
+								[this, &drawEntityNode](Entity* entity)
+								{
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGuiTreeNodeFlags treeFlags =
+										ImGuiTreeNodeFlags_OpenOnArrow |
+										ImGuiTreeNodeFlags_OpenOnDoubleClick |
+										ImGuiTreeNodeFlags_NavLeftJumpsBackHere |
+										ImGuiTreeNodeFlags_SpanFullWidth;
 
-							ImGui::TreePop();
+									if (entity->GetChildren().empty())
+										treeFlags |= ImGuiTreeNodeFlags_Leaf;
+									if (entity == m_scene->GetSelectedEntity())
+										treeFlags |= ImGuiTreeNodeFlags_Selected;
+
+									ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.f, 0.f});
+
+									std::string entityName = WStringToString(entity->GetName());
+									if (ImGui::TreeNodeEx(entityName.c_str(), treeFlags, "%s", entityName.empty() ? "<unnamed>" : entityName.c_str()))
+									{
+										if (ImGui::IsItemFocused())
+											m_scene->SetSelectedEntity(entity);
+
+										for (auto& child : entity->GetChildren())
+											drawEntityNode(child.Raw());
+
+										ImGui::TreePop();
+									}
+
+									ImGui::PopStyleVar();
+								};
+
+							drawEntityNode(entity);
 						}
 					}
 				}

@@ -1,6 +1,7 @@
 #pragma once
 #include "EntityRenderProxy.h"
 #include "Prism/Render/Camera.h"
+#include "Prism/Render/TextureView.h"
 
 namespace Prism {
 class Entity;

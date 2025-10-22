@@ -1,23 +1,12 @@
 #include "Scene.h"
 
 #include "Prism/Render/Camera.h"
-#include "Prism/Render/RenderContext.h"
 #include "Prism/Scene/Entity.h"
 #include "Prism/Scene/LightRendererComponent.h"
 #include "Prism/Scene/MeshRendererComponent.h"
 
 namespace Prism
 {
-int64_t Scene::GetEntityCount() const
-{
-	return (int64_t)m_entities.size();
-}
-
-Entity* Scene::GetEntityByIndex(int64_t index) const
-{
-	return m_entities.at(index);
-}
-
 void Scene::SetSelectedEntity(Entity* entity)
 {
 	if (entity)
@@ -33,25 +22,8 @@ void Scene::Update(Duration delta)
 
 	for (auto& entity : m_entities)
 	{
-		glm::float4x4 transfrom(1.f);
-		if (auto* comp = entity->GetComponent<TransformComponent>())
-			transfrom = comp->GetTransform();
-
-		if (auto* comp = entity->GetComponent<MeshRendererComponent>())
-		{
-			if (Ref proxy = comp->CreateRenderProxy(transfrom))
-			{
-				m_renderProxies.try_emplace(proxy, entity.Raw());
-				m_sceneBounds += proxy->GetBounds();
-
-				if (m_selectedEntity == entity)
-					m_selectedProxy = proxy;
-			}
-		}
-		if (auto* comp = entity->GetComponent<LightRendererComponent>())
-		{
-			m_dirLights.emplace_back(glm::rotate(glm::quat(transfrom), glm::float3{1.f, 0.f, 0.f}), comp->GetColor() * comp->GetIntensity());
-		}
+		if (entity->IsRootEntity())
+			PrepareRenderProxiesForEntity(entity, {1.f});
 	}
 }
 
@@ -96,6 +68,32 @@ Scene::Scene(const std::wstring& name)
 {
 }
 
+void Scene::PrepareRenderProxiesForEntity(Entity* entity, glm::float4x4 parentTransform)
+{
+	glm::float4x4 transfrom = parentTransform;
+	if (auto* comp = entity->GetComponent<TransformComponent>())
+		transfrom *= comp->GetTransform();
+
+	if (auto* comp = entity->GetComponent<MeshRendererComponent>())
+	{
+		if (Ref proxy = comp->CreateRenderProxy(transfrom))
+		{
+			m_renderProxies.try_emplace(proxy, entity);
+			m_sceneBounds += proxy->GetBounds();
+
+			if (m_selectedEntity == entity)
+				m_selectedProxy = proxy;
+		}
+	}
+	if (auto* comp = entity->GetComponent<LightRendererComponent>())
+	{
+		m_dirLights.emplace_back(glm::rotate(glm::quat(transfrom), glm::float3{ 1.f, 0.f, 0.f }), comp->GetColor() * comp->GetIntensity());
+	}
+
+	for (auto& child : entity->GetChildren())
+		PrepareRenderProxiesForEntity(child.Raw(), transfrom);
+}
+
 Scene* Scene::Create(std::wstring name)
 {
 	return new Scene(name);
@@ -115,10 +113,13 @@ Entity* Scene::CreateEntityHierarchyForMeshAsset(MeshLoading::MeshAsset* asset)
 	PE_ASSERT(asset);
 
 	Entity* root = nullptr;
-	std::function<void(MeshLoading::MeshNode)> processNode =
-		[this, &processNode, asset, &root](MeshLoading::MeshNode node)
+	std::function<void(MeshLoading::MeshNode, Entity*)> processNode =
+		[this, &processNode, asset, &root](MeshLoading::MeshNode node, Entity* parent)
 		{
 			Entity* entity = AddEntity(asset->GetNodeName(node));
+			if (parent)
+				entity->SetParent(parent);
+
 			if (!root)
 				root = entity;
 
@@ -135,11 +136,11 @@ Entity* Scene::CreateEntityHierarchyForMeshAsset(MeshLoading::MeshAsset* asset)
 				if (asset->DoesNodeContainVertices(node))
 					entity->AddComponent<MeshRendererComponent>(asset, node);
 				for (int32_t i = 0; i < asset->GetNodeChildrenCount(node); ++i)
-					processNode(asset->GetNodeChild(node, i));
+					processNode(asset->GetNodeChild(node, i), entity);
 			}
 		};
 
-	processNode(asset->GetRootNode());
+	processNode(asset->GetRootNode(), nullptr);
 
 	return root;
 }
@@ -149,5 +150,10 @@ void Scene::SetRenderPipeline(Render::SceneRenderPipeline* renderPipeline)
 	// TODO: Add a safe way to call this during rendering, some kind of separate
 	// variable for next pipeline that will actually be changed after frame is finished
 	m_renderPipeline = renderPipeline;
+}
+
+const std::vector<Ref<Entity>>& Scene::GetAllEntities() const
+{
+	return m_entities;
 }
 }

@@ -7,6 +7,34 @@ Entity::Entity(const std::wstring& name)
 {
 }
 
+void Entity::SetParent(Entity* parent)
+{
+	if (m_parent.IsValid())
+		std::erase(m_parent->m_children, WeakRef(this));
+
+	m_parent = parent;
+
+	if (parent)
+		parent->m_children.emplace_back(this);
+}
+
+Entity* Entity::GetParent() const
+{
+	if (m_parent.IsValid())
+		return m_parent.Raw();
+	return nullptr;
+}
+
+const std::vector<WeakRef<Entity>>& Entity::GetChildren() const
+{
+	return m_children;
+}
+
+bool Entity::IsRootEntity() const
+{
+	return GetParent() == nullptr;
+}
+
 void Entity::AddComponent(Component* component)
 {
 	PE_ASSERT(component);

@@ -12,6 +12,11 @@ class Entity : public RefCounted
 public:
 	explicit Entity(const std::wstring& name = L"");
 
+	void SetParent(Entity* parent);
+	Entity* GetParent() const;
+	const std::vector<WeakRef<Entity>>& GetChildren() const;
+	bool IsRootEntity() const;
+
 	void AddComponent(Component* component);
 
 	template<typename T, typename... Args> requires std::is_base_of_v<Component, T>
@@ -47,7 +52,7 @@ public:
 	std::wstring GetName() const { return m_name; }
 
 protected:
-	// Used by the Scene class to initialize the parent
+	// Used by the Scene class to initialize the parent scene
 	void InitializeOwnership(Scene* scene);
 
 protected:
@@ -56,5 +61,8 @@ protected:
 
 	// TODO: Replace ref with unique_ptr equivalent
 	std::unordered_map<size_t, Ref<Component>> m_components;
+
+	WeakRef<Entity> m_parent;
+	std::vector<WeakRef<Entity>> m_children;
 };
 }
