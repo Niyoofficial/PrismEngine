@@ -14,6 +14,8 @@ public:
 	glm::float3 GetColor() const { return m_color; }
 	float GetIntensity() const { return m_intensity; }
 
+	virtual void DrawImGuiInspector() override;
+
 private:
 	glm::float3 m_color = {1.f, 1.f, 1.f};
 	float m_intensity = 1.f;

@@ -21,7 +21,7 @@ ID3D12PipelineState* D3D12PipelineStateCache::GetOrCreatePipelineState(const Gra
 		&d3d12PipelineStateDesc.psoDesc, IID_PPV_ARGS(&pipelineState)));
 	PE_ASSERT_HR(pipelineState->SetName(L"Graphics PSO"));
 
-	PE_D3D12_LOG(Trace, "Created new graphics PSO hash: {}\n\tvs: {} entry name: {}\n\tps: {} entry name {}",
+	PE_D3D12_LOG(Trace, "Created new graphics PSO hash: {}\n\tvs: {} entry name: {}\n\tps: {} entry name: {}",
 		hash, desc.vs.filepath, desc.vs.entryName, desc.ps.filepath, desc.ps.entryName);
 
 	m_graphicsPipelineStates[hash] = pipelineState;

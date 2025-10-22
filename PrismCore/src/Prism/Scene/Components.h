@@ -15,7 +15,7 @@ public:
 
 	Entity* GetParent() const { return m_parent; }
 
-	virtual void DrawImGuiInspector() const {}
+	virtual void DrawImGuiInspector() {}
 
 protected:
 	// Used by the Entity class to initialize the parent
@@ -40,11 +40,13 @@ public:
 	glm::quat GetRotation() const { return m_rotation; }
 	glm::float3 GetScale() const { return m_scale; }
 
-	virtual void DrawImGuiInspector() const override;
+	virtual void DrawImGuiInspector() override;
 
 private:
 	glm::float3 m_translation = {0.f, 0.f, 0.f};
 	glm::quat m_rotation = {};
+	// Euler rotation kept for displaying information in editor
+	glm::float3 m_eulerRotation = {};
 	glm::float3 m_scale = {1.f, 1.f, 1.f};
 };
 }

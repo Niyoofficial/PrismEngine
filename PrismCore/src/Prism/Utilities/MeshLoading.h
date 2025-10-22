@@ -69,7 +69,10 @@ class MeshAsset : public RefCounted
 public:
 	explicit MeshAsset(const std::wstring& filePath);
 
+	std::wstring GetLoadedFilepath() const;
+
 	MeshNode GetRootNode() const;
+	int32_t GetTotalNodeCount() const;
 
 	int32_t GetNodeChildrenCount(MeshNode node) const;
 	MeshNode GetNodeChild(MeshNode node, int32_t index) const;
@@ -96,6 +99,8 @@ public:
 	MeshNodeIterator end() const;
 
 private:
+	std::wstring m_filePath;
+
 	Assimp::Importer m_importer;
 
 	struct NodeInfo

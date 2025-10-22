@@ -124,11 +124,14 @@ Entity* Scene::CreateEntityHierarchyForMeshAsset(MeshLoading::MeshAsset* asset)
 
 			if (asset->GetNodeChildrenCount(node) == 1)
 			{
-				entity->AddComponent<MeshRendererComponent>(asset, asset->GetNodeChild(node, 0));
+				auto nodeToRender = asset->GetNodeChild(node, 0);
+				if (asset->DoesNodeContainVertices(nodeToRender))
+					entity->AddComponent<MeshRendererComponent>(asset, nodeToRender);
 			}
 			else
 			{
-				entity->AddComponent<MeshRendererComponent>(asset, node);
+				if (asset->DoesNodeContainVertices(node))
+					entity->AddComponent<MeshRendererComponent>(asset, node);
 				for (int32_t i = 0; i < asset->GetNodeChildrenCount(node); ++i)
 					processNode(asset->GetNodeChild(node, i));
 			}

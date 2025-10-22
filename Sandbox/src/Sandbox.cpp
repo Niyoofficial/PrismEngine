@@ -568,29 +568,21 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		{
 			if (auto* selectedEntity = m_scene->GetSelectedEntity())
 			{
+				ImGui::BeginChild("##scene_inspector");
+
 				std::string entityName = WStringToString(selectedEntity->GetName());
 				if (ImGui::InputText("##tag", &entityName))
 					selectedEntity->SetName(StringToWString(entityName));
-
-				ImGuiTreeNodeFlags treeFlags =
-					ImGuiTreeNodeFlags_OpenOnArrow |
-					ImGuiTreeNodeFlags_OpenOnDoubleClick |
-					ImGuiTreeNodeFlags_NavLeftJumpsBackHere |
-					ImGuiTreeNodeFlags_SpanFullWidth;
 
 				for (auto& [typeId, component] : selectedEntity->GetAllComponents())
 				{
 					PE_ASSERT(component);
 
-					
-					if (ImGui::CollapsingHeader(WStringToString(component->GetComponentName()).c_str()))
-					{
+					if (ImGui::CollapsingHeader(WStringToString(component->GetComponentName()).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
 						component->DrawImGuiInspector();
-					}
 				}
-			}
-			else
-			{
+
+				ImGui::EndChild();
 			}
 		}
 		ImGui::End();

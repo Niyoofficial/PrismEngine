@@ -25,6 +25,8 @@ public:
 
 	virtual Render::EntityRenderProxy* CreateRenderProxy(glm::float4x4 transform) const;
 
+	virtual void DrawImGuiInspector() override;
+
 private:
 	Ref<MeshLoading::MeshAsset> m_meshAsset;
 	MeshLoading::MeshNode m_meshNode = -1;

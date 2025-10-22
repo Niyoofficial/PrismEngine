@@ -422,6 +422,7 @@ static std::unordered_map<TextureType, Ref<Render::Texture>> LoadTexturesForMesh
 }
 
 MeshAsset::MeshAsset(const std::wstring& filePath)
+	: m_filePath(filePath)
 {
 	const aiScene* scene = m_importer.ReadFile(WStringToString(filePath).c_str(),
 											   aiProcess_Triangulate |
@@ -474,9 +475,19 @@ MeshAsset::MeshAsset(const std::wstring& filePath)
 	}
 }
 
+std::wstring MeshAsset::GetLoadedFilepath() const
+{
+	return m_filePath;
+}
+
 MeshNode MeshAsset::GetRootNode() const
 {
 	return 0;
+}
+
+int32_t MeshAsset::GetTotalNodeCount() const
+{
+	return m_nodes.size();
 }
 
 int32_t MeshAsset::GetNodeChildrenCount(MeshNode node) const
