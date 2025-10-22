@@ -49,7 +49,9 @@ void Scene::Update(Duration delta)
 			}
 		}
 		if (auto* comp = entity->GetComponent<LightRendererComponent>())
+		{
 			m_dirLights.emplace_back(glm::rotate(glm::quat(transfrom), glm::float3{1.f, 0.f, 0.f}), comp->GetColor() * comp->GetIntensity());
+		}
 	}
 }
 

@@ -222,8 +222,10 @@ void PBRSceneRenderPipeline::RenderHitProxies(RenderContext* renderContext, cons
 	renderContext->SetViewport({{0.f, 0.f}, {renderTargetDesc.GetWidth(), renderTargetDesc.GetHeight()}, {0.f, 1.f}});
 	renderContext->SetScissor({{0.f, 0.f}, {renderTargetDesc.GetWidth(), renderTargetDesc.GetHeight()}});
 
-	renderContext->SetRenderTarget(renderInfo.renderTargetView, depthView);
 	renderContext->ClearDepthStencilView(depthView, ClearFlags::ClearDepth);
+	renderContext->ClearRenderTargetView(renderInfo.renderTargetView);
+
+	renderContext->SetRenderTarget(renderInfo.renderTargetView, depthView);
 
 	renderContext->SetPSO(GraphicsPipelineStateDesc{
 		.vs = {

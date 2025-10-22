@@ -655,11 +655,11 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 												  .width = m_viewportSize.x,
 												  .height = m_viewportSize.y,
 												  .dimension = ResourceDimension::Tex2D,
-												  .format = TextureFormat::R32_UInt,
+												  .format = TextureFormat::R32_SInt,
 												  .bindFlags = Flags(BindFlags::RenderTarget) | Flags(BindFlags::ShaderResource),
 												  .optimizedClearValue = RenderTargetClearValue{
-													  .format = TextureFormat::R32_UInt,
-													  .color = {0.f, 0.f, 0.f, 0.f}
+													  .format = TextureFormat::R32_SInt,
+													  .color = {-1.f, 0.f, 0.f, 0.f}
 												  }
 											  }, BarrierLayout::RenderTarget);
 
@@ -701,7 +701,7 @@ void SandboxLayer::SelectEntityUnderCursor()
 	});
 	Ref<Buffer> hitProxyOutput = Buffer::Create({
 		.bufferName = L"HitProxyOutputBuffer",
-		.size = sizeof(uint32_t),
+		.size = sizeof(int32_t),
 		.bindFlags = BindFlags::UnorderedAccess,
 		.usage = ResourceUsage::Staging,
 		.cpuAccess = CPUAccess::Read
@@ -720,15 +720,18 @@ void SandboxLayer::SelectEntityUnderCursor()
 
 	renderContext->SetBuffer(hitProxyReadSettings->CreateDefaultUniformBufferView(), L"g_hitProxyReadSettingsBuffer");
 	renderContext->SetTexture(m_hitProxiesTexture->CreateDefaultSRV(), L"g_hitProxiesTexture");
-	renderContext->SetBuffer(hitProxyOutput->CreateDefaultUAV(sizeof(uint32_t)), L"g_hitProxyOutputBuffer");
+	renderContext->SetBuffer(hitProxyOutput->CreateDefaultUAV(sizeof(int32_t)), L"g_hitProxyOutputBuffer");
 	renderContext->Dispatch({1, 1, 1});
 	renderContext->AddGPUCompletionCallback(
 		[hitProxyOutput, entities, this]()
 		{
 			void* data = hitProxyOutput->Map(CPUAccess::Read);
 
-			uint32_t ID = *(uint32_t*)data;
-			m_scene->SetSelectedEntity(entities.at(ID));
+			auto ID = *(int32_t*)data;
+			if (ID >= 0)
+				m_scene->SetSelectedEntity(entities.at(ID));
+			else
+				m_scene->SetSelectedEntity(nullptr);
 
 			hitProxyOutput->Unmap();
 		});
@@ -847,7 +850,7 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 
 	// ImGuizmo
 	{
-		auto& colors = ImGuizmo::GetStyle().Colors;
+		ImGuizmo::AllowAxisFlip(false);
 	}
 
 	m_sandboxLayer = new SandboxLayer(m_window);

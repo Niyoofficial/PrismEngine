@@ -55,7 +55,7 @@ PixelInput vsmain(VertexInput vin)
 	return vout;
 }
 
-uint psmain(PixelInput pin) : SV_TARGET
+int psmain(PixelInput pin) : SV_TARGET
 {
 	return pin.hitProxyID;
 }
@@ -63,10 +63,10 @@ uint psmain(PixelInput pin) : SV_TARGET
 [numthreads(1, 1, 1)]
 void CsReadPixel()
 {
-	Texture2D<uint> hitProxiesTexture = ResourceDescriptorHeap[g_hitProxiesTexture];
-	RWStructuredBuffer<uint> hitProxyOutput = ResourceDescriptorHeap[g_hitProxyOutputBuffer];
+	Texture2D<int> hitProxiesTexture = ResourceDescriptorHeap[g_hitProxiesTexture];
+	RWStructuredBuffer<int> hitProxyOutput = ResourceDescriptorHeap[g_hitProxyOutputBuffer];
 	ConstantBuffer<ReadSettingsBuffer> readSettings = ResourceDescriptorHeap[g_hitProxyReadSettingsBuffer];
 
-	uint ID = hitProxiesTexture.Load(int3(readSettings.relMousePos, 0));
+	int ID = hitProxiesTexture.Load(int3(readSettings.relMousePos, 0));
 	hitProxyOutput[0] = ID;
 }
