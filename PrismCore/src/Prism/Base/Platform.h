@@ -26,6 +26,22 @@ struct DisplayInfo
 	int32_t refreshRateDenominator; /**< precise refresh rate denominator */
 };
 
+/*
+ * An entry for filters for file dialogs.
+ *
+ * `name` is a user-readable label for the filter (for example, "Office Document", "3D Mesh").
+ *
+ * `pattern` is a semicolon-separated list of file extensions (for example,
+ * "doc;docx"). File extensions may only contain alphanumeric characters,
+ * hyphens, underscores and periods. Alternatively, the whole string can be a
+ * single asterisk ("*"), which serves as an "All files" filter.
+ */
+struct DialogFileFilter
+{
+	const char* name = nullptr;
+	const char* pattern = nullptr;
+};
+
 class Platform : public StaticPointerSingleton<Platform>
 {
 public:
@@ -54,6 +70,11 @@ public:
 
 	virtual DisplayInfo GetDisplayInfo(uint32_t displayID) = 0;
 	virtual uint32_t GetPrimaryDisplayID() = 0;
+
+	virtual void OpenFileDialog(const std::function<void(std::vector<std::string>, int32_t)>& callback,
+								Window* window = nullptr, const std::vector<DialogFileFilter>& filters = {},
+								const std::string& defaultLocation = {}, bool allowMany = false) = 0;
+
 
 	virtual void InitializeImGuiPlatform(Window* window) = 0;
 	virtual void ShutdownImGuiPlatform() = 0;

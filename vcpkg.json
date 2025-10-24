@@ -25,8 +25,7 @@
 		"imguizmo",
 		"winpixevent",
 		"xxhash",
-		"yaml-cpp",
-		"entt"
+		"yaml-cpp"
 	],
 	"overrides": [
 		{

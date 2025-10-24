@@ -13,6 +13,7 @@
 #include "Prism/Render/PBR/PBRSceneRenderPipeline.h"
 #include "Prism/Scene/Entity.h"
 #include "Prism/Scene/LightRendererComponent.h"
+#include <filesystem>
 
 IMPLEMENT_APPLICATION(SandboxApplication);
 
@@ -523,57 +524,83 @@ void SandboxLayer::UpdateImGui(Duration delta)
 	// Scene Outliner
 	if (s_showSceneOutliner)
 	{
-		if (ImGui::Begin("SceneOutliner", &s_showSceneOutliner, ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse))
+		if (ImGui::Begin("SceneOutliner", &s_showSceneOutliner))
 		{
-			if (ImGui::BeginChild("SceneOutliner_Hierarchy", {0, 0}))
+			if (ImGui::BeginTable("SceneHierarchy_Table", 1, ImGuiTableFlags_RowBg))
 			{
-				if (ImGui::BeginTable("SceneHierarchy_Table", 1, ImGuiTableFlags_RowBg))
+				for (auto& entity : m_scene->GetAllEntities())
 				{
-					for (auto& entity : m_scene->GetAllEntities())
+					if (entity->IsRootEntity())
 					{
-						if (entity->IsRootEntity())
-						{
-							std::function<void(Entity*)> drawEntityNode =
-								[this, &drawEntityNode](Entity* entity)
+						std::function<void(Entity*)> drawEntityNode =
+							[this, &drawEntityNode](Entity* entity)
+							{
+								ImGui::TableNextRow();
+								ImGui::TableNextColumn();
+								ImGuiTreeNodeFlags treeFlags =
+									ImGuiTreeNodeFlags_OpenOnArrow |
+									ImGuiTreeNodeFlags_OpenOnDoubleClick |
+									ImGuiTreeNodeFlags_NavLeftJumpsBackHere |
+									ImGuiTreeNodeFlags_SpanFullWidth;
+
+								if (entity->GetChildren().empty())
+									treeFlags |= ImGuiTreeNodeFlags_Leaf;
+								if (entity == m_scene->GetSelectedEntity())
+									treeFlags |= ImGuiTreeNodeFlags_Selected;
+
+								ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.f, 0.f});
+
+								std::string entityName = WStringToString(entity->GetName());
+								if (ImGui::TreeNodeEx(entityName.c_str(), treeFlags, "%s", entityName.empty() ? "<unnamed>" : entityName.c_str()))
 								{
-									ImGui::TableNextRow();
-									ImGui::TableNextColumn();
-									ImGuiTreeNodeFlags treeFlags =
-										ImGuiTreeNodeFlags_OpenOnArrow |
-										ImGuiTreeNodeFlags_OpenOnDoubleClick |
-										ImGuiTreeNodeFlags_NavLeftJumpsBackHere |
-										ImGuiTreeNodeFlags_SpanFullWidth;
+									if (ImGui::IsItemFocused())
+										m_scene->SetSelectedEntity(entity);
 
-									if (entity->GetChildren().empty())
-										treeFlags |= ImGuiTreeNodeFlags_Leaf;
-									if (entity == m_scene->GetSelectedEntity())
-										treeFlags |= ImGuiTreeNodeFlags_Selected;
+									for (auto& child : entity->GetChildren())
+										drawEntityNode(child.Raw());
 
-									ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.f, 0.f});
+									ImGui::TreePop();
+								}
 
-									std::string entityName = WStringToString(entity->GetName());
-									if (ImGui::TreeNodeEx(entityName.c_str(), treeFlags, "%s", entityName.empty() ? "<unnamed>" : entityName.c_str()))
-									{
-										if (ImGui::IsItemFocused())
-											m_scene->SetSelectedEntity(entity);
+								ImGui::PopStyleVar();
+							};
 
-										for (auto& child : entity->GetChildren())
-											drawEntityNode(child.Raw());
-
-										ImGui::TreePop();
-									}
-
-									ImGui::PopStyleVar();
-								};
-
-							drawEntityNode(entity);
-						}
+						drawEntityNode(entity);
 					}
 				}
+
 				ImGui::EndTable();
 			}
-			ImGui::EndChild();
+
+			if (ImGui::BeginPopupContextWindow(nullptr, ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
+			{
+				if (ImGui::BeginMenu("Add"))
+				{
+					if (ImGui::MenuItem("Mesh"))
+					{
+						auto callback =
+							[this](std::vector<std::string> fileList, int32_t filter)
+							{
+								for (const auto& file : fileList)
+								{
+									m_meshes.push_back(new MeshLoading::MeshAsset(StringToWString(file)));
+									m_scene->CreateEntityHierarchyForMeshAsset(m_meshes.back());
+								}
+							};
+						Core::DialogFileFilter filter = {
+							.name = "3D Mesh (.gltf;.glb;.fbx;.obj)",
+							.pattern = "gltf;glb;fbx;obj"
+						};
+						Core::Platform::Get().OpenFileDialog(callback, nullptr, {filter}, std::fs::current_path().generic_string());
+					}
+
+					ImGui::EndMenu();
+				}
+
+				ImGui::EndPopup();
+			}
 		}
+
 		ImGui::End();
 	}
 

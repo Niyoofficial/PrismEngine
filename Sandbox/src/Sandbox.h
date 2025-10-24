@@ -110,6 +110,8 @@ private:
 	Ref<Render::PrimitiveBatch> m_cube;
 	Ref<Render::PrimitiveBatch> m_sphere;
 
+	std::vector<Ref<MeshLoading::MeshAsset>> m_meshes;
+
 	float m_cameraSpeed = 5.f;
 	float m_mouseSpeed = 0.003f;
 

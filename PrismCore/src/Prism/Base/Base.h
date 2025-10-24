@@ -6,6 +6,7 @@
 #include "Prism/Utilities/StringUtils.h"
 #include "Prism/Utilities/MathUtils.h"
 #include "Prism/Utilities/PreprocessorUtils.h"
+#include "Prism/Utilities/ScopeExit.h"
 #include "Prism/Utilities/Flags.h"
 #include "Prism/Base/CommonTypes.h"
 

@@ -70,13 +70,13 @@ Scene::Scene(const std::wstring& name)
 
 void Scene::PrepareRenderProxiesForEntity(Entity* entity, glm::float4x4 parentTransform)
 {
-	glm::float4x4 transfrom = parentTransform;
+	glm::float4x4 transform = parentTransform;
 	if (auto* comp = entity->GetComponent<TransformComponent>())
-		transfrom *= comp->GetTransform();
+		transform *= comp->GetTransform();
 
 	if (auto* comp = entity->GetComponent<MeshRendererComponent>())
 	{
-		if (Ref proxy = comp->CreateRenderProxy(transfrom))
+		if (Ref proxy = comp->CreateRenderProxy(transform))
 		{
 			m_renderProxies.try_emplace(proxy, entity);
 			m_sceneBounds += proxy->GetBounds();
@@ -87,11 +87,11 @@ void Scene::PrepareRenderProxiesForEntity(Entity* entity, glm::float4x4 parentTr
 	}
 	if (auto* comp = entity->GetComponent<LightRendererComponent>())
 	{
-		m_dirLights.emplace_back(glm::rotate(glm::quat(transfrom), glm::float3{ 1.f, 0.f, 0.f }), comp->GetColor() * comp->GetIntensity());
+		m_dirLights.emplace_back(glm::rotate(glm::quat(transform), glm::float3{ 1.f, 0.f, 0.f }), comp->GetColor() * comp->GetIntensity());
 	}
 
 	for (auto& child : entity->GetChildren())
-		PrepareRenderProxiesForEntity(child.Raw(), transfrom);
+		PrepareRenderProxiesForEntity(child.Raw(), transform);
 }
 
 Scene* Scene::Create(std::wstring name)
