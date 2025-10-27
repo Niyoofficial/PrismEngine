@@ -550,12 +550,21 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 								ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.f, 0.f});
 
-								std::string entityName = WStringToString(entity->GetName());
-								if (ImGui::TreeNodeEx(entityName.c_str(), treeFlags, "%s", entityName.empty() ? "<unnamed>" : entityName.c_str()))
+								std::wstring entityID = entity->GetName();
+								auto parent = entity->GetParent();
+								while (parent)
 								{
-									if (ImGui::IsItemFocused())
-										m_scene->SetSelectedEntity(entity);
+									entityID += L"_" + entity->GetParent()->GetName();
+									parent = parent->GetParent();
+								}
 
+								bool open = ImGui::TreeNodeEx(WStringToString(entityID).c_str(), treeFlags, "%s", entityID.empty() ? "<unnamed>" : WStringToString(entity->GetName()).c_str());
+
+								if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsItemFocused())
+									m_scene->SetSelectedEntity(entity);
+
+								if (open)
+								{
 									for (auto& child : entity->GetChildren())
 										drawEntityNode(child.Raw());
 
@@ -571,6 +580,9 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 				ImGui::EndTable();
 			}
+
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
+				m_scene->SetSelectedEntity(nullptr);
 
 			if (ImGui::BeginPopupContextWindow(nullptr, ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
 			{
