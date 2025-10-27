@@ -1,5 +1,7 @@
 #include "PBRSceneRenderPipeline.h"
 
+#include "Prism/Base/AppEvents.h"
+#include "Prism/Base/AppEvents.h"
 #include "Prism/Render/RenderCommandQueue.h"
 #include "Prism/Render/RenderDevice.h"
 #include "Prism/Render/RenderUtils.h"
@@ -185,9 +187,10 @@ PBRSceneRenderPipeline::PBRSceneRenderPipeline()
 
 void PBRSceneRenderPipeline::Render(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
-	renderContext->BeginEvent(L"PBRSceneRenderPipeline_Render");
+	SCOPED_RENDER_EVENT(renderContext, L"PBRSceneRenderPipeline_Render");
 
-	CheckForScreenResize(renderInfo.renderTargetView->GetTexture()->GetTextureDesc().GetSize());
+	if (!CheckForScreenResize(renderInfo.renderTargetView->GetTexture()->GetTextureDesc().GetSize()))
+		return;
 
 	RenderShadowPass(renderContext, renderInfo);
 	RenderBasePass(renderContext, renderInfo);
@@ -197,8 +200,6 @@ void PBRSceneRenderPipeline::Render(RenderContext* renderContext, const RenderSc
 	// or maybe inherit this pipeline and implement EditorPBRPipeline?
 	RenderSelectionOutlinePass(renderContext, renderInfo);
 	RenderFinalCompositionPass(renderContext, renderInfo);
-
-	renderContext->EndEvent();
 }
 
 void PBRSceneRenderPipeline::RenderHitProxies(RenderContext* renderContext, const RenderHitProxiesInfo& renderInfo)
@@ -346,13 +347,19 @@ void PBRSceneRenderPipeline::CreateInitialResources()
 	});
 }
 
-void PBRSceneRenderPipeline::CheckForScreenResize(glm::int2 newScreenSize)
+bool PBRSceneRenderPipeline::CheckForScreenResize(glm::int2 newScreenSize)
 {
+	if (newScreenSize.x < 64 || newScreenSize.y < 64)
+		return false;
+
 	auto gbufferSize = m_gbuffer.GetTexture(GBuffer::Type::Color)
 						   ? m_gbuffer.GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetSize()
 						   : glm::int2{0, 0};
+
 	if (gbufferSize != newScreenSize)
 		CreateScreenSizeDependentResources(newScreenSize);
+
+	return true;
 }
 
 void PBRSceneRenderPipeline::CreateScreenSizeDependentResources(glm::int2 newScreenSize)
@@ -939,12 +946,20 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 
 		if (auto albedo = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Albedo))
 			renderContext->SetTexture(albedo->CreateDefaultSRV(), L"g_albedoTexture");
+		else
+			renderContext->SetTexture(nullptr, L"g_albedoTexture");
 		if (auto metallic = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Metallic))
 			renderContext->SetTexture(metallic->CreateDefaultSRV(), L"g_metallicTexture");
+		else
+			renderContext->SetTexture(nullptr, L"g_metallicTexture");
 		if (auto roughness = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Roughness))
 			renderContext->SetTexture(roughness->CreateDefaultSRV(), L"g_roughnessTexture");
+		else
+			renderContext->SetTexture(nullptr, L"g_roughnessTexture");
 		if (auto normal = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Normals))
 			renderContext->SetTexture(normal->CreateDefaultSRV(), L"g_normalTexture");
+		else
+			renderContext->SetTexture(nullptr, L"g_normalTexture");
 
 		auto nodeInfo = RenderDevice::Get().GetVertexBufferCache().GetNodeIndexInfo(proxy->GetMeshAsset(), proxy->GetMeshNode());
 		renderContext->DrawIndexed({

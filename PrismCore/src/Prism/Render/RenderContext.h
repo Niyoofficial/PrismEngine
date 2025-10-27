@@ -92,4 +92,31 @@ private:
 
 	std::vector<std::function<void()>> m_gpuCompletionCallbacks;
 };
+
+namespace Private
+{
+	struct ScopedRenderEvent
+	{
+		ScopedRenderEvent(RenderContext* context, std::wstring string, glm::float3 color = {})
+			: m_context(context)
+		{
+			PE_ASSERT(context);
+			m_context->BeginEvent(string, color);
+		}
+		~ScopedRenderEvent()
+		{
+			m_context->EndEvent();
+		}
+
+		ScopedRenderEvent(const ScopedRenderEvent&) = delete;
+		ScopedRenderEvent(ScopedRenderEvent&&) = delete;
+		bool operator=(const ScopedRenderEvent&) const = delete;
+		bool operator=(ScopedRenderEvent&&) const = delete;
+
+	private:
+		Ref<RenderContext> m_context = nullptr;
+	};
 }
+}
+
+#define SCOPED_RENDER_EVENT(context, string, ...) do {::Prism::Render::Private::ScopedRenderEvent(context, string __VA_OPT__(,) __VA_ARGS__);} while (0)

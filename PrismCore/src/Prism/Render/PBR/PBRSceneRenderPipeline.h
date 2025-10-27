@@ -51,7 +51,7 @@ public:
 
 private:
 	void CreateInitialResources();
-	void CheckForScreenResize(glm::int2 newScreenSize);
+	bool CheckForScreenResize(glm::int2 newScreenSize);
 	void CreateScreenSizeDependentResources(glm::int2 newScreenSize);
 
 	void ConvertSkyboxToCubemap(RenderContext* renderContext);

@@ -180,12 +180,14 @@ void D3D12RenderCommandList::SetIndexBuffer(Buffer* buffer, IndexBufferFormat fo
 
 void D3D12RenderCommandList::SetTexture(TextureView* textureView, const std::wstring& paramName)
 {
-	SetTextures({textureView}, paramName);
+	if (textureView)
+		SetTextures({textureView}, paramName);
+	else
+		SetTextures({}, paramName);
 }
 
 void D3D12RenderCommandList::SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName)
 {
-	PE_ASSERT(!textureViews.empty());
 	PE_ASSERT(!paramName.empty(), "Param name cannot be empty");
 
 	// We need to save the previous resource descriptor because GPU might still be using it
@@ -193,15 +195,25 @@ void D3D12RenderCommandList::SetTextures(const std::vector<Ref<TextureView>>& te
 	if (it != m_rootResources.end() && !it->second.empty())
 		m_overriddenRootResources.insert(m_overriddenRootResources.end(), it->second.begin(), it->second.end());
 
-	auto& resources = m_rootResources[paramName];
-	resources = {};
-	for (auto& texView : textureViews)
-		resources.emplace_back(texView);
+	if (textureViews.empty())
+	{
+		m_rootResources.erase(paramName);
+	}
+	else
+	{
+		auto& resources = m_rootResources[paramName];
+		resources = {};
+		for (auto& texView : textureViews)
+			resources.emplace_back(texView);
+	}
 }
 
 void D3D12RenderCommandList::SetBuffer(BufferView* bufferView, const std::wstring& paramName)
 {
-	SetBuffers({bufferView}, paramName);
+	if (bufferView)
+		SetBuffers({bufferView}, paramName);
+	else
+		SetBuffers({}, paramName);
 }
 
 void D3D12RenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName)
@@ -214,10 +226,17 @@ void D3D12RenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& buff
 	if (it != m_rootResources.end() && !it->second.empty())
 		m_overriddenRootResources.insert(m_overriddenRootResources.end(), it->second.begin(), it->second.end());
 
-	auto& resources = m_rootResources[paramName];
-	resources = {};
-	for (auto& bufView : bufferViews)
-		resources.emplace_back(bufView);
+	if (bufferViews.empty())
+	{
+		m_rootResources.erase(paramName);
+	}
+	else
+	{
+		auto& resources = m_rootResources[paramName];
+		resources = {};
+		for (auto& texView : bufferViews)
+			resources.emplace_back(texView);
+	}
 }
 
 void D3D12RenderCommandList::ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor)
