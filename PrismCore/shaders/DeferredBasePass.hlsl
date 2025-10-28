@@ -54,8 +54,8 @@ PixelInput vsmain(VertexInput vin)
 	float4 posWorld = mul(primitiveBuffer.world, float4(vin.positionLocal, 1.f));
 	vout.positionWorld = (float3)posWorld;
 	vout.positionClip = mul(sceneBuffer.camera.viewProj, posWorld);
-	
-	vout.normalWorld = vin.normalLocal;
+
+	vout.normalWorld = mul((float3x3)primitiveBuffer.normalMatrix, vin.normalLocal);
 	vout.tangentWorld = vin.tangentlLocal;
 	vout.bitangentWorld = vin.bitangentlLocal;
 	
