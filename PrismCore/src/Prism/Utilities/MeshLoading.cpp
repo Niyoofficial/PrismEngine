@@ -586,24 +586,39 @@ glm::float2 MeshAsset::GetTexCoord(MeshNode node, int32_t vertexIndex, int32_t t
 {
 	PE_ASSERT(DoesNodeContainVertices(node));
 
-	auto aiTexCoord = std::get<aiMesh*>(m_nodes[node].assimpNode)->mTextureCoords[texCoordIndex][vertexIndex];
-	return {aiTexCoord.x, aiTexCoord.y};
+	auto* assimpMesh = std::get<aiMesh*>(m_nodes[node].assimpNode);
+	if (assimpMesh->mTextureCoords[texCoordIndex])
+	{
+		auto aiTexCoord = assimpMesh->mTextureCoords[texCoordIndex][vertexIndex];
+		return {aiTexCoord.x, aiTexCoord.y};
+	}
+	return {};
 }
 
 glm::float3 MeshAsset::GetTangent(MeshNode node, int32_t vertexIndex) const
 {
 	PE_ASSERT(DoesNodeContainVertices(node));
 
-	auto aiTan = std::get<aiMesh*>(m_nodes[node].assimpNode)->mTangents[vertexIndex];
-	return { aiTan.x, aiTan.y, aiTan.z };
+	auto* assimpMesh = std::get<aiMesh*>(m_nodes[node].assimpNode);
+	if (assimpMesh->mTangents)
+	{
+		auto aiTan = assimpMesh->mTangents[vertexIndex];
+		return {aiTan.x, aiTan.y, aiTan.z};
+	}
+	return {};
 }
 
 glm::float3 MeshAsset::GetBitangent(MeshNode node, int32_t vertexIndex) const
 {
 	PE_ASSERT(DoesNodeContainVertices(node));
 
-	auto aiBitan = std::get<aiMesh*>(m_nodes[node].assimpNode)->mBitangents[vertexIndex];
-	return {aiBitan.x, aiBitan.y, aiBitan.z};
+	auto* assimpMesh = std::get<aiMesh*>(m_nodes[node].assimpNode);
+	if (assimpMesh->mBitangents)
+	{
+		auto aiBitan = assimpMesh->mBitangents[vertexIndex];
+		return {aiBitan.x, aiBitan.y, aiBitan.z};
+	}
+	return {};
 }
 
 glm::float4 MeshAsset::GetColor(MeshNode node, int32_t vertexIndex, int32_t colorIndex) const

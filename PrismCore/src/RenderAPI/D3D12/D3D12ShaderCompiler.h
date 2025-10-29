@@ -27,7 +27,7 @@ public:
 	D3D12ShaderCompilerOutput GetOrCreateShader(const ShaderDesc& desc);
 
 	virtual void CompileShader(const ShaderDesc& desc) override;
-	virtual XXH64_hash_t GetShaderCodeHash(const ShaderDesc& desc) override;
+	virtual uint64_t GetShaderCodeHash(const ShaderDesc& desc) override;
 
 	virtual void RecompileCachedShaders() override;
 
@@ -35,7 +35,7 @@ private:
 	std::wstring GetStringForShader(ShaderType shaderType) const;
 	std::wstring GetTargetStringForShader(ShaderType shaderType, int32_t major, int32_t minor) const;
 
-	void RemoveShaderCache(XXH64_hash_t shaderHash);
+	void RemoveShaderCache(uint64_t shaderHash);
 
 private:
 	ComPtr<IDxcUtils> m_dxcUtils;
@@ -44,7 +44,7 @@ private:
 
 	struct CompiledShaderBackend
 	{
-		XXH64_hash_t hash;
+		uint64_t hash;
 		D3D12ShaderCompilerOutput output;
 	};
 

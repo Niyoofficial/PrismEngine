@@ -47,3 +47,23 @@ protected:
 	Ref<Texture> m_owningTexture;
 };
 }
+
+template<>
+struct std::hash<Prism::Render::TextureViewDesc>
+{
+	size_t operator()(const Prism::Render::TextureViewDesc& desc) const noexcept
+	{
+		using namespace Prism::Render;
+
+#ifdef PE_BUILD_DEBUG
+		static_assert(sizeof(desc) == 28,
+			"If new field was added, add it to the hash function and update this assert");
+#endif
+
+		return
+			std::hash<TextureViewType>()(desc.type) ^
+			std::hash<TextureFormat>()(desc.format) ^
+			std::hash<ResourceDimension>()(desc.dimension) ^
+			std::hash<SubresourceRange>()(desc.subresourceRange);
+	}
+};

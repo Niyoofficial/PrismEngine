@@ -7,6 +7,7 @@
 #include "Prism/Base/Paths.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 
+#include "xxhash.h"
 #include "yaml-cpp/yaml.h"
 
 namespace Prism::Render::D3D12
@@ -150,7 +151,8 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 		L"-I", engineInputPathNoFile.c_str(),	// Shader directory will be used as base directory for include handler
 	};
 
-	XXH64_hash_t shaderHash;
+	static_assert(std::is_same_v<uint64_t, XXH64_hash_t>);
+	uint64_t shaderHash;
 
 	// Shader preprocessing
 	{
@@ -286,7 +288,7 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 	}
 }
 
-XXH64_hash_t D3D12ShaderCompiler::GetShaderCodeHash(const ShaderDesc& desc)
+uint64_t D3D12ShaderCompiler::GetShaderCodeHash(const ShaderDesc& desc)
 {
 	if (m_shaderCache.contains(desc))
 		return m_shaderCache.at(desc).hash;
@@ -327,7 +329,7 @@ std::wstring D3D12ShaderCompiler::GetTargetStringForShader(ShaderType shaderType
 	return std::format(L"{}_{}_{}", GetStringForShader(shaderType), major, minor);
 }
 
-void D3D12ShaderCompiler::RemoveShaderCache(XXH64_hash_t shaderHash)
+void D3D12ShaderCompiler::RemoveShaderCache(uint64_t shaderHash)
 {
 	std::fs::path cacheFile(Core::Paths::Get().GetIntermediateDir() + L"/" + std::to_wstring(shaderHash));
 

@@ -91,12 +91,12 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		});
 
 	// TODO: Add create function on Ref class and make RefCounted not allow object creation on stack
-	Ref sponza = new MeshLoading::MeshAsset(L"assets/SponzaCrytek/Sponza.gltf");
+	//Ref sponza = new MeshLoading::MeshAsset(L"assets/SponzaCrytek/Sponza.gltf");
 
 	m_scene = Scene::Create(L"Test Scene");
 	m_renderPipeline = new PBRSceneRenderPipeline;
 	m_scene->SetRenderPipeline(m_renderPipeline);
-	m_scene->CreateEntityHierarchyForMeshAsset(sponza);
+	//m_scene->CreateEntityHierarchyForMeshAsset(sponza);
 	auto lightEntity = m_scene->AddEntity(L"Light");
 	lightEntity->AddComponent<LightRendererComponent>();
 	lightEntity->AddComponent<TransformComponent>()->SetRotation(m_sunRotation);
@@ -105,54 +105,6 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 	m_camera = new Camera(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
 	m_camera->SetPosition({0.f, 0.f, 0.f});
-
-	/*
-	// Load cube
-	m_cube = SandboxApplication::LoadMeshFromFile(L"Cube", L"meshes/Cube.fbx",
-		[this](auto& primitiveData)
-		{
-			Render::Material material;
-			material.SetVertexShader({
-				.filepath = L"shaders/Skybox.hlsl",
-				.entryName = L"vsmain",
-				.shaderType = ShaderType::VS
-			});
-			material.SetPixelShader({
-				.filepath = L"shaders/Skybox.hlsl",
-				.entryName = L"psmain",
-				.shaderType = ShaderType::PS
-			});
-			material.SetRasterizerState({
-				.cullMode = CullMode::Front
-			});
-			material.SetDepthStencilState({
-				.depthEnable = true,
-				.depthWriteEnable = true,
-				.depthFunc = ComparisionFunction::LessEqual
-			});
-
-			material.SetTexture(L"g_skybox", m_prefilteredEnvMapCubeSRV);
-			return material;
-		}, L"g_modelBuffer", sizeof(ModelUniformBuffer));
-		*/
-
-	// Load sphere
-	/*m_sphere = SandboxApplication::LoadMeshFromFile(L"Sphere", L"meshes/Sphere.gltf",
-		[](auto& primitiveData)
-		{
-			Render::Material material;
-			material.SetVertexShader({
-				.filepath = L"shaders/PBR.hlsl",
-				.entryName = L"vsmain",
-				.shaderType = ShaderType::VS
-			});
-			material.SetPixelShader({
-				.filepath = L"shaders/PBR.hlsl",
-				.entryName = L"spheremain",
-				.shaderType = ShaderType::PS
-			});
-			return material;
-		}, L"g_modelBuffer", sizeof(ModelUniformBuffer));*/
 }
 
 void SandboxLayer::UpdateImGui(Duration delta)
