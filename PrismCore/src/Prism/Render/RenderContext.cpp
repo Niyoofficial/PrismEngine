@@ -84,24 +84,51 @@ void RenderContext::SetIndexBuffer(Buffer* buffer, IndexBufferFormat format)
 	m_commandRecorder.AllocateCommand<Commands::SetIndexBufferRenderCommand>(buffer, format);
 }
 
-void RenderContext::SetTexture(TextureView* textureView, const std::wstring& paramName)
+void RenderContext::SetTexture(const std::wstring& paramName, TextureView* textureView)
 {
 	m_commandRecorder.AllocateCommand<Commands::SetTextureRenderCommand>(textureView, paramName);
 }
 
-void RenderContext::SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName)
+void RenderContext::SetTextures(const std::wstring& paramName, const std::vector<Ref<TextureView>>& textureViews)
 {
 	m_commandRecorder.AllocateCommand<Commands::SetTexturesRenderCommand>(textureViews, paramName);
 }
 
-void RenderContext::SetBuffer(BufferView* bufferView, const std::wstring& paramName)
+void RenderContext::SetBuffer(const std::wstring& paramName, BufferView* bufferView)
 {
 	m_commandRecorder.AllocateCommand<Commands::SetBufferRenderCommand>(bufferView, paramName);
 }
 
-void RenderContext::SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName)
+void RenderContext::SetBuffers(const std::wstring& paramName, const std::vector<Ref<BufferView>>& bufferViews)
 {
 	m_commandRecorder.AllocateCommand<Commands::SetBuffersRenderCommand>(bufferViews, paramName);
+}
+
+void RenderContext::SetUniformBuffer(const std::wstring& paramName, void* data, int64_t size)
+{
+	PE_ASSERT(IsAligned(data, Constants::UNIFORM_BUFFER_ALIGNMENT), "Data is not aligned to Constants::UNIFORM_BUFFER_ALIGNMENT");
+
+	if (!m_uniformBuffers.contains(paramName))
+	{
+		m_uniformBuffers[paramName] = Buffer::Create({
+			.bufferName = paramName + L"_UniformBuffer",
+			.size = size,
+			.bindFlags = BindFlags::UniformBuffer,
+			.usage = ResourceUsage::Dynamic,
+			.cpuAccess = CPUAccess::Write
+		});
+	}
+
+	Buffer* uniformBuffer = m_uniformBuffers[paramName];
+	PE_ASSERT(uniformBuffer->GetBufferDesc().size == size, "This uniform buffer was already created with a different size");
+
+	void* destData = uniformBuffer->Map(CPUAccess::Write);
+
+	memcpy_s(destData, uniformBuffer->GetBufferDesc().size, data, size);
+
+	uniformBuffer->Unmap();
+
+	SetBuffer(paramName, uniformBuffer->CreateDefaultUniformBufferView());
 }
 
 void RenderContext::ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor)

@@ -19,7 +19,6 @@ public:
 	static Scene* Create(std::wstring name);
 
 	void AddEntity(Entity* entity);
-
 	template<typename T = Entity, typename... Args>
 	T* AddEntity(Args&&... args)
 	{
@@ -27,6 +26,8 @@ public:
 		AddEntity(entity);
 		return entity;
 	}
+
+	void RemoveEntity(Entity* entity);
 
 	// Create an entity hierarchy representing the mesh assset, returns root entity
 	Entity* CreateEntityHierarchyForMeshAsset(MeshLoading::MeshAsset* asset);
@@ -41,7 +42,7 @@ public:
 	Render::SceneRenderPipeline* GetCurrentRenderPipeline() const { return m_renderPipeline; }
 
 	void SetSelectedEntity(Entity* entity);
-	Entity* GetSelectedEntity() const { return m_selectedEntity; }
+	Entity* GetSelectedEntity() const;
 
 
 	void Update(Duration delta);
@@ -62,7 +63,7 @@ private:
 	// TODO: Replace ref with unique_ptr equivalent
 	std::vector<Ref<Entity>> m_entities;
 	// TODO: Remove this and add something like mesh processors to collect meshes for each pass
-	Entity* m_selectedEntity = nullptr;
+	WeakRef<Entity> m_selectedEntity;
 
 	std::unordered_map<Ref<Render::EntityRenderProxy>, Entity*> m_renderProxies;
 	// TODO: Remove this

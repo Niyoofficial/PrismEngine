@@ -348,7 +348,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 					.data = &info,
 					.sizeInBytes = sizeof(info)
 				});
-			renderContext->SetBuffer(mipMapGenInfoBuffer->CreateDefaultUniformBufferView(), L"g_infoBuffer");
+			renderContext->SetBuffer(L"g_infoBuffer", mipMapGenInfoBuffer->CreateDefaultUniformBufferView());
 
 			if (topMip == 0)
 			{
@@ -360,7 +360,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 														   .numArraySlices = 1
 													   }
 												   }, this);
-				renderContext->SetTexture(srcView, L"g_srcMip");
+				renderContext->SetTexture(L"g_srcMip", srcView);
 			}
 			else
 			{
@@ -372,7 +372,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 														   .numArraySlices = 1
 													   }
 												   }, tempTexture);
-				renderContext->SetTexture(srcView, L"g_srcMip");
+				renderContext->SetTexture(L"g_srcMip", srcView);
 			}
 
 			for (int32_t j = 0; j < mipsToGenerate; ++j)
@@ -387,7 +387,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 														.numArraySlices = 1
 													}
 												}, tempTexture);
-				renderContext->SetTexture(view, std::wstring(L"g_outMip") + std::to_wstring(j + 1));
+				renderContext->SetTexture(std::wstring(L"g_outMip") + std::to_wstring(j + 1), view);
 			}
 
 			renderContext->Dispatch({dstWidth, dstHeight, 1});

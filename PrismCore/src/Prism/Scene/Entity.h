@@ -62,6 +62,7 @@ protected:
 	// TODO: Replace ref with unique_ptr equivalent
 	std::unordered_map<size_t, Ref<Component>> m_components;
 
+	// TODO: Maybe the scene should be storing this info?
 	WeakRef<Entity> m_parent;
 	std::vector<WeakRef<Entity>> m_children;
 };

@@ -80,6 +80,15 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 					SelectEntityUnderCursor();
 			}
 		});
+	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::KeyDown>(
+		[this](Core::AppEvent event)
+		{
+			if (std::get<Core::AppEvents::KeyDown>(event).keyCode == KeyCode::Delete)
+			{
+				if (m_scene && m_scene->GetSelectedEntity())
+					m_scene->RemoveEntity(m_scene->GetSelectedEntity());
+			}
+		});
 
 	// TODO: Add create function on Ref class and make RefCounted not allow object creation on stack
 	Ref sponza = new MeshLoading::MeshAsset(L"assets/SponzaCrytek/Sponza.gltf");
@@ -165,6 +174,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		if (ImGui::BeginMenu("Show"))
 		{
 			ImGui::MenuItem("Show scene outliner", nullptr, &s_showSceneOutliner);
+			ImGui::MenuItem("Show entity inspector", nullptr, &s_showInspector);
 			ImGui::MenuItem("Show stat window", nullptr, &s_showStatWindow);
 			ImGui::MenuItem("Show debug window", nullptr, &s_showDebugMenu);
 			ImGui::MenuItem("Show log window", nullptr, &s_showLogMenu);
@@ -560,7 +570,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 								bool open = ImGui::TreeNodeEx(WStringToString(entityID).c_str(), treeFlags, "%s", entityID.empty() ? "<unnamed>" : WStringToString(entity->GetName()).c_str());
 
-								if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left) && ImGui::IsItemFocused())
+								if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
 									m_scene->SetSelectedEntity(entity);
 
 								if (open)
@@ -581,7 +591,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 				ImGui::EndTable();
 			}
 
-			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered())
+			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered())
 				m_scene->SetSelectedEntity(nullptr);
 
 			if (ImGui::BeginPopupContextWindow(nullptr, ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
@@ -596,7 +606,8 @@ void SandboxLayer::UpdateImGui(Duration delta)
 								for (const auto& file : fileList)
 								{
 									m_meshes.push_back(new MeshLoading::MeshAsset(StringToWString(file)));
-									m_scene->CreateEntityHierarchyForMeshAsset(m_meshes.back());
+									Entity* root = m_scene->CreateEntityHierarchyForMeshAsset(m_meshes.back());
+									m_scene->SetSelectedEntity(root);
 								}
 							};
 						Core::DialogFileFilter filter = {
@@ -616,13 +627,14 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		ImGui::End();
 	}
 
+	// Entity Inspector
 	if (s_showInspector)
 	{
-		if (ImGui::Begin("SceneInspector", &s_showInspector))
+		if (ImGui::Begin("EntityInspector", &s_showInspector))
 		{
 			if (auto* selectedEntity = m_scene->GetSelectedEntity())
 			{
-				ImGui::BeginChild("##scene_inspector");
+				ImGui::BeginChild("##entity_inspector");
 
 				std::string entityName = WStringToString(selectedEntity->GetName());
 				if (ImGui::InputText("##tag", &entityName))
@@ -669,7 +681,7 @@ void SandboxLayer::Update(Duration delta)
 
 	m_scene->Update(delta);
 
-	Ref renderContext = RenderDevice::Get().AllocateContext();
+	Ref renderContext = RenderDevice::Get().AllocateContext(L"RenderScene");
 
 	m_scene->RenderScene(renderContext, m_editorViewportRTV, m_camera);
 
@@ -746,13 +758,7 @@ void SandboxLayer::SelectEntityUnderCursor()
 	{
 		glm::uint2 relMousePos;
 	};
-	Ref<Buffer> hitProxyReadSettings = Buffer::Create({
-		.bufferName = L"HitProxyOutputBuffer",
-		.size = sizeof(HitProxyReadSettings),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
+
 	Ref<Buffer> hitProxyOutput = Buffer::Create({
 		.bufferName = L"HitProxyOutputBuffer",
 		.size = sizeof(int32_t),
@@ -765,16 +771,12 @@ void SandboxLayer::SelectEntityUnderCursor()
 	auto relMousePos = mousePos - m_viewportPosition;
 	PE_ASSERT(relMousePos.x > 0 && relMousePos.y > 0);
 
-	void* data = hitProxyReadSettings->Map(CPUAccess::Write);
 	HitProxyReadSettings readSettings = {
 		.relMousePos = relMousePos
 	};
-	memcpy(data, &readSettings, sizeof(readSettings));
-	hitProxyReadSettings->Unmap();
-
-	renderContext->SetBuffer(hitProxyReadSettings->CreateDefaultUniformBufferView(), L"g_hitProxyReadSettingsBuffer");
-	renderContext->SetTexture(m_hitProxiesTexture->CreateDefaultSRV(), L"g_hitProxiesTexture");
-	renderContext->SetBuffer(hitProxyOutput->CreateDefaultUAV(sizeof(int32_t)), L"g_hitProxyOutputBuffer");
+	renderContext->SetUniformBuffer(L"g_hitProxyReadSettingsBuffer", readSettings);
+	renderContext->SetTexture(L"g_hitProxiesTexture", m_hitProxiesTexture->CreateDefaultSRV());
+	renderContext->SetBuffer(L"g_hitProxyOutputBuffer", hitProxyOutput->CreateDefaultUAV(sizeof(int32_t)));
 	renderContext->Dispatch({1, 1, 1});
 	renderContext->AddGPUCompletionCallback(
 		[hitProxyOutput, entities, this]()

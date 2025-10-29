@@ -84,7 +84,7 @@ void Primitive::DrawPrimitive(RenderContext* renderContext, void* uniformBufferD
 		void* data = m_primitiveUniformBuffer->Map(CPUAccess::Write);
 		memcpy_s(data, m_primitiveUniformBuffer->GetBufferDesc().size, uniformBufferData, dataSize);
 		m_primitiveUniformBuffer->Unmap();
-		renderContext->SetBuffer(m_primitiveUniformBufferView, m_primitiveParamName);
+		renderContext->SetBuffer(m_primitiveParamName, m_primitiveUniformBufferView);
 	}
 
 	renderContext->SetVertexBuffer(m_vertexBuffer, m_vertexSize);

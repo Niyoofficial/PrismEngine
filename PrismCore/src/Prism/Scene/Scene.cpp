@@ -14,6 +14,13 @@ void Scene::SetSelectedEntity(Entity* entity)
 	m_selectedEntity = entity;
 }
 
+Entity* Scene::GetSelectedEntity() const
+{
+	if (m_selectedEntity.IsValid())
+		return m_selectedEntity.Raw();
+	return nullptr;
+}
+
 void Scene::Update(Duration delta)
 {
 	m_renderProxies.clear();
@@ -81,13 +88,13 @@ void Scene::PrepareRenderProxiesForEntity(Entity* entity, glm::float4x4 parentTr
 			m_renderProxies.try_emplace(proxy, entity);
 			m_sceneBounds += proxy->GetBounds();
 
-			if (m_selectedEntity == entity)
+			if (m_selectedEntity.IsValid() && m_selectedEntity.Raw() == entity)
 				m_selectedProxy = proxy;
 		}
 	}
 	if (auto* comp = entity->GetComponent<LightRendererComponent>())
 	{
-		m_dirLights.emplace_back(glm::rotate(glm::quat(transform), glm::float3{ 1.f, 0.f, 0.f }), comp->GetColor() * comp->GetIntensity());
+		m_dirLights.emplace_back(glm::rotate(glm::quat(transform), glm::float3{1.f, 0.f, 0.f}), comp->GetColor() * comp->GetIntensity());
 	}
 
 	for (auto& child : entity->GetChildren())
@@ -106,6 +113,22 @@ void Scene::AddEntity(Entity* entity)
 
 	entity->InitializeOwnership(this);
 	m_entities.emplace_back(entity);
+}
+
+void Scene::RemoveEntity(Entity* entity)
+{
+	PE_ASSERT(entity);
+	PE_ASSERT(entity->GetOwningScene(), "Entity is not owned by any scene!");
+	PE_ASSERT(entity->GetOwningScene() == this, "Entity is owned by a different scene!");
+
+	// This will either be a valid parent or nullptr, both behaviours are valid since
+	// passing nullptr to SetParent simply makes it a root entity
+	auto* parent = entity->GetParent();
+	for (auto child : entity->GetChildren())
+		child->SetParent(parent);
+	entity->SetParent(nullptr);
+
+	std::erase(m_entities, entity);
 }
 
 Entity* Scene::CreateEntityHierarchyForMeshAsset(MeshLoading::MeshAsset* asset)

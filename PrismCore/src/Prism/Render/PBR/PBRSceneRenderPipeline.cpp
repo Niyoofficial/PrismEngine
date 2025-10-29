@@ -172,8 +172,6 @@ struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) PrimitiveHitProxiesInfo
 
 PBRSceneRenderPipeline::PBRSceneRenderPipeline()
 {
-	CreateInitialResources();
-
 	auto renderContext = RenderDevice::Get().AllocateContext(L"PBRSceneRenderPipeline_Initialization");
 
 	ConvertSkyboxToCubemap(renderContext);
@@ -204,7 +202,7 @@ void PBRSceneRenderPipeline::Render(RenderContext* renderContext, const RenderSc
 
 void PBRSceneRenderPipeline::RenderHitProxies(RenderContext* renderContext, const RenderHitProxiesInfo& renderInfo)
 {
-	renderContext->BeginEvent(L"PBRSceneRenderPipeline_RenderHitProxies");
+	SCOPED_RENDER_EVENT(renderContext, L"PBRSceneRenderPipeline_RenderHitProxies");
 
 	auto renderTargetDesc = renderInfo.renderTargetView->GetTexture()->GetTextureDesc();
 
@@ -244,10 +242,7 @@ void PBRSceneRenderPipeline::RenderHitProxies(RenderContext* renderContext, cons
 	SceneInfo sceneBasePassInfo = {
 		.camera = renderInfo.cameraInfo
 	};
-	void* sceneData = m_sceneBasePassBuffer->Map(CPUAccess::Write);
-	memcpy_s(sceneData, m_sceneBasePassBuffer->GetBufferDesc().size, &sceneBasePassInfo, sizeof(sceneBasePassInfo));
-	m_sceneBasePassBuffer->Unmap();
-	renderContext->SetBuffer(m_sceneBasePassBuffer->CreateDefaultUniformBufferView(), L"g_sceneBuffer");
+	renderContext->SetUniformBuffer(L"g_sceneBuffer", sceneBasePassInfo);
 
 
 	int32_t proxyIndex = 0;
@@ -261,10 +256,7 @@ void PBRSceneRenderPipeline::RenderHitProxies(RenderContext* renderContext, cons
 			.world = proxy->GetWorldTransform(),
 			.ID = (uint32_t)proxyIndex
 		};
-		void* primitiveData = m_primitiveBasePassBuffers[proxyIndex]->Map(CPUAccess::Write);
-		memcpy_s(primitiveData, m_primitiveBasePassBuffers[proxyIndex]->GetBufferDesc().size, &primitiveBasePassInfo, sizeof(primitiveBasePassInfo));
-		m_primitiveBasePassBuffers[proxyIndex]->Unmap();
-		renderContext->SetBuffer(m_primitiveBasePassBuffers[proxyIndex]->CreateDefaultUniformBufferView(), L"g_primitiveBuffer");
+		renderContext->SetUniformBuffer(L"g_primitiveBuffer", primitiveBasePassInfo);
 
 		auto nodeInfo = RenderDevice::Get().GetVertexBufferCache().GetNodeIndexInfo(proxy->GetMeshAsset(), proxy->GetMeshNode());
 		renderContext->DrawIndexed({
@@ -276,75 +268,6 @@ void PBRSceneRenderPipeline::RenderHitProxies(RenderContext* renderContext, cons
 
 		++proxyIndex;
 	}
-
-	renderContext->EndEvent();
-}
-
-void PBRSceneRenderPipeline::CreateInitialResources()
-{
-	m_sceneBasePassBuffer = Buffer::Create({
-		.bufferName = L"SceneBasePassInfo_UniformBuffer",
-		.size = sizeof(SceneInfo),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
-
-	m_dirLightingPassBuffer = Buffer::Create({
-		.bufferName = L"DirectionalLightingPassInfo_UniformBuffer",
-		.size = sizeof(DirectionalLightingPassInfo),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
-
-	m_bloomPassSettingsBuffer = Buffer::Create({
-		.bufferName = L"SettingsBloomPass_UniformBuffer",
-		.size = sizeof(SettingsBloomPass),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
-
-	m_primitiveSelectionOutlinePassBuffer = Buffer::Create({
-		.bufferName = L"PrimitiveSelectionOutlineInfo_UniformBuffer",
-		.size = sizeof(PrimitiveSelectionOutlinePassInfo),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
-	m_sceneSelectionOutlinePassBuffer = Buffer::Create({
-		.bufferName = L"SceneSelectionOutlineInfo_UniformBuffer",
-		.size = sizeof(SceneInfo),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
-
-	m_jumpFloodSettingsBuffer = Buffer::Create({
-		.bufferName = L"JumpFloodSettings_UniformBuffer",
-		.size = sizeof(JumpFloodSettings),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
-
-	m_outlineSettingsBuffer = Buffer::Create({
-		.bufferName = L"OutlineSettings_UniformBuffer",
-		.size = sizeof(OutlineSettings),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
-
-
-	m_sceneHitProxiesBuffer = Buffer::Create({
-		.bufferName = L"SceneHitProxiesInfo_UniformBuffer",
-		.size = sizeof(SceneInfo),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	});
 }
 
 bool PBRSceneRenderPipeline::CheckForScreenResize(glm::int2 newScreenSize)
@@ -437,6 +360,8 @@ void PBRSceneRenderPipeline::CreateScreenSizeDependentResources(glm::int2 newScr
 
 void PBRSceneRenderPipeline::ConvertSkyboxToCubemap(RenderContext* renderContext)
 {
+	SCOPED_RENDER_EVENT(renderContext, L"ConvertSkyboxToCubemap");
+
 	m_skybox = Texture::Create({
 		.textureName = L"Skybox",
 		.width = 2048,
@@ -489,8 +414,8 @@ void PBRSceneRenderPipeline::ConvertSkyboxToCubemap(RenderContext* renderContext
 		},
 	});
 
-	renderContext->SetTexture(m_environmentTextureSRV, L"g_environment");
-	renderContext->SetTexture(m_skyboxUAV, L"g_skybox");
+	renderContext->SetTexture(L"g_environment", m_environmentTextureSRV);
+	renderContext->SetTexture(L"g_skybox", m_skyboxUAV);
 
 	renderContext->Dispatch({64, 64, 6});
 
@@ -509,6 +434,8 @@ void PBRSceneRenderPipeline::ConvertSkyboxToCubemap(RenderContext* renderContext
 
 void PBRSceneRenderPipeline::GenerateEnvDiffuseIrradiance(RenderContext* renderContext)
 {
+	SCOPED_RENDER_EVENT(renderContext, L"GenerateEnvDiffuseIrradiance");
+
 	m_prefilteredSkybox = Texture::Create({
 		.textureName = L"PrefilteredSkybox",
 		.width = 2048,
@@ -557,8 +484,8 @@ void PBRSceneRenderPipeline::GenerateEnvDiffuseIrradiance(RenderContext* renderC
 		.layoutAfter = BarrierLayout::ShaderResource
 	});
 
-	renderContext->SetTexture(m_skyboxCubeSRV, L"g_skybox");
-	renderContext->SetBuffer(coeffBufferView, L"g_coefficients");
+	renderContext->SetTexture(L"g_skybox", m_skyboxCubeSRV);
+	renderContext->SetBuffer(L"g_coefficients", coeffBufferView);
 
 	renderContext->Dispatch({ 1, 1, 1 });
 
@@ -583,6 +510,8 @@ void PBRSceneRenderPipeline::GenerateEnvDiffuseIrradiance(RenderContext* renderC
 
 void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* renderContext)
 {
+	SCOPED_RENDER_EVENT(renderContext, L"GenerateEnvSpecularIrradiance");
+
 	renderContext->Barrier(TextureBarrier{
 		.texture = m_skybox,
 		.syncBefore = BarrierSync::ComputeShading,
@@ -626,7 +555,7 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 		},
 	});
 
-	renderContext->SetTexture(m_skyboxCubeSRV, L"g_skybox");
+	renderContext->SetTexture(L"g_skybox", m_skyboxCubeSRV);
 
 	struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) PrefilterData
 	{
@@ -640,7 +569,7 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 	{
 		int32_t threadGroupSize = m_prefilteredSkybox->GetTextureDesc().GetWidth() / (int32_t)std::pow(2, i) / 32;
 
-		renderContext->SetTexture(m_prefilteredSkybox->CreateView({
+		renderContext->SetTexture(L"g_outputTexture", m_prefilteredSkybox->CreateView({
 									  .type = TextureViewType::UAV,
 									  .dimension = ResourceDimension::Tex2D,
 									  .subresourceRange = {
@@ -649,7 +578,7 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 										  .firstArraySlice = 0,
 										  .numArraySlices = 6
 									  }
-								  }), L"g_outputTexture");
+								  }));
 
 		std::array sampleCounts = {
 			8, 16, 64, 128, 128
@@ -675,7 +604,7 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 													  .sizeInBytes = sizeof(data)
 												  });
 
-		renderContext->SetBuffer(prefilterDataBuffer->CreateDefaultUniformBufferView(), L"g_prefilterData");
+		renderContext->SetBuffer(L"g_prefilterData", prefilterDataBuffer->CreateDefaultUniformBufferView());
 
 		renderContext->Dispatch({ threadGroupSize, threadGroupSize, 6 });
 	}
@@ -683,6 +612,8 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 
 void PBRSceneRenderPipeline::GenerateBRDFIntegrationLUT(RenderContext* renderContext)
 {
+	SCOPED_RENDER_EVENT(renderContext, L"GenerateBRDFIntegrationLUT");
+
 	m_BRDFLUT = Texture::Create({
 		.textureName = L"BRDFLUT",
 		.width = 1024,
@@ -718,16 +649,16 @@ void PBRSceneRenderPipeline::GenerateBRDFIntegrationLUT(RenderContext* renderCon
 													.sizeInBytes = sizeof(integrationData)
 												});
 
-	renderContext->SetBuffer(integrationDataBuffer->CreateDefaultUniformBufferView(), L"g_integrationData");
+	renderContext->SetBuffer(L"g_integrationData", integrationDataBuffer->CreateDefaultUniformBufferView());
 
-	renderContext->SetTexture(m_BRDFLUT->CreateView({ .type = TextureViewType::UAV}), L"g_outputTexture");
+	renderContext->SetTexture(L"g_outputTexture", m_BRDFLUT->CreateView({ .type = TextureViewType::UAV}));
 
 	renderContext->Dispatch({integrationData.resolution / 8, integrationData.resolution / 8, 1});
 }
 
 void PBRSceneRenderPipeline::RenderShadowPass(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
-	renderContext->BeginEvent(L"Shadows");
+	SCOPED_RENDER_EVENT(renderContext, L"Shadows");
 
 	renderContext->SetPSO({
 		.vs = {
@@ -765,32 +696,6 @@ void PBRSceneRenderPipeline::RenderShadowPass(RenderContext* renderContext, cons
 	};
 	ResizeResourceArrayIfNeeded(m_dirLightShadowMaps, (int32_t)renderInfo.directionalLights.size(), shadowMapDesc, BarrierLayout::DepthStencilWrite);
 
-	struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) PrimitiveShadowPassInfo
-	{
-		glm::float4x4 world;
-	};
-	BufferDesc primitiveShadowPassBufDesc = {
-		.bufferName = L"PrimitiveShadowPassInfo_UniformBuffer",
-		.size = sizeof(PrimitiveShadowPassInfo),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	};
-	ResizeResourceArrayIfNeeded(m_primitiveShadowPassBuffers, (int32_t)renderInfo.proxies.size(), primitiveShadowPassBufDesc);
-
-	struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) SceneShadowPassInfo
-	{
-		glm::float4x4 lightViewProj;
-	};
-	BufferDesc sceneShadowPassBufDesc = {
-		.bufferName = L"SceneShadowPassInfo_UniformBuffer",
-		.size = sizeof(SceneShadowPassInfo),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	};
-	ResizeResourceArrayIfNeeded(m_sceneShadowPassBuffers, renderInfo.directionalLights.size() + renderInfo.pointLights.size(), sceneShadowPassBufDesc);
-
 	int32_t dirLightIndex = 0;
 	for (auto& dirLight : renderInfo.directionalLights)
 	{
@@ -810,30 +715,28 @@ void PBRSceneRenderPipeline::RenderShadowPass(RenderContext* renderContext, cons
 											 renderInfo.sceneBounds.GetRadius(),
 											 0.f, renderInfo.sceneBounds.GetRadius() * 2.f);
 
+		struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) SceneShadowPassInfo
+		{
+			glm::float4x4 lightViewProj;
+		};
 		SceneShadowPassInfo sceneShadow = {
 			.lightViewProj = lightProj * lightView,
 		};
-
-		void* sceneBufferData = m_sceneShadowPassBuffers[dirLightIndex]->Map(CPUAccess::Write);
-		memcpy_s(sceneBufferData, m_sceneShadowPassBuffers[dirLightIndex]->GetBufferDesc().size, &sceneShadow, sizeof(sceneShadow));
-		m_sceneShadowPassBuffers[dirLightIndex]->Unmap();
-
-		renderContext->SetBuffer(m_sceneShadowPassBuffers[dirLightIndex]->CreateDefaultUniformBufferView(), L"g_shadowSceneBuffer");
+		renderContext->SetUniformBuffer(L"g_shadowSceneBuffer", sceneShadow);
 		
 		int32_t proxyIndex = 0;
 		for (auto& proxy : renderInfo.proxies)
 		{
+			struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) PrimitiveShadowPassInfo
+			{
+				glm::float4x4 world;
+			};
 			PrimitiveShadowPassInfo primitiveShadowPassInfo = {
 				.world = proxy->GetWorldTransform()
 			};
 
 			// TODO: This can be done once in advance, not for every light
-			void* data = m_primitiveShadowPassBuffers[proxyIndex]->Map(CPUAccess::Write);
-			memcpy_s(data, m_primitiveShadowPassBuffers[proxyIndex]->GetBufferDesc().size,
-					 &primitiveShadowPassInfo, sizeof(PrimitiveShadowPassInfo));
-			m_primitiveShadowPassBuffers[proxyIndex]->Unmap();
-
-			renderContext->SetBuffer(m_primitiveShadowPassBuffers[proxyIndex]->CreateDefaultUniformBufferView(), L"g_primitiveBuffer");
+			renderContext->SetUniformBuffer(L"g_primitiveBuffer", primitiveShadowPassInfo);
 
 			auto [vb, ib] = RenderDevice::Get().GetVertexBufferCache().GetOrCreateMeshBuffers(m_defaultVertexAttributeList, proxy->GetMeshAsset());
 			renderContext->SetVertexBuffer(vb, GetVertexSize(m_defaultVertexAttributeList));
@@ -850,13 +753,11 @@ void PBRSceneRenderPipeline::RenderShadowPass(RenderContext* renderContext, cons
 			++proxyIndex;
 		}
 	}
-
-	renderContext->EndEvent();
 }
 
 void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
-	renderContext->BeginEvent(L"BasePass", {});
+	SCOPED_RENDER_EVENT(renderContext, L"BasePass");
 
 	auto renderTargetDesc = renderInfo.renderTargetView->GetTexture()->GetTextureDesc();
 	renderContext->SetViewport({{0.f, 0.f}, {renderTargetDesc.GetWidth(), renderTargetDesc.GetHeight()}, {0.f, 1.f}});
@@ -896,31 +797,11 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 		float roughness = 0.f;
 		float ao = 0.f;
 	};
-	struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) PrimitiveBasePassInfo
-	{
-		glm::float4x4 world;
-		alignas(16)
-		glm::float4x4 normalMatrix;
-
-		alignas(16)
-		Material material;
-	};
-	BufferDesc primitiveBasePassBufDesc = {
-		.bufferName = L"PrimitiveBasePassInfo_UniformBuffer",
-		.size = sizeof(PrimitiveBasePassInfo),
-		.bindFlags = BindFlags::UniformBuffer,
-		.usage = ResourceUsage::Dynamic,
-		.cpuAccess = CPUAccess::Write
-	};
-	ResizeResourceArrayIfNeeded(m_primitiveBasePassBuffers, (int32_t)renderInfo.proxies.size(), primitiveBasePassBufDesc);
 
 	SceneInfo sceneBasePassInfo = {
 		.camera = renderInfo.cameraInfo
 	};
-	void* sceneData = m_sceneBasePassBuffer->Map(CPUAccess::Write);
-	memcpy_s(sceneData, m_sceneBasePassBuffer->GetBufferDesc().size, &sceneBasePassInfo, sizeof(sceneBasePassInfo));
-	m_sceneBasePassBuffer->Unmap();
-	renderContext->SetBuffer(m_sceneBasePassBuffer->CreateDefaultUniformBufferView(), L"g_sceneBuffer");
+	renderContext->SetUniformBuffer(L"g_sceneBuffer", sceneBasePassInfo);
 
 	int32_t proxyIndex = 0;
 	for (auto& proxy : renderInfo.proxies)
@@ -929,6 +810,15 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 		renderContext->SetVertexBuffer(vb, GetVertexSize(m_defaultVertexAttributeList));
 		renderContext->SetIndexBuffer(ib, IndexBufferFormat::Uint32);
 
+		struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) PrimitiveBasePassInfo
+		{
+			glm::float4x4 world;
+			alignas(16)
+			glm::float4x4 normalMatrix;
+
+			alignas(16)
+			Material material;
+		};
 		PrimitiveBasePassInfo primitiveBasePassInfo = {
 			.world = proxy->GetWorldTransform(),
 			.normalMatrix = glm::transpose(glm::inverse(primitiveBasePassInfo.world)),
@@ -939,27 +829,24 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 				.ao = 1.f
 			}
 		};
-		void* primitiveData = m_primitiveBasePassBuffers[proxyIndex]->Map(CPUAccess::Write);
-		memcpy_s(primitiveData, m_primitiveBasePassBuffers[proxyIndex]->GetBufferDesc().size, &primitiveBasePassInfo, sizeof(primitiveBasePassInfo));
-		m_primitiveBasePassBuffers[proxyIndex]->Unmap();
-		renderContext->SetBuffer(m_primitiveBasePassBuffers[proxyIndex]->CreateDefaultUniformBufferView(), L"g_primitiveBuffer");
+		renderContext->SetUniformBuffer(L"g_primitiveBuffer", primitiveBasePassInfo);
 
 		if (auto albedo = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Albedo))
-			renderContext->SetTexture(albedo->CreateDefaultSRV(), L"g_albedoTexture");
+			renderContext->SetTexture(L"g_albedoTexture", albedo->CreateDefaultSRV());
 		else
-			renderContext->SetTexture(nullptr, L"g_albedoTexture");
+			renderContext->SetTexture(L"g_albedoTexture", nullptr);
 		if (auto metallic = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Metallic))
-			renderContext->SetTexture(metallic->CreateDefaultSRV(), L"g_metallicTexture");
+			renderContext->SetTexture(L"g_metallicTexture", metallic->CreateDefaultSRV());
 		else
-			renderContext->SetTexture(nullptr, L"g_metallicTexture");
+			renderContext->SetTexture(L"g_metallicTexture", nullptr);
 		if (auto roughness = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Roughness))
-			renderContext->SetTexture(roughness->CreateDefaultSRV(), L"g_roughnessTexture");
+			renderContext->SetTexture(L"g_roughnessTexture", roughness->CreateDefaultSRV());
 		else
-			renderContext->SetTexture(nullptr, L"g_roughnessTexture");
+			renderContext->SetTexture(L"g_roughnessTexture", nullptr);
 		if (auto normal = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Normals))
-			renderContext->SetTexture(normal->CreateDefaultSRV(), L"g_normalTexture");
+			renderContext->SetTexture(L"g_normalTexture", normal->CreateDefaultSRV());
 		else
-			renderContext->SetTexture(nullptr, L"g_normalTexture");
+			renderContext->SetTexture(L"g_normalTexture", nullptr);
 
 		auto nodeInfo = RenderDevice::Get().GetVertexBufferCache().GetNodeIndexInfo(proxy->GetMeshAsset(), proxy->GetMeshNode());
 		renderContext->DrawIndexed({
@@ -971,30 +858,28 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 
 		++proxyIndex;
 	}
-
-	renderContext->EndEvent();
 }
 
 void PBRSceneRenderPipeline::RenderLightingPass(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
-	renderContext->BeginEvent(L"LightingPass", {});
+	SCOPED_RENDER_EVENT(renderContext, L"LightingPass");
 
 	renderContext->SetRenderTarget(m_sceneColor->CreateDefaultRTV(), nullptr);
 
 	glm::float4 clearColor = {0.f, 0.f, 0.f, 1.f};
 	renderContext->ClearRenderTargetView(m_sceneColor->CreateDefaultRTV(), &clearColor);
 
-	renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::SRV), L"g_colorTexture");
-	renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::SRV), L"g_normalTexture");
-	renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::SRV), L"g_roughnessMetalAOTexture");
-	renderContext->SetTexture(m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::SRV), L"g_depthTexture");
+	renderContext->SetTexture(L"g_colorTexture", m_gbuffer.GetView(GBuffer::Type::Color, TextureViewType::SRV));
+	renderContext->SetTexture(L"g_normalTexture", m_gbuffer.GetView(GBuffer::Type::Normal, TextureViewType::SRV));
+	renderContext->SetTexture(L"g_roughnessMetalAOTexture", m_gbuffer.GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::SRV));
+	renderContext->SetTexture(L"g_depthTexture", m_gbuffer.GetView(GBuffer::Type::Depth, TextureViewType::SRV));
 
 	{
-		renderContext->BeginEvent(L"IndirectLighting");
+		SCOPED_RENDER_EVENT(renderContext, L"IndirectLighting");
 
-		renderContext->SetBuffer(m_irradianceSHBufferView, L"g_irradiance");
-		renderContext->SetTexture(m_BRDFLUT->CreateView({ .type = TextureViewType::SRV }), L"g_brdfLUT");
-		renderContext->SetTexture(m_prefilteredEnvMapCubeSRV, L"g_envMap");
+		renderContext->SetBuffer(L"g_irradiance", m_irradianceSHBufferView);
+		renderContext->SetTexture(L"g_brdfLUT", m_BRDFLUT->CreateView({ .type = TextureViewType::SRV }));
+		renderContext->SetTexture(L"g_envMap", m_prefilteredEnvMapCubeSRV);
 
 		glm::int2 screenSize = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().GetSize();
 		ShaderDesc pixelShader = {
@@ -1006,12 +891,10 @@ void PBRSceneRenderPipeline::RenderLightingPass(RenderContext* renderContext, co
 			.renderTargetBlendDesc = RenderTargetBlendDesc{.blendEnable = true, .destBlend = BlendFactor::One, .destBlendAlpha = BlendFactor::One}
 		};
 		DrawFullscreenPixelShader(renderContext, screenSize, pixelShader, &blendState);
-
-		renderContext->EndEvent();
 	}
 
 	{
-		renderContext->BeginEvent(L"DirectLighting");
+		SCOPED_RENDER_EVENT(renderContext, L"DirectLighting");
 
 		int32_t dirLightIndex = 0;
 		for (auto& dirLight : renderInfo.directionalLights)
@@ -1028,19 +911,17 @@ void PBRSceneRenderPipeline::RenderLightingPass(RenderContext* renderContext, co
 				.dirLight = dirLight,
 				.shadowViewProj = lightProj * lightView
 			};
-
-			void* perLightData = m_dirLightingPassBuffer->Map(CPUAccess::Write);
-			memcpy_s(perLightData, m_dirLightingPassBuffer->GetBufferDesc().size, &dirLightingPassInfo, sizeof(dirLightingPassInfo));
-			m_dirLightingPassBuffer->Unmap();
-
-			renderContext->SetBuffer(m_dirLightingPassBuffer->CreateDefaultUniformBufferView(), L"g_dirLightPassBuffer");
-			renderContext->SetBuffer(m_sceneBasePassBuffer->CreateDefaultUniformBufferView(), L"g_sceneBuffer");
+			renderContext->SetUniformBuffer(L"g_dirLightPassBuffer", dirLightingPassInfo);
+			SceneInfo sceneInfo = {
+				.camera = renderInfo.cameraInfo
+			};
+			renderContext->SetUniformBuffer(L"g_sceneBuffer", sceneInfo);
 
 			Ref<TextureView> shadowMapSRV = m_dirLightShadowMaps[dirLightIndex]->CreateView({
 				.type = TextureViewType::SRV,
 				.format = TextureFormat::R32_Float
 			});
-			renderContext->SetTexture(shadowMapSRV, L"g_shadowMap");
+			renderContext->SetTexture(L"g_shadowMap", shadowMapSRV);
 
 			glm::int2 screenSize = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().GetSize();
 			ShaderDesc pixelShader = {
@@ -1055,16 +936,12 @@ void PBRSceneRenderPipeline::RenderLightingPass(RenderContext* renderContext, co
 
 			++dirLightIndex;
 		}
-
-		renderContext->EndEvent();
 	}
-
-	renderContext->EndEvent();
 }
 
 void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
-	renderContext->BeginEvent(L"Bloom", {});
+	SCOPED_RENDER_EVENT(renderContext, L"Bloom");
 
 	SettingsBloomPass bloomPassSettings = {
 		.threshold = renderInfo.bloomThreshold,
@@ -1072,18 +949,14 @@ void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const
 		.lod = 0,
 	};
 
-	renderContext->SetBuffer(m_bloomPassSettingsBuffer->CreateDefaultUniformBufferView(), L"g_bloomSettings");
-
 	// Prefilter
 	{
-		renderContext->BeginEvent(L"Prefilter", {});
+		SCOPED_RENDER_EVENT(renderContext, L"Prefilter");
 
-		renderContext->SetTexture(m_sceneColor->CreateDefaultSRV(), L"g_inputTexture");
-		renderContext->SetTexture(m_bloomDownsampleA->CreateView({ .type = TextureViewType::UAV }), L"g_outputTexture");
+		renderContext->SetTexture(L"g_inputTexture", m_sceneColor->CreateDefaultSRV());
+		renderContext->SetTexture(L"g_outputTexture", m_bloomDownsampleA->CreateView({.type = TextureViewType::UAV}));
 
-		void* bloomSettingsData = m_bloomPassSettingsBuffer->Map(CPUAccess::Write);
-		memcpy_s(bloomSettingsData, m_bloomPassSettingsBuffer->GetBufferDesc().size, &bloomPassSettings, sizeof(bloomPassSettings));
-		m_bloomPassSettingsBuffer->Unmap();
+		renderContext->SetUniformBuffer(L"g_bloomSettings", bloomPassSettings);
 
 		renderContext->SetPSO(ComputePipelineStateDesc{
 			.cs = {
@@ -1094,13 +967,11 @@ void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const
 		});
 
 		renderContext->Dispatch({glm::ceil((glm::float2)m_bloomDownsampleA->GetTextureDesc().GetSize() / 4.f), 1});
-
-		renderContext->EndEvent();
 	}
 
 	// Downsample
 	{
-		renderContext->BeginEvent(L"Downsample", {});
+		SCOPED_RENDER_EVENT(renderContext, L"Downsample");
 
 		auto dispatchDownsample =
 			[&bloomPassSettings, &renderContext, this](Texture* uavTexture, int32_t uavMipIndex, TextureView* srv, int32_t srvMipReadIndex)
@@ -1108,13 +979,11 @@ void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const
 			TextureViewDesc uavDesc = {
 				.type = TextureViewType::UAV, .subresourceRange = {.firstMipLevel = uavMipIndex, .numMipLevels = 1}
 			};
-			renderContext->SetTexture(uavTexture->CreateView(uavDesc), L"g_outputTexture");
-			renderContext->SetTexture(srv, L"g_inputTexture");
+			renderContext->SetTexture(L"g_outputTexture", uavTexture->CreateView(uavDesc));
+			renderContext->SetTexture(L"g_inputTexture", srv);
 
 			bloomPassSettings.lod = srvMipReadIndex;
-			void* bloomSettingsData = m_bloomPassSettingsBuffer->Map(CPUAccess::Write);
-			memcpy_s(bloomSettingsData, m_bloomPassSettingsBuffer->GetBufferDesc().size, &bloomPassSettings, sizeof(bloomPassSettings));
-			m_bloomPassSettingsBuffer->Unmap();
+			renderContext->SetUniformBuffer(L"g_bloomSettings", bloomPassSettings);
 
 			renderContext->SetPSO(ComputePipelineStateDesc{
 				.cs = {
@@ -1134,13 +1003,11 @@ void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const
 			dispatchDownsample(m_bloomDownsampleA, i, m_bloomDownsampleB->CreateDefaultSRV(), i - 1);
 			dispatchDownsample(m_bloomDownsampleB, i, m_bloomDownsampleA->CreateDefaultSRV(), i);
 		}
-
-		renderContext->EndEvent();
 	}
 
 	// Upsample
 	{
-		renderContext->BeginEvent(L"Upsample", {});
+		SCOPED_RENDER_EVENT(renderContext, L"Upsample");
 
 		renderContext->Barrier(TextureBarrier{
 			.texture = m_bloomDownsampleA,
@@ -1157,14 +1024,12 @@ void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const
 			TextureViewDesc uavDesc = {
 				.type = TextureViewType::UAV, .subresourceRange = {.firstMipLevel = i, .numMipLevels = 1}
 			};
-			renderContext->SetTexture(m_bloomUpsampleTexture->CreateView(uavDesc), L"g_outputTexture");
-			renderContext->SetTexture(m_bloomDownsampleB->CreateDefaultSRV(), L"g_inputTexture");
-			renderContext->SetTexture(i == 5 ? m_bloomDownsampleB->CreateDefaultSRV() : m_bloomUpsampleTexture->CreateDefaultSRV(), L"g_accumulationTexture");
+			renderContext->SetTexture(L"g_outputTexture", m_bloomUpsampleTexture->CreateView(uavDesc));
+			renderContext->SetTexture(L"g_inputTexture", m_bloomDownsampleB->CreateDefaultSRV());
+			renderContext->SetTexture(L"g_accumulationTexture", i == 5 ? m_bloomDownsampleB->CreateDefaultSRV() : m_bloomUpsampleTexture->CreateDefaultSRV());
 
 			bloomPassSettings.lod = i;
-			void* bloomSettingsData = m_bloomPassSettingsBuffer->Map(CPUAccess::Write);
-			memcpy_s(bloomSettingsData, m_bloomPassSettingsBuffer->GetBufferDesc().size, &bloomPassSettings, sizeof(bloomPassSettings));
-			m_bloomPassSettingsBuffer->Unmap();
+			renderContext->SetUniformBuffer(L"g_bloomSettings", bloomPassSettings);
 
 			renderContext->SetPSO(ComputePipelineStateDesc{
 				.cs = {
@@ -1186,18 +1051,14 @@ void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const
 			.layoutBefore = BarrierLayout::ShaderResource,
 			.layoutAfter = BarrierLayout::UnorderedAccess,
 		});
-
-		renderContext->EndEvent();
 	}
-
-	renderContext->EndEvent();
 }
 
 void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
 	if (renderInfo.selectedProxy)
 	{
-		renderContext->BeginEvent(L"SelectionOutline");
+		SCOPED_RENDER_EVENT(renderContext, L"SelectionOutline");
 
 		renderContext->ClearRenderTargetView(m_outlineMask->CreateDefaultRTV());
 
@@ -1234,18 +1095,12 @@ void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderCon
 		SceneInfo sceneInfo = {
 			.camera = renderInfo.cameraInfo,
 		};
-		void* sceneData = m_sceneSelectionOutlinePassBuffer->Map(CPUAccess::Write);
-		memcpy_s(sceneData, m_sceneSelectionOutlinePassBuffer->GetBufferDesc().size, &sceneInfo, sizeof(sceneInfo));
-		m_sceneSelectionOutlinePassBuffer->Unmap();
-		renderContext->SetBuffer(m_sceneSelectionOutlinePassBuffer->CreateDefaultUniformBufferView(), L"g_sceneBuffer");
+		renderContext->SetUniformBuffer(L"g_sceneBuffer", sceneInfo);
 
 		PrimitiveSelectionOutlinePassInfo primitiveInfo = {
 			.world = renderInfo.selectedProxy->GetWorldTransform()
 		};
-		void* primitiveData = m_primitiveSelectionOutlinePassBuffer->Map(CPUAccess::Write);
-		memcpy_s(primitiveData, m_primitiveSelectionOutlinePassBuffer->GetBufferDesc().size, &primitiveInfo, sizeof(primitiveInfo));
-		m_primitiveSelectionOutlinePassBuffer->Unmap();
-		renderContext->SetBuffer(m_primitiveSelectionOutlinePassBuffer->CreateDefaultUniformBufferView(), L"g_primitiveBuffer");
+		renderContext->SetUniformBuffer(L"g_primitiveBuffer", primitiveInfo);
 
 		auto nodeInfo = RenderDevice::Get().GetVertexBufferCache().GetNodeIndexInfo(renderInfo.selectedProxy->GetMeshAsset(), renderInfo.selectedProxy->GetMeshNode());
 		renderContext->DrawIndexed({
@@ -1263,13 +1118,11 @@ void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderCon
 			}
 		});
 
-		renderContext->SetTexture(m_outlineMask->CreateDefaultSRV(), L"g_inputMask");
-		renderContext->SetTexture(m_jumpFloodTextureA->CreateDefaultUAV(), L"g_outputMask");
+		renderContext->SetTexture(L"g_inputMask", m_outlineMask->CreateDefaultSRV());
+		renderContext->SetTexture(L"g_outputMask", m_jumpFloodTextureA->CreateDefaultUAV());
 
 		renderContext->Dispatch({glm::ceil((glm::float2)m_jumpFloodTextureA->GetTextureDesc().GetSize() / 4.f), 1});
 
-
-		renderContext->SetBuffer(m_jumpFloodSettingsBuffer->CreateDefaultUniformBufferView(), L"g_jumpFloodSettings");
 
 		int32_t jfaIter = (int32_t)std::log2(m_outlineWidth + 1);
 
@@ -1285,15 +1138,13 @@ void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderCon
 				}
 			});
 
-			void* data = m_jumpFloodSettingsBuffer->Map(CPUAccess::Write);
 			JumpFloodSettings jumpFloodSettings = {
 				.stepWidth = (int32_t)(std::pow(2, i) + 0.5)
 			};
-			memcpy(data, &jumpFloodSettings, sizeof(jumpFloodSettings));
-			m_jumpFloodSettingsBuffer->Unmap();
+			renderContext->SetUniformBuffer(L"g_jumpFloodSettings", jumpFloodSettings);
 
-			renderContext->SetTexture(inputTex->CreateDefaultSRV(), L"g_inputMask");
-			renderContext->SetTexture(outputTex->CreateDefaultUAV(), L"g_outputMask");
+			renderContext->SetTexture(L"g_inputMask", inputTex->CreateDefaultSRV());
+			renderContext->SetTexture(L"g_outputMask", outputTex->CreateDefaultUAV());
 
 			renderContext->Dispatch({glm::ceil((glm::float2)m_jumpFloodTextureB->GetTextureDesc().GetSize() / 4.f), 1});
 
@@ -1301,32 +1152,26 @@ void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderCon
 
 			std::swap(inputTex, outputTex);
 		}
-
-		renderContext->EndEvent();
 	}
 }
 
 void PBRSceneRenderPipeline::RenderFinalCompositionPass(RenderContext* renderContext, const RenderSceneInfo& renderInfo)
 {
-	renderContext->BeginEvent(L"FinalComposition");
+	SCOPED_RENDER_EVENT(renderContext, L"FinalComposition");
 
 	renderContext->ClearRenderTargetView(renderInfo.renderTargetView);
 	renderContext->SetRenderTarget(renderInfo.renderTargetView, nullptr);
 
-	renderContext->SetTexture(m_sceneColor->CreateDefaultSRV(), L"g_sceneColorTexture");
-	renderContext->SetTexture(m_bloomUpsampleTexture->CreateDefaultSRV(), L"g_bloomTexture");
+	renderContext->SetTexture(L"g_sceneColorTexture", m_sceneColor->CreateDefaultSRV());
+	renderContext->SetTexture(L"g_bloomTexture", m_bloomUpsampleTexture->CreateDefaultSRV());
 	if (m_outlineOutput && renderInfo.selectedProxy)
 	{
-		renderContext->SetTexture(m_outlineOutput->CreateDefaultSRV(), L"g_outlineTexture");
+		renderContext->SetTexture(L"g_outlineTexture", m_outlineOutput->CreateDefaultSRV());
 
-		renderContext->SetBuffer(m_outlineSettingsBuffer->CreateDefaultUniformBufferView(), L"g_outlineSettings");
-
-		void* data = m_outlineSettingsBuffer->Map(CPUAccess::Write);
 		OutlineSettings outlineSettings = {
 			.outlineWidth = (float)m_outlineWidth
 		};
-		memcpy(data, &outlineSettings, sizeof(outlineSettings));
-		m_outlineSettingsBuffer->Unmap();
+		renderContext->SetUniformBuffer(L"g_outlineSettings", outlineSettings);
 	}
 
 	glm::int2 screenSize = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().GetSize();
@@ -1336,8 +1181,6 @@ void PBRSceneRenderPipeline::RenderFinalCompositionPass(RenderContext* renderCon
 		.shaderType = ShaderType::PS
 	};
 	DrawFullscreenPixelShader(renderContext, screenSize, ps);
-
-	renderContext->EndEvent();
 }
 
 template<typename Res, typename Desc>

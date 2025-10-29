@@ -50,7 +50,6 @@ public:
 	const GBuffer& GetGBuffer() const { return m_gbuffer; }
 
 private:
-	void CreateInitialResources();
 	bool CheckForScreenResize(glm::int2 newScreenSize);
 	void CreateScreenSizeDependentResources(glm::int2 newScreenSize);
 
@@ -98,37 +97,18 @@ private:
 	Ref<Texture> m_sceneColor;
 
 	// Shadow pass
-	std::vector<Ref<Buffer>> m_sceneShadowPassBuffers;
-	std::vector<Ref<Buffer>> m_primitiveShadowPassBuffers;
 	std::vector<Ref<Texture>> m_dirLightShadowMaps;
 
-	// Base pass
-	Ref<Buffer> m_sceneBasePassBuffer;
-	std::vector<Ref<Buffer>> m_primitiveBasePassBuffers;
-
-	// Lighting pass
-	Ref<Buffer> m_dirLightingPassBuffer;
-
 	// Bloom pass
-	Ref<Buffer> m_bloomPassSettingsBuffer;
 	Ref<Texture> m_bloomDownsampleA;
 	Ref<Texture> m_bloomDownsampleB;
 	Ref<Texture> m_bloomUpsampleTexture;
 
 	// Selection outline
 	int32_t m_outlineWidth = 1.f;
-	Ref<Buffer> m_primitiveSelectionOutlinePassBuffer;
-	Ref<Buffer> m_sceneSelectionOutlinePassBuffer;
 	Ref<Texture> m_outlineMask;
 	Ref<Texture> m_jumpFloodTextureA;
 	Ref<Texture> m_jumpFloodTextureB;
 	Texture* m_outlineOutput = nullptr;
-	Ref<Buffer> m_jumpFloodSettingsBuffer;
-
-	// Final composition
-	Ref<Buffer> m_outlineSettingsBuffer;
-
-	// Hit proxies
-	Ref<Buffer> m_sceneHitProxiesBuffer;
 };
 }

@@ -63,4 +63,4 @@ struct ScopeGuardSyntaxSupport
  *      // * Execution reaches the end of the block.
  *    }
  */
-#define ON_SCOPE_EXIT const auto PREPROCESSOR_JOIN(ScopeGuard_, __LINE__) = ::Prism::Utils::Private::ScopeGuardSyntaxSupport() + [&]()
+#define ON_SCOPE_EXIT const auto PREPROCESSOR_JOIN(scopeGuard_, __LINE__) = ::Prism::Utils::Private::ScopeGuardSyntaxSupport() + [&]()

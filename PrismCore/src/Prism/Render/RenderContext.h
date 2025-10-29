@@ -37,10 +37,16 @@ public:
 	void SetVertexBuffer(Buffer* buffer, int64_t vertexSizeInBytes);
 	void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format);
 
-	void SetTexture(TextureView* textureView, const std::wstring& paramName);
-	void SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName);
-	void SetBuffer(BufferView* bufferView, const std::wstring& paramName);
-	void SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName);
+	void SetTexture(const std::wstring& paramName, TextureView* textureView);
+	void SetTextures(const std::wstring& paramName, const std::vector<Ref<TextureView>>& textureViews);
+	void SetBuffer(const std::wstring& paramName, BufferView* bufferView);
+	void SetBuffers(const std::wstring& paramName, const std::vector<Ref<BufferView>>& bufferViews);
+	void SetUniformBuffer(const std::wstring& paramName, void* data, int64_t size);
+	template<typename T>
+	void SetUniformBuffer(const std::wstring& paramName, T&& data)
+	{
+		SetUniformBuffer(paramName, &std::forward<T>(data), sizeof(T));
+	}
 
 	void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr);
 	void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr);
@@ -91,6 +97,8 @@ private:
 	PreservingObjectContainer m_preservedResources;
 
 	std::vector<std::function<void()>> m_gpuCompletionCallbacks;
+
+	std::unordered_map<std::wstring, Ref<Buffer>> m_uniformBuffers;
 };
 
 namespace Private
@@ -119,4 +127,4 @@ namespace Private
 }
 }
 
-#define SCOPED_RENDER_EVENT(context, string, ...) do {::Prism::Render::Private::ScopedRenderEvent(context, string __VA_OPT__(,) __VA_ARGS__);} while (0)
+#define SCOPED_RENDER_EVENT(context, string, ...) const auto PREPROCESSOR_JOIN(scopedRenderEvent_, __LINE__) = ::Prism::Render::Private::ScopedRenderEvent(context, string __VA_OPT__(,) __VA_ARGS__)
