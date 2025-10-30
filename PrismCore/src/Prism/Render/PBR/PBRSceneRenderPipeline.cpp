@@ -403,7 +403,7 @@ void PBRSceneRenderPipeline::ConvertSkyboxToCubemap(RenderContext* renderContext
 	});
 
 	// TODO: Remove hardcoded skybox texture
-	m_environmentTexture = Texture::CreateFromFile(L"textures/pisa.hdr");
+	m_environmentTexture = Texture::CreateFromFile(L"assets/tief_etz_4k.hdr");
 	m_environmentTextureSRV = m_environmentTexture->CreateView({.type = TextureViewType::SRV});
 
 	renderContext->SetPSO({

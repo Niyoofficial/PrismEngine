@@ -13,16 +13,6 @@ class Texture;
 
 namespace Prism::MeshLoading
 {
-struct VertexData
-{
-	glm::float3 position;
-	glm::float3 normal;
-	glm::float3 tangent;
-	glm::float3 bitangent;
-	glm::float2 texCoords;
-	glm::float4 vertexColor;
-};
-
 enum class TextureType
 {
 	Albedo,
@@ -31,24 +21,7 @@ enum class TextureType
 	Roughness
 };
 
-struct PrimitiveData
-{
-	std::vector<VertexData> vertices;
-	std::vector<uint32_t> indices;
-
-	std::unordered_map<TextureType, Ref<Render::Texture>> textures;
-
-	Bounds3f bounds;
-};
-
-struct MeshData
-{
-	std::vector<PrimitiveData> primitives;
-	Bounds3f bounds;
-};
-
 void InitMeshLoading();
-MeshData LoadMeshFromFile(const std::wstring& filePath);
 
 using MeshNode = int32_t;
 

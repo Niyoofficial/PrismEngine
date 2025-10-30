@@ -50,7 +50,11 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 
 		float* loadedData = stbi_loadf(WStringToString(filepath).c_str(), &width, &height, &channels, 4);
 
-		PE_ASSERT(loadedData);
+		if (!loadedData)
+		{
+			PE_RENDER_LOG(Error, "Could not load texture from filepath {}", WStringToString(filepath));
+			return;
+		}
 
 		m_originalDesc = {
 			.textureName = filepath,
@@ -104,7 +108,7 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 			.usage = ResourceUsage::Default
 		};
 
-		ID3D12Device10* d3d12Device = D3D12RenderDevice::Get().GetD3D12Device();
+		auto* d3d12Device = D3D12RenderDevice::Get().GetD3D12Device();
 
 		auto func =
 			[loadAsCubemap, d3d12Device, filepath, this]()
@@ -118,20 +122,28 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 
 				DX::ResourceUploadBatch batch(d3d12Device);
 				batch.Begin();
-				PE_ASSERT_HR(DX::CreateWICTextureFromFileEx(d3d12Device, batch, filepath.c_str(), 0,
-					D3D12_RESOURCE_FLAG_NONE, DX::WIC_LOADER_FORCE_RGBA32 | DX::WIC_LOADER_MIP_AUTOGEN, &m_resource));
-				batch.End(D3D12RenderDevice::Get().GetD3D12CommandQueue()).wait_for(std::chrono::seconds(0));
+				auto hr = DX::CreateWICTextureFromFileEx(d3d12Device, batch, filepath.c_str(), 0,
+					D3D12_RESOURCE_FLAG_NONE, DX::WIC_LOADER_FORCE_RGBA32 | DX::WIC_LOADER_MIP_AUTOGEN, &m_resource);
+				batch.End(D3D12RenderDevice::Get().GetD3D12CommandQueue()).wait();
 
 #if USE_PIX
 				PIXEndEvent(D3D12RenderDevice::Get().GetD3D12CommandQueue());
 #endif
 
-				PE_ASSERT(m_resource);
+				if (SUCCEEDED(hr))
+				{
+					PE_ASSERT(m_resource);
 
-				auto resDesc = m_resource->GetDesc();
-				PE_ASSERT(!loadAsCubemap || resDesc.DepthOrArraySize == 6, "Cubemaps must have an array size of 6");
+					auto resDesc = m_resource->GetDesc();
+					PE_ASSERT(!loadAsCubemap || resDesc.DepthOrArraySize == 6, "Cubemaps must have an array size of 6");
 
-				m_originalDesc = D3D12::GetTextureDesc(resDesc, filepath, ResourceUsage::Default, {}, loadAsCubemap);
+					m_originalDesc = D3D12::GetTextureDesc(resDesc, filepath, ResourceUsage::Default, {}, loadAsCubemap);
+				}
+				else
+				{
+					PE_RENDER_LOG(Error, "Could not load texture from filepath {} Error: {} {}", WStringToString(filepath), hr, WStringToString(GetHResultMessage(hr)));
+					return;
+				}
 			};
 
 		if (waitForLoadFinish)

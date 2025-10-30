@@ -11,6 +11,7 @@ enum class TextureFormat;
 
 namespace Prism::Render::D3D12
 {
+std::wstring GetHResultMessage(HRESULT hr);
 // Returns whether the HRESULT is successful or not
 bool VerifyHResult(HRESULT hr);
 
