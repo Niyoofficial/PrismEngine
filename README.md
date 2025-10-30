@@ -11,16 +11,15 @@ git clone https://github.com/Niyoofficial/PrismEngine
 #### Here you can either continue with the manual setup or use e.g. Visual Studio in CMake mode which will do it for you
 #### 3. Run this to generate the project:
 ```
-cmake -B build -S .
-```
-If this fails it's probably because it can't find your vcpkg toolchain, in that case specify it manually
-```
 cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake
 ```
+`VCPKG_ROOT` environment variable should be added automatically during the vcpkg setup; it simply points to the vcpkg root folder
 #### 4. And now to actually compile the project
 ```
-cmake --build build
+cmake --build build --preset=Profile
 ```
+There are 3 presets available: `Debug`, `Profile` and `Release` which you can use in the above function
+#### 5. Go to the `Sandbox` folder and run the `RunSandbox-<config>.bat` - this will run the executable with the proper working directory
 ## Features
 |Feature                   |Description
 |-                         |-
