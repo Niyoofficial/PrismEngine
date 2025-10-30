@@ -22,6 +22,11 @@ public:
 	virtual Core::DisplayInfo GetDisplayInfo(uint32_t displayID) override;
 	virtual uint32_t GetPrimaryDisplayID() override;
 
+	virtual void OpenFileDialog(const std::function<void(std::vector<std::string>, int32_t)>& callback,
+								Core::Window* window, const std::vector<Core::DialogFileFilter>& filters,
+								const std::string& defaultLocation, bool allowMany) override;
+
+
 	virtual void InitializeImGuiPlatform(Core::Window* window) override;
 	virtual void ShutdownImGuiPlatform() override;
 

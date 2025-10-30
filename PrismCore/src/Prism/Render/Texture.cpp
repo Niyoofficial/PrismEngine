@@ -95,6 +95,11 @@ bool TextureDesc::IsCube() const
 		depthOrArraySize % 6 == 0;
 }
 
+glm::int2 TextureDesc::GetSize() const
+{
+	return {GetWidth(), GetHeight()};
+}
+
 int32_t TextureDesc::GetWidth() const
 {
 	return width;
@@ -178,14 +183,34 @@ Ref<Texture> Texture::Create(const TextureDesc& desc, Buffer* initDataBuffer, Ba
 	return texture;
 }
 
-Ref<Texture> Texture::Create(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish)
+Ref<Texture> Texture::CreateFromFile(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish)
 {
 	return Private::CreateTexture(filepath, loadAsCubemap, waitForLoadFinish);
+}
+
+Ref<Texture> Texture::CreateFromMemory(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap, bool waitForLoadFinish)
+{
+	return Private::CreateTexture(name, imageData, dataSize, loadAsCubemap, waitForLoadFinish);
 }
 
 Ref<TextureView> Texture::CreateView(const TextureViewDesc& desc)
 {
 	return TextureView::Create(desc, this);
+}
+
+Ref<TextureView> Texture::CreateDefaultRTV()
+{
+	return TextureView::Create({.type = TextureViewType::RTV}, this);
+}
+
+Ref<TextureView> Texture::CreateDefaultSRV()
+{
+	return TextureView::Create({.type = TextureViewType::SRV}, this);
+}
+
+Ref<TextureView> Texture::CreateDefaultUAV()
+{
+	return TextureView::Create({.type = TextureViewType::UAV}, this);
 }
 
 void Texture::GenerateMipMaps(RenderContext* context)
@@ -200,7 +225,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 	if (context)
 	{
 		renderContext = context;
-		renderContext->BeginEvent({1.f, 0.f, 1.f}, std::format(L"GenerateMipMaps_{}", GetTextureDesc().textureName));
+		renderContext->BeginEvent(std::format(L"GenerateMipMaps_{}", GetTextureDesc().textureName), {1.f, 0.f, 1.f});
 	}
 	else
 	{
@@ -263,7 +288,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 
 	for (int32_t i = 0; i < GetTextureDesc().GetDepthOrArraySize(); ++i)
 	{
-		renderContext->BeginEvent({}, std::format(L"ArrayIndex_{}", i));
+		renderContext->BeginEvent(std::format(L"ArrayIndex_{}", i), {});
 
 		for (int32_t topMip = 0; topMip < numMipMaps;)
 		{
@@ -282,7 +307,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 			if (topMip + mipsToGenerate > numMipMaps)
 				mipsToGenerate = numMipMaps - topMip;
 
-			renderContext->BeginEvent({}, std::format(L"GenerateLevels {}..{}", topMip + 1, mipsToGenerate + topMip + 1));
+			renderContext->BeginEvent(std::format(L"GenerateLevels {}..{}", topMip + 1, mipsToGenerate + topMip + 1), {});
 
 			// Determine if the first downsample is more than 2:1. This happens whenever
 			// the source width or height is odd.
@@ -298,7 +323,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 			dstWidth = std::max(dstWidth, 1);
 			dstHeight = std::max(dstHeight, 1);
 
-			struct alignas(Constants::CBUFFER_ALIGNMENT) MipMapGenerationInfo
+			struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) MipMapGenerationInfo
 			{
 				uint32_t srcMipLevel;
 				uint32_t numMipLevels;
@@ -323,46 +348,46 @@ void Texture::GenerateMipMaps(RenderContext* context)
 					.data = &info,
 					.sizeInBytes = sizeof(info)
 				});
-			renderContext->SetBuffer(mipMapGenInfoBuffer->CreateDefaultUniformBufferView(), L"g_infoBuffer");
+			renderContext->SetBuffer(L"g_infoBuffer", mipMapGenInfoBuffer->CreateDefaultUniformBufferView());
 
 			if (topMip == 0)
 			{
 				auto srcView = TextureView::Create({
-						.type = TextureViewType::SRV,
-						.dimension = ResourceDimension::Tex2D,
-						.subresourceRange = {
-							.firstArraySlice = i,
-							.numArraySlices = 1
-						}
-					}, this);
-				renderContext->SetTexture(srcView, L"g_srcMip");
+													   .type = TextureViewType::SRV,
+													   .dimension = ResourceDimension::Tex2D,
+													   .subresourceRange = {
+														   .firstArraySlice = i,
+														   .numArraySlices = 1
+													   }
+												   }, this);
+				renderContext->SetTexture(L"g_srcMip", srcView);
 			}
 			else
 			{
 				auto srcView = TextureView::Create({
-					.type = TextureViewType::SRV,
-					.dimension = ResourceDimension::Tex2D,
-					.subresourceRange = {
-							.firstArraySlice = i,
-							.numArraySlices = 1
-						}
-				}, tempTexture);
-				renderContext->SetTexture(srcView, L"g_srcMip");
+													   .type = TextureViewType::SRV,
+													   .dimension = ResourceDimension::Tex2D,
+													   .subresourceRange = {
+														   .firstArraySlice = i,
+														   .numArraySlices = 1
+													   }
+												   }, tempTexture);
+				renderContext->SetTexture(L"g_srcMip", srcView);
 			}
 
 			for (int32_t j = 0; j < mipsToGenerate; ++j)
 			{
 				auto view = TextureView::Create({
-					.type = TextureViewType::UAV,
-					.dimension = ResourceDimension::Tex2D,
-					.subresourceRange = {
-						.firstMipLevel = topMip + j,
-						.numMipLevels = 1,
-						.firstArraySlice = i,
-						.numArraySlices = 1
-					}
-				}, tempTexture);
-				renderContext->SetTexture(view, std::wstring(L"g_outMip") + std::to_wstring(j + 1));
+													.type = TextureViewType::UAV,
+													.dimension = ResourceDimension::Tex2D,
+													.subresourceRange = {
+														.firstMipLevel = topMip + j,
+														.numMipLevels = 1,
+														.firstArraySlice = i,
+														.numArraySlices = 1
+													}
+												}, tempTexture);
+				renderContext->SetTexture(std::wstring(L"g_outMip") + std::to_wstring(j + 1), view);
 			}
 
 			renderContext->Dispatch({dstWidth, dstHeight, 1});
@@ -410,7 +435,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 		}*/
 	});
 
-	context->BeginEvent({}, L"MipMapCopy");
+	context->BeginEvent(L"MipMapCopy", {});
 	for (int32_t i = 0; i < GetTextureDesc().GetDepthOrArraySize(); ++i)
 	{
 		for (int32_t j = 0; j < numMipMaps; ++j)

@@ -22,10 +22,10 @@
 				"sdl3-binding"
 			]
 		},
+		"imguizmo",
 		"winpixevent",
 		"xxhash",
-		"yaml-cpp",
-		"entt"
+		"yaml-cpp"
 	],
 	"overrides": [
 		{

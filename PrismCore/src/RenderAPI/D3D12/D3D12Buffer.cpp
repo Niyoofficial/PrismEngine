@@ -13,7 +13,7 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc)
 	DISABLE_DESTRUCTION_SCOPE_GUARD(this);
 
 	if (m_originalDesc.bindFlags.HasAllFlags(BindFlags::UniformBuffer))
-		m_originalDesc.size = Align(m_originalDesc.size, Constants::CBUFFER_ALIGNMENT);
+		m_originalDesc.size = Align(m_originalDesc.size, Constants::UNIFORM_BUFFER_ALIGNMENT);
 
 	if (desc.usage == ResourceUsage::Default)
 	{
@@ -36,8 +36,19 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc)
 	{
 		PE_ASSERT(desc.cpuAccess != CPUAccess::None);
 
-		auto heapType = desc.cpuAccess == CPUAccess::Write ? D3D12_HEAP_TYPE_UPLOAD : D3D12_HEAP_TYPE_READBACK;
-		auto heapProps = CD3DX12_HEAP_PROPERTIES(heapType);
+		CD3DX12_HEAP_PROPERTIES heapProps;
+		if (desc.cpuAccess == CPUAccess::Write)
+		{
+			// TODO: This should probably also be a custom heap when trying to use this buffer as unordered access
+			heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_UPLOAD);
+		}
+		else if (desc.cpuAccess == CPUAccess::Read)
+		{
+			if (desc.bindFlags.HasAnyFlags(BindFlags::UnorderedAccess))
+				heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_CPU_PAGE_PROPERTY_WRITE_BACK, D3D12_MEMORY_POOL_L0);
+			else
+				heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_READBACK);
+		}
 		auto bufferDesc = CD3DX12_RESOURCE_DESC1::Buffer(
 			m_originalDesc.size,
 			GetD3D12ResourceFlags(m_originalDesc.bindFlags));

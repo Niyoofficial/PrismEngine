@@ -50,6 +50,7 @@ public:
 	const D3D12PipelineStateCache& GetPipelineStateCache() const;
 
 	DescriptorHeapAllocation AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t count = 1);
+	DescriptorHeapAllocation AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, HeapDeviceType deviceType, int32_t count = 1);
 
 	std::array<ID3D12DescriptorHeap*, 2> GetGPUDescriptorHeaps() const;
 
@@ -62,7 +63,7 @@ public:
 	virtual void ShutdownImGui() override;
 
 private:
-#if PE_USE_PIX
+#if USE_PIX
 	HMODULE m_pixGpuCaptureModule = {};
 	HMODULE m_pixTimingCaptureModule = {};
 #endif

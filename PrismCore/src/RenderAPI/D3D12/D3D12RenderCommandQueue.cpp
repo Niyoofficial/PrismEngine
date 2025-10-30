@@ -4,7 +4,7 @@
 #include "RenderAPI/D3D12/D3D12RenderCommandList.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 
-#if PE_USE_PIX
+#if USE_PIX
 #include "pix3.h"
 #endif
 
@@ -25,21 +25,21 @@ D3D12RenderCommandQueue::D3D12RenderCommandQueue()
 
 void D3D12RenderCommandQueue::SetMarker(glm::float3 color, std::wstring string)
 {
-#if PE_USE_PIX
+#if USE_PIX
 	PIXSetMarker(m_d3d12CommandQueue.Get(), PIX_COLOR(color.r * 255, color.g * 255, color.b * 255), string.c_str());
 #endif
 }
 
 void D3D12RenderCommandQueue::BeginEvent(glm::float3 color, std::wstring string)
 {
-#if PE_USE_PIX
+#if USE_PIX
 	PIXBeginEvent(m_d3d12CommandQueue.Get(), PIX_COLOR(color.r * 255, color.g * 255, color.b * 255), string.c_str());
 #endif
 }
 
 void D3D12RenderCommandQueue::EndEvent()
 {
-#if PE_USE_PIX
+#if USE_PIX
 	PIXEndEvent(m_d3d12CommandQueue.Get());
 #endif
 }

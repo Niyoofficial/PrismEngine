@@ -1,6 +1,4 @@
 ﻿#pragma once
-#include "Prism/Base/AppEvents.h"
-#include "Prism/Base/AppEvents.h"
 #include "Prism/Render/RenderCommandList.h"
 #include "Prism/Render/RenderResourceView.h"
 #include "RenderAPI/D3D12/D3D12Base.h"
@@ -21,6 +19,8 @@ public:
 	virtual void SetPSO(const GraphicsPipelineStateDesc& desc) override;
 	virtual void SetPSO(const ComputePipelineStateDesc& desc) override;
 
+	virtual void SetStencilRef(uint32_t ref) override;
+
 	virtual void SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv) override;
 
 	virtual void SetViewports(std::vector<Viewport> viewports) override;
@@ -30,10 +30,14 @@ public:
 	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) override;
 
 	virtual void SetTexture(TextureView* textureView, const std::wstring& paramName) override;
+	virtual void SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName) override;
 	virtual void SetBuffer(BufferView* bufferView, const std::wstring& paramName) override;
+	virtual void SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName) override;
 
 	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor) override;
 	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue) override;
+	virtual void ClearUnorderedAccessView(TextureView* uav, glm::float4 values) override;
+	virtual void ClearUnorderedAccessView(TextureView* uav, glm::uint4 values) override;
 
 	virtual void Barrier(BufferBarrier barrier) override;
 	virtual void Barrier(TextureBarrier barrier) override;
@@ -68,10 +72,10 @@ private:
 	GraphicsPipelineStateDesc m_currentGraphicsPSO = {};
 	ComputePipelineStateDesc m_currentComputePSO = {};
 
-	std::vector<TextureView*> m_renderTargetViews;
-	TextureView* m_depthStencilView;
+	std::vector<Ref<TextureView>> m_renderTargetViews;
+	Ref<TextureView> m_depthStencilView;
 
-	std::unordered_map<std::wstring, Ref<RenderResourceView>> m_rootResources;
+	std::unordered_map<std::wstring, std::vector<Ref<RenderResourceView>>> m_rootResources;
 	std::vector<Ref<RenderResourceView>> m_overriddenRootResources;
 	std::vector<DescriptorHeapAllocation> m_dynamicDescriptors;
 };

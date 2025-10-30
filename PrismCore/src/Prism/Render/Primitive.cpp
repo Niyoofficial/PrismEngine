@@ -46,7 +46,7 @@ void Primitive::SetVertices(int64_t vertexSize, void* vertexBuffer, int64_t vert
 		});
 }
 
-void Primitive::SetBounds(Bounds3F bounds)
+void Primitive::SetBounds(Bounds3f bounds)
 {
 	m_bounds = bounds;
 }
@@ -84,7 +84,7 @@ void Primitive::DrawPrimitive(RenderContext* renderContext, void* uniformBufferD
 		void* data = m_primitiveUniformBuffer->Map(CPUAccess::Write);
 		memcpy_s(data, m_primitiveUniformBuffer->GetBufferDesc().size, uniformBufferData, dataSize);
 		m_primitiveUniformBuffer->Unmap();
-		renderContext->SetBuffer(m_primitiveUniformBufferView, m_primitiveParamName);
+		renderContext->SetBuffer(m_primitiveParamName, m_primitiveUniformBufferView);
 	}
 
 	renderContext->SetVertexBuffer(m_vertexBuffer, m_vertexSize);

@@ -10,7 +10,7 @@
 #include "stb_image.h"
 #include "Prism/Render/RenderCommandQueue.h"
 
-#if PE_USE_PIX
+#if USE_PIX
 #include "pix3.h"
 #endif
 
@@ -50,7 +50,11 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 
 		float* loadedData = stbi_loadf(WStringToString(filepath).c_str(), &width, &height, &channels, 4);
 
-		PE_ASSERT(loadedData);
+		if (!loadedData)
+		{
+			PE_RENDER_LOG(Error, "Could not load texture from filepath {}", WStringToString(filepath));
+			return;
+		}
 
 		m_originalDesc = {
 			.textureName = filepath,
@@ -104,34 +108,42 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 			.usage = ResourceUsage::Default
 		};
 
-		ID3D12Device10* d3d12Device = D3D12RenderDevice::Get().GetD3D12Device();
+		auto* d3d12Device = D3D12RenderDevice::Get().GetD3D12Device();
 
 		auto func =
 			[loadAsCubemap, d3d12Device, filepath, this]()
 			{
-#if PE_USE_PIX
+#if USE_PIX
 				// This will show up in the PIX event viewer incorrectly because its called asynchronously,
 				// it'd work correctly if the event was called on the cmd list, but we cannot access is from ResourceUploadBatch
 				// and I want to keep this function async since CreateWICTextureFromFileEx can take a while
-				PIXBeginEvent(D3D12RenderDevice::Get().GetD3D12CommandQueue(), PIX_COLOR(0, 0, 0), std::format(L"LoadWICImage_{}", filepath).c_str());
+				PIXBeginEvent(D3D12RenderDevice::Get().GetD3D12CommandQueue(), PIX_COLOR(0, 0, 0), std::format(L"LoadWICImageFromFile_{}", filepath).c_str());
 #endif
 
 				DX::ResourceUploadBatch batch(d3d12Device);
 				batch.Begin();
-				PE_ASSERT_HR(DX::CreateWICTextureFromFileEx(d3d12Device, batch, filepath.c_str(), 0,
-					D3D12_RESOURCE_FLAG_NONE, DX::WIC_LOADER_FORCE_RGBA32 | DX::WIC_LOADER_MIP_AUTOGEN, &m_resource));
-				batch.End(D3D12RenderDevice::Get().GetD3D12CommandQueue()).wait_for(std::chrono::seconds(0));
+				auto hr = DX::CreateWICTextureFromFileEx(d3d12Device, batch, filepath.c_str(), 0,
+					D3D12_RESOURCE_FLAG_NONE, DX::WIC_LOADER_FORCE_RGBA32 | DX::WIC_LOADER_MIP_AUTOGEN, &m_resource);
+				batch.End(D3D12RenderDevice::Get().GetD3D12CommandQueue()).wait();
 
-#if PE_USE_PIX
+#if USE_PIX
 				PIXEndEvent(D3D12RenderDevice::Get().GetD3D12CommandQueue());
 #endif
 
-				PE_ASSERT(m_resource);
+				if (SUCCEEDED(hr))
+				{
+					PE_ASSERT(m_resource);
 
-				auto resDesc = m_resource->GetDesc();
-				PE_ASSERT(!loadAsCubemap || resDesc.DepthOrArraySize == 6, "Cubemaps must have an array size of 6");
+					auto resDesc = m_resource->GetDesc();
+					PE_ASSERT(!loadAsCubemap || resDesc.DepthOrArraySize == 6, "Cubemaps must have an array size of 6");
 
-				m_originalDesc = D3D12::GetTextureDesc(resDesc, filepath, ResourceUsage::Default, {}, loadAsCubemap);
+					m_originalDesc = D3D12::GetTextureDesc(resDesc, filepath, ResourceUsage::Default, {}, loadAsCubemap);
+				}
+				else
+				{
+					PE_RENDER_LOG(Error, "Could not load texture from filepath {} Error: {} {}", WStringToString(filepath), hr, WStringToString(GetHResultMessage(hr)));
+					return;
+				}
 			};
 
 		if (waitForLoadFinish)
@@ -139,6 +151,51 @@ D3D12Texture::D3D12Texture(std::wstring filepath, bool loadAsCubemap, bool waitF
 		else
 			m_loadFuture = std::async(std::launch::async, func);
 	}
+}
+
+D3D12Texture::D3D12Texture(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap, bool waitForLoadFinish)
+{
+	m_originalDesc = {
+		.textureName = name,
+		.format = TextureFormat::RGBA32_Float,
+		.bindFlags = BindFlags::ShaderResource,
+		.usage = ResourceUsage::Default
+	};
+
+	ID3D12Device10* d3d12Device = D3D12RenderDevice::Get().GetD3D12Device();
+
+	auto func =
+		[loadAsCubemap, d3d12Device, name, imageData, dataSize, this]()
+		{
+#if USE_PIX
+			// This will show up in the PIX event viewer incorrectly because its called asynchronously,
+			// it'd work correctly if the event was called on the cmd list, but we cannot access is from ResourceUploadBatch
+			// and I want to keep this function async since CreateWICTextureFromFileEx can take a while
+			PIXBeginEvent(D3D12RenderDevice::Get().GetD3D12CommandQueue(), PIX_COLOR(0, 0, 0), std::format(L"LoadWICImageFromMemory_{}", name).c_str());
+#endif
+
+			DX::ResourceUploadBatch batch(d3d12Device);
+			batch.Begin();
+			PE_ASSERT_HR(DX::CreateWICTextureFromMemoryEx(d3d12Device, batch, (uint8_t*)imageData, dataSize, 0,
+				D3D12_RESOURCE_FLAG_NONE, DX::WIC_LOADER_FORCE_RGBA32 | DX::WIC_LOADER_MIP_AUTOGEN, &m_resource));
+			batch.End(D3D12RenderDevice::Get().GetD3D12CommandQueue()).wait_for(std::chrono::seconds(0));
+
+#if USE_PIX
+			PIXEndEvent(D3D12RenderDevice::Get().GetD3D12CommandQueue());
+#endif
+
+			PE_ASSERT(m_resource);
+
+			auto resDesc = m_resource->GetDesc();
+			PE_ASSERT(!loadAsCubemap || resDesc.DepthOrArraySize == 6, "Cubemaps must have an array size of 6");
+
+			m_originalDesc = D3D12::GetTextureDesc(resDesc, name, ResourceUsage::Default, {}, loadAsCubemap);
+		};
+
+	if (waitForLoadFinish)
+		func();
+	else
+		m_loadFuture = std::async(std::launch::async, func);
 }
 
 D3D12Texture::D3D12Texture(ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage,

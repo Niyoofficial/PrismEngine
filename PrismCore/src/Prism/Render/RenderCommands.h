@@ -222,6 +222,22 @@ DEFINE_RENDER_COMMAND(SetTextureRenderCommand)
 	std::wstring paramName = {};
 };
 
+DEFINE_RENDER_COMMAND(SetTexturesRenderCommand)
+{
+	SetTexturesRenderCommand(const std::vector<Ref<TextureView>>& inTextureViews, const std::wstring& inParamName)
+		: textureViews(inTextureViews), paramName(inParamName)
+	{
+	}
+
+	void Execute(RenderCommandList* cmdList)
+	{
+		cmdList->SetTextures(textureViews, paramName);
+	}
+
+	std::vector<Ref<TextureView>> textureViews;
+	std::wstring paramName = {};
+};
+
 DEFINE_RENDER_COMMAND(SetBufferRenderCommand)
 {
 	SetBufferRenderCommand(BufferView* inBufferView, const std::wstring& inParamName)
@@ -235,6 +251,22 @@ DEFINE_RENDER_COMMAND(SetBufferRenderCommand)
 	}
 
 	Ref<BufferView> bufferView;
+	std::wstring paramName = {};
+};
+
+DEFINE_RENDER_COMMAND(SetBuffersRenderCommand)
+{
+	SetBuffersRenderCommand(const std::vector<Ref<BufferView>>& inBufferViews, const std::wstring& inParamName)
+		: bufferViews(inBufferViews), paramName(inParamName)
+	{
+	}
+
+	void Execute(RenderCommandList* cmdList)
+	{
+		cmdList->SetBuffers(bufferViews, paramName);
+	}
+
+	std::vector<Ref<BufferView>> bufferViews;
 	std::wstring paramName = {};
 };
 

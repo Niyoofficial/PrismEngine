@@ -34,7 +34,7 @@ void Material::SetTexture(const std::wstring& paramName, Ref<TextureView> textur
 void Material::SetDynamicData(const std::wstring& paramName, void* data, int64_t size)
 {
 	PE_ASSERT(data);
-	PE_ASSERT(size > 0 && size == Align(size, Constants::CBUFFER_ALIGNMENT));
+	PE_ASSERT(size > 0 && size == Align(size, Constants::UNIFORM_BUFFER_ALIGNMENT));
 
 	if (!m_params.contains(paramName))
 	{
@@ -115,19 +115,19 @@ void Material::BindMaterial(RenderContext* renderContext)
 			if (resourceView->GetResourceType() == ResourceType::Texture)
 			{
 				auto* textureView = resourceView->GetSubType<TextureView>();
-				renderContext->SetTexture(textureView, name);
+				renderContext->SetTexture(name, textureView);
 			}
 			else if (resourceView->GetResourceType() == ResourceType::Buffer)
 			{
 				auto* bufferView = resourceView->GetSubType<BufferView>();
-				renderContext->SetBuffer(bufferView, name);
+				renderContext->SetBuffer(name, bufferView);
 			}
 		}
 		else if (std::holds_alternative<DynamicDataInfo>(param))
 		{
 			auto& dataInfo = std::get<DynamicDataInfo>(param);
 			PE_ASSERT(dataInfo.view);
-			renderContext->SetBuffer(dataInfo.view, name);
+			renderContext->SetBuffer(name, dataInfo.view);
 		}
 		else
 		{

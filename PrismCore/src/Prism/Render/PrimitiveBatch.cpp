@@ -13,7 +13,7 @@ PrimitiveBatch::PrimitiveBatch(const std::wstring& primitiveBatchName)
 void PrimitiveBatch::AddPrimitive(int64_t vertexSize, IndexBufferFormat indexFormat,
 								  void* vertexBuffer, int64_t vertexCount, void* indexBuffer, int64_t indexCount,
 								  std::wstring primitiveBufferParamName, int64_t primitiveBufferSize,
-								  const Material& material, Bounds3F bounds)
+								  const Material& material, Bounds3f bounds)
 {
 	Ref primitive = new Primitive(m_primitiveBatchName);
 	primitive->SetBounds(bounds);

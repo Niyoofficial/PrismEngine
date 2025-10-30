@@ -85,11 +85,11 @@ void D3D12BufferView::BuildDynamicDescriptor(CD3DX12_CPU_DESCRIPTOR_HANDLE d3d12
 
 		auto d3d12ViewDesc = GetD3D12ConstantBufferViewDesc(
 			D3D12RenderDevice::Get().GetD3D12ResourceForDynamicAllocation(allocation.ringBufferID),
-			{
-				.type = m_viewDesc.type,
-				.offset = allocation.gpuRingAllocation.offset + m_viewDesc.offset,
-				.size = m_viewDesc.size
-			});
+				{
+					.type = m_viewDesc.type,
+					.offset = allocation.gpuRingAllocation.offset + m_viewDesc.offset,
+					.size = m_viewDesc.size
+				});
 		D3D12RenderDevice::Get().GetD3D12Device()->CreateConstantBufferView(&d3d12ViewDesc, d3d12DescriptorHandle);
 	}
 }

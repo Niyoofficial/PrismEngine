@@ -484,8 +484,8 @@ struct DepthStencilStateDesc
 	ComparisionFunction depthFunc = ComparisionFunction::Less;
 
 	bool stencilEnable = false;
-	uint8_t stencilReadMask = 0;
-	uint8_t stencilWriteMask = 0;
+	uint8_t stencilReadMask = 0xff;
+	uint8_t stencilWriteMask = 0xff;
 	DepthStencilOperationDesc frontFace;
 	DepthStencilOperationDesc backFace;
 };
@@ -1039,5 +1039,23 @@ struct std::hash<Prism::Render::DepthStencilStateDesc>
 			std::hash<uint8_t>()(desc.stencilWriteMask) ^
 			std::hash<DepthStencilOperationDesc>()(desc.frontFace) ^
 			std::hash<DepthStencilOperationDesc>()(desc.backFace);
+	}
+};
+
+template<>
+struct std::hash<Prism::Render::SubresourceRange>
+{
+	size_t operator()(const Prism::Render::SubresourceRange& desc) const noexcept
+	{
+#ifdef PE_BUILD_DEBUG
+		static_assert(sizeof(desc) == 16,
+			"If new field was added, add it to the hash function and update this assert");
+#endif
+
+		return
+			std::hash<int32_t>()(desc.firstMipLevel) ^
+			std::hash<int32_t>()(desc.numMipLevels) ^
+			std::hash<int32_t>()(desc.firstArraySlice) ^
+			std::hash<int32_t>()(desc.numArraySlices);
 	}
 };

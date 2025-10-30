@@ -26,7 +26,7 @@ struct Bounds
 		max = glm::max(max, other);
 	}
 
-	float GetRadius()
+	float GetRadius() const
 	{
 		return glm::max(glm::length(min), glm::length(max));
 	}
@@ -35,6 +35,6 @@ struct Bounds
 	T max = std::numeric_limits<T>::min();
 };
 
-using Bounds3I = Bounds<glm::int3>;
-using Bounds3F = Bounds<glm::float3>;
+using Bounds3i = Bounds<glm::int3>;
+using Bounds3f = Bounds<glm::float3>;
 }

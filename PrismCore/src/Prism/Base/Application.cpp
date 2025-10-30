@@ -1,7 +1,7 @@
 #include "pcpch.h"
 #include "Application.h"
 
-#include "Prism/Render/PrismImGui.h"
+#include "Base.h"
 #include "Prism/Base/Platform.h"
 #include "Prism/Render/Layer.h"
 #include "Prism/Render/RenderCommandQueue.h"
@@ -149,6 +149,7 @@ void Application::ImGuiNewFrame()
 	Render::RenderDevice::Get().ImGuiNewFrame();
 	Platform::Get().ImGuiNewFrame();
 	ImGui::NewFrame();
+	ImGuizmo::BeginFrame();
 }
 
 void Application::InitPlatform()

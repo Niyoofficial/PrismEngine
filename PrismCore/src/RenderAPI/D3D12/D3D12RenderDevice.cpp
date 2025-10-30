@@ -7,7 +7,7 @@
 #include "RenderAPI/D3D12/D3D12Texture.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 
-#if PE_USE_PIX
+#if USE_PIX
 #include "pix3.h"
 #endif
 
@@ -44,7 +44,7 @@ D3D12RenderDevice* D3D12RenderDevice::TryGet()
 D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	: RenderDevice(params)
 {
-#if PE_USE_PIX
+#if USE_PIX
 	if (params.initPixLibrary)
 	{
 		// In order to use pix library include wrl/client.h and pix3.h after it
@@ -79,11 +79,6 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	PE_ASSERT_HR(CreateDXGIFactory2(dxgiFactoryFlags, IID_PPV_ARGS(&m_dxgiFactory)));
 
 	DXGI_ADAPTER_DESC1 desc;
-	if (SUCCEEDED(m_dxgiFactory->EnumAdapterByGpuPreference(0, DXGI_GPU_PREFERENCE_HIGH_PERFORMANCE, IID_PPV_ARGS(&m_dxgiAdapter))))
-	{
-		PE_ASSERT_HR(m_dxgiAdapter->GetDesc1(&desc));
-	}
-	else
 	{
 		uint32_t adapter = 0;
 		SIZE_T maxDedicatedVideoMemory = 0;
@@ -103,6 +98,7 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 
 		PE_ASSERT_HR(m_dxgiAdapter->GetDesc1(&desc));
 	}
+
 	PE_ASSERT(m_dxgiAdapter, "Could not find a suitable GPU to render the application");
 	PE_RENDER_LOG(Info, "Selected GPU for rendering: {}", WStringToString(std::wstring(desc.Description)));
 
@@ -151,6 +147,8 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 
 	m_cpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_RTV, D3D12_DESCRIPTOR_HEAP_TYPE_RTV, Constants::DESCRIPTOR_COUNT_PER_CPU_HEAP);
 	m_cpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_DSV, D3D12_DESCRIPTOR_HEAP_TYPE_DSV, Constants::DESCRIPTOR_COUNT_PER_CPU_HEAP);
+	// This heap is required by the ClearUnorderedAccessView* functions
+	m_cpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Constants::DESCRIPTOR_COUNT_PER_CPU_HEAP);
 
 	m_gpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, Constants::DESCRIPTOR_COUNT_PER_GPU_HEAP);
 	m_gpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, Constants::DESCRIPTOR_COUNT_PER_GPU_SAMPLER_HEAP);
@@ -162,7 +160,7 @@ D3D12RenderDevice::~D3D12RenderDevice()
 {
 	D3D12RenderDevice::ReleaseStaleResources();
 
-#if PE_USE_PIX
+#if USE_PIX
 	FreeLibrary(m_pixGpuCaptureModule);
 	FreeLibrary(m_pixTimingCaptureModule);
 #endif
@@ -264,10 +262,27 @@ DescriptorHeapAllocation D3D12RenderDevice::AllocateDescriptors(D3D12_DESCRIPTOR
 {
 	if (type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV || type == D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER)
 	{
+		return AllocateDescriptors(type, HeapDeviceType::GPU, count);
+	}
+	else if (type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
+	{
+		return AllocateDescriptors(type, HeapDeviceType::CPU, count);
+	}
+	else
+	{
+		PE_ASSERT_NO_ENTRY();
+		return {};
+	}
+}
+
+DescriptorHeapAllocation D3D12RenderDevice::AllocateDescriptors(D3D12_DESCRIPTOR_HEAP_TYPE type, HeapDeviceType deviceType, int32_t count)
+{
+	if (deviceType == HeapDeviceType::GPU)
+	{
 		PE_ASSERT(m_gpuDescriptorHeapManagers.contains(type));
 		return m_gpuDescriptorHeapManagers.at(type).Allocate(count);
 	}
-	else if (type == D3D12_DESCRIPTOR_HEAP_TYPE_RTV || type == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
+	else if (deviceType == HeapDeviceType::CPU)
 	{
 		PE_ASSERT(m_cpuDescriptorHeapManagers.contains(type));
 		return m_cpuDescriptorHeapManagers.at(type).Allocate(count);

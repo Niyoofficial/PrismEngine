@@ -1,7 +1,5 @@
 ﻿#pragma once
 
-#include "Prism/Base/AppEvents.h"
-#include "Prism/Base/AppEvents.h"
 #include "Prism/Render/DeferredCommandRecorder.h"
 #include "Prism/Render/RenderCommandList.h"
 #include "Prism/Utilities/PreservingObjectContainer.h"
@@ -27,6 +25,8 @@ public:
 	void SetPSO(const GraphicsPipelineStateDesc& pso);
 	void SetPSO(const ComputePipelineStateDesc& pso);
 
+	void SetStencilRef(uint32_t ref);
+
 	void SetRenderTarget(TextureView* rtv, TextureView* dsv);
 	void SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv);
 	void SetViewport(Viewport viewport);
@@ -37,11 +37,21 @@ public:
 	void SetVertexBuffer(Buffer* buffer, int64_t vertexSizeInBytes);
 	void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format);
 
-	void SetTexture(TextureView* textureView, const std::wstring& paramName);
-	void SetBuffer(BufferView* bufferView, const std::wstring& paramName);
+	void SetTexture(const std::wstring& paramName, TextureView* textureView);
+	void SetTextures(const std::wstring& paramName, const std::vector<Ref<TextureView>>& textureViews);
+	void SetBuffer(const std::wstring& paramName, BufferView* bufferView);
+	void SetBuffers(const std::wstring& paramName, const std::vector<Ref<BufferView>>& bufferViews);
+	void SetUniformBuffer(const std::wstring& paramName, void* data, int64_t size);
+	template<typename T>
+	void SetUniformBuffer(const std::wstring& paramName, T&& data)
+	{
+		SetUniformBuffer(paramName, &std::forward<T>(data), sizeof(T));
+	}
 
 	void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr);
 	void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr);
+	void ClearUnorderedAccessView(TextureView* uav, glm::float4 values);
+	void ClearUnorderedAccessView(TextureView* uav, glm::uint4 values);
 
 	void Barrier(BufferBarrier barrier);
 	void Barrier(TextureBarrier barrier);
@@ -61,8 +71,8 @@ public:
 
 	void RenderImGui();
 
-	void SetMarker(glm::float3 color, std::wstring string);
-	void BeginEvent(glm::float3 color, std::wstring string);
+	void SetMarker(std::wstring string, glm::float3 color = {});
+	void BeginEvent(std::wstring string, glm::float3 color = {});
 	void EndEvent();
 
 
@@ -87,5 +97,34 @@ private:
 	PreservingObjectContainer m_preservedResources;
 
 	std::vector<std::function<void()>> m_gpuCompletionCallbacks;
+
+	std::unordered_map<std::wstring, Ref<Buffer>> m_uniformBuffers;
 };
+
+namespace Private
+{
+	struct ScopedRenderEvent
+	{
+		ScopedRenderEvent(RenderContext* context, std::wstring string, glm::float3 color = {})
+			: m_context(context)
+		{
+			PE_ASSERT(context);
+			m_context->BeginEvent(string, color);
+		}
+		~ScopedRenderEvent()
+		{
+			m_context->EndEvent();
+		}
+
+		ScopedRenderEvent(const ScopedRenderEvent&) = delete;
+		ScopedRenderEvent(ScopedRenderEvent&&) = delete;
+		bool operator=(const ScopedRenderEvent&) const = delete;
+		bool operator=(ScopedRenderEvent&&) const = delete;
+
+	private:
+		Ref<RenderContext> m_context = nullptr;
+	};
 }
+}
+
+#define SCOPED_RENDER_EVENT(context, string, ...) const auto PREPROCESSOR_JOIN(scopedRenderEvent_, __LINE__) = ::Prism::Render::Private::ScopedRenderEvent(context, string __VA_OPT__(,) __VA_ARGS__)

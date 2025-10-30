@@ -8,7 +8,9 @@
 #include "SDL3/SDL_timer.h"
 
 #include "imgui_impl_sdl3.h"
+#include "Platform/SDL/SDLWindow.h"
 #include "Prism/Base/Window.h"
+#include "SDL3/SDL_dialog.h"
 
 
 namespace Prism::SDL
@@ -426,6 +428,54 @@ Core::DisplayInfo SDLPlatform::GetDisplayInfo(uint32_t displayID)
 uint32_t SDLPlatform::GetPrimaryDisplayID()
 {
 	return SDL_GetPrimaryDisplay();
+}
+
+struct SDLShowOpenFileDialogCallbackData
+{
+	std::function<void(std::vector<std::string>, int32_t)> callback;
+	std::vector<SDL_DialogFileFilter> sdlFilters;
+};
+
+void SDLShowOpenFileDialogCallback(void* userdata, const char* const* sdlFileList, int filter)
+{
+	auto* data = static_cast<SDLShowOpenFileDialogCallbackData*>(userdata);
+
+	ON_SCOPE_EXIT
+	{
+		delete data;
+	};
+
+	if (!sdlFileList)
+	{
+		PE_CORE_LOG(Error, "{}", SDL_GetError());
+		return;
+	}
+
+	std::vector<std::string> fileList;
+	while (*sdlFileList)
+	{
+		fileList.push_back(*sdlFileList);
+		++sdlFileList;
+	}
+
+	data->callback(fileList, filter);
+}
+
+void SDLPlatform::OpenFileDialog(const std::function<void(std::vector<std::string>, int32_t)>& callback,
+								 Core::Window* window, const std::vector<Core::DialogFileFilter>& filters,
+								 const std::string& defaultLocation, bool allowMany)
+{
+	auto* data = new SDLShowOpenFileDialogCallbackData;
+	data->callback = callback;
+	for (const auto& [name, pattern] : filters)
+		data->sdlFilters.emplace_back(name, pattern);
+
+	SDL_Window* sdlWindow = nullptr;
+	if (window)
+		sdlWindow = std::any_cast<SDL_Window*>(window->GetNativeWindow());
+
+	SDL_ShowOpenFileDialog(&SDLShowOpenFileDialogCallback, data, sdlWindow,
+						   data->sdlFilters.data(), data->sdlFilters.size(), defaultLocation.c_str(), allowMany);
 }
 
 void SDLPlatform::InitializeImGuiPlatform(Core::Window* window)

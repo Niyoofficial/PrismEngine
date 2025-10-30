@@ -10,10 +10,10 @@ public:
 	explicit Primitive(const std::wstring& primitiveName);
 
 	void SetVertices(int64_t vertexSize, void* vertexBuffer, int64_t vertexCount, IndexBufferFormat indexFormat, void* indexBuffer, int64_t indexCount);
-	void SetBounds(Bounds3F bounds);
+	void SetBounds(Bounds3f bounds);
 	void SetPrimitiveUniformBuffer(std::wstring bufferParamName, int64_t bufferSize);
 
-	Bounds3F GetBounds() const { return m_bounds; }
+	Bounds3f GetBounds() const { return m_bounds; }
 
 	void DrawPrimitive(RenderContext* renderContext, void* uniformBufferData, int64_t dataSize, Material material, bool bBindMaterial = true);
 
@@ -25,7 +25,7 @@ protected:
 
 	IndexBufferFormat m_indexFormat = IndexBufferFormat::Unknown;
 	Ref<Buffer> m_indexBuffer;
-	Bounds3F m_bounds;
+	Bounds3f m_bounds;
 
 	Ref<Buffer> m_primitiveUniformBuffer;
 	Ref<BufferView> m_primitiveUniformBufferView;

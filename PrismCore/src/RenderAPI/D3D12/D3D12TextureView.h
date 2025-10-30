@@ -19,11 +19,13 @@ public:
 	void BuildDynamicDescriptor(CD3DX12_CPU_DESCRIPTOR_HANDLE d3d12DescriptorHandle);
 
 	const DescriptorHeapAllocation& GetDescriptor() const { return m_descriptor; }
+	const DescriptorHeapAllocation& GetUavCpuDescriptor() const { return m_uavCpuDescriptor; }
 
 	D3D12_DESCRIPTOR_HEAP_TYPE GetDescriptorHeapType() const;
 
 private:
 	TextureViewDesc m_viewDesc;
 	DescriptorHeapAllocation m_descriptor;
+	DescriptorHeapAllocation m_uavCpuDescriptor;
 };
 }

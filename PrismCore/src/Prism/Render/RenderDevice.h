@@ -2,6 +2,7 @@
 #include "Prism/Render/ReleaseQueue.h"
 #include "Prism/Render/RenderContext.h"
 #include "Prism/Render/ShaderCompiler.h"
+#include "Prism/Render/VertexBufferCache.h"
 #include "Prism/Utilities/StaticSingleton.h"
 
 
@@ -63,6 +64,9 @@ public:
 
 	ShaderCompiler* GetShaderCompiler() const { return m_shaderCompiler.get(); }
 
+	const VertexBufferCache& GetVertexBufferCache() const { return m_vertexBufferCache; }
+	VertexBufferCache& GetVertexBufferCache() { return m_vertexBufferCache; }
+
 	template<typename T>
 	void AddResourceToReleaseQueue(T&& resource, uint64_t fenceValue)
 	{
@@ -97,5 +101,7 @@ protected:
 	ReleaseQueueAny m_releaseQueue;
 
 	bool m_bypassCommandRecording = false;
+
+	VertexBufferCache m_vertexBufferCache;
 };
 }

@@ -96,6 +96,7 @@ private:
 template<typename T>
 class Ref
 {
+	template<typename U> friend class Ref;
 public:
 	Ref() = default;
 	Ref(T* object)
@@ -160,7 +161,7 @@ public:
 		return *this;
 	}
 
-	Ref& operator=(Ref<T>&& otherRef)
+	Ref& operator=(Ref<T>&& otherRef) noexcept
 	{
 		if (m_object != otherRef.m_object)
 			Attach(otherRef.Detach());
@@ -231,6 +232,7 @@ private:
 template<typename T>
 class WeakRef
 {
+	template<typename U> friend class Ref;
 public:
 	WeakRef() = default;
 
@@ -250,8 +252,13 @@ public:
 	T& operator*() { return *m_object; }
 	const T& operator*() const { return *m_object; }
 
+	bool operator!() const noexcept { return m_object == nullptr; }
+	template<typename T2> requires std::is_base_of_v<T, T2>
+	bool operator==(const WeakRef<T2>& otherRef) const noexcept { return m_object == otherRef.m_object; }
+	template<typename T2> requires std::is_base_of_v<T, T2>
+	bool operator!=(const WeakRef<T2>& otherRef) const noexcept { return m_object != otherRef.m_object; }
+
 	bool IsValid() const { return m_object ? ReferenceManager::IsAlive(m_object) : false; }
-	operator bool() const { return IsValid(); }
 
 	T* Raw() const { return m_object; }
 

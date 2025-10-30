@@ -58,12 +58,19 @@ D3D12TextureView::D3D12TextureView(TextureViewDesc desc, Texture* texture)
 		break;
 	case TextureViewType::UAV:
 		{
-		auto d3d12ViewDesc = GetD3D12UnorderedAccessViewDesc(m_viewDesc);
+			auto d3d12ViewDesc = GetD3D12UnorderedAccessViewDesc(m_viewDesc);
 
-		D3D12RenderDevice::Get().GetD3D12Device()->CreateUnorderedAccessView(
-			static_cast<D3D12Texture*>(m_owningTexture.Raw())->GetD3D12Resource(),
-			nullptr,
-			&d3d12ViewDesc, m_descriptor.GetCPUHandle());
+			D3D12RenderDevice::Get().GetD3D12Device()->CreateUnorderedAccessView(
+				static_cast<D3D12Texture*>(m_owningTexture.Raw())->GetD3D12Resource(),
+				nullptr,
+				&d3d12ViewDesc, m_descriptor.GetCPUHandle());
+
+			// Additional descriptor for ClearUnorderedAccessView* funtions
+			m_uavCpuDescriptor = D3D12RenderDevice::Get().AllocateDescriptors(GetD3D12DescriptorHeapType(m_viewDesc.type), HeapDeviceType::CPU);
+			D3D12RenderDevice::Get().GetD3D12Device()->CreateUnorderedAccessView(
+				static_cast<D3D12Texture*>(m_owningTexture.Raw())->GetD3D12Resource(),
+				nullptr,
+				&d3d12ViewDesc, m_uavCpuDescriptor.GetCPUHandle());
 		}
 		break;
 	case TextureViewType::RTV:

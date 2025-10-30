@@ -3,6 +3,19 @@
 
 namespace Prism::Render
 {
+struct CameraInfo
+{
+	glm::float4x4 view;
+	glm::float4x4 proj;
+	glm::float4x4 viewProj;
+	glm::float4x4 invView;
+	glm::float4x4 invProj;
+	glm::float4x4 invViewProj;
+
+	glm::float3 cameraPos;
+};
+
+// TODO: Convert to component
 class Camera : public RefCounted
 {
 public:
@@ -23,6 +36,7 @@ public:
 	glm::float3 GetRightVector() const;
 	glm::float3 GetUpVector() const;
 
+	CameraInfo GetCameraInfo() const;
 	const glm::float4x4& GetViewMatrix() const { return m_viewMatrix; }
 	const glm::float4x4& GetInvViewMatrix() const { return m_invViewMatrix; }
 	const glm::float4x4& GetProjectionMatrix() const { return m_projectionMatrix; }

@@ -31,7 +31,8 @@ DXGI_FORMAT GetDXGIFormat(TextureFormat format);
 DXGI_SAMPLE_DESC GetDXGISampleDesc(SampleDesc sampleDesc);
 DXGI_RATIONAL GetDXGIRational(int32_t numerator, int32_t denominator);
 
-D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc, const D3D12ShaderCompilerOutput& vs, const D3D12ShaderCompilerOutput& ps, std::vector<TextureView*> rtvs, TextureView* dsv);
+D3D12GraphicsPipelineStateDesc GetD3D12PipelineStateDesc(const GraphicsPipelineStateDesc& desc, const D3D12ShaderCompilerOutput& vs, const D3D12ShaderCompilerOutput& ps, const std::
+														 vector<Ref<TextureView>>& rtvs, TextureView* dsv);
 D3D12_COMPUTE_PIPELINE_STATE_DESC GetD3D12PipelineStateDesc(const ComputePipelineStateDesc& desc, const D3D12ShaderCompilerOutput& cs);
 CD3DX12_SHADER_BYTECODE GetD3D12ShaderBytecode(IDxcBlob* shaderBytecode);
 D3D12_SHADER_VISIBILITY GetD3D12ShaderVisibility(ShaderType shaderType);
