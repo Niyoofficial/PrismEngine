@@ -141,11 +141,6 @@ public:
 
 	Core::Window* GetWindow() const;
 
-	static Ref<Render::PrimitiveBatch> LoadMeshFromFile(const std::wstring& primitiveBatchName, const std::wstring& filepath,
-														std::function<Render::Material(const MeshLoading::PrimitiveData&)> createMaterialFunc,
-														std::wstring primitiveBufferParamName, int64_t primitiveBufferSize, MeshLoading::MeshData* outMeshData = nullptr);
-	static Ref<Render::PrimitiveBatch> LoadMeshFromFilePBR(const std::wstring& primitiveBatchName, const std::wstring& filepath);
-
 private:
 	Ref<Core::Window> m_window;
 	Ref<SandboxLayer> m_sandboxLayer;

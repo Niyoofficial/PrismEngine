@@ -4,7 +4,6 @@
 #include "Prism/Base/Platform.h"
 #include "Prism/Base/Window.h"
 #include "Prism/Render/Material.h"
-#include "Prism/Render/RenderCommandQueue.h"
 #include "Prism/Render/RenderContext.h"
 #include "Prism/Render/RenderDevice.h"
 #include "Prism/Render/RenderUtils.h"
@@ -550,7 +549,11 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			{
 				if (ImGui::BeginMenu("Add"))
 				{
-					if (ImGui::MenuItem("Mesh"))
+					if (ImGui::MenuItem("Empty Entity"))
+					{
+						m_scene->AddEntity(L"Empty");
+					}
+					else if (ImGui::MenuItem("Mesh"))
 					{
 						auto callback =
 							[this](std::vector<std::string> fileList, int32_t filter)
@@ -566,7 +569,11 @@ void SandboxLayer::UpdateImGui(Duration delta)
 							.name = "3D Mesh (.gltf;.glb;.fbx;.obj)",
 							.pattern = "gltf;glb;fbx;obj"
 						};
-						Core::Platform::Get().OpenFileDialog(callback, nullptr, {filter}, std::fs::current_path().generic_string());
+						Core::Platform::Get().OpenFileDialog(callback, SandboxApplication::Get().GetWindow(), {filter}, std::fs::current_path().generic_string());
+					}
+					else if (ImGui::MenuItem("Light"))
+					{
+						m_scene->AddEntity(L"Light")->AddComponent<LightRendererComponent>();
 					}
 
 					ImGui::EndMenu();
@@ -868,92 +875,4 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 Core::Window* SandboxApplication::GetWindow() const
 {
 	return m_window;
-}
-
-Ref<Render::PrimitiveBatch> SandboxApplication::LoadMeshFromFile(const std::wstring& primitiveBatchName,
-																 const std::wstring& filepath,
-																 std::function<Render::Material(const MeshLoading::PrimitiveData&)> createMaterialFunc,
-																 std::wstring primitiveBufferParamName,
-																 int64_t primitiveBufferSize,
-																 MeshLoading::MeshData* outMeshData)
-{
-	auto fillBatchData = [&primitiveBatchName, &createMaterialFunc, &primitiveBufferParamName, &primitiveBufferSize](MeshLoading::MeshData& meshData)
-		{
-			Ref batch = new Render::PrimitiveBatch(primitiveBatchName);
-
-			for (auto& primitive : meshData.primitives)
-			{
-				std::vector<Vertex> vertices;
-				for (auto& loadedVertex : primitive.vertices)
-				{
-					Vertex v;
-					v.position = loadedVertex.position;
-					v.normal = loadedVertex.normal;
-					v.tangent = loadedVertex.tangent;
-					v.bitangent = loadedVertex.bitangent;
-					v.texCoords = loadedVertex.texCoords;
-
-					vertices.push_back(v);
-				}
-
-				batch->AddPrimitive(sizeof(Vertex), Render::IndexBufferFormat::Uint32, vertices.data(), (int64_t)vertices.size(),
-									primitive.indices.data(), (int64_t)primitive.indices.size(), primitiveBufferParamName, primitiveBufferSize,
-									createMaterialFunc(primitive), primitive.bounds);
-			}
-
-			return batch;
-		};
-
-	if (outMeshData)
-	{
-		*outMeshData = MeshLoading::LoadMeshFromFile(filepath);
-		return fillBatchData(*outMeshData);
-	}
-	else
-	{
-		auto meshData = MeshLoading::LoadMeshFromFile(filepath);
-		return fillBatchData(meshData);
-	}
-}
-
-Ref<Render::PrimitiveBatch> SandboxApplication::LoadMeshFromFilePBR(const std::wstring& primitiveBatchName, const std::wstring& filepath)
-{
-	MeshLoading::MeshData meshData;
-	auto batch = LoadMeshFromFile(primitiveBatchName, filepath,
-								  [](const MeshLoading::PrimitiveData& primitiveData)
-								  {
-									  Render::Material material;
-									  Render::TextureViewDesc srvDesc = {.type = Render::TextureViewType::SRV};
-									  if (primitiveData.textures.contains(MeshLoading::TextureType::Albedo))
-										  material.SetTexture(L"g_albedoTexture", primitiveData.textures.at(MeshLoading::TextureType::Albedo)->CreateView(srvDesc));
-									  if (primitiveData.textures.contains(MeshLoading::TextureType::Normals))
-										  material.SetTexture(L"g_normalTexture", primitiveData.textures.at(MeshLoading::TextureType::Normals)->CreateView(srvDesc));
-									  if (primitiveData.textures.contains(MeshLoading::TextureType::Metallic))
-										  material.SetTexture(L"g_metallicTexture", primitiveData.textures.at(MeshLoading::TextureType::Metallic)->CreateView(srvDesc));
-									  if (primitiveData.textures.contains(MeshLoading::TextureType::Roughness))
-										  material.SetTexture(L"g_roughnessTexture", primitiveData.textures.at(MeshLoading::TextureType::Roughness)->CreateView(srvDesc));
-
-									  material.SetVertexShader({
-										  .filepath = L"shaders/DeferredBasePass.hlsl",
-										  .entryName = L"vsmain",
-										  .shaderType = Render::ShaderType::VS
-									  });
-									  material.SetPixelShader({
-										  .filepath = L"shaders/DeferredBasePass.hlsl",
-										  .entryName = L"psmain",
-										  .shaderType = Render::ShaderType::PS
-									  });
-									  material.SetRasterizerState({
-										  .cullMode = Render::CullMode::Back
-									  });
-									  material.SetDepthStencilState({
-										  .depthEnable = true,
-										  .depthWriteEnable = true
-									  });
-									  material.SetTopologyType(Render::TopologyType::TriangleList);
-
-									  return material;
-								  }, L"g_modelBuffer", sizeof(ModelUniformBuffer), &meshData);
-
-	return batch;
 }
