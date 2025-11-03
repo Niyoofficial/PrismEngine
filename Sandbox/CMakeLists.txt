@@ -22,3 +22,8 @@ target_include_directories(${PROJECT_NAME}
 target_link_libraries(${PROJECT_NAME} PUBLIC PrismEngine::Core)
 
 set_property(TARGET Sandbox PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
+
+add_custom_command(
+	TARGET ${PROJECT_NAME} POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E echo "start $<TARGET_FILE:${PROJECT_NAME}> -wo ${PROJECT_SOURCE_DIR} " > "${PROJECT_SOURCE_DIR}/Run${PROJECT_NAME}-$<CONFIG>.bat"
+)
