@@ -3,23 +3,23 @@
 ## About
 Prism Engine is a custom game engine written in C++ with a custom rendering API layer, currently supporting only DirectX 12.
 ## Getting Started
-#### 1. Install [vcpkg](https://vcpkg.io/) if you don't have it (if you are using Visual Studio you can skip this as it should ask you later to install it for you)
-#### 2. Clone the repository
+#### 1. Install [vcpkg](https://vcpkg.io/) if you don't have it
+#### 2. Make sure you have an environment variable VCPKG_ROOT set to the vcpkg main folder
+#### 3. Clone the repository
 ```
 git clone https://github.com/Niyoofficial/PrismEngine
 ```
-#### Here you can either continue with the manual setup or use e.g. Visual Studio in CMake mode which will do it for you
-#### 3. Run this to generate the project:
+#### Here you can either continue with the manual setup or use e.g. Visual Studio in CMake mode, which will do it for you
+#### 4. Run this to generate the project:
 ```
-cmake -B build -S . -DCMAKE_TOOLCHAIN_FILE=%VCPKG_ROOT%/scripts/buildsystems/vcpkg.cmake
+cmake -B <output_folder>
 ```
-`VCPKG_ROOT` environment variable should be added automatically during the vcpkg setup; it simply points to the vcpkg root folder
-#### 4. And now to actually compile the project
+#### 5. And now to actually compile the project
 ```
-cmake --build build --preset=Profile
+cmake --build <output_folder> --preset=Profile
 ```
 There are 3 presets available: `Debug`, `Profile` and `Release` which you can use in the above function
-#### 5. Go to the `Sandbox` folder and run the `RunSandbox-<config>.bat` - this will run the executable with the proper working directory
+#### 6. Go to the `Sandbox` folder and run the `RunSandbox-<config>.bat` - this will run the executable with the proper working directory
 ## Features
 |Feature                   |Description
 |-                         |-
