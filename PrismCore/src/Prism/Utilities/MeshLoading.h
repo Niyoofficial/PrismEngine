@@ -18,7 +18,8 @@ enum class TextureType
 	Albedo,
 	Normals,
 	Metallic,
-	Roughness
+	Roughness,
+	Emissive
 };
 
 void InitMeshLoading();

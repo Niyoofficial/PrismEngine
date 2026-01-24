@@ -831,22 +831,20 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 		};
 		renderContext->SetUniformBuffer(L"g_primitiveBuffer", primitiveBasePassInfo);
 
-		if (auto albedo = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Albedo))
-			renderContext->SetTexture(L"g_albedoTexture", albedo->CreateDefaultSRV());
-		else
-			renderContext->SetTexture(L"g_albedoTexture", nullptr);
-		if (auto metallic = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Metallic))
-			renderContext->SetTexture(L"g_metallicTexture", metallic->CreateDefaultSRV());
-		else
-			renderContext->SetTexture(L"g_metallicTexture", nullptr);
-		if (auto roughness = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Roughness))
-			renderContext->SetTexture(L"g_roughnessTexture", roughness->CreateDefaultSRV());
-		else
-			renderContext->SetTexture(L"g_roughnessTexture", nullptr);
-		if (auto normal = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), MeshLoading::TextureType::Normals))
-			renderContext->SetTexture(L"g_normalTexture", normal->CreateDefaultSRV());
-		else
-			renderContext->SetTexture(L"g_normalTexture", nullptr);
+		auto setTexture =
+			[&proxy, &renderContext](MeshLoading::TextureType textureType, std::wstring paramName)
+			{
+				if (auto texture = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), textureType))
+					renderContext->SetTexture(paramName, texture->CreateDefaultSRV());
+				else
+					renderContext->SetTexture(paramName, nullptr);
+			};
+
+		setTexture(MeshLoading::TextureType::Albedo, L"g_albedoTexture");
+		setTexture(MeshLoading::TextureType::Metallic, L"g_metallicTexture");
+		setTexture(MeshLoading::TextureType::Roughness, L"g_roughnessTexture");
+		setTexture(MeshLoading::TextureType::Normals, L"g_normalTexture");
+		setTexture(MeshLoading::TextureType::Emissive, L"g_emissiveTexture");
 
 		auto nodeInfo = RenderDevice::Get().GetVertexBufferCache().GetNodeIndexInfo(proxy->GetMeshAsset(), proxy->GetMeshNode());
 		renderContext->DrawIndexed({
@@ -878,7 +876,7 @@ void PBRSceneRenderPipeline::RenderLightingPass(RenderContext* renderContext, co
 		SCOPED_RENDER_EVENT(renderContext, L"IndirectLighting");
 
 		renderContext->SetBuffer(L"g_irradiance", m_irradianceSHBufferView);
-		renderContext->SetTexture(L"g_brdfLUT", m_BRDFLUT->CreateView({ .type = TextureViewType::SRV }));
+		renderContext->SetTexture(L"g_brdfLUT", m_BRDFLUT->CreateView({.type = TextureViewType::SRV}));
 		renderContext->SetTexture(L"g_envMap", m_prefilteredEnvMapCubeSRV);
 
 		glm::int2 screenSize = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().GetSize();

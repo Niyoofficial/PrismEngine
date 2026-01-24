@@ -293,7 +293,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 	// TODO: Make the pipeline draw this
 	// Debug menu
-	/*if (s_showDebugMenu)
+	if (s_showDebugMenu)
 	{
 		ImGui::Begin("Debug", &s_showDebugMenu, ImGuiWindowFlags_HorizontalScrollbar);
 
@@ -326,7 +326,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			ImGui::SliderAngle("Sun Rotation Yaw", &m_sunRotation.y, -180.f, 180.f);
 			ImGui::SliderAngle("Sun Rotation Pitch", &m_sunRotation.z, -180.f, 180.f);
 			ImGui::Image(m_sunShadowMap->CreateView({ .type = TextureViewType::SRV, .format = TextureFormat::R32_Float }), {256, 256});
-		}#1#
+		}*/
 
 		/*if (ImGui::CollapsingHeader("IBL"))
 		{
@@ -361,7 +361,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 			ImGui::Text("BRDF LUT");
 			ImGui::Image(m_BRDFLUT->CreateView({.type = TextureViewType::SRV}), {256, 256});
-		}#1#
+		}*/
 
 		/*if (ImGui::CollapsingHeader("Bloom"))
 		{
@@ -403,10 +403,10 @@ void SandboxLayer::UpdateImGui(Duration delta)
 				.subresourceRange = {.firstMipLevel = s_upsampleMipIndex, .numMipLevels = 1}
 			};
 			ImGui::Image(m_bloomUpsampleTexture->CreateView(viewDesc), {texWidth, 256});
-		}#1#
+		}*/
 
 		ImGui::End();
-	}*/
+	}
 
 	// Log
 	if (s_showLogMenu)

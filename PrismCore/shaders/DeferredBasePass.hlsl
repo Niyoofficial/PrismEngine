@@ -10,6 +10,7 @@ cbuffer Resources
 	int g_roughnessTexture;
 	int g_aoTexture;
 	int g_normalTexture;
+	int g_emissiveTexture;
 }
 
 struct SceneBuffer
@@ -96,7 +97,7 @@ PixelOutput psmain(PixelInput pin)
 	if (g_metallicTexture != -1)
 	{
 		Texture2D metallicTexture = ResourceDescriptorHeap[g_metallicTexture];
-		metallic *= metallicTexture.Sample(g_samLinearWrap, pin.texCoords).r;
+		metallic *= metallicTexture.Sample(g_samLinearWrap, pin.texCoords).b;
 	}
 	if (g_roughnessTexture != -1)
 	{
@@ -113,6 +114,11 @@ PixelOutput psmain(PixelInput pin)
 		Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
 		normal = NormalSampleToWorldSpace(normalTexture.Sample(g_samLinearWrap, pin.texCoords).rgb, primitiveBuffer.normalMatrix, normal, tangent, bitangent);
 	}
+    if (g_emissiveTexture != -1)
+    {
+        Texture2D emissiveTexture = ResourceDescriptorHeap[g_normalTexture];
+        //albedo = NormalSampleToWorldSpace(emissiveTexture.Sample(g_samLinearWrap, pin.texCoords).rgb, primitiveBuffer.normalMatrix, normal, tangent, bitangent);
+    }
 
 	PixelOutput pout;
 	pout.color = float4(albedo, 1.f);

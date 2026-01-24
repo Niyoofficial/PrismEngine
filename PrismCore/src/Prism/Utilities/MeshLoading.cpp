@@ -111,7 +111,8 @@ static std::unordered_map<TextureType, Ref<Render::Texture>> LoadTexturesForMesh
 		aiTextureType_BASE_COLOR,
 		aiTextureType_NORMALS,
 		aiTextureType_METALNESS,
-		aiTextureType_DIFFUSE_ROUGHNESS
+		aiTextureType_DIFFUSE_ROUGHNESS,
+		aiTextureType_EMISSIVE
 	};
 
 	for (aiTextureType textureType : textureTypesToTry)
@@ -139,6 +140,8 @@ static std::unordered_map<TextureType, Ref<Render::Texture>> LoadTexturesForMesh
 					return TextureType::Metallic;
 				case aiTextureType_DIFFUSE_ROUGHNESS:
 					return TextureType::Roughness;
+				case aiTextureType_EMISSIVE:
+					return TextureType::Emissive;
 				default:
 					PE_ASSERT_NO_ENTRY();
 					return TextureType::Albedo;
