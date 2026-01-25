@@ -52,11 +52,11 @@ float4 psmain(FullscreenVertexOut pin) : SV_Target
 	float3 r = reflect(-toCamera, surface.normal);
 	const int MAX_MIP_LEVEL = 5;
 	float3 prefilteredSpecularColor = prefilteredEnvMap.SampleLevel(g_samLinearWrap, r, surface.roughness * MAX_MIP_LEVEL).xyz;
-    float2 F0ScaleBias = brdfLUT.SampleLevel(g_samLinearClamp, float2(max(dot(surface.normal, toCamera), 0.f), surface.roughness), 0).xy;
+	float2 F0ScaleBias = brdfLUT.SampleLevel(g_samLinearClamp, float2(max(dot(surface.normal, toCamera), 0.f), surface.roughness), 0).xy;
 	float3 diffuseIrradiance = SH::CalculateIrradiance(sceneIrradiance.irradianceSH, surface.normal); // Does the cosine lobe scale
 	float3 envLight = EnvironmentBRDF(surface, toCamera, diffuseIrradiance, prefilteredSpecularColor, F0ScaleBias);
 	
 	float3 color = envLight * 0.25f;
 
-    return float4(color, 1.f);
+	return float4(color, 1.f);
 }

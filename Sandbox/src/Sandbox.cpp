@@ -14,6 +14,8 @@
 #include "Prism/Scene/LightRendererComponent.h"
 #include <filesystem>
 
+#include "Prism/Render/RenderCommandQueue.h"
+
 IMPLEMENT_APPLICATION(SandboxApplication);
 
 SandboxLayer::SandboxLayer(Core::Window* owningWindow)

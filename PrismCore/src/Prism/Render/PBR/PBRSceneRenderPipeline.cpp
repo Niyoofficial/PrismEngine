@@ -995,12 +995,72 @@ void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const
 			renderContext->Dispatch({glm::ceil((glm::float2)m_bloomDownsampleA->GetTextureDesc().GetSize() / std::pow(2.f, (float)uavMipIndex) / 4.f), 1});
 		};
 
+		renderContext->Barrier(TextureBarrier{
+				.texture = m_bloomDownsampleA,
+				.syncBefore = BarrierSync::ComputeShading,
+				.syncAfter = BarrierSync::ComputeShading,
+				.accessBefore = BarrierAccess::UnorderedAccess,
+				.accessAfter = BarrierAccess::ShaderResource,
+				.layoutBefore = BarrierLayout::UnorderedAccess,
+				.layoutAfter = BarrierLayout::ShaderResource,
+			});
+
 		dispatchDownsample(m_bloomDownsampleB, 0, m_bloomDownsampleA->CreateDefaultSRV(), 0);
+		
 		for (int32_t i = 1; i < m_bloomDownsampleA->GetTextureDesc().GetMipLevels(); ++i)
 		{
+			renderContext->Barrier(TextureBarrier{
+					.texture = m_bloomDownsampleA,
+					.syncBefore = BarrierSync::ComputeShading,
+					.syncAfter = BarrierSync::ComputeShading,
+					.accessBefore = BarrierAccess::ShaderResource,
+					.accessAfter = BarrierAccess::UnorderedAccess,
+					.layoutBefore = BarrierLayout::ShaderResource,
+					.layoutAfter = BarrierLayout::UnorderedAccess,
+				});
+			renderContext->Barrier(TextureBarrier{
+					.texture = m_bloomDownsampleB,
+					.syncBefore = BarrierSync::ComputeShading,
+					.syncAfter = BarrierSync::ComputeShading,
+					.accessBefore = BarrierAccess::UnorderedAccess,
+					.accessAfter = BarrierAccess::ShaderResource,
+					.layoutBefore = BarrierLayout::UnorderedAccess,
+					.layoutAfter = BarrierLayout::ShaderResource,
+				});
+
 			dispatchDownsample(m_bloomDownsampleA, i, m_bloomDownsampleB->CreateDefaultSRV(), i - 1);
+
+			renderContext->Barrier(TextureBarrier{
+					.texture = m_bloomDownsampleA,
+					.syncBefore = BarrierSync::ComputeShading,
+					.syncAfter = BarrierSync::ComputeShading,
+					.accessBefore = BarrierAccess::UnorderedAccess,
+					.accessAfter = BarrierAccess::ShaderResource,
+					.layoutBefore = BarrierLayout::UnorderedAccess,
+					.layoutAfter = BarrierLayout::ShaderResource,
+				});
+			renderContext->Barrier(TextureBarrier{
+					.texture = m_bloomDownsampleB,
+					.syncBefore = BarrierSync::ComputeShading,
+					.syncAfter = BarrierSync::ComputeShading,
+					.accessBefore = BarrierAccess::ShaderResource,
+					.accessAfter = BarrierAccess::UnorderedAccess,
+					.layoutBefore = BarrierLayout::ShaderResource,
+					.layoutAfter = BarrierLayout::UnorderedAccess,
+				});
+
 			dispatchDownsample(m_bloomDownsampleB, i, m_bloomDownsampleA->CreateDefaultSRV(), i);
 		}
+
+		renderContext->Barrier(TextureBarrier{
+					.texture = m_bloomDownsampleA,
+					.syncBefore = BarrierSync::ComputeShading,
+					.syncAfter = BarrierSync::ComputeShading,
+					.accessBefore = BarrierAccess::ShaderResource,
+					.accessAfter = BarrierAccess::UnorderedAccess,
+					.layoutBefore = BarrierLayout::ShaderResource,
+					.layoutAfter = BarrierLayout::UnorderedAccess,
+			});
 	}
 
 	// Upsample
@@ -1008,14 +1068,14 @@ void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const
 		SCOPED_RENDER_EVENT(renderContext, L"Upsample");
 
 		renderContext->Barrier(TextureBarrier{
-			.texture = m_bloomDownsampleA,
-			.syncBefore = BarrierSync::ComputeShading,
-			.syncAfter = BarrierSync::ComputeShading,
-			.accessBefore = BarrierAccess::UnorderedAccess,
-			.accessAfter = BarrierAccess::ShaderResource,
-			.layoutBefore = BarrierLayout::UnorderedAccess,
-			.layoutAfter = BarrierLayout::ShaderResource,
-		});
+					.texture = m_bloomDownsampleB,
+					.syncBefore = BarrierSync::ComputeShading,
+					.syncAfter = BarrierSync::ComputeShading,
+					.accessBefore = BarrierAccess::UnorderedAccess,
+					.accessAfter = BarrierAccess::ShaderResource,
+					.layoutBefore = BarrierLayout::UnorderedAccess,
+					.layoutAfter = BarrierLayout::ShaderResource,
+			});
 
 		for (int32_t i = m_bloomDownsampleA->GetTextureDesc().GetMipLevels() - 2; i >= 0; --i)
 		{
@@ -1041,14 +1101,14 @@ void PBRSceneRenderPipeline::RenderBloomPass(RenderContext* renderContext, const
 		}
 
 		renderContext->Barrier(TextureBarrier{
-			.texture = m_bloomDownsampleA,
-			.syncBefore = BarrierSync::ComputeShading,
-			.syncAfter = BarrierSync::ComputeShading,
-			.accessBefore = BarrierAccess::ShaderResource,
-			.accessAfter = BarrierAccess::UnorderedAccess,
-			.layoutBefore = BarrierLayout::ShaderResource,
-			.layoutAfter = BarrierLayout::UnorderedAccess,
-		});
+					.texture = m_bloomDownsampleB,
+					.syncBefore = BarrierSync::ComputeShading,
+					.syncAfter = BarrierSync::ComputeShading,
+					.accessBefore = BarrierAccess::ShaderResource,
+					.accessAfter = BarrierAccess::UnorderedAccess,
+					.layoutBefore = BarrierLayout::ShaderResource,
+					.layoutAfter = BarrierLayout::UnorderedAccess,
+			});
 	}
 }
 
