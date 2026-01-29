@@ -127,6 +127,7 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 	std::wstring inputFilenameNoExt = inputFilename.substr(0, inputFilename.find_last_of('.'));
 	std::wstring target = GetTargetStringForShader(desc.shaderType, 6, 8);
 
+	// https://github.com/microsoft/DirectXShaderCompiler/wiki/Using-dxc.exe-and-dxcompiler.dll
 	const wchar_t* compileArguments[] = {
 		inputFilename.c_str(),					// Shader filename
 		L"-E", desc.entryName.c_str(),			// Entry point
@@ -139,6 +140,8 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 #endif
 		//L"-Qstrip_debug",						// Strip debug into a separate blob
 		//L"-Qstrip_reflect",					// Strip reflection into a separate blob
+		L"-Qembed_debug",						// Embed PDB in shader container
+		L"-Qsource_in_debug_module",			// Embed source code in PDB
 		L"-I", inputPathNoFile.c_str(),			// Shader directory will be used as base directory for include handler
 		L"-I", engineInputPathNoFile.c_str(),	// Shader directory will be used as base directory for include handler
 		L"-enable-16bit-types"
