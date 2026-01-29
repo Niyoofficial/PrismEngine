@@ -81,14 +81,9 @@ private:
 	GBuffer m_gbuffer;
 
 	Ref<Texture> m_skybox;
-	Ref<TextureView> m_skyboxCubeSRV;
-	Ref<TextureView> m_skyboxArraySRV;
-	Ref<TextureView> m_skyboxUAV;
 	Ref<Texture> m_environmentTexture;
-	Ref<TextureView> m_environmentTextureSRV;
 
 	Ref<Texture> m_prefilteredSkybox;
-	Ref<TextureView> m_prefilteredEnvMapCubeSRV;
 	Ref<Buffer> m_irradianceSHBuffer;
 	Ref<BufferView> m_irradianceSHBufferView;
 

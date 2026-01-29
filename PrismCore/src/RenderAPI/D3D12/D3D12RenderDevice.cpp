@@ -60,7 +60,7 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 		PE_ASSERT_HR(D3D12GetDebugInterface(IID_PPV_ARGS(&d3d12DebugController)));
 		d3d12DebugController->EnableDebugLayer();
 		d3d12DebugController->SetEnableAutoName(TRUE);
-		//d3d12DebugController->SetEnableGPUBasedValidation(TRUE);
+		d3d12DebugController->SetEnableGPUBasedValidation(TRUE);
 		d3d12DebugController->SetEnableSynchronizedCommandQueueValidation(TRUE);
 
 		ComPtr<IDXGIDebug1> dxgiDebugController;

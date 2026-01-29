@@ -347,7 +347,7 @@ void PBRSceneRenderPipeline::CreateScreenSizeDependentResources(glm::int2 newScr
 											  .height = newScreenSize.y,
 											  .format = TextureFormat::RG32_Float,
 											  .bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
-										  }, BarrierLayout::UnorderedAccess);
+										  }, BarrierLayout::ShaderResource);
 
 	m_jumpFloodTextureB = Texture::Create({
 											  .textureName = L"JumpFloodB",
@@ -355,7 +355,7 @@ void PBRSceneRenderPipeline::CreateScreenSizeDependentResources(glm::int2 newScr
 											  .height = newScreenSize.y,
 											  .format = TextureFormat::RG32_Float,
 											  .bindFlags = Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::ShaderResource),
-										  }, BarrierLayout::UnorderedAccess);
+										  }, BarrierLayout::ShaderResource);
 }
 
 void PBRSceneRenderPipeline::ConvertSkyboxToCubemap(RenderContext* renderContext)
@@ -372,39 +372,10 @@ void PBRSceneRenderPipeline::ConvertSkyboxToCubemap(RenderContext* renderContext
 		.format = TextureFormat::RGBA32_Float,
 		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
 		.optimizedClearValue = {}
-	});
-	m_skyboxCubeSRV = m_skybox->CreateView({
-		.type = TextureViewType::SRV,
-		.dimension = ResourceDimension::TexCube,
-		.subresourceRange = {
-			.firstArraySlice = 0,
-			.numArraySlices = 6
-		}
-	});
-	m_skyboxArraySRV = m_skybox->CreateView({
-		.type = TextureViewType::SRV,
-		.dimension = ResourceDimension::Tex2D,
-		.subresourceRange = {
-			.firstMipLevel = 0,
-			.numMipLevels = 1,
-			.firstArraySlice = 0,
-			.numArraySlices = 6
-		}
-	});
-	m_skyboxUAV = m_skybox->CreateView({
-		.type = TextureViewType::UAV,
-		.dimension = ResourceDimension::Tex2D,
-		.subresourceRange = {
-			.firstMipLevel = 0,
-			.numMipLevels = 1,
-			.firstArraySlice = 0,
-			.numArraySlices = 6
-		}
-	});
+	}, BarrierLayout::UnorderedAccess);
 
 	// TODO: Remove hardcoded skybox texture
 	m_environmentTexture = Texture::CreateFromFile(L"assets/tief_etz_4k.hdr");
-	m_environmentTextureSRV = m_environmentTexture->CreateView({.type = TextureViewType::SRV});
 
 	renderContext->SetPSO({
 		.cs = {
@@ -414,8 +385,17 @@ void PBRSceneRenderPipeline::ConvertSkyboxToCubemap(RenderContext* renderContext
 		},
 	});
 
-	renderContext->SetTexture(L"g_environment", m_environmentTextureSRV);
-	renderContext->SetTexture(L"g_skybox", m_skyboxUAV);
+	renderContext->SetTexture(L"g_environment", m_environmentTexture->CreateDefaultSRV());
+	renderContext->SetTexture(L"g_skybox", m_skybox->CreateView({
+								  .type = TextureViewType::UAV,
+								  .dimension = ResourceDimension::Tex2D,
+								  .subresourceRange = {
+									  .firstMipLevel = 0,
+									  .numMipLevels = 1,
+									  .firstArraySlice = 0,
+									  .numArraySlices = 6
+								  }
+							  }));
 
 	renderContext->Dispatch({64, 64, 6});
 
@@ -423,9 +403,9 @@ void PBRSceneRenderPipeline::ConvertSkyboxToCubemap(RenderContext* renderContext
 		.texture = m_skybox,
 		.syncBefore = BarrierSync::ComputeShading,
 		.syncAfter = BarrierSync::ComputeShading,
-		.accessBefore = BarrierAccess::Common,
+		.accessBefore = BarrierAccess::UnorderedAccess,
 		.accessAfter = BarrierAccess::Common,
-		.layoutBefore = BarrierLayout::Common,
+		.layoutBefore = BarrierLayout::UnorderedAccess,
 		.layoutAfter = BarrierLayout::Common
 	});
 
@@ -446,16 +426,6 @@ void PBRSceneRenderPipeline::GenerateEnvDiffuseIrradiance(RenderContext* renderC
 		.format = TextureFormat::RGBA32_Float,
 		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
 		.optimizedClearValue = {}
-	});
-	m_prefilteredEnvMapCubeSRV = m_prefilteredSkybox->CreateView({
-		.type = TextureViewType::SRV,
-		.dimension = ResourceDimension::TexCube,
-		.subresourceRange = {
-			.firstMipLevel = 0,
-			.numMipLevels = 6,
-			.firstArraySlice = 0,
-			.numArraySlices = 6
-		}
 	});
 
 	auto coeffGenerationBuffer = Buffer::Create({
@@ -484,7 +454,14 @@ void PBRSceneRenderPipeline::GenerateEnvDiffuseIrradiance(RenderContext* renderC
 		.layoutAfter = BarrierLayout::ShaderResource
 	});
 
-	renderContext->SetTexture(L"g_skybox", m_skyboxCubeSRV);
+	renderContext->SetTexture(L"g_skybox", m_skybox->CreateView({
+								  .type = TextureViewType::SRV,
+								  .dimension = ResourceDimension::TexCube,
+								  .subresourceRange = {
+									  .firstArraySlice = 0,
+									  .numArraySlices = 6
+								  }
+							  }));
 	renderContext->SetBuffer(L"g_coefficients", coeffBufferView);
 
 	renderContext->Dispatch({ 1, 1, 1 });
@@ -555,7 +532,14 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 		},
 	});
 
-	renderContext->SetTexture(L"g_skybox", m_skyboxCubeSRV);
+	renderContext->SetTexture(L"g_skybox", m_skybox->CreateView({
+								  .type = TextureViewType::SRV,
+								  .dimension = ResourceDimension::TexCube,
+								  .subresourceRange = {
+									  .firstArraySlice = 0,
+									  .numArraySlices = 6
+								  }
+							  }));
 
 	struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) PrefilterData
 	{
@@ -606,8 +590,18 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 
 		renderContext->SetBuffer(L"g_prefilterData", prefilterDataBuffer->CreateDefaultUniformBufferView());
 
-		renderContext->Dispatch({ threadGroupSize, threadGroupSize, 6 });
+		renderContext->Dispatch({threadGroupSize, threadGroupSize, 6});
 	}
+
+	renderContext->Barrier(TextureBarrier{
+		.texture = m_prefilteredSkybox,
+		.syncBefore = BarrierSync::ComputeShading,
+		.syncAfter = BarrierSync::PixelShading,
+		.accessBefore = BarrierAccess::UnorderedAccess,
+		.accessAfter = BarrierAccess::ShaderResource,
+		.layoutBefore = BarrierLayout::UnorderedAccess,
+		.layoutAfter = BarrierLayout::ShaderResource
+	});
 }
 
 void PBRSceneRenderPipeline::GenerateBRDFIntegrationLUT(RenderContext* renderContext)
@@ -621,7 +615,7 @@ void PBRSceneRenderPipeline::GenerateBRDFIntegrationLUT(RenderContext* renderCon
 		.dimension = ResourceDimension::Tex2D,
 		.format = TextureFormat::RG32_Float,
 		.bindFlags = Flags(BindFlags::ShaderResource) | Flags(BindFlags::UnorderedAccess),
-	});
+	}, BarrierLayout::UnorderedAccess);
 
 	renderContext->SetPSO({
 		.cs = {
@@ -877,7 +871,16 @@ void PBRSceneRenderPipeline::RenderLightingPass(RenderContext* renderContext, co
 
 		renderContext->SetBuffer(L"g_irradiance", m_irradianceSHBufferView);
 		renderContext->SetTexture(L"g_brdfLUT", m_BRDFLUT->CreateView({.type = TextureViewType::SRV}));
-		renderContext->SetTexture(L"g_envMap", m_prefilteredEnvMapCubeSRV);
+		renderContext->SetTexture(L"g_envMap", m_prefilteredSkybox->CreateView({
+									  .type = TextureViewType::SRV,
+									  .dimension = ResourceDimension::TexCube,
+									  .subresourceRange = {
+										  .firstMipLevel = 0,
+										  .numMipLevels = 6,
+										  .firstArraySlice = 0,
+										  .numArraySlices = 6
+									  }
+								  }));
 
 		glm::int2 screenSize = renderInfo.renderTargetView->GetTexture()->GetTextureDesc().GetSize();
 		ShaderDesc pixelShader = {
@@ -1168,6 +1171,16 @@ void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderCon
 			.baseVertexLocation = nodeInfo.baseVertex
 		});
 
+		renderContext->Barrier(TextureBarrier{
+			.texture = m_outlineMask,
+			.syncBefore = BarrierSync::RenderTarget,
+			.syncAfter = BarrierSync::ComputeShading,
+			.accessBefore = BarrierAccess::RenderTarget,
+			.accessAfter = BarrierAccess::ShaderResource,
+			.layoutBefore = BarrierLayout::RenderTarget,
+			.layoutAfter = BarrierLayout::ShaderResource,
+		});
+
 		renderContext->SetPSO(ComputePipelineStateDesc{
 			.cs = {
 				.filepath = L"shaders/JumpFloodOutline.hlsl",
@@ -1179,7 +1192,27 @@ void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderCon
 		renderContext->SetTexture(L"g_inputMask", m_outlineMask->CreateDefaultSRV());
 		renderContext->SetTexture(L"g_outputMask", m_jumpFloodTextureA->CreateDefaultUAV());
 
+		renderContext->Barrier(TextureBarrier{
+			.texture = m_jumpFloodTextureA,
+			.syncBefore = BarrierSync::All,
+			.syncAfter = BarrierSync::ComputeShading,
+			.accessBefore = BarrierAccess::ShaderResource,
+			.accessAfter = BarrierAccess::UnorderedAccess,
+			.layoutBefore = BarrierLayout::ShaderResource,
+			.layoutAfter = BarrierLayout::UnorderedAccess,
+		});
+
 		renderContext->Dispatch({glm::ceil((glm::float2)m_jumpFloodTextureA->GetTextureDesc().GetSize() / 4.f), 1});
+
+		renderContext->Barrier(TextureBarrier{
+			.texture = m_outlineMask,
+			.syncBefore = BarrierSync::ComputeShading,
+			.syncAfter = BarrierSync::RenderTarget,
+			.accessBefore = BarrierAccess::ShaderResource,
+			.accessAfter = BarrierAccess::RenderTarget,
+			.layoutBefore = BarrierLayout::ShaderResource,
+			.layoutAfter = BarrierLayout::RenderTarget,
+			});
 
 
 		int32_t jfaIter = (int32_t)std::log2(m_outlineWidth + 1);
@@ -1204,12 +1237,41 @@ void PBRSceneRenderPipeline::RenderSelectionOutlinePass(RenderContext* renderCon
 			renderContext->SetTexture(L"g_inputMask", inputTex->CreateDefaultSRV());
 			renderContext->SetTexture(L"g_outputMask", outputTex->CreateDefaultUAV());
 
+			renderContext->Barrier(TextureBarrier{
+				.texture = inputTex,
+				.syncBefore = BarrierSync::ComputeShading,
+				.syncAfter = BarrierSync::ComputeShading,
+				.accessBefore = BarrierAccess::UnorderedAccess,
+				.accessAfter = BarrierAccess::ShaderResource,
+				.layoutBefore = BarrierLayout::UnorderedAccess,
+				.layoutAfter = BarrierLayout::ShaderResource,
+			});
+			renderContext->Barrier(TextureBarrier{
+				.texture = outputTex,
+				.syncBefore = BarrierSync::ComputeShading,
+				.syncAfter = BarrierSync::ComputeShading,
+				.accessBefore = BarrierAccess::ShaderResource,
+				.accessAfter = BarrierAccess::UnorderedAccess,
+				.layoutBefore = BarrierLayout::ShaderResource,
+				.layoutAfter = BarrierLayout::UnorderedAccess,
+			});
+
 			renderContext->Dispatch({glm::ceil((glm::float2)m_jumpFloodTextureB->GetTextureDesc().GetSize() / 4.f), 1});
 
 			m_outlineOutput = outputTex;
 
 			std::swap(inputTex, outputTex);
 		}
+
+		renderContext->Barrier(TextureBarrier{
+				.texture = m_outlineOutput,
+				.syncBefore = BarrierSync::ComputeShading,
+				.syncAfter = BarrierSync::PixelShading,
+				.accessBefore = BarrierAccess::UnorderedAccess,
+				.accessAfter = BarrierAccess::ShaderResource,
+				.layoutBefore = BarrierLayout::UnorderedAccess,
+				.layoutAfter = BarrierLayout::ShaderResource,
+			});
 	}
 }
 

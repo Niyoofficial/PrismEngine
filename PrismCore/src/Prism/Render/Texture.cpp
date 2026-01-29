@@ -284,7 +284,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 	tempTexDesc.bindFlags |= BindFlags::UnorderedAccess;
 	tempTexDesc.mipLevels = numMipMaps;
 
-	auto tempTexture = Texture::Create(tempTexDesc);
+	auto tempTexture = Texture::Create(tempTexDesc, BarrierLayout::ShaderResource);
 
 	for (int32_t i = 0; i < GetTextureDesc().GetDepthOrArraySize(); ++i)
 	{
@@ -350,33 +350,46 @@ void Texture::GenerateMipMaps(RenderContext* context)
 				});
 			renderContext->SetBuffer(L"g_infoBuffer", mipMapGenInfoBuffer->CreateDefaultUniformBufferView());
 
-			if (topMip == 0)
-			{
-				auto srcView = TextureView::Create({
-													   .type = TextureViewType::SRV,
-													   .dimension = ResourceDimension::Tex2D,
-													   .subresourceRange = {
-														   .firstArraySlice = i,
-														   .numArraySlices = 1
-													   }
-												   }, this);
-				renderContext->SetTexture(L"g_srcMip", srcView);
-			}
-			else
-			{
-				auto srcView = TextureView::Create({
-													   .type = TextureViewType::SRV,
-													   .dimension = ResourceDimension::Tex2D,
-													   .subresourceRange = {
-														   .firstArraySlice = i,
-														   .numArraySlices = 1
-													   }
-												   }, tempTexture);
-				renderContext->SetTexture(L"g_srcMip", srcView);
-			}
+			renderContext->Barrier(TextureBarrier{
+				.texture = tempTexture,
+				.syncBefore = BarrierSync::ComputeShading,
+				.syncAfter = BarrierSync::ComputeShading,
+				.accessBefore = BarrierAccess::ShaderResource,
+				.accessAfter = BarrierAccess::ShaderResource,
+				.layoutBefore = BarrierLayout::ShaderResource,
+				.layoutAfter = BarrierLayout::ShaderResource,
+				.subresourceRange = {
+					.firstArraySlice = i,
+					.numArraySlices = 1
+				},
+			});
+			auto srcView = TextureView::Create({
+												   .type = TextureViewType::SRV,
+												   .dimension = ResourceDimension::Tex2D,
+												   .subresourceRange = {
+													   .firstArraySlice = i,
+													   .numArraySlices = 1
+												   }
+											   }, topMip == 0 ? this : tempTexture.Raw());
+			renderContext->SetTexture(L"g_srcMip", srcView);
 
 			for (int32_t j = 0; j < mipsToGenerate; ++j)
 			{
+				renderContext->Barrier(TextureBarrier{
+					.texture = tempTexture,
+					.syncBefore = BarrierSync::ComputeShading,
+					.syncAfter = BarrierSync::ComputeShading,
+					.accessBefore = BarrierAccess::ShaderResource,
+					.accessAfter = BarrierAccess::UnorderedAccess,
+					.layoutBefore = BarrierLayout::ShaderResource,
+					.layoutAfter = BarrierLayout::UnorderedAccess,
+					.subresourceRange = {
+						.firstMipLevel = topMip + j,
+						.numMipLevels = 1,
+						.firstArraySlice = i,
+						.numArraySlices = 1
+					},
+				});
 				auto view = TextureView::Create({
 													.type = TextureViewType::UAV,
 													.dimension = ResourceDimension::Tex2D,
@@ -427,13 +440,16 @@ void Texture::GenerateMipMaps(RenderContext* context)
 		.accessAfter = BarrierAccess::CopyDest,
 		.layoutBefore = BarrierLayout::Common,
 		.layoutAfter = BarrierLayout::CopyDest,
-		/*.subresourceRange = {
-			.firstMipLevel = 1,
-			.numMipLevels = numMipMaps,
-			.firstArraySlice = i,
-			.numArraySlices = 1,
-		}*/
 	});
+	renderContext->Barrier(TextureBarrier{
+		.texture = tempTexture,
+		.syncBefore = BarrierSync::ComputeShading,
+		.syncAfter = BarrierSync::Copy,
+		.accessBefore = BarrierAccess::ShaderResource,
+		.accessAfter = BarrierAccess::CopySource,
+		.layoutBefore = BarrierLayout::ShaderResource,
+		.layoutAfter = BarrierLayout::CopySource,
+		});
 
 	context->BeginEvent(L"MipMapCopy", {});
 	for (int32_t i = 0; i < GetTextureDesc().GetDepthOrArraySize(); ++i)

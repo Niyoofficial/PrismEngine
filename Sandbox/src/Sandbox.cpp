@@ -688,7 +688,7 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 													  .format = TextureFormat::R32_SInt,
 													  .color = {-1.f, 0.f, 0.f, 0.f}
 												  }
-											  }, BarrierLayout::RenderTarget);
+											  }, BarrierLayout::ShaderResource);
 
 		m_camera->SetPerspective(45.f,
 								 (float)m_viewportSize.x / (float)m_viewportSize.y,
@@ -706,6 +706,15 @@ void SandboxLayer::SelectEntityUnderCursor()
 
 	auto renderContext = RenderDevice::Get().AllocateContext(L"HitProxies");
 
+	renderContext->Barrier(TextureBarrier{
+		.texture = m_hitProxiesTexture,
+		.syncBefore = BarrierSync::ComputeShading,
+		.syncAfter = BarrierSync::RenderTarget,
+		.accessBefore = BarrierAccess::ShaderResource,
+		.accessAfter = BarrierAccess::RenderTarget,
+		.layoutBefore = BarrierLayout::ShaderResource,
+		.layoutAfter = BarrierLayout::RenderTarget,
+	});
 	auto entities = m_scene->RenderHitProxies(renderContext, m_hitProxiesTexture->CreateDefaultRTV(), m_camera);
 	renderContext->SetPSO(ComputePipelineStateDesc{
 		.cs = {
@@ -738,6 +747,16 @@ void SandboxLayer::SelectEntityUnderCursor()
 	renderContext->SetUniformBuffer(L"g_hitProxyReadSettingsBuffer", readSettings);
 	renderContext->SetTexture(L"g_hitProxiesTexture", m_hitProxiesTexture->CreateDefaultSRV());
 	renderContext->SetBuffer(L"g_hitProxyOutputBuffer", hitProxyOutput->CreateDefaultUAV(sizeof(int32_t)));
+
+	renderContext->Barrier(TextureBarrier{
+		.texture = m_hitProxiesTexture,
+		.syncBefore = BarrierSync::RenderTarget,
+		.syncAfter = BarrierSync::ComputeShading,
+		.accessBefore = BarrierAccess::RenderTarget,
+		.accessAfter = BarrierAccess::ShaderResource,
+		.layoutBefore = BarrierLayout::RenderTarget,
+		.layoutAfter = BarrierLayout::ShaderResource,
+	});
 	renderContext->Dispatch({1, 1, 1});
 	renderContext->AddGPUCompletionCallback(
 		[hitProxyOutput, entities, this]()
