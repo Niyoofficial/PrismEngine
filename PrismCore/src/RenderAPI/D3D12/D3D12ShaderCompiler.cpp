@@ -157,7 +157,7 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 	static_assert(std::is_same_v<uint64_t, XXH64_hash_t>);
 	uint64_t shaderHash;
 
-	// Shader preprocessing
+	// We first preprocess the shader to generate a hash from the code that also contains the code from the #includes
 	{
 		ComPtr<IDxcResult> results;
 		PE_ASSERT_HR(m_dxcCompiler->Compile(&sourceBuffer, preprocessArguments, _countof(preprocessArguments), m_dxcIncludeHandler.Get(), IID_PPV_ARGS(&results)));

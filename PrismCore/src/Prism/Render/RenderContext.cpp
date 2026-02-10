@@ -41,16 +41,22 @@ void RenderContext::SetStencilRef(uint32_t ref)
 		});
 }
 
-void RenderContext::SetRenderTarget(TextureView* rtv, TextureView* dsv)
+void RenderContext::SetRenderTarget(const Ref<TextureView>& rtv, const Ref<TextureView>& dsv)
 {
-	std::vector<TextureView*> rtvs;
+	std::vector<Ref<TextureView>> rtvs;
 	if (rtv)
 		rtvs.push_back(rtv);
 	SetRenderTargets(rtvs, dsv);
 }
 
-void RenderContext::SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv)
+void RenderContext::SetRenderTargets(std::vector<Ref<TextureView>> rtvs, const Ref<TextureView>& dsv)
 {
+	for (auto& rtv : rtvs)
+	{
+		PE_ASSERT(rtv);
+		SafeReleaseResource(rtv->GetTexture());
+	}
+
 	m_commandRecorder.AllocateCommand<Commands::SetRenderTargetsRenderCommand>(rtvs, dsv);
 }
 
@@ -74,33 +80,67 @@ void RenderContext::SetScissors(std::vector<Scissor> scissors)
 	m_commandRecorder.AllocateCommand<Commands::SetScissorsRenderCommand>(scissors);
 }
 
-void RenderContext::SetVertexBuffer(Buffer* buffer, int64_t vertexSizeInBytes)
+void RenderContext::SetVertexBuffer(const Ref<Buffer>& buffer, int64_t vertexSizeInBytes)
 {
 	m_commandRecorder.AllocateCommand<Commands::SetVertexBufferRenderCommand>(buffer, vertexSizeInBytes);
 }
 
-void RenderContext::SetIndexBuffer(Buffer* buffer, IndexBufferFormat format)
+void RenderContext::SetIndexBuffer(const Ref<Buffer>& buffer, IndexBufferFormat format)
 {
 	m_commandRecorder.AllocateCommand<Commands::SetIndexBufferRenderCommand>(buffer, format);
 }
 
-void RenderContext::SetTexture(const std::wstring& paramName, TextureView* textureView)
+void RenderContext::SetTexture(const std::wstring& paramName, const Ref<TextureView>& textureView)
 {
+	if (textureView)
+	{
+		PE_ASSERT(textureView->GetTexture(), "View to invalid resource");
+
+		SafeReleaseResource(textureView->GetTexture());
+	}
+
 	m_commandRecorder.AllocateCommand<Commands::SetTextureRenderCommand>(textureView, paramName);
 }
 
 void RenderContext::SetTextures(const std::wstring& paramName, const std::vector<Ref<TextureView>>& textureViews)
 {
+	for (TextureView* textureView : textureViews)
+	{
+		if (textureView)
+		{
+			PE_ASSERT(textureView->GetTexture(), "View to invalid resource");
+
+			SafeReleaseResource(textureView->GetTexture());
+		}
+	}
+
 	m_commandRecorder.AllocateCommand<Commands::SetTexturesRenderCommand>(textureViews, paramName);
 }
 
-void RenderContext::SetBuffer(const std::wstring& paramName, BufferView* bufferView)
+void RenderContext::SetBuffer(const std::wstring& paramName, const Ref<BufferView>& bufferView)
 {
+	if (bufferView)
+	{
+		PE_ASSERT(bufferView->GetBuffer(), "View to invalid resource");
+
+		SafeReleaseResource(bufferView->GetBuffer());
+	}
+
 	m_commandRecorder.AllocateCommand<Commands::SetBufferRenderCommand>(bufferView, paramName);
 }
 
 void RenderContext::SetBuffers(const std::wstring& paramName, const std::vector<Ref<BufferView>>& bufferViews)
 {
+	for (BufferView* bufferView : bufferViews)
+	{
+		if (bufferView)
+		{
+			PE_ASSERT(bufferView->GetBuffer(), "View to invalid resource");
+
+			SafeReleaseResource(bufferView->GetBuffer());
+		}
+	}
+
 	m_commandRecorder.AllocateCommand<Commands::SetBuffersRenderCommand>(bufferViews, paramName);
 }
 
@@ -131,18 +171,27 @@ void RenderContext::SetUniformBuffer(const std::wstring& paramName, void* data, 
 	SetBuffer(paramName, uniformBuffer->CreateDefaultUniformBufferView());
 }
 
-void RenderContext::ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor)
+void RenderContext::ClearRenderTargetView(const Ref<TextureView>& rtv, glm::float4* clearColor)
 {
+	PE_ASSERT(rtv);
+	SafeReleaseResource(rtv->GetTexture());
+
 	m_commandRecorder.AllocateCommand<Commands::ClearRenderTargetViewRenderCommand>(rtv, clearColor);
 }
 
-void RenderContext::ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue)
+void RenderContext::ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue)
 {
+	PE_ASSERT(dsv);
+	SafeReleaseResource(dsv->GetTexture());
+
 	m_commandRecorder.AllocateCommand<Commands::ClearDepthStencilViewRenderCommand>(dsv, flags, clearValue);
 }
 
-void RenderContext::ClearUnorderedAccessView(TextureView* uav, glm::float4 values)
+void RenderContext::ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::float4 values)
 {
+	PE_ASSERT(uav);
+	SafeReleaseResource(uav->GetTexture());
+
 	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
 		[values, uav](RenderCommandList* cmdList)
 		{
@@ -150,8 +199,11 @@ void RenderContext::ClearUnorderedAccessView(TextureView* uav, glm::float4 value
 		});
 }
 
-void RenderContext::ClearUnorderedAccessView(TextureView* uav, glm::uint4 values)
+void RenderContext::ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::uint4 values)
 {
+	PE_ASSERT(uav);
+	SafeReleaseResource(uav->GetTexture());
+
 	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
 		[values, uav](RenderCommandList* cmdList)
 		{
@@ -169,42 +221,46 @@ void RenderContext::Barrier(TextureBarrier barrier)
 	m_commandRecorder.AllocateCommand<Commands::TextureBarrierRenderCommand>(barrier);
 }
 
-void RenderContext::UpdateBuffer(Buffer* buffer, RawData data)
+void RenderContext::UpdateBuffer(const Ref<Buffer>& buffer, RawData data)
 {
 	m_commandRecorder.AllocateCommand<Commands::UpdateBufferRenderCommand>(buffer, data);
 }
 
-void RenderContext::UpdateTexture(Texture* texture, RawData data, int32_t subresourceIndex)
+void RenderContext::UpdateTexture(const Ref<Texture>& texture, RawData data, int32_t subresourceIndex)
 {
 	m_commandRecorder.AllocateCommand<Commands::UpdateTextureRenderCommand>(texture, data, subresourceIndex);
 }
 
-void RenderContext::CopyBufferRegion(Buffer* dest, int64_t destOffset, Buffer* src, int64_t srcOffset, int64_t numBytes)
+void RenderContext::CopyBufferRegion(const Ref<Buffer>& dest, int64_t destOffset, const Ref<Buffer>& src, int64_t srcOffset,
+									 int64_t numBytes)
 {
 	m_commandRecorder.AllocateCommand<Commands::CopyBufferRegionRenderCommand>(dest, destOffset, src, srcOffset, numBytes);
 }
 
-void RenderContext::CopyBufferRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex, Buffer* src, int64_t srcOffset)
+void RenderContext::CopyBufferRegion(const Ref<Texture>& dest, glm::int3 destLoc, int32_t destSubresourceIndex, const Ref<Buffer>& src,
+									 int64_t srcOffset)
 {
-	m_commandRecorder.AllocateCommand<Commands::CopyBufferRegionToTextureRenderCommand>(dest, destLoc, destSubresourceIndex, src, srcOffset);
+	m_commandRecorder.AllocateCommand<Commands::CopyBufferRegionToTextureRenderCommand>(
+		dest, destLoc, destSubresourceIndex, src, srcOffset);
 }
 
-void RenderContext::CopyTextureRegion(Buffer* dest, int64_t destOffset, Texture* src, int32_t srcSubresourceIndex, Box3I srcBox)
+void RenderContext::CopyTextureRegion(const Ref<Buffer>& dest, int64_t destOffset, const Ref<Texture>& src,
+									  int32_t srcSubresourceIndex, Box3I srcBox)
 {
 	m_commandRecorder.AllocateCommand<Commands::CopyTextureRegionToBufferRenderCommand>(
 		dest, destOffset,
 		src, srcSubresourceIndex, srcBox);
 }
 
-void RenderContext::CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
-									  Texture* src, int32_t srcSubresourceIndex, Box3I srcBox)
+void RenderContext::CopyTextureRegion(const Ref<Texture>& dest, glm::int3 destLoc, int32_t destSubresourceIndex,
+									  const Ref<Texture>& src, int32_t srcSubresourceIndex, Box3I srcBox)
 {
 	m_commandRecorder.AllocateCommand<Commands::CopyTextureRegionToTextureRenderCommand>(
 		dest, destLoc, destSubresourceIndex,
 		src, srcSubresourceIndex, srcBox);
 }
 
-Buffer* RenderContext::ReadbackBuffer(Buffer* bufferToReadback)
+Buffer* RenderContext::ReadbackBuffer(const Ref<Buffer>& bufferToReadback)
 {
 	PE_ASSERT(bufferToReadback);
 	PE_ASSERT(bufferToReadback->GetBufferDesc().usage == ResourceUsage::Default);
@@ -225,7 +281,7 @@ Buffer* RenderContext::ReadbackBuffer(Buffer* bufferToReadback)
 	return readbackBuffer;
 }
 
-void RenderContext::ReadbackTexture(Texture* textureToReadback, int32_t subresource,
+void RenderContext::ReadbackTexture(const Ref<Texture>& textureToReadback, int32_t subresource,
 									std::function<void(std::vector<glm::float4>)> callback)
 {
 	PE_ASSERT(textureToReadback);
@@ -366,6 +422,11 @@ void RenderContext::EndEvent()
 void RenderContext::AddGPUCompletionCallback(std::function<void()> callback)
 {
 	m_gpuCompletionCallbacks.emplace_back(callback);
+}
+
+RenderContext::RenderContext(std::wstring debugName)
+	: m_debugName(debugName)
+{
 }
 
 void RenderContext::CloseContext()

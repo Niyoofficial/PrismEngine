@@ -23,7 +23,7 @@ struct SwapchainDesc
 class Swapchain : public RefCounted
 {
 public:
-	static Swapchain* Create(Core::Window* window, SwapchainDesc swapchainDesc);
+	static Ref<Swapchain> Create(Core::Window* window, SwapchainDesc swapchainDesc);
 
 	virtual void Present() = 0;
 	virtual void Resize() = 0;

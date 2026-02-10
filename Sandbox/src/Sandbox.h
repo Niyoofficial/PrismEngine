@@ -116,6 +116,9 @@ private:
 	float m_mouseSpeed = 0.003f;
 
 	Duration m_lastTimeButtonDown;
+
+	std::mutex m_fileLoadMutex;
+	std::vector<std::string> m_filesToLoad;
 };
 
 class SandboxApplication final : public Core::Application

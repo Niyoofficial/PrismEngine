@@ -33,5 +33,9 @@ public:
 	// Only Dynamic and Staging buffers can be mapped
 	virtual void* Map(Flags<CPUAccess> access) = 0;
 	virtual void Unmap() = 0;
+
+protected:
+	explicit Buffer(RenderDevice* renderDevice);
+	virtual ~Buffer() override;
 };
 }

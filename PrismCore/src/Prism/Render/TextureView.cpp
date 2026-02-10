@@ -32,12 +32,11 @@ bool TextureViewDesc::IsCube() const
 
 TextureView* TextureView::Create(const TextureViewDesc& desc, Texture* texture)
 {
-	return Private::CreateTextureView(desc, texture);
+	return RenderDevice::Get().CreateTextureView(desc, texture);
 }
 
 Texture* TextureView::GetTexture() const
 {
-	PE_ASSERT(m_owningTexture);
-	return m_owningTexture;
+	return m_owningTexture.IsValid() ? m_owningTexture.Raw() : nullptr;
 }
 }

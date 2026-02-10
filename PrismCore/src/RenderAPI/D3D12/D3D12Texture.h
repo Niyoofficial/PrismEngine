@@ -6,13 +6,15 @@
 
 namespace Prism::Render::D3D12
 {
+class D3D12RenderDevice;
+
 class D3D12Texture : public Texture
 {
 public:
-	D3D12Texture(const TextureDesc& desc, BarrierLayout initLayout);
-	explicit D3D12Texture(std::wstring filepath, bool loadAsCubemap = false, bool waitForLoadFinish = true);
-	explicit D3D12Texture(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap = false, bool waitForLoadFinish = true);
-	D3D12Texture(ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage, ClearValue optimizedClearValue,
+	D3D12Texture(D3D12RenderDevice* renderDevice, const TextureDesc& desc, BarrierLayout initLayout);
+	explicit D3D12Texture(D3D12RenderDevice* renderDevice, std::wstring filepath, bool loadAsCubemap = false, bool waitForLoadFinish = true);
+	explicit D3D12Texture(D3D12RenderDevice* renderDevice, std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap = false, bool waitForLoadFinish = true);
+	D3D12Texture(D3D12RenderDevice* renderDevice, ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage, ClearValue optimizedClearValue,
 				 bool isCubeTexture = false);
 
 	virtual void WaitForLoadFinish() override;
@@ -24,8 +26,6 @@ public:
 private:
 	TextureDesc m_originalDesc;
 	ComPtr<ID3D12Resource> m_resource;
-
-	bool m_isMapped = false;
 
 	std::future<void> m_loadFuture;
 };

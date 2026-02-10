@@ -7,11 +7,9 @@
 
 namespace Prism::Render::D3D12
 {
-D3D12Buffer::D3D12Buffer(const BufferDesc& desc)
-	: m_originalDesc(desc)
+D3D12Buffer::D3D12Buffer(D3D12RenderDevice* renderDevice, const BufferDesc& desc)
+	: Buffer(renderDevice), m_originalDesc(desc)
 {
-	DISABLE_DESTRUCTION_SCOPE_GUARD(this);
-
 	if (m_originalDesc.bindFlags.HasAllFlags(BindFlags::UniformBuffer))
 		m_originalDesc.size = Align(m_originalDesc.size, Constants::UNIFORM_BUFFER_ALIGNMENT);
 
@@ -21,7 +19,7 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc)
 		auto bufferDesc = CD3DX12_RESOURCE_DESC1::Buffer(
 			m_originalDesc.size,
 			GetD3D12ResourceFlags(m_originalDesc.bindFlags));
-		PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource3(
+		PE_ASSERT_HR(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12Device()->CreateCommittedResource3(
 			&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&bufferDesc,
@@ -52,7 +50,7 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc)
 		auto bufferDesc = CD3DX12_RESOURCE_DESC1::Buffer(
 			m_originalDesc.size,
 			GetD3D12ResourceFlags(m_originalDesc.bindFlags));
-		PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommittedResource3(
+		PE_ASSERT_HR(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12Device()->CreateCommittedResource3(
 			&heapProps,
 			D3D12_HEAP_FLAG_NONE,
 			&bufferDesc,
@@ -70,8 +68,8 @@ D3D12Buffer::D3D12Buffer(const BufferDesc& desc)
 	}
 }
 
-D3D12Buffer::D3D12Buffer(ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage, CPUAccess cpuAccess)
-	: m_resource(resource), m_originalDesc({.bufferName = name, .usage = usage, .cpuAccess = cpuAccess})
+D3D12Buffer::D3D12Buffer(D3D12RenderDevice* renderDevice, ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage, CPUAccess cpuAccess)
+	: Buffer(renderDevice), m_resource(resource), m_originalDesc({.bufferName = name, .usage = usage, .cpuAccess = cpuAccess})
 {
 	m_originalDesc = D3D12Buffer::GetBufferDesc();
 }
@@ -95,7 +93,7 @@ void* D3D12Buffer::Map(Flags<CPUAccess> access)
 
 	if (m_originalDesc.usage == ResourceUsage::Dynamic)
 	{
-		m_dynamicAllocation = D3D12RenderDevice::Get().AllocateDynamicBufferMemory(m_originalDesc.size);
+		m_dynamicAllocation = static_cast<D3D12RenderDevice*>(m_renderDevice)->AllocateDynamicBufferMemory(m_originalDesc.size);
 
 		return m_dynamicAllocation.gpuRingAllocation.cpuAddress;
 	}
@@ -146,7 +144,7 @@ BufferDesc D3D12Buffer::GetBufferDesc() const
 ID3D12Resource* D3D12Buffer::GetD3D12Resource() const
 {
 	if (m_originalDesc.usage == ResourceUsage::Dynamic)
-		return D3D12RenderDevice::Get().GetD3D12ResourceForDynamicAllocation(m_dynamicAllocation.ringBufferID);
+		return static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12ResourceForDynamicAllocation(m_dynamicAllocation.ringBufferID);
 	else
 		return m_resource.Get();
 }

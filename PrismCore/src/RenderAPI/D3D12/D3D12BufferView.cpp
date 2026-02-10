@@ -25,7 +25,7 @@ D3D12BufferView::D3D12BufferView(const BufferViewDesc& desc, Buffer* buffer)
 			{
 				PE_ASSERT(!m_viewDesc.flags.HasAllFlags(BufferViewFlags::NeedsCounter), "NeedsCounter flag can only be used on UAV");
 
-				auto d3d12ViewDesc = GetD3D12ConstantBufferViewDesc(m_owningBuffer, m_viewDesc);
+				auto d3d12ViewDesc = GetD3D12ConstantBufferViewDesc(m_owningBuffer.Raw(), m_viewDesc);
 				D3D12RenderDevice::Get().GetD3D12Device()->CreateConstantBufferView(&d3d12ViewDesc, m_descriptor.GetCPUHandle());
 			}
 			break;

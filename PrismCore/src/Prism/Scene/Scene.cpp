@@ -7,7 +7,7 @@
 
 namespace Prism
 {
-void Scene::SetSelectedEntity(Entity* entity)
+void Scene::SetSelectedEntity(const Ref<Entity>& entity)
 {
 	if (entity)
 		PE_ASSERT(std::ranges::find(m_entities, Ref(entity)) != m_entities.end());
@@ -45,24 +45,25 @@ void Scene::RenderScene(Render::RenderContext* renderContext, Render::TextureVie
 	};
 	for (auto& [proxy, entity] : m_renderProxies)
 		renderInfo.proxies.emplace_back(proxy);
-	renderInfo.selectedProxy = m_selectedProxy;
+	renderInfo.selectedProxy = m_selectedProxy.Raw();
 	renderInfo.directionalLights = m_dirLights;
 
 	m_renderPipeline->Render(renderContext, renderInfo);
 }
 
-std::vector<Entity*> Scene::RenderHitProxies(Render::RenderContext* renderContext, Render::TextureView* rtv, Render::Camera* camera)
+std::vector<Ref<Entity>> Scene::RenderHitProxies(const Ref<Render::RenderContext>& renderContext, const Ref<Render::TextureView>& rtv, const Ref<Render::Camera>& camera)
 {
 	Render::RenderHitProxiesInfo renderInfo = {
 		.renderTargetView = rtv,
 		.cameraInfo = camera->GetCameraInfo(),
 	};
 
-	std::vector<Entity*> hitProxyEntities;
+	std::vector<Ref<Entity>> hitProxyEntities;
 	for (auto& [proxy, entity] : m_renderProxies)
 	{
+		PE_ASSERT(entity.IsValid());
 		renderInfo.proxies.emplace_back(proxy);
-		hitProxyEntities.emplace_back(entity);
+		hitProxyEntities.emplace_back(entity.Raw());
 	}
 
 	m_renderPipeline->RenderHitProxies(renderContext, renderInfo);
@@ -75,7 +76,7 @@ Scene::Scene(const std::wstring& name)
 {
 }
 
-void Scene::PrepareRenderProxiesForEntity(Entity* entity, glm::float4x4 parentTransform)
+void Scene::PrepareRenderProxiesForEntity(const Ref<Entity>& entity, glm::float4x4 parentTransform)
 {
 	glm::float4x4 transform = parentTransform;
 	if (auto* comp = entity->GetComponent<TransformComponent>())
@@ -101,12 +102,7 @@ void Scene::PrepareRenderProxiesForEntity(Entity* entity, glm::float4x4 parentTr
 		PrepareRenderProxiesForEntity(child.Raw(), transform);
 }
 
-Scene* Scene::Create(std::wstring name)
-{
-	return new Scene(name);
-}
-
-void Scene::AddEntity(Entity* entity)
+void Scene::AddEntity(Ref<Entity>& entity)
 {
 	PE_ASSERT(entity);
 	PE_ASSERT(!entity->GetOwningScene(), "Entity is already owned by a different scene!");
@@ -115,7 +111,7 @@ void Scene::AddEntity(Entity* entity)
 	m_entities.emplace_back(entity);
 }
 
-void Scene::RemoveEntity(Entity* entity)
+void Scene::RemoveEntity(const Ref<Entity>& entity)
 {
 	PE_ASSERT(entity);
 	PE_ASSERT(entity->GetOwningScene(), "Entity is not owned by any scene!");
@@ -131,15 +127,15 @@ void Scene::RemoveEntity(Entity* entity)
 	std::erase(m_entities, entity);
 }
 
-Entity* Scene::CreateEntityHierarchyForMeshAsset(MeshLoading::MeshAsset* asset)
+Ref<Entity> Scene::CreateEntityHierarchyForMeshAsset(const Ref<MeshLoading::MeshAsset>& asset)
 {
 	PE_ASSERT(asset);
 
-	Entity* root = nullptr;
-	std::function<void(MeshLoading::MeshNode, Entity*)> processNode =
-		[this, &processNode, asset, &root](MeshLoading::MeshNode node, Entity* parent)
+	Ref<Entity> root = nullptr;
+	std::function<void(MeshLoading::MeshNode, const Ref<Entity>&)> processNode =
+		[this, &processNode, asset, &root](MeshLoading::MeshNode node, const Ref<Entity>& parent)
 		{
-			Entity* entity = AddEntity(asset->GetNodeName(node));
+			Ref entity = AddEntity(asset->GetNodeName(node));
 			if (parent)
 				entity->SetParent(parent);
 
@@ -168,7 +164,7 @@ Entity* Scene::CreateEntityHierarchyForMeshAsset(MeshLoading::MeshAsset* asset)
 	return root;
 }
 
-void Scene::SetRenderPipeline(Render::SceneRenderPipeline* renderPipeline)
+void Scene::SetRenderPipeline(const Ref<Render::SceneRenderPipeline>& renderPipeline)
 {
 	// TODO: Add a safe way to call this during rendering, some kind of separate
 	// variable for next pipeline that will actually be changed after frame is finished

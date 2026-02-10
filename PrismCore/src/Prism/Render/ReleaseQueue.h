@@ -63,11 +63,10 @@ public:
 
 	~ReleaseQueueAny() = default;
 
-	// Objects MUST be std::move'd into this function
 	template<typename T>
-	void AddResource(T&& resource, uint64_t fenceValue) requires !std::is_lvalue_reference_v<T>
+	void AddResource(const Ref<T>& resource, uint64_t fenceValue)
 	{
-		m_releaseQueue.emplace(fenceValue, new PreservedResourceWrapper{std::move(resource)});
+		m_releaseQueue.emplace(fenceValue, resource);
 	}
 
 	void PurgeReleaseQueue(uint64_t completedFenceValue)
@@ -82,6 +81,6 @@ public:
 	}
 
 private:
-	std::queue<std::pair<uint64_t, Ref<PreservedResourceWrapperBase>>> m_releaseQueue;
+	std::queue<std::pair<uint64_t, Ref<RefCounted>>> m_releaseQueue;
 };
 }

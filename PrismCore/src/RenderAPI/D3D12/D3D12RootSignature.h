@@ -8,7 +8,7 @@ enum class PipelineStateType;
 
 namespace Prism::Render::D3D12
 {
-class D3D12RootSignature : public RefCounted
+class D3D12RootSignature
 {
 public:
 	explicit D3D12RootSignature(PipelineStateType type);

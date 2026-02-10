@@ -5,11 +5,13 @@
 
 namespace Prism::Render::D3D12
 {
+class D3D12RenderDevice;
+
 class D3D12Buffer : public Buffer
 {
 public:
-	D3D12Buffer(const BufferDesc& desc);
-	D3D12Buffer(ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage, CPUAccess cpuAccess);
+	D3D12Buffer(D3D12RenderDevice* renderDevice, const BufferDesc& desc);
+	D3D12Buffer(D3D12RenderDevice* renderDevice, ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage, CPUAccess cpuAccess);
 
 	virtual void* Map(Flags<CPUAccess> access) override;
 	virtual void Unmap() override;

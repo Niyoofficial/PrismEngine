@@ -114,10 +114,10 @@ void D3D12RenderCommandList::SetStencilRef(uint32_t ref)
 	m_commandList->OMSetStencilRef(ref);
 }
 
-void D3D12RenderCommandList::SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv)
+void D3D12RenderCommandList::SetRenderTargets(std::vector<Ref<TextureView>> rtvs, const Ref<TextureView>& dsv)
 {
 	m_renderTargetViews.clear();
-	for (TextureView* rtv : rtvs)
+	for (const auto& rtv : rtvs)
 	{
 		PE_ASSERT(rtv->GetTexture()->GetTextureDesc().bindFlags & BindFlags::RenderTarget, "Texture must have RenderTarget bind flag set to be used as a render target");
 		m_renderTargetViews.emplace_back(rtv);
@@ -126,9 +126,9 @@ void D3D12RenderCommandList::SetRenderTargets(std::vector<TextureView*> rtvs, Te
 
 	std::vector<D3D12_CPU_DESCRIPTOR_HANDLE> rtvHandles;
 	rtvHandles.reserve(m_renderTargetViews.size());
-	for (TextureView* rtv : m_renderTargetViews)
+	for (const auto& rtv : m_renderTargetViews)
 	{
-		rtvHandles.push_back(rtv ? static_cast<D3D12TextureView*>(rtv)->GetDescriptor().GetCPUHandle() : CD3DX12_CPU_DESCRIPTOR_HANDLE{});
+		rtvHandles.push_back(rtv ? static_cast<D3D12TextureView*>(rtv.Raw())->GetDescriptor().GetCPUHandle() : CD3DX12_CPU_DESCRIPTOR_HANDLE{});
 	}
 
 	CD3DX12_CPU_DESCRIPTOR_HANDLE dsvHandle = {};
@@ -158,27 +158,27 @@ void D3D12RenderCommandList::SetScissors(std::vector<Scissor> scissors)
 	m_commandList->RSSetScissorRects((UINT)d3d12Rects.size(), d3d12Rects.data());
 }
 
-void D3D12RenderCommandList::SetVertexBuffer(Buffer* buffer, int64_t vertexSizeInBytes)
+void D3D12RenderCommandList::SetVertexBuffer(const Ref<Buffer>& buffer, int64_t vertexSizeInBytes)
 {
-	D3D12_VERTEX_BUFFER_VIEW view = {
-		.BufferLocation = static_cast<D3D12Buffer*>(buffer)->GetD3D12Resource()->GetGPUVirtualAddress(),
-		.SizeInBytes = (UINT)buffer->GetBufferDesc().size,
-		.StrideInBytes = (UINT)vertexSizeInBytes
-	};
-	m_commandList->IASetVertexBuffers(0, 1, &view);
+   D3D12_VERTEX_BUFFER_VIEW view = {
+	   .BufferLocation = static_cast<D3D12Buffer*>(buffer.Raw())->GetD3D12Resource()->GetGPUVirtualAddress(),
+	   .SizeInBytes = (UINT)buffer->GetBufferDesc().size,
+	   .StrideInBytes = (UINT)vertexSizeInBytes
+   };
+   m_commandList->IASetVertexBuffers(0, 1, &view);
 }
 
-void D3D12RenderCommandList::SetIndexBuffer(Buffer* buffer, IndexBufferFormat format)
+void D3D12RenderCommandList::SetIndexBuffer(const Ref<Buffer>& buffer, IndexBufferFormat format)
 {
-	D3D12_INDEX_BUFFER_VIEW view = {
-		.BufferLocation = static_cast<D3D12Buffer*>(buffer)->GetD3D12Resource()->GetGPUVirtualAddress(),
-		.SizeInBytes = (UINT)buffer->GetBufferDesc().size,
-		.Format = GetIndexBufferDXGIFormat(format)
-	};
-	m_commandList->IASetIndexBuffer(&view);
+   D3D12_INDEX_BUFFER_VIEW view = {
+	   .BufferLocation = static_cast<D3D12Buffer*>(buffer.Raw())->GetD3D12Resource()->GetGPUVirtualAddress(),
+	   .SizeInBytes = (UINT)buffer->GetBufferDesc().size,
+	   .Format = GetIndexBufferDXGIFormat(format)
+   };
+   m_commandList->IASetIndexBuffer(&view);
 }
 
-void D3D12RenderCommandList::SetTexture(TextureView* textureView, const std::wstring& paramName)
+void D3D12RenderCommandList::SetTexture(const Ref<TextureView>& textureView, const std::wstring& paramName)
 {
 	if (textureView)
 		SetTextures({textureView}, paramName);
@@ -239,7 +239,7 @@ void D3D12RenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& buff
 	}
 }
 
-void D3D12RenderCommandList::ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor)
+void D3D12RenderCommandList::ClearRenderTargetView(const Ref<TextureView>& rtv, glm::float4* clearColor)
 {
 	float rtClearColor[4] = { 0.f };
 	if (clearColor)
@@ -259,11 +259,11 @@ void D3D12RenderCommandList::ClearRenderTargetView(TextureView* rtv, glm::float4
 		rtClearColor[2] = color.b;
 		rtClearColor[3] = color.a;
 	}
-	m_commandList->ClearRenderTargetView(static_cast<D3D12TextureView*>(rtv)->GetDescriptor().GetCPUHandle(),
+	m_commandList->ClearRenderTargetView(static_cast<D3D12TextureView*>(rtv.Raw())->GetDescriptor().GetCPUHandle(),
 		rtClearColor, 0, nullptr);
 }
 
-void D3D12RenderCommandList::ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue)
+void D3D12RenderCommandList::ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue)
 {
 	float depthValue = 0.f;
 	uint8_t stencilValue = 0;
@@ -280,24 +280,24 @@ void D3D12RenderCommandList::ClearDepthStencilView(TextureView* dsv, Flags<Clear
 		depthValue = depth;
 		stencilValue = stencil;
 	}
-	m_commandList->ClearDepthStencilView(static_cast<D3D12TextureView*>(dsv)->GetDescriptor().GetCPUHandle(),
+	m_commandList->ClearDepthStencilView(static_cast<D3D12TextureView*>(dsv.Raw())->GetDescriptor().GetCPUHandle(),
 		GetD3D12ClearFlags(flags), depthValue, stencilValue, 0, nullptr);
 }
 
-void D3D12RenderCommandList::ClearUnorderedAccessView(TextureView* uav, glm::float4 values)
+void D3D12RenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::float4 values)
 {
 	m_commandList->ClearUnorderedAccessViewFloat(
-		static_cast<D3D12TextureView*>(uav)->GetDescriptor().GetGPUHandle(),
-		static_cast<D3D12TextureView*>(uav)->GetUavCpuDescriptor().GetCPUHandle(),
+		static_cast<D3D12TextureView*>(uav.Raw())->GetDescriptor().GetGPUHandle(),
+		static_cast<D3D12TextureView*>(uav.Raw())->GetUavCpuDescriptor().GetCPUHandle(),
 		static_cast<D3D12Texture*>(uav->GetTexture())->GetD3D12Resource(),
 		&values.r, 0, nullptr);
 }
 
-void D3D12RenderCommandList::ClearUnorderedAccessView(TextureView* uav, glm::uint4 values)
+void D3D12RenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::uint4 values)
 {
 	m_commandList->ClearUnorderedAccessViewUint(
-		static_cast<D3D12TextureView*>(uav)->GetDescriptor().GetGPUHandle(),
-		static_cast<D3D12TextureView*>(uav)->GetUavCpuDescriptor().GetCPUHandle(),
+		static_cast<D3D12TextureView*>(uav.Raw())->GetDescriptor().GetGPUHandle(),
+		static_cast<D3D12TextureView*>(uav.Raw())->GetUavCpuDescriptor().GetCPUHandle(),
 		static_cast<D3D12Texture*>(uav->GetTexture())->GetD3D12Resource(),
 		&values.r, 0, nullptr);
 }
@@ -316,115 +316,115 @@ void D3D12RenderCommandList::Barrier(TextureBarrier barrier)
 	m_commandList->Barrier(1, barrierGroups);
 }
 
-void D3D12RenderCommandList::UpdateBuffer(Buffer* buffer, RawData data)
+void D3D12RenderCommandList::UpdateBuffer(const Ref<Buffer>& buffer, RawData data)
 {
-	PE_ASSERT(buffer);
-	PE_ASSERT(buffer->GetBufferDesc().usage == ResourceUsage::Default ||
-			  (buffer->GetBufferDesc().usage == ResourceUsage::Staging && buffer->GetBufferDesc().cpuAccess.HasAllFlags(CPUAccess::Write)),
-			  "Buffer must have either Default usage or Staging usage with CPUAccess::Write to be able to be updated through render context");
+   PE_ASSERT(buffer);
+   PE_ASSERT(buffer->GetBufferDesc().usage == ResourceUsage::Default ||
+			 (buffer->GetBufferDesc().usage == ResourceUsage::Staging && buffer->GetBufferDesc().cpuAccess.HasAllFlags(CPUAccess::Write)),
+			 "Buffer must have either Default usage or Staging usage with CPUAccess::Write to be able to be updated through render context");
 
-	auto uploadBufferDesc = buffer->GetBufferDesc();
-	uploadBufferDesc.bufferName = L"UploadBuffer";
-	uploadBufferDesc.usage = ResourceUsage::Staging;
-	uploadBufferDesc.cpuAccess = CPUAccess::Write;
-	auto uploadBuffer = Buffer::Create(uploadBufferDesc, data);
+   auto uploadBufferDesc = buffer->GetBufferDesc();
+   uploadBufferDesc.bufferName = L"UploadBuffer";
+   uploadBufferDesc.usage = ResourceUsage::Staging;
+   uploadBufferDesc.cpuAccess = CPUAccess::Write;
+   auto uploadBuffer = Buffer::Create(uploadBufferDesc, data);
 
-	CopyBufferRegion(buffer, 0, uploadBuffer, 0, (int32_t)buffer->GetBufferDesc().size);
+   CopyBufferRegion(buffer, 0, uploadBuffer, 0, (int32_t)buffer->GetBufferDesc().size);
 
-	SafeReleaseResource(std::move(uploadBuffer));
+   SafeReleaseResource(std::move(uploadBuffer));
 }
 
-void D3D12RenderCommandList::UpdateTexture(Texture* texture, RawData data, int32_t subresourceIndex)
+void D3D12RenderCommandList::UpdateTexture(const Ref<Texture>& texture, RawData data, int32_t subresourceIndex)
 {
-	PE_ASSERT(texture);
-	PE_ASSERT(texture->GetTextureDesc().usage == ResourceUsage::Default,
-		"Texture must have Default usage to be updated through render context");
+   PE_ASSERT(texture);
+   PE_ASSERT(texture->GetTextureDesc().usage == ResourceUsage::Default,
+	   "Texture must have Default usage to be updated through render context");
 
-	int64_t intermediateSize = (int64_t)GetRequiredIntermediateSize(static_cast<D3D12Texture*>(texture)->GetD3D12Resource(), subresourceIndex, 1);
-	BufferDesc uploadBufferDesc = {
-		.bufferName = L"UploadBuffer",
-		.size = intermediateSize,
-		.usage = ResourceUsage::Staging,
-		.cpuAccess = CPUAccess::Write
-	};
-	auto uploadBuffer = Buffer::Create(uploadBufferDesc, data);
+   int64_t intermediateSize = (int64_t)GetRequiredIntermediateSize(static_cast<D3D12Texture*>(texture.Raw())->GetD3D12Resource(), subresourceIndex, 1);
+   BufferDesc uploadBufferDesc = {
+	   .bufferName = L"UploadBuffer",
+	   .size = intermediateSize,
+	   .usage = ResourceUsage::Staging,
+	   .cpuAccess = CPUAccess::Write
+   };
+   auto uploadBuffer = Buffer::Create(uploadBufferDesc, data);
 
-	CopyBufferRegion(texture, {0, 0, 0}, subresourceIndex, uploadBuffer, 0);
+   CopyBufferRegion(texture, {0, 0, 0}, subresourceIndex, uploadBuffer, 0);
 
-	SafeReleaseResource(std::move(uploadBuffer));
+   SafeReleaseResource(std::move(uploadBuffer));
 }
 
-void D3D12RenderCommandList::CopyBufferRegion(Buffer* dest, int64_t destOffset, Buffer* src, int64_t srcOffset, int64_t numBytes)
+void D3D12RenderCommandList::CopyBufferRegion(const Ref<Buffer>& dest, int64_t destOffset, const Ref<Buffer>& src, int64_t srcOffset, int64_t numBytes)
 {
-	PE_ASSERT(dest && src);
-	PE_ASSERT(dest->GetResourceType() == ResourceType::Buffer);
-	PE_ASSERT(src->GetResourceType() == ResourceType::Buffer);
+   PE_ASSERT(dest && src);
+   PE_ASSERT(dest->GetResourceType() == ResourceType::Buffer);
+   PE_ASSERT(src->GetResourceType() == ResourceType::Buffer);
 
-	auto* d3d12Dest = static_cast<D3D12Buffer*>(dest);
-	auto* d3d12Src = static_cast<D3D12Buffer*>(src);
-	m_commandList->CopyBufferRegion(d3d12Dest->GetD3D12Resource(), d3d12Dest->GetDefaultOffset() + destOffset,
-		d3d12Src->GetD3D12Resource(), d3d12Src->GetDefaultOffset() + srcOffset, numBytes);
+   auto* d3d12Dest = static_cast<D3D12Buffer*>(dest.Raw());
+   auto* d3d12Src = static_cast<D3D12Buffer*>(src.Raw());
+   m_commandList->CopyBufferRegion(d3d12Dest->GetD3D12Resource(), d3d12Dest->GetDefaultOffset() + destOffset,
+	   d3d12Src->GetD3D12Resource(), d3d12Src->GetDefaultOffset() + srcOffset, numBytes);
 }
 
-void D3D12RenderCommandList::CopyBufferRegion(Texture* dest, glm::int3 destLoc, int32_t subresourceIndex,
-											  Buffer* src, int64_t srcOffset)
+void D3D12RenderCommandList::CopyBufferRegion(const Ref<Texture>& dest, glm::int3 destLoc, int32_t subresourceIndex,
+											 const Ref<Buffer>& src, int64_t srcOffset)
 {
-	PE_ASSERT(dest && src);
-	PE_ASSERT(dest->GetResourceType() == ResourceType::Texture);
-	PE_ASSERT(src->GetResourceType() == ResourceType::Buffer);
+   PE_ASSERT(dest && src);
+   PE_ASSERT(dest->GetResourceType() == ResourceType::Texture);
+   PE_ASSERT(src->GetResourceType() == ResourceType::Buffer);
 
-	auto destDesc = static_cast<D3D12Texture*>(dest)->GetD3D12Resource()->GetDesc();
-	D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout;
-	UINT numRows = 0;
-	UINT64 rowSizeInBytes = 0;
-	UINT64 totalBytes = 0;
-	D3D12RenderDevice::Get().GetD3D12Device()->GetCopyableFootprints(&destDesc, subresourceIndex, 1, srcOffset,
-																	 &layout, &numRows,
-																	 &rowSizeInBytes, &totalBytes);
+   auto destDesc = static_cast<D3D12Texture*>(dest.Raw())->GetD3D12Resource()->GetDesc();
+   D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout;
+   UINT numRows = 0;
+   UINT64 rowSizeInBytes = 0;
+   UINT64 totalBytes = 0;
+   D3D12RenderDevice::Get().GetD3D12Device()->GetCopyableFootprints(&destDesc, subresourceIndex, 1, srcOffset,
+																	&layout, &numRows,
+																	&rowSizeInBytes, &totalBytes);
 
-	CD3DX12_TEXTURE_COPY_LOCATION destTexLoc(static_cast<D3D12Texture*>(dest)->GetD3D12Resource(), subresourceIndex);
-	CD3DX12_TEXTURE_COPY_LOCATION srcTexLoc(static_cast<D3D12Buffer*>(src)->GetD3D12Resource(), layout);
+   CD3DX12_TEXTURE_COPY_LOCATION destTexLoc(static_cast<D3D12Texture*>(dest.Raw())->GetD3D12Resource(), subresourceIndex);
+   CD3DX12_TEXTURE_COPY_LOCATION srcTexLoc(static_cast<D3D12Buffer*>(src.Raw())->GetD3D12Resource(), layout);
 
-	m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, nullptr);
+   m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, nullptr);
 }
 
-void D3D12RenderCommandList::CopyTextureRegion(Buffer* dest, int64_t destOffset,
-											   Texture* src, int32_t srcSubresourceIndex, Box3I srcBox)
+void D3D12RenderCommandList::CopyTextureRegion(const Ref<Buffer>& dest, int64_t destOffset,
+											   const Ref<Texture>& src, int32_t srcSubresourceIndex, Box3I srcBox)
 {
-	PE_ASSERT(dest && src);
-	PE_ASSERT(dest->GetResourceType() == ResourceType::Buffer);
-	PE_ASSERT(src->GetResourceType() == ResourceType::Texture);
+   PE_ASSERT(dest && src);
+   PE_ASSERT(dest->GetResourceType() == ResourceType::Buffer);
+   PE_ASSERT(src->GetResourceType() == ResourceType::Texture);
 
-	auto* d3d12Texture = static_cast<D3D12Texture*>(src)->GetD3D12Resource();
-	auto d3d12TextureDesc = d3d12Texture->GetDesc();
+   auto* d3d12Texture = static_cast<D3D12Texture*>(src.Raw())->GetD3D12Resource();
+   auto d3d12TextureDesc = d3d12Texture->GetDesc();
 
-	D3D12_PLACED_SUBRESOURCE_FOOTPRINT bufferLayout;
-	UINT64 srcRowPitch;
-	D3D12RenderDevice::Get().GetD3D12Device()->GetCopyableFootprints(&d3d12TextureDesc, srcSubresourceIndex, 1, (UINT64)destOffset,
-																	 &bufferLayout,
-																	 nullptr,
-																	 &srcRowPitch,
-																	 nullptr);
+   D3D12_PLACED_SUBRESOURCE_FOOTPRINT bufferLayout;
+   UINT64 srcRowPitch;
+   D3D12RenderDevice::Get().GetD3D12Device()->GetCopyableFootprints(&d3d12TextureDesc, srcSubresourceIndex, 1, (UINT64)destOffset,
+																	&bufferLayout,
+																	nullptr,
+																	&srcRowPitch,
+																	nullptr);
 
-	CD3DX12_TEXTURE_COPY_LOCATION destTexLoc(static_cast<D3D12Buffer*>(dest)->GetD3D12Resource(), bufferLayout);
-	CD3DX12_TEXTURE_COPY_LOCATION srcTexLoc(static_cast<D3D12Texture*>(src)->GetD3D12Resource(), srcSubresourceIndex);
+   CD3DX12_TEXTURE_COPY_LOCATION destTexLoc(static_cast<D3D12Buffer*>(dest.Raw())->GetD3D12Resource(), bufferLayout);
+   CD3DX12_TEXTURE_COPY_LOCATION srcTexLoc(static_cast<D3D12Texture*>(src.Raw())->GetD3D12Resource(), srcSubresourceIndex);
 
-	auto d3d12Box = GetD3D12Box(srcBox, src, srcSubresourceIndex);
-	m_commandList->CopyTextureRegion(&destTexLoc, 0, 0, 0, &srcTexLoc, &d3d12Box);
+   auto d3d12Box = GetD3D12Box(srcBox, src.Raw(), srcSubresourceIndex);
+   m_commandList->CopyTextureRegion(&destTexLoc, 0, 0, 0, &srcTexLoc, &d3d12Box);
 }
 
-void D3D12RenderCommandList::CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
-											   Texture* src, int32_t srcSubresourceIndex, Box3I srcBox)
+void D3D12RenderCommandList::CopyTextureRegion(const Ref<Texture>& dest, glm::int3 destLoc, int32_t destSubresourceIndex,
+											   const Ref<Texture>& src, int32_t srcSubresourceIndex, Box3I srcBox)
 {
-	PE_ASSERT(dest && src);
-	PE_ASSERT(dest->GetResourceType() == ResourceType::Texture);
-	PE_ASSERT(src->GetResourceType() == ResourceType::Texture);
+   PE_ASSERT(dest && src);
+   PE_ASSERT(dest->GetResourceType() == ResourceType::Texture);
+   PE_ASSERT(src->GetResourceType() == ResourceType::Texture);
 
-	CD3DX12_TEXTURE_COPY_LOCATION destTexLoc(static_cast<D3D12Texture*>(dest)->GetD3D12Resource(), destSubresourceIndex);
-	CD3DX12_TEXTURE_COPY_LOCATION srcTexLoc(static_cast<D3D12Texture*>(src)->GetD3D12Resource(), srcSubresourceIndex);
+   CD3DX12_TEXTURE_COPY_LOCATION destTexLoc(static_cast<D3D12Texture*>(dest.Raw())->GetD3D12Resource(), destSubresourceIndex);
+   CD3DX12_TEXTURE_COPY_LOCATION srcTexLoc(static_cast<D3D12Texture*>(src.Raw())->GetD3D12Resource(), srcSubresourceIndex);
 
-	auto d3d12Box = GetD3D12Box(srcBox, src, srcSubresourceIndex);
-	m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, (srcBox.size.x <= 0 || srcBox.size.y <= 0 || srcBox.size.z <= 0) ? nullptr : &d3d12Box);
+   auto d3d12Box = GetD3D12Box(srcBox, src.Raw(), srcSubresourceIndex);
+   m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, (srcBox.size.x <= 0 || srcBox.size.y <= 0 || srcBox.size.z <= 0) ? nullptr : &d3d12Box);
 }
 
 void D3D12RenderCommandList::RenderImGui()

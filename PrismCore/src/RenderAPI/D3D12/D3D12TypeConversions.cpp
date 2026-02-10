@@ -1535,6 +1535,8 @@ TextureFormat GetTextureFormat(DXGI_FORMAT dxgiFormat)
 			DXGI_FORMAT dxgiFmt = GetDXGIFormat(format);
 			s_textureFormatMap[dxgiFmt] = format;
 		}
+
+		s_initialized = true;
 	}
 
 	return s_textureFormatMap[dxgiFormat];

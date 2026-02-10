@@ -23,7 +23,7 @@ public:
 
 	void SetPrimitive(MeshLoading::MeshAsset* mesh, MeshLoading::MeshNode meshNode);
 
-	virtual Render::EntityRenderProxy* CreateRenderProxy(glm::float4x4 transform) const;
+	virtual Ref<Render::EntityRenderProxy> CreateRenderProxy(glm::float4x4 transform) const;
 
 	virtual void DrawImGuiInspector() override;
 

@@ -6,9 +6,9 @@
 
 namespace Prism::Core::Private
 {
-Window* CreateWindow(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc)
+Ref<Window> CreateWindow(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc)
 {
-	return new SDL::SDLWindow(windowDesc, swapchainDesc);
+	return Ref<SDL::SDLWindow>::Create(windowDesc, swapchainDesc);
 }
 
 Platform* CreatePlatform()

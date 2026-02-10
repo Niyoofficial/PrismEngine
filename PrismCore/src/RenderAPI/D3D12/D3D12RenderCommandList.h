@@ -21,36 +21,39 @@ public:
 
 	virtual void SetStencilRef(uint32_t ref) override;
 
-	virtual void SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv) override;
+	virtual void SetRenderTargets(std::vector<Ref<TextureView>> rtvs, const Ref<TextureView>& dsv) override;
 
 	virtual void SetViewports(std::vector<Viewport> viewports) override;
 	virtual void SetScissors(std::vector<Scissor> scissors) override;
 
-	virtual void SetVertexBuffer(Buffer* buffer, int64_t vertexSizeInBytes) override;
-	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) override;
+	virtual void SetVertexBuffer(const Ref<Buffer>& buffer, int64_t vertexSizeInBytes) override;
+	virtual void SetIndexBuffer(const Ref<Buffer>& buffer, IndexBufferFormat format) override;
 
-	virtual void SetTexture(TextureView* textureView, const std::wstring& paramName) override;
+	virtual void SetTexture(const Ref<TextureView>& textureView, const std::wstring& paramName) override;
 	virtual void SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName) override;
 	virtual void SetBuffer(BufferView* bufferView, const std::wstring& paramName) override;
 	virtual void SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName) override;
 
-	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor) override;
-	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue) override;
-	virtual void ClearUnorderedAccessView(TextureView* uav, glm::float4 values) override;
-	virtual void ClearUnorderedAccessView(TextureView* uav, glm::uint4 values) override;
+	virtual void ClearRenderTargetView(const Ref<TextureView>& rtv, glm::float4* clearColor) override;
+	virtual void ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags,
+									   DepthStencilValue* clearValue) override;
+	virtual void ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::float4 values) override;
+	virtual void ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::uint4 values) override;
 
 	virtual void Barrier(BufferBarrier barrier) override;
 	virtual void Barrier(TextureBarrier barrier) override;
 
-	virtual void UpdateBuffer(Buffer* buffer, RawData data) override;
-	virtual void UpdateTexture(Texture* texture, RawData data, int32_t subresourceIndex) override;
+	virtual void UpdateBuffer(const Ref<Buffer>& buffer, RawData data) override;
+	virtual void UpdateTexture(const Ref<Texture>& texture, RawData data, int32_t subresourceIndex) override;
 
-	virtual void CopyBufferRegion(Buffer* dest, int64_t destOffset, Buffer* src, int64_t srcOffset, int64_t numBytes) override;
-	virtual void CopyBufferRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex, Buffer* src, int64_t srcOffset) override;
-	virtual void CopyTextureRegion(Buffer* dest, int64_t destOffset,
-								   Texture* src, int32_t srcSubresourceIndex, Box3I srcBox) override;
-	virtual void CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
-								   Texture* src, int32_t srcSubresourceIndex, Box3I srcBox) override;
+	virtual void CopyBufferRegion(const Ref<Buffer>& dest, int64_t destOffset, const Ref<Buffer>& src, int64_t srcOffset,
+								  int64_t numBytes) override;
+	virtual void CopyBufferRegion(const Ref<Texture>& dest, glm::int3 destLoc, int32_t destSubresourceIndex,
+								  const Ref<Buffer>& src, int64_t srcOffset) override;
+	virtual void CopyTextureRegion(const Ref<Buffer>& dest, int64_t destOffset,
+								   const Ref<Texture>& src, int32_t srcSubresourceIndex, Box3I srcBox) override;
+	virtual void CopyTextureRegion(const Ref<Texture>& dest, glm::int3 destLoc, int32_t destSubresourceIndex,
+								   const Ref<Texture>& src, int32_t srcSubresourceIndex, Box3I srcBox) override;
 
 	virtual void RenderImGui() override;
 

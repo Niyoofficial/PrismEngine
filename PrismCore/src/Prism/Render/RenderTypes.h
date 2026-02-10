@@ -778,6 +778,8 @@ enum class ClearFlags
 
 struct SubresourceRange
 {
+	bool operator==(const SubresourceRange&) const = default;
+
 	int32_t firstMipLevel = 0;
 	// -1 indicates all mip levels
 	int32_t numMipLevels = -1;

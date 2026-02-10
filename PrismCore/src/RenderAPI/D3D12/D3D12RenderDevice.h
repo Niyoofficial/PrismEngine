@@ -62,6 +62,15 @@ public:
 	virtual void InitializeImGui(Core::Window* window, TextureFormat depthFormat) override;
 	virtual void ShutdownImGui() override;
 
+	Ref<Buffer> CreateBuffer(const BufferDesc& desc) override;
+	Ref<Texture> CreateTexture(const TextureDesc& desc, BarrierLayout initLayout) override;
+	Ref<Texture> CreateTexture(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish) override;
+	Ref<Texture> CreateTexture(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap, bool waitForLoadFinish) override;
+
+private:
+	virtual Ref<BufferView> CreateBufferView_Impl(const BufferViewDesc& desc, Buffer* buffer) override;
+	virtual Ref<TextureView> CreateTextureView_Impl(const TextureViewDesc& desc, Texture* texture) override;
+
 private:
 #if USE_PIX
 	HMODULE m_pixGpuCaptureModule = {};
@@ -77,10 +86,10 @@ private:
 	std::unordered_map<D3D12_DESCRIPTOR_HEAP_TYPE, CPUDescriptorHeapManager> m_cpuDescriptorHeapManagers;
 	std::unordered_map<D3D12_DESCRIPTOR_HEAP_TYPE, GPUDescriptorHeapManager> m_gpuDescriptorHeapManagers;
 
-	Ref<D3D12RenderCommandQueue> m_commandQueue;
+	std::unique_ptr<D3D12RenderCommandQueue> m_commandQueue;
 
-	Ref<D3D12RootSignature> m_graphicsRootSignature;
-	Ref<D3D12RootSignature> m_computeRootSignature;
+	std::unique_ptr<D3D12RootSignature> m_graphicsRootSignature;
+	std::unique_ptr<D3D12RootSignature> m_computeRootSignature;
 
 	D3D12PipelineStateCache m_pipelineStateCache;
 

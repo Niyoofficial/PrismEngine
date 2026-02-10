@@ -137,60 +137,22 @@ int32_t TextureDesc::GetSubresourceCount() const
 
 Ref<Texture> Texture::Create(const TextureDesc& desc, BarrierLayout initLayout, RawData initData)
 {
-	Ref<Texture> texture = Private::CreateTexture(desc, initLayout);
-
-	if (initData.data && initData.sizeInBytes > 0)
-	{
-		// TODO: Add copy context
-		auto context = RenderDevice::Get().AllocateContext(L"UpdateTextureWithInitData");
-		context->UpdateTexture(texture, initData, 0);
-
-		RenderDevice::Get().SubmitContext(context);
-		RenderDevice::Get().GetRenderCommandQueue()->Flush();
-	}
-
-	return texture;
+	return RenderDevice::Get().CreateTexture(desc, initLayout, initData);
 }
 
 Ref<Texture> Texture::Create(const TextureDesc& desc, Buffer* initDataBuffer, BarrierLayout initLayout)
 {
-	PE_ASSERT(initDataBuffer);
-	PE_ASSERT(initDataBuffer->GetBufferDesc().size >= RenderDevice::Get().GetTotalSizeInBytes(desc));
-
-	Ref<Texture> texture = Private::CreateTexture(desc, initLayout);
-
-	Ref<Buffer> uploadBuffer = initDataBuffer;
-	if (initDataBuffer->GetBufferDesc().cpuAccess == CPUAccess::Read)
-	{
-		auto uploadBufferDesc = initDataBuffer->GetBufferDesc();
-		uploadBufferDesc.bufferName = desc.textureName + L"_UploadBuffer";
-		uploadBufferDesc.usage = ResourceUsage::Staging;
-		uploadBufferDesc.cpuAccess = CPUAccess::Write;
-		uploadBufferDesc.bindFlags = BindFlags::None;
-
-		void* data = initDataBuffer->Map(CPUAccess::Read);
-		uploadBuffer = Buffer::Create(uploadBufferDesc, {.data = data, .sizeInBytes = initDataBuffer->GetBufferDesc().size});
-		initDataBuffer->Unmap();
-	}
-
-	// TODO: Add copy context
-	auto context = RenderDevice::Get().AllocateContext(L"UpdateTextureWithInitDataBuffer");
-	context->CopyBufferRegion(texture, {0, 0, 0}, 0, uploadBuffer, 0);
-
-	RenderDevice::Get().SubmitContext(context);
-	RenderDevice::Get().GetRenderCommandQueue()->Flush();
-
-	return texture;
+	return RenderDevice::Get().CreateTexture(desc, initDataBuffer, initLayout);
 }
 
 Ref<Texture> Texture::CreateFromFile(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish)
 {
-	return Private::CreateTexture(filepath, loadAsCubemap, waitForLoadFinish);
+	return RenderDevice::Get().CreateTexture(filepath, loadAsCubemap, waitForLoadFinish);
 }
 
 Ref<Texture> Texture::CreateFromMemory(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap, bool waitForLoadFinish)
 {
-	return Private::CreateTexture(name, imageData, dataSize, loadAsCubemap, waitForLoadFinish);
+	return RenderDevice::Get().CreateTexture(name, imageData, dataSize, loadAsCubemap, waitForLoadFinish);
 }
 
 Ref<TextureView> Texture::CreateView(const TextureViewDesc& desc)
@@ -473,5 +435,12 @@ void Texture::GenerateMipMaps(RenderContext* context)
 	{
 		renderContext->EndEvent();
 	}
+}
+
+Texture::~Texture()
+{
+	PE_ASSERT(m_renderDevice);
+
+	m_renderDevice->NotifyResourceDestruction(this);
 }
 }

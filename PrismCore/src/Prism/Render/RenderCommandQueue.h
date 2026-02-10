@@ -13,7 +13,7 @@ struct SubmittedRenderContext
 /**
  * Will create render worker threads that process and execute command lists
  */
-class RenderCommandQueue : public RefCounted
+class RenderCommandQueue
 {
 private:
 	struct CmdListWithFenceValue
@@ -23,6 +23,8 @@ private:
 	};
 
 public:
+	virtual ~RenderCommandQueue() = default;
+
 	uint64_t Submit(RenderContext* context);
 
 	virtual void SetMarker(glm::float3 color, std::wstring string) = 0;

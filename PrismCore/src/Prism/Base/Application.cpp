@@ -202,7 +202,7 @@ void Application::InitImGui(Window* window, Render::TextureFormat depthFormat)
 		}
 	};
 
-	m_imguiLayer = new ImGuiLayer;
+	m_imguiLayer = Ref<ImGuiLayer>::Create();
 
 	m_imguiInitialized = true;
 }

@@ -94,9 +94,8 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	// TODO: Add create function on Ref class and make RefCounted not allow object creation on stack
 	//Ref sponza = new MeshLoading::MeshAsset(L"assets/SponzaCrytek/Sponza.gltf");
 
-	m_scene = Scene::Create(L"Test Scene");
-	m_renderPipeline = new PBRSceneRenderPipeline;
-	m_scene->SetRenderPipeline(m_renderPipeline);
+	m_scene = Ref<Scene>::Create(L"Test Scene");
+	m_scene->SetRenderPipeline<PBRSceneRenderPipeline>();
 	//m_scene->CreateEntityHierarchyForMeshAsset(sponza);
 	auto lightEntity = m_scene->AddEntity(L"Light");
 	lightEntity->AddComponent<LightRendererComponent>();
@@ -104,7 +103,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 
 	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
 
-	m_camera = new Camera(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
+	m_camera = Ref<Camera>::Create(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
 	m_camera->SetPosition({0.f, 0.f, 0.f});
 }
 
@@ -560,12 +559,9 @@ void SandboxLayer::UpdateImGui(Duration delta)
 						auto callback =
 							[this](std::vector<std::string> fileList, int32_t filter)
 							{
-								for (const auto& file : fileList)
-								{
-									m_meshes.push_back(new MeshLoading::MeshAsset(StringToWString(file)));
-									Entity* root = m_scene->CreateEntityHierarchyForMeshAsset(m_meshes.back());
-									m_scene->SetSelectedEntity(root);
-								}
+								std::scoped_lock lock(m_fileLoadMutex);
+
+								m_filesToLoad = fileList;
 							};
 						Core::DialogFileFilter filter = {
 							.name = "3D Mesh (.gltf;.glb;.fbx;.obj)",
@@ -620,6 +616,20 @@ void SandboxLayer::Update(Duration delta)
 {
 	using namespace Prism::Render;
 	Layer::Update(delta);
+
+	if (!m_filesToLoad.empty())
+	{
+		std::scoped_lock lock(m_fileLoadMutex);
+
+		for (const auto& file : m_filesToLoad)
+		{
+			m_meshes.push_back(Ref<MeshLoading::MeshAsset>::Create(StringToWString(file)));
+			Entity* root = m_scene->CreateEntityHierarchyForMeshAsset(m_meshes.back());
+			m_scene->SetSelectedEntity(root);
+		}
+
+		m_filesToLoad.clear();
+	}
 
 	if (m_viewportSize.x == 0 || m_viewportSize.y == 0)
 		return;
@@ -889,7 +899,7 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 		ImGuizmo::AllowAxisFlip(false);
 	}
 
-	m_sandboxLayer = new SandboxLayer(m_window);
+	m_sandboxLayer = Ref<SandboxLayer>::Create(m_window);
 	PushLayer(m_sandboxLayer);
 }
 

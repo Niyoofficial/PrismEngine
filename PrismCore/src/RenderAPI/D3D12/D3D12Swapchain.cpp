@@ -108,7 +108,8 @@ void D3D12Swapchain::GatherBackbuffersAndCreateRTVs()
 		ID3D12Resource* swapchainTexture = nullptr;
 		PE_ASSERT_HR(m_swapchain->GetBuffer(i, IID_PPV_ARGS(&swapchainTexture)));
 
-		m_backBuffers.push_back(new D3D12Texture(
+		m_backBuffers.push_back(Ref<D3D12Texture>::Create(
+			&D3D12RenderDevice::Get(), // TODO: Remove static access to render device from here
 			swapchainTexture,
 			std::wstring(L"Backbuffer_") + std::to_wstring(i + 1),
 			ResourceUsage::Default,

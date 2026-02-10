@@ -1,6 +1,6 @@
 #include "pcpch.h"
 #include "Prism/Base/Application.h"
-#include "Prism/Base/Base.h"														\
+#include "Prism/Base/Base.h"
 
 
 #ifdef PE_PLATFORM_WINDOWS

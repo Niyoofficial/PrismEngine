@@ -22,6 +22,8 @@ public:
 	bool IsArray() const;
 	bool IsCube() const;
 
+	bool operator==(const TextureViewDesc&) const = default;
+
 public:
 	TextureViewType type;
 
@@ -43,8 +45,7 @@ public:
 	Texture* GetTexture() const;
 
 protected:
-	// View keeps a strong ref to its resource to keep if alive as long as there are views to it existing
-	Ref<Texture> m_owningTexture;
+	WeakRef<Texture> m_owningTexture;
 };
 }
 

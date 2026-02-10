@@ -116,6 +116,7 @@ DescriptorHeap::DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t descript
 		.Flags = shouldBeGPUVisible ? D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE : D3D12_DESCRIPTOR_HEAP_FLAG_NONE,
 		.NodeMask = 0
 	};
+	m_desc = desc;
 	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateDescriptorHeap(&desc, IID_PPV_ARGS(&m_descriptorHeap)));
 
 	AddNewBlock(0, descriptorsCount);

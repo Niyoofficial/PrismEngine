@@ -16,58 +16,60 @@ class Entity;
 class Scene : public RefCounted
 {
 public:
-	static Scene* Create(std::wstring name);
+	explicit Scene(const std::wstring& name);
 
-	void AddEntity(Entity* entity);
+	void AddEntity(Ref<Entity>& entity);
 	template<typename T = Entity, typename... Args>
-	T* AddEntity(Args&&... args)
+	Ref<T> AddEntity(Args&&... args)
 	{
-		T* entity = new T(std::forward<Args>(args)...);
+		auto entity = Ref<T>::Create(std::forward<Args>(args)...);
 		AddEntity(entity);
 		return entity;
 	}
 
-	void RemoveEntity(Entity* entity);
+	void RemoveEntity(const Ref<Entity>& entity);
 
 	// Create an entity hierarchy representing the mesh assset, returns root entity
-	Entity* CreateEntityHierarchyForMeshAsset(MeshLoading::MeshAsset* asset);
+	Ref<Entity> CreateEntityHierarchyForMeshAsset(const Ref<MeshLoading::MeshAsset>& asset);
 
+	template<typename T, typename... Args> requires std::is_base_of_v<Render::SceneRenderPipeline, T>
+	void SetRenderPipeline(Args&&... args)
+	{
+		SetRenderPipeline(Ref<T>::Create(std::forward<Args>(args)...));
+	}
 	// Scene will take ownership of the render pipeline
-	void SetRenderPipeline(Render::SceneRenderPipeline* renderPipeline);
+	void SetRenderPipeline(const Ref<Render::SceneRenderPipeline>& renderPipeline);
 
 	const std::wstring& GetSceneName() const { return m_sceneName; }
 
 	const std::vector<Ref<Entity>>& GetAllEntities() const;
 
-	Render::SceneRenderPipeline* GetCurrentRenderPipeline() const { return m_renderPipeline; }
+	Ref<Render::SceneRenderPipeline> GetCurrentRenderPipeline() const { return m_renderPipeline; }
 
-	void SetSelectedEntity(Entity* entity);
+	void SetSelectedEntity(const Ref<Entity>& entity);
 	Entity* GetSelectedEntity() const;
 
 
 	void Update(Duration delta);
 
 	void RenderScene(Render::RenderContext* renderContext, Render::TextureView* rtv, Render::Camera* camera);
-	std::vector<Entity*> RenderHitProxies(Render::RenderContext* renderContext, Render::TextureView* rtv, Render::Camera* camera);
+	std::vector<Ref<Entity>> RenderHitProxies(const Ref<Render::RenderContext>& renderContext, const Ref<Render::TextureView>& rtv, const Ref<Render::Camera>& camera);
 
 private:
-	explicit Scene(const std::wstring& name);
-
-	void PrepareRenderProxiesForEntity(Entity* entity, glm::float4x4 parentTransform);
+	void PrepareRenderProxiesForEntity(const Ref<Entity>& entity, glm::float4x4 parentTransform);
 
 private:
 	std::wstring m_sceneName;
 
 	Ref<Render::SceneRenderPipeline> m_renderPipeline;
 
-	// TODO: Replace ref with unique_ptr equivalent
 	std::vector<Ref<Entity>> m_entities;
 	// TODO: Remove this and add something like mesh processors to collect meshes for each pass
 	WeakRef<Entity> m_selectedEntity;
 
-	std::unordered_map<Ref<Render::EntityRenderProxy>, Entity*> m_renderProxies;
+	std::unordered_map<Ref<Render::EntityRenderProxy>, WeakRef<Entity>> m_renderProxies;
 	// TODO: Remove this
-	Render::EntityRenderProxy* m_selectedProxy = nullptr;
+	WeakRef<Render::EntityRenderProxy> m_selectedProxy;
 	Bounds3f m_sceneBounds;
 	std::vector<Render::DirectionalLight> m_dirLights;
 };

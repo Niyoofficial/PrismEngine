@@ -96,6 +96,8 @@ private:
 
 	OffsetsMapType m_freeBlocksByOffset;
 	SizesMapType m_freeBlocksBySize;
+
+	D3D12_DESCRIPTOR_HEAP_DESC m_desc;
 };
 
 class CPUDescriptorHeapManager

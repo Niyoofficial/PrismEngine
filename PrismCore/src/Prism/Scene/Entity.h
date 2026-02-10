@@ -22,7 +22,7 @@ public:
 	template<typename T, typename... Args> requires std::is_base_of_v<Component, T>
 	T* AddComponent(Args&&... args)
 	{
-		T* comp = new T(std::forward<Args>(args)...);
+		auto comp = Ref<T>::Create(std::forward<Args>(args)...);
 		AddComponent(comp);
 		return comp;
 	}
@@ -59,7 +59,6 @@ protected:
 	std::wstring m_name;
 	Ref<Scene> m_scene;
 
-	// TODO: Replace ref with unique_ptr equivalent
 	std::unordered_map<size_t, Ref<Component>> m_components;
 
 	// TODO: Maybe the scene should be storing this info?

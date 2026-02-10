@@ -12,6 +12,7 @@
 #endif
 
 #include "imgui_impl_dx12.h"
+#include "RenderAPI/D3D12/D3D12BufferView.h"
 #include "RenderAPI/D3D12/D3D12RootSignature.h"
 #include "RenderAPI/D3D12/D3D12TextureView.h"
 
@@ -132,9 +133,9 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	}
 #endif
 
-	m_graphicsRootSignature = new D3D12RootSignature(PipelineStateType::Graphics);
-	m_computeRootSignature = new D3D12RootSignature(PipelineStateType::Compute);
-	m_commandQueue = new D3D12RenderCommandQueue;
+	m_graphicsRootSignature = std::make_unique<D3D12RootSignature>(PipelineStateType::Graphics);
+	m_computeRootSignature = std::make_unique<D3D12RootSignature>(PipelineStateType::Compute);
+	m_commandQueue = std::make_unique<D3D12RenderCommandQueue>();
 
 	m_descriptorHandleSizes[D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV] = m_d3dDevice->GetDescriptorHandleIncrementSize(
 		D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
@@ -154,11 +155,16 @@ D3D12RenderDevice::D3D12RenderDevice(RenderDeviceParams params)
 	m_gpuDescriptorHeapManagers.try_emplace(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER, Constants::DESCRIPTOR_COUNT_PER_GPU_SAMPLER_HEAP);
 
 	m_dynamicBufferAllocator.Init(1024);
+
+	InitDeviceSubsystems();
 }
 
 D3D12RenderDevice::~D3D12RenderDevice()
 {
 	D3D12RenderDevice::ReleaseStaleResources();
+
+	// Need to clear cache here, so the views are destroyed before the descriptor heaps
+	m_renderResourceViewCache.ClearCache();
 
 #if USE_PIX
 	FreeLibrary(m_pixGpuCaptureModule);
@@ -172,8 +178,8 @@ void D3D12RenderDevice::ImGuiNewFrame()
 }
 
 RenderCommandQueue* D3D12RenderDevice::GetRenderCommandQueue() const
-{
-	return m_commandQueue;
+{ 
+	return m_commandQueue.get();
 }
 
 void D3D12RenderDevice::ReleaseStaleResources()
@@ -184,14 +190,6 @@ void D3D12RenderDevice::ReleaseStaleResources()
 	m_dynamicBufferAllocator.ReleaseStaleAllocations(GetRenderCommandQueue()->GetCompletedFenceValue());
 }
 
-int64_t D3D12RenderDevice::GetTotalSizeInBytes(BufferDesc buffDesc) const
-{
-	auto d3d12Desc = GetD3D12ResourceDesc(buffDesc);
-	UINT64 size;
-	GetD3D12Device()->GetCopyableFootprints1(&d3d12Desc, 0, 1, 0, nullptr, nullptr, nullptr, &size);
-	return (int64_t)size;
-}
-
 int64_t D3D12RenderDevice::GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource, int32_t numSubresources) const
 {
 	auto d3d12Desc = GetD3D12ResourceDesc(texDesc);
@@ -200,6 +198,14 @@ int64_t D3D12RenderDevice::GetTotalSizeInBytes(TextureDesc texDesc, int32_t firs
 											 firstSubresource, numSubresources == -1 ? texDesc.GetSubresourceCount() : numSubresources,
 											 0, nullptr, nullptr, nullptr, &size);
 
+	return (int64_t)size;
+}
+
+int64_t D3D12RenderDevice::GetTotalSizeInBytes(BufferDesc buffDesc) const
+{
+	auto d3d12Desc = GetD3D12ResourceDesc(buffDesc);
+	UINT64 size;
+	GetD3D12Device()->GetCopyableFootprints1(&d3d12Desc, 0, 1, 0, nullptr, nullptr, nullptr, &size);
 	return (int64_t)size;
 }
 
@@ -245,7 +251,7 @@ ID3D12CommandQueue* D3D12RenderDevice::GetD3D12CommandQueue() const
 
 D3D12RootSignature* D3D12RenderDevice::GetGlobalRootSignature(PipelineStateType type) const
 {
-	return type == PipelineStateType::Graphics ? m_graphicsRootSignature : m_computeRootSignature;
+	return type == PipelineStateType::Graphics ? m_graphicsRootSignature.get() : m_computeRootSignature.get();
 }
 
 D3D12PipelineStateCache& D3D12RenderDevice::GetPipelineStateCache()
@@ -348,12 +354,12 @@ void D3D12RenderDevice::InitializeImGui(Core::Window* window, TextureFormat dept
 		{
 			PE_ASSERT(!g_renderDevice->m_imGuiAllocations.empty());
 			const auto [first, last] = std::ranges::remove_if(g_renderDevice->m_imGuiAllocations,
-				[cpu_desc_handle, gpu_desc_handle](const DescriptorHeapAllocation& allocation)
-				{
-					return
-						allocation.GetCPUHandle().ptr == cpu_desc_handle.ptr &&
-						allocation.GetGPUHandle().ptr == gpu_desc_handle.ptr;
-				});
+															  [cpu_desc_handle, gpu_desc_handle](const DescriptorHeapAllocation& allocation)
+															  {
+																  return
+																	  allocation.GetCPUHandle().ptr == cpu_desc_handle.ptr &&
+																	  allocation.GetGPUHandle().ptr == gpu_desc_handle.ptr;
+															  });
 			g_renderDevice->m_imGuiAllocations.erase(first, last);
 		};
 	ImGui_ImplDX12_Init(&initInfo);
@@ -368,5 +374,36 @@ void D3D12RenderDevice::ShutdownImGui()
 		ImGui_ImplDX12_Shutdown();
 		initializedImGui = false;
 	}
+}
+
+Ref<Buffer> D3D12RenderDevice::CreateBuffer(const BufferDesc& desc)
+{
+	return Ref<D3D12Buffer>::Create(this, desc);
+}
+
+Ref<Texture> D3D12RenderDevice::CreateTexture(const TextureDesc& desc, BarrierLayout initLayout)
+{
+	return Ref<D3D12Texture>::Create(this, desc, initLayout);
+}
+
+Ref<Texture> D3D12RenderDevice::CreateTexture(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish)
+{
+	return Ref<D3D12Texture>::Create(this, filepath, loadAsCubemap, waitForLoadFinish);
+}
+
+Ref<Texture> D3D12RenderDevice::CreateTexture(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap,
+											  bool waitForLoadFinish)
+{
+	return Ref<D3D12Texture>::Create(this, name, imageData, loadAsCubemap, waitForLoadFinish);
+}
+
+Ref<BufferView> D3D12RenderDevice::CreateBufferView_Impl(const BufferViewDesc& desc, Buffer* buffer)
+{
+	return Ref<D3D12BufferView>::Create(desc, buffer);
+}
+
+Ref<TextureView> D3D12RenderDevice::CreateTextureView_Impl(const TextureViewDesc& desc, Texture* texture)
+{
+	return Ref<D3D12TextureView>::Create(desc, texture);
 }
 }

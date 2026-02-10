@@ -130,7 +130,7 @@ DEFINE_RENDER_COMMAND(SetComputePSORenderCommand)
 
 DEFINE_RENDER_COMMAND(SetRenderTargetsRenderCommand)
 {
-	SetRenderTargetsRenderCommand(std::vector<TextureView*> inRtvs, TextureView * inDsv)
+	SetRenderTargetsRenderCommand(const std::vector<Ref<TextureView>>& inRtvs, const Ref<TextureView> inDsv)
 		: rtvs(inRtvs), dsv(inDsv)
 	{
 	}
@@ -140,7 +140,7 @@ DEFINE_RENDER_COMMAND(SetRenderTargetsRenderCommand)
 		cmdList->SetRenderTargets(rtvs, dsv);
 	}
 
-	std::vector<TextureView*> rtvs = {};
+	std::vector<Ref<TextureView>> rtvs = {};
 	Ref<TextureView> dsv;
 };
 
@@ -176,8 +176,8 @@ DEFINE_RENDER_COMMAND(SetScissorsRenderCommand)
 
 DEFINE_RENDER_COMMAND(SetVertexBufferRenderCommand)
 {
-	SetVertexBufferRenderCommand(Buffer * inBuffer, int64_t inVertexSizeInBytes)
-		: buffer(inBuffer), vertexSizeInBytes(inVertexSizeInBytes)
+SetVertexBufferRenderCommand(const Ref<Buffer>& inBuffer, int64_t inVertexSizeInBytes)
+    : buffer(inBuffer), vertexSizeInBytes(inVertexSizeInBytes)
 	{
 	}
 
@@ -192,8 +192,8 @@ DEFINE_RENDER_COMMAND(SetVertexBufferRenderCommand)
 
 DEFINE_RENDER_COMMAND(SetIndexBufferRenderCommand)
 {
-	SetIndexBufferRenderCommand(Buffer * inBuffer, IndexBufferFormat inFormat)
-		: buffer(inBuffer), format(inFormat)
+SetIndexBufferRenderCommand(const Ref<Buffer>& inBuffer, IndexBufferFormat inFormat)
+    : buffer(inBuffer), format(inFormat)
 	{
 	}
 
@@ -208,8 +208,8 @@ DEFINE_RENDER_COMMAND(SetIndexBufferRenderCommand)
 
 DEFINE_RENDER_COMMAND(SetTextureRenderCommand)
 {
-	SetTextureRenderCommand(TextureView* inTextureView, const std::wstring& inParamName)
-		: textureView(inTextureView), paramName(inParamName)
+SetTextureRenderCommand(const Ref<TextureView>& inTextureView, const std::wstring& inParamName)
+    : textureView(inTextureView), paramName(inParamName)
 	{
 	}
 
@@ -240,8 +240,8 @@ DEFINE_RENDER_COMMAND(SetTexturesRenderCommand)
 
 DEFINE_RENDER_COMMAND(SetBufferRenderCommand)
 {
-	SetBufferRenderCommand(BufferView* inBufferView, const std::wstring& inParamName)
-		: bufferView(inBufferView), paramName(inParamName)
+SetBufferRenderCommand(const Ref<BufferView>& inBufferView, const std::wstring& inParamName)
+    : bufferView(inBufferView), paramName(inParamName)
 	{
 	}
 
@@ -272,8 +272,8 @@ DEFINE_RENDER_COMMAND(SetBuffersRenderCommand)
 
 DEFINE_RENDER_COMMAND(ClearRenderTargetViewRenderCommand)
 {
-	ClearRenderTargetViewRenderCommand(TextureView* inRtv, glm::float4* inClearColor = nullptr)
-		: rtv(inRtv)
+ClearRenderTargetViewRenderCommand(const Ref<TextureView>& inRtv, glm::float4* inClearColor = nullptr)
+    : rtv(inRtv)
 	{
 		if (inClearColor)
 			clearColor = *inClearColor;
@@ -290,8 +290,8 @@ DEFINE_RENDER_COMMAND(ClearRenderTargetViewRenderCommand)
 
 DEFINE_RENDER_COMMAND(ClearDepthStencilViewRenderCommand)
 {
-	ClearDepthStencilViewRenderCommand(TextureView* inDsv, Flags<ClearFlags> inFlags, DepthStencilValue* inClearValue = nullptr)
-		: dsv(inDsv), flags(inFlags)
+ClearDepthStencilViewRenderCommand(const Ref<TextureView>& inDsv, Flags<ClearFlags> inFlags, DepthStencilValue* inClearValue = nullptr)
+    : dsv(inDsv), flags(inFlags)
 	{
 		if (inClearValue)
 			clearValue = *inClearValue;
@@ -343,8 +343,8 @@ DEFINE_RENDER_COMMAND(TextureBarrierRenderCommand)
 
 DEFINE_RENDER_COMMAND(UpdateBufferRenderCommand)
 {
-	UpdateBufferRenderCommand(Buffer* inBuffer, RawData inData)
-		: buffer(inBuffer), data(inData)
+UpdateBufferRenderCommand(const Ref<Buffer>& inBuffer, RawData inData)
+    : buffer(inBuffer), data(inData)
 	{
 	}
 
@@ -359,8 +359,8 @@ DEFINE_RENDER_COMMAND(UpdateBufferRenderCommand)
 
 DEFINE_RENDER_COMMAND(UpdateTextureRenderCommand)
 {
-	UpdateTextureRenderCommand(Texture* inTexture, RawData inData, int32_t inSubresourceIndex)
-		: texture(inTexture), data(inData), subresourceIndex(inSubresourceIndex)
+UpdateTextureRenderCommand(const Ref<Texture>& inTexture, RawData inData, int32_t inSubresourceIndex)
+    : texture(inTexture), data(inData), subresourceIndex(inSubresourceIndex)
 	{
 	}
 
@@ -376,8 +376,8 @@ DEFINE_RENDER_COMMAND(UpdateTextureRenderCommand)
 
 DEFINE_RENDER_COMMAND(CopyBufferRegionRenderCommand)
 {
-	CopyBufferRegionRenderCommand(Buffer* inDest, int64_t inDestOffset, Buffer* inSrc, int64_t inSrcOffset, int64_t inNumBytes)
-		: dest(inDest), destOffset(inDestOffset), src(inSrc), srcOffset(inSrcOffset), numBytes(inNumBytes)
+CopyBufferRegionRenderCommand(const Ref<Buffer>& inDest, int64_t inDestOffset, const Ref<Buffer>& inSrc, int64_t inSrcOffset, int64_t inNumBytes)
+    : dest(inDest), destOffset(inDestOffset), src(inSrc), srcOffset(inSrcOffset), numBytes(inNumBytes)
 	{
 	}
 
@@ -395,8 +395,8 @@ DEFINE_RENDER_COMMAND(CopyBufferRegionRenderCommand)
 
 DEFINE_RENDER_COMMAND(CopyBufferRegionToTextureRenderCommand)
 {
-	CopyBufferRegionToTextureRenderCommand(Texture* inDest, glm::int3 inDestLoc, int32_t inSubresourceIndex, Buffer* inSrc, int64_t inSrcOffset)
-		: dest(inDest), destLoc(inDestLoc), subresourceIndex(inSubresourceIndex), src(inSrc), srcOffset(inSrcOffset)
+CopyBufferRegionToTextureRenderCommand(const Ref<Texture>& inDest, glm::int3 inDestLoc, int32_t inSubresourceIndex, const Ref<Buffer>& inSrc, int64_t inSrcOffset)
+    : dest(inDest), destLoc(inDestLoc), subresourceIndex(inSubresourceIndex), src(inSrc), srcOffset(inSrcOffset)
 	{
 	}
 
@@ -414,9 +414,9 @@ DEFINE_RENDER_COMMAND(CopyBufferRegionToTextureRenderCommand)
 
 DEFINE_RENDER_COMMAND(CopyTextureRegionToBufferRenderCommand)
 {
-	CopyTextureRegionToBufferRenderCommand(Buffer* inDest, int64_t inDestOffset, Texture* inSrc, int32_t inSrcSubresourceIndex, Box3I inSrcBox)
-		: dest(inDest), dsetOffset(inDestOffset),
-		  src(inSrc), srcSubresourceIndex(inSrcSubresourceIndex), srcBox(inSrcBox)
+CopyTextureRegionToBufferRenderCommand(const Ref<Buffer>& inDest, int64_t inDestOffset, const Ref<Texture>& inSrc, int32_t inSrcSubresourceIndex, Box3I inSrcBox)
+    : dest(inDest), dsetOffset(inDestOffset),
+      src(inSrc), srcSubresourceIndex(inSrcSubresourceIndex), srcBox(inSrcBox)
 	{
 	}
 
@@ -434,10 +434,10 @@ DEFINE_RENDER_COMMAND(CopyTextureRegionToBufferRenderCommand)
 
 DEFINE_RENDER_COMMAND(CopyTextureRegionToTextureRenderCommand)
 {
-	CopyTextureRegionToTextureRenderCommand(Texture* inDest, glm::int3 inDestLoc, int32_t inSubresourceIndex,
-											Texture* inSrc, int32_t inSrcSubresourceIndex, Box3I inSrcBox)
-		: dest(inDest), destLoc(inDestLoc), destSubresourceIndex(inSubresourceIndex),
-		  src(inSrc), srcSubresourceIndex(inSrcSubresourceIndex), srcBox(inSrcBox)
+CopyTextureRegionToTextureRenderCommand(const Ref<Texture>& inDest, glm::int3 inDestLoc, int32_t inSubresourceIndex,
+                                       const Ref<Texture>& inSrc, int32_t inSrcSubresourceIndex, Box3I inSrcBox)
+    : dest(inDest), destLoc(inDestLoc), destSubresourceIndex(inSubresourceIndex),
+      src(inSrc), srcSubresourceIndex(inSrcSubresourceIndex), srcBox(inSrcBox)
 	{
 	}
 

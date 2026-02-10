@@ -18,7 +18,7 @@ void MeshRendererComponent::SetPrimitive(MeshLoading::MeshAsset* mesh, MeshLoadi
 	m_meshNode = meshNode;
 }
 
-Render::EntityRenderProxy* MeshRendererComponent::CreateRenderProxy(glm::float4x4 transform) const
+Ref<Render::EntityRenderProxy> MeshRendererComponent::CreateRenderProxy(glm::float4x4 transform) const
 {
 	if (m_meshAsset && m_meshNode != -1 && m_meshAsset->DoesNodeContainVertices(m_meshNode))
 	{
@@ -28,7 +28,7 @@ Render::EntityRenderProxy* MeshRendererComponent::CreateRenderProxy(glm::float4x
 			.meshAsset = m_meshAsset,
 			.meshNode = m_meshNode
 		};
-		return new Render::EntityRenderProxy(initInfo);
+		return Ref<Render::EntityRenderProxy>::Create(initInfo);
 	}
 
 	return nullptr;

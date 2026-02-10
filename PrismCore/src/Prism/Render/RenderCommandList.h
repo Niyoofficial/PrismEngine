@@ -49,35 +49,38 @@ public:
 
 	virtual void SetStencilRef(uint32_t ref) = 0;
 
-	virtual void SetRenderTargets(std::vector<TextureView*> rtvs, TextureView* dsv) = 0;
+	virtual void SetRenderTargets(std::vector<Ref<TextureView>> rtvs, const Ref<TextureView>& dsv) = 0;
 	virtual void SetViewports(std::vector<Viewport> viewports) = 0;
 	virtual void SetScissors(std::vector<Scissor> scissors) = 0;
 
-	virtual void SetVertexBuffer(Buffer* buffer, int64_t vertexSizeInBytes) = 0;
-	virtual void SetIndexBuffer(Buffer* buffer, IndexBufferFormat format) = 0;
+	virtual void SetVertexBuffer(const Ref<Buffer>& buffer, int64_t vertexSizeInBytes) = 0;
+	virtual void SetIndexBuffer(const Ref<Buffer>& buffer, IndexBufferFormat format) = 0;
 
-	virtual void SetTexture(TextureView* textureView, const std::wstring& paramName) = 0;
+	virtual void SetTexture(const Ref<TextureView>& textureView, const std::wstring& paramName) = 0;
 	virtual void SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName) = 0;
 	virtual void SetBuffer(BufferView* bufferView, const std::wstring& paramName) = 0;
 	virtual void SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName) = 0;
 
-	virtual void ClearRenderTargetView(TextureView* rtv, glm::float4* clearColor = nullptr) = 0;
-	virtual void ClearDepthStencilView(TextureView* dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue = nullptr) = 0;
-	virtual void ClearUnorderedAccessView(TextureView* uav, glm::float4 values) = 0;
-	virtual void ClearUnorderedAccessView(TextureView* uav, glm::uint4 values) = 0;
+	virtual void ClearRenderTargetView(const Ref<TextureView>& rtv, glm::float4* clearColor = nullptr) = 0;
+	virtual void ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags,
+									   DepthStencilValue* clearValue = nullptr) = 0;
+	virtual void ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::float4 values) = 0;
+	virtual void ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::uint4 values) = 0;
 
 	virtual void Barrier(BufferBarrier barrier) = 0;
 	virtual void Barrier(TextureBarrier barrier) = 0;
 
-	virtual void UpdateBuffer(Buffer* buffer, RawData data) = 0;
-	virtual void UpdateTexture(Texture* texture, RawData data, int32_t subresourceIndex) = 0;
+	virtual void UpdateBuffer(const Ref<Buffer>& buffer, RawData data) = 0;
+	virtual void UpdateTexture(const Ref<Texture>& texture, RawData data, int32_t subresourceIndex) = 0;
 
-	virtual void CopyBufferRegion(Buffer* dest, int64_t destOffset, Buffer* src, int64_t srcOffset, int64_t numBytes) = 0;
-	virtual void CopyBufferRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex, Buffer* src, int64_t srcOffset) = 0;
-	virtual void CopyTextureRegion(Buffer* dest, int64_t destOffset,
-								   Texture* src, int32_t srcSubresourceIndex, Box3I srcBox) = 0;
-	virtual void CopyTextureRegion(Texture* dest, glm::int3 destLoc, int32_t destSubresourceIndex,
-								   Texture* src, int32_t srcSubresourceIndex, Box3I srcBox) = 0;
+	virtual void CopyBufferRegion(const Ref<Buffer>& dest, int64_t destOffset, const Ref<Buffer>& src, int64_t srcOffset,
+								  int64_t numBytes) = 0;
+	virtual void CopyBufferRegion(const Ref<Texture>& dest, glm::int3 destLoc, int32_t destSubresourceIndex,
+								  const Ref<Buffer>& src, int64_t srcOffset) = 0;
+	virtual void CopyTextureRegion(const Ref<Buffer>& dest, int64_t destOffset,
+								   const Ref<Texture>& src, int32_t srcSubresourceIndex, Box3I srcBox) = 0;
+	virtual void CopyTextureRegion(const Ref<Texture>& dest, glm::int3 destLoc, int32_t destSubresourceIndex,
+								   const Ref<Texture>& src, int32_t srcSubresourceIndex, Box3I srcBox) = 0;
 
 	virtual void RenderImGui() = 0;
 

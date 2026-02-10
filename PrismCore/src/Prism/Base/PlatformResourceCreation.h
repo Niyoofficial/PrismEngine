@@ -3,6 +3,6 @@
 
 namespace Prism::Core::Private
 {
-Window* CreateWindow(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc);
+Ref<Window> CreateWindow(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc);
 class Platform* CreatePlatform();
 }

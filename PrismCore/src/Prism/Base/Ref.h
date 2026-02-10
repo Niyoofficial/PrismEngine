@@ -1,19 +1,18 @@
 ﻿#pragma once
 #include <unordered_set>
 
-#include "Prism/Utilities/PreprocessorUtils.h"
-
 namespace Prism
 {
-class RefCounted;
-
 class ReferenceManager
 {
-public:
+	friend class RefCounted;
+	template<typename T> friend class Ref;
+	template<typename T> friend class WeakRef;
+
+private:
 	static void AddReference(RefCounted* object)
 	{
 		s_references.insert(object);
-
 	}
 
 	static void RemoveReference(RefCounted* object)
@@ -26,21 +25,44 @@ public:
 		return s_references.contains(object);
 	}
 
+	static void AddToConstructionList(RefCounted* object)
+	{
+		s_constructionList.insert(object);
+	}
+
+	static void RemoveFromConstructionList(RefCounted* object)
+	{
+		s_constructionList.erase(object);
+	}
+
+	static bool IsBeingConstructed(RefCounted* object)
+	{
+		return s_constructionList.contains(object);
+	}
+
 private:
 	static std::unordered_set<RefCounted*> s_references;
+	static std::unordered_set<RefCounted*> s_constructionList;
 };
 
-// TODO: This class should probably have all their members private and Ref class as a friend
 class RefCounted
 {
+	template<typename T> friend class Ref;
 public:
+	int32_t GetRefCount() const { return m_refCount.load(); }
+
+protected:
+	RefCounted()
+	{
+		PE_ASSERT(ReferenceManager::IsBeingConstructed(this), "RefCounted objects have to be created through Ref<>::Create(...)");
+		ReferenceManager::AddReference(this);
+	}
 	virtual ~RefCounted() = default;
 
+private:
 	void AddRef()
 	{
 		++m_refCount;
-
-		ReferenceManager::AddReference(this);
 	}
 
 	void RemoveRef()
@@ -48,56 +70,28 @@ public:
 		int32_t newCount = --m_refCount;
 
 		PE_ASSERT(newCount >= 0);
-
-		if (newCount == 0)
-			ReferenceManager::RemoveReference(this);
-	}
-
-	int32_t GetRefCount() const { return m_refCount.load(); }
-
-
-	// TODO: Instead of this there should be a custom function for creating RefCounted objects that guards them from not being destroyed during construction
-	void DisableDestruction(bool disable)
-	{
-		destructionDisabled = disable;
-	}
-
-	bool IsDestructionDisabled()
-	{
-		return destructionDisabled;
 	}
 
 private:
-	bool destructionDisabled = false;
 	std::atomic<int32_t> m_refCount = 0;
 };
 
-struct DisableDestructionScopeGuard
-{
-public:
-	explicit DisableDestructionScopeGuard(RefCounted* inObject)
-		: object(inObject)
-	{
-		PE_ASSERT(object);
-		object->DisableDestruction(true);
-	}
-
-	~DisableDestructionScopeGuard()
-	{
-		object->DisableDestruction(false);
-	}
-
-private:
-	RefCounted* object = nullptr;
-};
-
-#define DISABLE_DESTRUCTION_SCOPE_GUARD(object) DisableDestructionScopeGuard PREPROCESSOR_JOIN(_disableDestruction, __LINE__)(object)
-
+// TODO: Add thread-safety
 template<typename T>
 class Ref
 {
 	template<typename U> friend class Ref;
 public:
+	template<typename... Args>
+	static Ref<T> Create(Args&&... args)
+	{
+		T* address = (T*)malloc(sizeof(T));
+		ReferenceManager::AddToConstructionList(address);
+		auto ref = Ref<T>(new (address) T(std::forward<Args>(args)...));
+		ReferenceManager::RemoveFromConstructionList(address);
+		return ref;
+	}
+
 	Ref() = default;
 	Ref(T* object)
 		: m_object(object)
@@ -127,6 +121,11 @@ public:
 		: m_object(std::move(otherRef.m_object))
 	{
 		otherRef.m_object = nullptr;
+	}
+
+	Ref(nullptr_t)
+	{
+		m_object = nullptr;
 	}
 
 	~Ref()
@@ -217,9 +216,10 @@ private:
 		if (m_object)
 		{
 			m_object->RemoveRef();
-			if (m_object->GetRefCount() <= 0 && !m_object->IsDestructionDisabled())
+			if (m_object->GetRefCount() <= 0 && !ReferenceManager::IsBeingConstructed(m_object))
 			{
-				delete m_object;
+				ReferenceManager::RemoveReference(m_object);
+				delete static_cast<RefCounted*>(m_object);
 				m_object = nullptr;
 			}
 		}
@@ -272,6 +272,17 @@ struct std::hash<Prism::Ref<T>>
 {
 	size_t operator()(const Prism::Ref<T>& ref) const noexcept
 	{
+		return std::hash<T*>()(ref.Raw());
+	}
+};
+
+template<typename T>
+struct std::hash<Prism::WeakRef<T>>
+{
+	size_t operator()(const Prism::WeakRef<T>& ref) const noexcept
+	{
+		PE_ASSERT(ref.IsValid());
+
 		return std::hash<T*>()(ref.Raw());
 	}
 };

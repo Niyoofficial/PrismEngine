@@ -20,6 +20,8 @@ enum class BufferViewFlags
 
 struct BufferViewDesc
 {
+	bool operator==(const BufferViewDesc&) const = default;
+
 	BufferViewType type;
 	int64_t offset = 0;
 	int64_t size = 0;
@@ -40,7 +42,22 @@ public:
 	Buffer* GetBuffer() const;
 
 protected:
-	// View keeps a strong ref to its resource to keep if alive as long as there are views to it existing
-	Ref<Buffer> m_owningBuffer;
+	WeakRef<Buffer> m_owningBuffer;
 };
 }
+
+template<>
+struct std::hash<Prism::Render::BufferViewDesc>
+{
+	size_t operator()(const Prism::Render::BufferViewDesc& desc) const noexcept
+	{
+		using namespace Prism::Render;
+
+		return
+			std::hash<BufferViewType>()(desc.type) ^
+			std::hash<int64_t>()(desc.offset) ^
+			std::hash<int64_t>()(desc.size) ^
+			std::hash<int64_t>()(desc.elementSize) ^
+			std::hash<Prism::Flags<BufferViewFlags>::MaskType>()(desc.flags.GetUnderlyingType());
+	}
+};

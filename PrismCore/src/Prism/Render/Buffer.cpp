@@ -1,39 +1,13 @@
 ﻿#include "pcpch.h"
 #include "Buffer.h"
-#include "RenderResourceCreation.h"
-#include "Prism/Render/RenderCommandQueue.h"
+
+#include "Prism/Render/RenderDevice.h"
 
 namespace Prism::Render
 {
 Ref<Buffer> Buffer::Create(const BufferDesc& desc, RawData initData)
 {
-	Ref<Buffer> buffer = Private::CreateBuffer(desc);
-
-	if (initData.data && initData.sizeInBytes > 0)
-	{
-		if (desc.usage == ResourceUsage::Dynamic || desc.usage == ResourceUsage::Staging)
-		{
-			void* address = buffer->Map(CPUAccess::Write);
-			memcpy_s(address, desc.size, initData.data, initData.sizeInBytes);
-			buffer->Unmap();
-		}
-		else if (desc.usage == ResourceUsage::Default)
-		{
-			// TODO: Add copy context
-			Ref context = RenderDevice::Get().AllocateContext(L"UpdateDefaultBuffer");
-
-			context->UpdateBuffer(buffer, initData);
-
-			RenderDevice::Get().SubmitContext(context);
-			RenderDevice::Get().GetRenderCommandQueue()->Flush();
-		}
-		else
-		{
-			PE_ASSERT_NO_ENTRY();
-		}
-	}
-
-	return buffer;
+	return RenderDevice::Get().CreateBuffer(desc, initData);
 }
 
 Ref<BufferView> Buffer::CreateView(const BufferViewDesc& desc)
@@ -72,5 +46,20 @@ Ref<BufferView> Buffer::CreateDefaultUAV(int64_t elementSize, bool bNeedsCounter
 		.elementSize = elementSize,
 		.flags = bNeedsCounter ? BufferViewFlags::NeedsCounter : BufferViewFlags::None
 	});
+}
+
+static int32_t test = 0;
+Buffer::Buffer(RenderDevice* renderDevice)
+	: RenderResource(renderDevice)
+{
+	test++;
+}
+
+Buffer::~Buffer()
+{
+	test--;
+	PE_ASSERT(m_renderDevice);
+
+	m_renderDevice->NotifyResourceDestruction(this);
 }
 }

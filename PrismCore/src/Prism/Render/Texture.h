@@ -86,5 +86,9 @@ public:
 
 	virtual ResourceType GetResourceType() const override { return ResourceType::Texture; }
 	virtual TextureDesc GetTextureDesc() const = 0;
+
+protected:
+	explicit Texture(RenderDevice* renderDevice) : RenderResource(renderDevice) {}
+	virtual ~Texture() override;
 };
 }
