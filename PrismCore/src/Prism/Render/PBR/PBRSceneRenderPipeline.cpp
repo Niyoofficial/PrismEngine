@@ -693,6 +693,8 @@ void PBRSceneRenderPipeline::RenderShadowPass(RenderContext* renderContext, cons
 	int32_t dirLightIndex = 0;
 	for (auto& dirLight : renderInfo.directionalLights)
 	{
+		SCOPED_RENDER_EVENT(renderContext, L"Shadows_DirLightIndex" + std::to_wstring(dirLightIndex));
+
 		auto shadowMap = m_dirLightShadowMaps[dirLightIndex];
 		glm::float2 shadowMapSize = {(float)shadowMap->GetTextureDesc().GetWidth(), (float)shadowMap->GetTextureDesc().GetHeight()};
 		renderContext->SetViewport({{0.f, 0.f}, shadowMapSize, {0.f, 1.f}});
@@ -746,6 +748,8 @@ void PBRSceneRenderPipeline::RenderShadowPass(RenderContext* renderContext, cons
 
 			++proxyIndex;
 		}
+
+		++dirLightIndex;
 	}
 }
 
@@ -900,6 +904,8 @@ void PBRSceneRenderPipeline::RenderLightingPass(RenderContext* renderContext, co
 		int32_t dirLightIndex = 0;
 		for (auto& dirLight : renderInfo.directionalLights)
 		{
+			SCOPED_RENDER_EVENT(renderContext, L"DirectLighting_DirLightIndex" + std::to_wstring(dirLightIndex));
+
 			glm::float4x4 lightView = glm::lookAt(renderInfo.sceneBounds.GetRadius() * -dirLight.direction,
 												  dirLight.direction, {0.f, 1.f, 0.f});
 			glm::float4x4 lightProj = glm::ortho(-renderInfo.sceneBounds.GetRadius(),
@@ -1316,9 +1322,15 @@ void PBRSceneRenderPipeline::ResizeResourceArrayIfNeeded(std::vector<Ref<Res>>& 
 		for (int32_t i = resArray.size(); i < sizeToFit; ++i)
 		{
 			if constexpr (std::is_same_v<Res, Texture>)
+			{
+				resDesc.textureName = resDesc.textureName + L"_" + std::to_wstring(i);
 				resArray.push_back(Texture::Create(resDesc, initLayout));
+			}
 			else
+			{
+				resDesc.bufferName = resDesc.bufferName + L"_" + std::to_wstring(i);
 				resArray.push_back(Buffer::Create(resDesc));
+			}
 		}
 	}
 }

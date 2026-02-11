@@ -571,7 +571,9 @@ void SandboxLayer::UpdateImGui(Duration delta)
 					}
 					else if (ImGui::MenuItem("Light"))
 					{
-						m_scene->AddEntity(L"Light")->AddComponent<LightRendererComponent>();
+						auto light = m_scene->AddEntity(L"Light");
+						light->AddComponent<TransformComponent>();
+						light->AddComponent<LightRendererComponent>();
 					}
 
 					ImGui::EndMenu();

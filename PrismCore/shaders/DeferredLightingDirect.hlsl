@@ -88,7 +88,6 @@ float4 psmain(VertexOut pin) : SV_Target
 	
 	float3 toCamera = normalize(sceneBuffer.camera.camPos - positionWorld.xyz);
 
-	// For now only a single directional light has shadow
 	float4 shadowPosClip = mul(dirLightPassBuffer.shadowViewProj, float4(positionWorld.xyz, 1.f)); // Hardcoding w = 1 because the shadow map was generated from orthographic projection
 																								   //i.e. w has to be 1 while for perspective w = 0..1 depending on distance from camera
 	float shadowFactor = CalcShadowFactor(shadowPosClip, 8192, shadowMap, g_samShadow);
