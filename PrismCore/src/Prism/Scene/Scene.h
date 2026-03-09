@@ -42,7 +42,8 @@ public:
 
 	const std::wstring& GetSceneName() const { return m_sceneName; }
 
-	const std::vector<Ref<Entity>>& GetAllEntities() const;
+	const std::unordered_map<int64_t, Ref<Entity>>& GetAllEntities() const;
+	int64_t GetEntityID(const Ref<Entity>& entity) const;
 
 	Ref<Render::SceneRenderPipeline> GetCurrentRenderPipeline() const { return m_renderPipeline; }
 
@@ -63,7 +64,8 @@ private:
 
 	Ref<Render::SceneRenderPipeline> m_renderPipeline;
 
-	std::vector<Ref<Entity>> m_entities;
+	int64_t m_nextEntityID = 0;
+	std::unordered_map<int64_t, Ref<Entity>> m_entities;
 	// TODO: Remove this and add something like mesh processors to collect meshes for each pass
 	WeakRef<Entity> m_selectedEntity;
 

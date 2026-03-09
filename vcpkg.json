@@ -19,13 +19,15 @@
 			"features": [
 				"docking-experimental",
 				"dx12-binding",
-				"sdl3-binding"
+				"sdl3-binding",
+				"wchar32"
 			]
 		},
 		"imguizmo",
 		"winpixevent",
 		"xxhash",
-		"yaml-cpp"
+		"yaml-cpp",
+		"crossguid"
 	],
 	"overrides": [
 		{
@@ -38,7 +40,11 @@
 		},
 		{
 			"name": "imgui",
-			"version": "1.91.9#0"
+			"version": "1.91.9"
+		},
+		{
+			"name": "yaml-cpp",
+			"version": "0.8.0#3"
 		}
 	]
 }

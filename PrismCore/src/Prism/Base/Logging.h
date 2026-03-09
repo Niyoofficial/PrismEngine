@@ -113,6 +113,7 @@ auto ConvertToString(T&& arg)
 
 std::string ConvertToString(const wchar_t* arg);
 std::string ConvertToString(const std::wstring& arg);
+std::string ConvertToString(const std::filesystem::path& arg);
 }
 
 #define DECLARE_LOG_CATEGORY(categoryName, displayedName)			\

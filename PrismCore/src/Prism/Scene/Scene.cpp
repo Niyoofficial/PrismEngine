@@ -10,7 +10,7 @@ namespace Prism
 void Scene::SetSelectedEntity(const Ref<Entity>& entity)
 {
 	if (entity)
-		PE_ASSERT(std::ranges::find(m_entities, Ref(entity)) != m_entities.end());
+		PE_ASSERT(GetEntityID(entity) != -1);
 	m_selectedEntity = entity;
 }
 
@@ -27,7 +27,7 @@ void Scene::Update(Duration delta)
 	m_dirLights.clear();
 	m_selectedProxy = nullptr;
 
-	for (auto& entity : m_entities)
+	for (auto& [id, entity] : m_entities)
 	{
 		if (entity->IsRootEntity())
 			PrepareRenderProxiesForEntity(entity, {1.f});
@@ -108,7 +108,7 @@ void Scene::AddEntity(Ref<Entity>& entity)
 	PE_ASSERT(!entity->GetOwningScene(), "Entity is already owned by a different scene!");
 
 	entity->InitializeOwnership(this);
-	m_entities.emplace_back(entity);
+	m_entities[m_nextEntityID++] = entity;
 }
 
 void Scene::RemoveEntity(const Ref<Entity>& entity)
@@ -124,7 +124,7 @@ void Scene::RemoveEntity(const Ref<Entity>& entity)
 		child->SetParent(parent);
 	entity->SetParent(nullptr);
 
-	std::erase(m_entities, entity);
+	m_entities.erase(GetEntityID(entity));
 }
 
 Ref<Entity> Scene::CreateEntityHierarchyForMeshAsset(const Ref<MeshLoading::MeshAsset>& asset)
@@ -171,8 +171,24 @@ void Scene::SetRenderPipeline(const Ref<Render::SceneRenderPipeline>& renderPipe
 	m_renderPipeline = renderPipeline;
 }
 
-const std::vector<Ref<Entity>>& Scene::GetAllEntities() const
+const std::unordered_map<int64_t, Ref<Entity>>& Scene::GetAllEntities() const
 {
 	return m_entities;
+}
+
+int64_t Scene::GetEntityID(const Ref<Entity>& entity) const
+{
+	auto it = std::ranges::find_if(m_entities,
+		[&entity](auto val)
+		{
+			if (val.second == entity)
+				return true;
+			return false;
+		});
+
+	if (it != m_entities.end())
+		return it->first;
+
+	return -1;
 }
 }

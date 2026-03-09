@@ -2,25 +2,25 @@
 	"version": 8,
 	"configurePresets": [
 		{
-			"name": "vcpkg-visual-2022",
-			"generator": "Visual Studio 17 2022",
+			"name": "vcpkg-visual-2026",
+			"generator": "Visual Studio 18 2026",
 			"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
 		}
 	],
 	"buildPresets": [
 		{
 			"name": "Debug",
-			"configurePreset": "vcpkg-visual-2022",
+			"configurePreset": "vcpkg-visual-2026",
 			"configuration": "Debug"
 		},
 		{
 			"name": "Profile",
-			"configurePreset": "vcpkg-visual-2022",
+			"configurePreset": "vcpkg-visual-2026",
 			"configuration": "RelWithDebInfo"
 		},
 		{
 			"name": "Release",
-			"configurePreset": "vcpkg-visual-2022",
+			"configurePreset": "vcpkg-visual-2026",
 			"configuration": "Release"
 		}
 	]

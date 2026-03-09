@@ -2,6 +2,7 @@
 #include "Application.h"
 
 #include "Base.h"
+#include "Prism/Base/Paths.h"
 #include "Prism/Base/Platform.h"
 #include "Prism/Render/Layer.h"
 #include "Prism/Render/RenderCommandQueue.h"
@@ -18,6 +19,8 @@ Application::Application(int32_t argc, char** argv)
 		if (strcmp(argv[i], "-bypassCmdRecord") == 0)
 			m_bypassCmdRecording = true;
 	}
+
+	m_assetManager.GetHandleFromPath(Core::Paths::Get().GetProjectAssetsDir() / "A/B/C.txt");
 }
 
 Application::~Application()
@@ -164,8 +167,26 @@ void Application::ShutdownPlatform()
 
 void Application::InitRenderer(const Render::RenderDeviceParams& params)
 {
-	Render::RenderDevice::Create(params);
-	Render::RenderDevice::Get().SetBypassCommandRecording(true);
+	using namespace Render;
+
+	RenderDevice::Create(params);
+
+	uint8_t data[32] = {0};
+	m_builtinResources.whiteTexture = Texture::Create({
+		.textureName = L"BuiltinWhiteTexture",
+		.width = 2,
+		.height = 2,
+		.format = TextureFormat::RGBA16_UNorm,
+		.bindFlags = BindFlags::ShaderResource,
+		}, BarrierLayout::Common, {.data = data, .sizeInBytes = sizeof(data)});
+	memset(data, 1, sizeof(data));
+	m_builtinResources.blackTexture = Texture::Create({
+		.textureName = L"BuiltinBlackTexture",
+		.width = 2,
+		.height = 2,
+		.format = TextureFormat::RGBA16_UNorm,
+		.bindFlags = BindFlags::ShaderResource,
+		}, BarrierLayout::Common, {.data = data, .sizeInBytes = sizeof(data)});
 }
 
 void Application::ShutdownRenderer()
@@ -175,19 +196,8 @@ void Application::ShutdownRenderer()
 
 void Application::InitImGui(Window* window, Render::TextureFormat depthFormat)
 {
-	// Setup Dear ImGui context
 	IMGUI_CHECKVERSION();
 	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
-	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
-	io.FontGlobalScale = 1.5f;
-
-	// Setup Dear ImGui style
-	ImGui::StyleColorsDark();
-	//ImGui::StyleColorsLight();
 
 	Platform::Get().InitializeImGuiPlatform(window);
 	Render::RenderDevice::Get().InitializeImGui(window, depthFormat);

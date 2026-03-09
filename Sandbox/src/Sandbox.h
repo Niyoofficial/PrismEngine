@@ -10,6 +10,7 @@
 #include "Prism/Render/RenderConstants.h"
 #include "Prism/Utilities/MeshLoading.h"
 #include "ImGuizmo.h"
+#include "AssetBrowserPanel.h"
 
 using namespace Prism;
 
@@ -87,12 +88,13 @@ private:
 	WeakRef<Core::Window> m_owningWindow;
 
 	Ref<Scene> m_scene;
-	Render::PBRSceneRenderPipeline* m_renderPipeline;
-
+	
 	glm::float3 m_sunRotation = {0.f, glm::radians(-7.f), glm::radians(-101.f)};
 
 	ImGuizmo::OPERATION m_gizmoOperation = ImGuizmo::UNIVERSAL;
 	ImGuizmo::MODE m_gizmoMode = ImGuizmo::LOCAL;
+
+	AssetBrowserPanel m_assetBrowser;
 
 	glm::int2 m_viewportSize;
 	bool m_viewportHovered = false;
@@ -121,7 +123,7 @@ private:
 	std::vector<std::string> m_filesToLoad;
 };
 
-class SandboxApplication final : public Core::Application
+class EditorApplication final : public Core::Application
 {
 public:
 	struct PrimitiveData
@@ -138,11 +140,14 @@ public:
 	};
 
 public:
-	static SandboxApplication& Get();
+	static EditorApplication& Get();
 
-	SandboxApplication(int32_t argc, char** argv);
+	EditorApplication(int32_t argc, char** argv);
 
 	Core::Window* GetWindow() const;
+
+protected:
+	void InitImGui(Core::Window* window, Render::TextureFormat depthFormat) override;
 
 private:
 	Ref<Core::Window> m_window;

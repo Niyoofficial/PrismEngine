@@ -42,6 +42,17 @@ float3 UpsampleTent9Tap(Texture2D tex, SamplerState sam, float2 uv, float lod, f
 	return color * (1.f / 16.f);
 }
 
+float3 ACESFilm(float3 x)
+{
+    float a = 2.51;
+    float b = 0.03;
+    float c = 2.43;
+    float d = 0.59;
+    float e = 0.14;
+
+    return clamp((x * (a * x + b)) / (x * (c * x + d) + e), 0.0, 1.0);
+}
+
 float4 psmain(FullscreenVertexOut pin) : SV_Target
 {
 	Texture2D sceneColorTexture = ResourceDescriptorHeap[g_sceneColorTexture];
@@ -70,6 +81,8 @@ float4 psmain(FullscreenVertexOut pin) : SV_Target
 		float3 coloredOutline = outline * float3(1.f, 0.45f, 0.f);
 		color = (1.f - coloredOutline) * color + coloredOutline;
 	}
+
+	color = ACESFilm(color);
 
 	// Gamma correction
 	color = color / (color + 1.f);

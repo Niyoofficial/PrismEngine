@@ -67,7 +67,7 @@ D3D12ShaderCompiler::D3D12ShaderCompiler()
 					.shaderType = (ShaderType)metadata["ShaderDesc"]["shaderType"].as<int32_t>()
 				};
 
-				std::fs::path shaderEnginePath = Core::Paths::Get().GetEngineDir() + L"/" + desc.filepath;
+				std::fs::path shaderEnginePath = Core::Paths::Get().GetEngineDir() / desc.filepath;
 				if ((std::fs::exists(desc.filepath.c_str()) && std::fs::is_regular_file(desc.filepath.c_str())) ||
 					(std::fs::exists(shaderEnginePath) && std::fs::is_regular_file(shaderEnginePath)))
 				{
@@ -104,7 +104,7 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 {
 	// dxc <shaderName>.hlsl -E <entryPoint> -T <shaderType>_6_8 -Zi -Od -Fo <outputName>.bin -Fd <outputName>.pdb -I -enable-16bit-types
 
-	std::wstring engineInputPath = Core::Paths::Get().GetEngineDir() + L"/" + desc.filepath;
+	std::wstring engineInputPath = Core::Paths::Get().GetEngineDir() / desc.filepath;
 
 	ComPtr<IDxcBlobEncoding> source = nullptr;
 	HRESULT result = m_dxcUtils->LoadFile(desc.filepath.c_str(), nullptr, &source);
@@ -121,9 +121,9 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 	sourceBuffer.Size = source->GetBufferSize();
 	sourceBuffer.Encoding = DXC_CP_ACP;
 
-	std::wstring inputPathNoFile = desc.filepath.substr(0, desc.filepath.find_last_of('/') + 1);
+	std::wstring inputPathNoFile = desc.filepath.lexically_normal().wstring().substr(0, desc.filepath.lexically_normal().string().find_last_of('/') + 1);
 	std::wstring engineInputPathNoFile = engineInputPath.substr(0, engineInputPath.find_last_of('/') + 1);
-	std::wstring inputFilename = desc.filepath.substr(desc.filepath.find_last_of('/') + 1);
+	std::wstring inputFilename = desc.filepath.lexically_normal().wstring().substr(desc.filepath.lexically_normal().string().find_last_of('/') + 1);
 	std::wstring inputFilenameNoExt = inputFilename.substr(0, inputFilename.find_last_of('.'));
 	std::wstring target = GetTargetStringForShader(desc.shaderType, 6, 8);
 
@@ -196,7 +196,7 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 				else
 				{
 					// As soon as we know that the shader cached files are outdated, get rid of them, so they won't be mistakenly loaded at the next program load
-					std::fs::path cacheFile(Core::Paths::Get().GetIntermediateDir() + L"/" + std::to_wstring(m_shaderCache.at(desc).hash));
+					std::fs::path cacheFile(Core::Paths::Get().GetIntermediateDir() / std::to_string(m_shaderCache.at(desc).hash));
 
 					RemoveShaderCache(m_shaderCache.at(desc).hash);
 				}
@@ -204,7 +204,7 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 		}
 	}
 
-	std::fs::path outputFilepathNoExt = Core::Paths::Get().GetIntermediateDir() + L"/" + std::to_wstring(shaderHash);
+	std::fs::path outputFilepathNoExt = Core::Paths::Get().GetIntermediateDir() / std::to_string(shaderHash);
 
 	D3D12ShaderCompilerOutput output;
 
@@ -334,7 +334,7 @@ std::wstring D3D12ShaderCompiler::GetTargetStringForShader(ShaderType shaderType
 
 void D3D12ShaderCompiler::RemoveShaderCache(uint64_t shaderHash)
 {
-	std::fs::path cacheFile(Core::Paths::Get().GetIntermediateDir() + L"/" + std::to_wstring(shaderHash));
+	std::fs::path cacheFile(Core::Paths::Get().GetIntermediateDir() / std::to_string(shaderHash));
 
 	std::fs::remove(cacheFile.replace_extension(L".bin"));
 	std::fs::remove(cacheFile.replace_extension(L".pdb"));

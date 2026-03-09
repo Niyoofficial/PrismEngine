@@ -980,8 +980,6 @@ D3D12_BARRIER_LAYOUT GetD3D12BarrierLayout(BarrierLayout barrierLayout)
 		return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COPY_SOURCE;
 	case BarrierLayout::ComputeQueueCopyDest:
 		return D3D12_BARRIER_LAYOUT_COMPUTE_QUEUE_COPY_DEST;
-	case BarrierLayout::VideoQueueCommon:
-		return D3D12_BARRIER_LAYOUT_VIDEO_QUEUE_COMMON;
 	default:
 		PE_ASSERT_NO_ENTRY();
 		return {};

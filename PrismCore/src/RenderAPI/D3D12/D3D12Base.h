@@ -11,7 +11,6 @@
 #include <crtdbg.h>
 #endif
 
-#include <d3d12.h>
 #include <dxgi1_6.h>
 #if PE_BUILD_DEBUG || PE_BUILD_PROFILE
 #include <dxgidebug.h>

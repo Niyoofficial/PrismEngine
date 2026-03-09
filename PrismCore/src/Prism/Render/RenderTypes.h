@@ -879,7 +879,6 @@ enum class BarrierLayout
 	ComputeQueueShaderResource = 27,
 	ComputeQueueCopySource = 28,
 	ComputeQueueCopyDest = 29,
-	VideoQueueCommon = 30
 };
 
 struct BufferBarrier

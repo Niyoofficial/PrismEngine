@@ -36,7 +36,7 @@ void LogsRegistry::DestroyRegistry()
 LogsRegistry::LogsRegistry()
 	: m_stdOutSink(std::make_shared<spdlog::sinks::stdout_color_sink_mt>()),
 	  m_stdErrSink(std::make_shared<spdlog::sinks::stderr_color_sink_mt>()),
-	  m_fileSink(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(WStringToString(Core::Paths::Get().MakePathRelative(Core::Paths::Get().GetLogsDir() + L"/PrismLog.log", Core::Paths::Get().GetProjectDir())), -1, 10, true)),
+	  m_fileSink(std::make_shared<spdlog::sinks::rotating_file_sink_mt>(std::fs::relative(Core::Paths::Get().GetLogsDir() / "PrismLog.log", Core::Paths::Get().GetProjectDir()).string(), -1, 10, true)),
 	  m_imguiSink(std::make_shared<spdlog::sinks::imgui_sink>())
 {
 	// TODO: Flush log in a smarter way
@@ -77,6 +77,11 @@ std::string ConvertToString(const wchar_t* arg)
 std::string ConvertToString(const std::wstring& arg)
 {
 	return ConvertToString(arg.c_str());
+}
+
+std::string ConvertToString(const std::filesystem::path& arg)
+{
+	return arg.string();
 }
 
 ErrorLogger::ErrorLogger()

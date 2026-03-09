@@ -2,6 +2,7 @@
 
 #include <vector>
 
+#include "Prism/AssetManagement/AssetManager.h"
 #include "Prism/Base/AppEvents.h"
 #include "Prism/Base/Window.h"
 #include "Prism/Utilities/Duration.h"
@@ -17,6 +18,13 @@ class Layer;
 namespace Prism::Core
 {
 class Window;
+
+// TODO: Rework this
+struct BuiltinResources
+{
+	Ref<Render::Texture> whiteTexture;
+	Ref<Render::Texture> blackTexture;
+};
 
 class Application : public StaticPointerSingleton<Application>
 {
@@ -48,6 +56,9 @@ public:
 
 	const std::vector<WeakRef<Window>>& GetWindows() const { return m_windows; }
 
+	const BuiltinResources& GetBuiltinResources() const { return m_builtinResources; }
+	const AssetManager& GetAssetManager() const { return m_assetManager; }
+
 protected:
 	virtual void BeginFrame();
 	virtual void EndFrame();
@@ -60,8 +71,8 @@ protected:
 	void InitRenderer(const Render::RenderDeviceParams& params);
 	void ShutdownRenderer();
 
-	void InitImGui(Window* window, Render::TextureFormat depthFormat);
-	void ShutdownImGui();
+	virtual void InitImGui(Window* window, Render::TextureFormat depthFormat);
+	virtual void ShutdownImGui();
 
 	void OnQuitEvent(AppEvent event);
 
@@ -78,6 +89,9 @@ protected:
 	Ref<Render::Layer> m_imguiLayer;
 
 	std::vector<WeakRef<Window>> m_windows;
+
+	BuiltinResources m_builtinResources;
+	AssetManager m_assetManager;
 
 	bool m_imguiInitialized = false;
 

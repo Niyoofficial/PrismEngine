@@ -1,5 +1,8 @@
 ﻿#pragma once
 
+#include <stdint.h>
+#include <compare>
+
 namespace Prism
 {
 struct Duration

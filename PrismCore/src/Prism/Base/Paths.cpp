@@ -10,28 +10,33 @@ Paths& Paths::Get()
 	return LazySingleton<Paths>::Get();
 }
 
-std::wstring Paths::GetEngineDir() const
+std::fs::path Paths::GetEngineDir() const
 {
-	return PREPROCESSOR_TO_WIDE_STRING(PE_ENGINE_DIR);
+	return PREPROCESSOR_TO_STRING(PE_ENGINE_DIR);
 }
 
-std::wstring Paths::GetProjectDir() const
+std::fs::path Paths::GetProjectDir() const
 {
-	return std::filesystem::current_path().generic_wstring();
+	return std::filesystem::current_path();
 }
 
-std::wstring Paths::GetIntermediateDir() const
+std::fs::path Paths::GetEngineAssetsDir() const
 {
-	return GetProjectDir() + L"/int";
+	return GetEngineDir() / "assets";
 }
 
-std::wstring Paths::GetLogsDir() const
+std::fs::path Paths::GetProjectAssetsDir() const
 {
-	return GetProjectDir() + L"/logs";
+	return GetProjectDir() / "assets";
 }
 
-std::wstring Paths::MakePathRelative(std::wstring absPath, std::wstring basePath) const
+std::fs::path Paths::GetIntermediateDir() const
 {
-	return std::filesystem::relative(absPath, basePath).generic_wstring();
+	return GetProjectDir() / "int";
+}
+
+std::fs::path Paths::GetLogsDir() const
+{
+	return GetProjectDir() / "logs";
 }
 }

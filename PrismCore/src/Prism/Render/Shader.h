@@ -30,7 +30,7 @@ struct ShaderDesc
 	bool IsValid() const;
 	bool operator==(const ShaderDesc& other) const;
 
-	std::wstring filepath;
+	std::fs::path filepath;
 	std::wstring entryName;
 	ShaderType shaderType;
 };
@@ -44,7 +44,7 @@ struct std::hash<Prism::Render::ShaderDesc>
 	size_t operator()(const Prism::Render::ShaderDesc& shaderCreateInfo) const noexcept
 	{
 		return
-			std::hash<std::wstring>()(shaderCreateInfo.filepath) ^
+			std::hash<std::fs::path>()(shaderCreateInfo.filepath) ^
 			std::hash<std::wstring>()(shaderCreateInfo.entryName) ^
 			std::hash<Prism::Render::ShaderType>()(shaderCreateInfo.shaderType);
 	}

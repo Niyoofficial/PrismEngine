@@ -11,6 +11,7 @@
 #include <ranges>
 #include <filesystem>
 #include <fstream>
+#include <future>
 
 #include "Prism/Base/Base.h"
 

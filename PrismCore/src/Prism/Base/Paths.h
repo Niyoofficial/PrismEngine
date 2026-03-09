@@ -7,12 +7,13 @@ class Paths
 public:
 	static Paths& Get();
 
-	std::wstring GetEngineDir() const;
-	std::wstring GetProjectDir() const;
+	std::fs::path GetEngineDir() const;
+	std::fs::path GetProjectDir() const;
 
-	std::wstring GetIntermediateDir() const;
-	std::wstring GetLogsDir() const;
+	std::fs::path GetEngineAssetsDir() const;
+	std::fs::path GetProjectAssetsDir() const;
 
-	std::wstring MakePathRelative(std::wstring absPath, std::wstring basePath) const;
+	std::fs::path GetIntermediateDir() const;
+	std::fs::path GetLogsDir() const;
 };
 }

@@ -3,7 +3,6 @@
 #include "Prism/Base/Base.h"
 #include "Prism/Base/Platform.h"
 #include "Prism/Base/Window.h"
-#include "Prism/Render/Material.h"
 #include "Prism/Render/RenderContext.h"
 #include "Prism/Render/RenderDevice.h"
 #include "Prism/Render/RenderUtils.h"
@@ -14,9 +13,10 @@
 #include "Prism/Scene/LightRendererComponent.h"
 #include <filesystem>
 
+#include "EditorTheme.h"
 #include "Prism/Render/RenderCommandQueue.h"
 
-IMPLEMENT_APPLICATION(SandboxApplication);
+IMPLEMENT_APPLICATION(EditorApplication);
 
 SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	: m_owningWindow(owningWindow)
@@ -98,10 +98,10 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 	m_scene->SetRenderPipeline<PBRSceneRenderPipeline>();
 	//m_scene->CreateEntityHierarchyForMeshAsset(sponza);
 	auto lightEntity = m_scene->AddEntity(L"Light");
-	lightEntity->AddComponent<LightRendererComponent>();
 	lightEntity->AddComponent<TransformComponent>()->SetRotation(m_sunRotation);
+	lightEntity->AddComponent<LightRendererComponent>();
 
-	glm::int2 windowSize = SandboxApplication::Get().GetWindow()->GetSize();
+	glm::int2 windowSize = EditorApplication::Get().GetWindow()->GetSize();
 
 	m_camera = Ref<Camera>::Create(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
 	m_camera->SetPosition({0.f, 0.f, 0.f});
@@ -300,14 +300,15 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 		if (ImGui::CollapsingHeader("GBuffer"))
 		{
-			auto gbufferSize = m_renderPipeline->GetGBuffer().GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetSize();
+			auto renderPipeline = static_cast<PBRSceneRenderPipeline*>(m_scene->GetCurrentRenderPipeline().Raw());
+			auto gbufferSize = renderPipeline->GetGBuffer().GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetSize();
 			float texWidth = (float)gbufferSize.x / (float)gbufferSize.y * 256.f;
 			ImGui::Text("Color");
-			ImGui::Image(m_renderPipeline->GetGBuffer().GetView(GBuffer::Type::Color, TextureViewType::SRV), {texWidth, 256});
+			ImGui::Image(renderPipeline->GetGBuffer().GetView(GBuffer::Type::Color, TextureViewType::SRV), {texWidth, 256});
 			ImGui::Text("Depth");
-			ImGui::Image(m_renderPipeline->GetGBuffer().GetView(GBuffer::Type::Depth, TextureViewType::SRV), {texWidth, 256});
+			ImGui::Image(renderPipeline->GetGBuffer().GetView(GBuffer::Type::Depth, TextureViewType::SRV), {texWidth, 256});
 			ImGui::Text("Normal");
-			ImGui::Image(m_renderPipeline->GetGBuffer().GetView(GBuffer::Type::Normal, TextureViewType::SRV), {texWidth, 256});
+			ImGui::Image(renderPipeline->GetGBuffer().GetView(GBuffer::Type::Normal, TextureViewType::SRV), {texWidth, 256});
 			ImGui::Text("R:Roughness G:Metal B:AO");
 			static bool s_roughness = true;
 			ImGui::Checkbox("Roughness", &s_roughness);
@@ -317,8 +318,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			ImGui::SameLine();
 			static bool s_ao = true;
 			ImGui::Checkbox("AO", &s_ao);
-			ImGui::Image(m_renderPipeline->GetGBuffer().GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::SRV), {texWidth, 256}, {0, 0}, {1, 1}, {(float)s_roughness, (float)s_metallic, (float)s_ao, 1});
-
+			ImGui::Image(renderPipeline->GetGBuffer().GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::SRV), {texWidth, 256}, {0, 0}, {1, 1}, {(float)s_roughness, (float)s_metallic, (float)s_ao, 1});
 		}
 
 		/*if (ImGui::CollapsingHeader("Sun"))
@@ -458,7 +458,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 							});
 						glm::float3 logColor = it != colorMap.end() ? it->second : glm::float3{1.f, 1.f, 1.f};
 						int64_t lineLength = imguiSink->GetLineOffsets()[line + 1] - imguiSink->GetLineOffsets()[line] - 1;
-						ImGui::TextColored({logColor.r, logColor.g, logColor.b, 1.f}, "%.*s", lineLength, lineStart);
+						ImGui::Text("%.*s", lineLength, lineStart);
 						lastLogColor = logColor;
 					}
 					else
@@ -466,7 +466,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 						if (imguiSink->GetLineOffsets().size() > line + 1)
 						{
 							int64_t lineLength = imguiSink->GetLineOffsets()[line + 1] - imguiSink->GetLineOffsets()[line] - 1;
-							ImGui::TextColored({ lastLogColor.r, lastLogColor.g, lastLogColor.b, 1.f }, "%.*s", lineLength, lineStart);
+							ImGui::Text("%.*s", lineLength, lineStart);
 						}
 					}
 				}
@@ -490,12 +490,12 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		{
 			if (ImGui::BeginTable("SceneHierarchy_Table", 1, ImGuiTableFlags_RowBg))
 			{
-				for (auto& entity : m_scene->GetAllEntities())
+				for (auto& [id, entity] : m_scene->GetAllEntities())
 				{
 					if (entity->IsRootEntity())
 					{
-						std::function<void(Entity*)> drawEntityNode =
-							[this, &drawEntityNode](Entity* entity)
+						std::function<void(int64_t, const Ref<Entity>&)> drawEntityNode =
+							[this, &drawEntityNode](int64_t id, const Ref<Entity>& entity)
 							{
 								ImGui::TableNextRow();
 								ImGui::TableNextColumn();
@@ -512,15 +512,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 
 								ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.f, 0.f});
 
-								std::wstring entityID = entity->GetName();
-								auto parent = entity->GetParent();
-								while (parent)
-								{
-									entityID += L"_" + entity->GetParent()->GetName();
-									parent = parent->GetParent();
-								}
-
-								bool open = ImGui::TreeNodeEx(WStringToString(entityID).c_str(), treeFlags, "%s", entityID.empty() ? "<unnamed>" : WStringToString(entity->GetName()).c_str());
+								bool open = ImGui::TreeNodeEx(std::to_string(id).c_str(), treeFlags, "%s", entity->GetName().empty() ? "<unnamed>" : WStringToString(entity->GetName()).c_str());
 
 								if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
 									m_scene->SetSelectedEntity(entity);
@@ -528,7 +520,10 @@ void SandboxLayer::UpdateImGui(Duration delta)
 								if (open)
 								{
 									for (auto& child : entity->GetChildren())
-										drawEntityNode(child.Raw());
+									{
+										PE_ASSERT(child.IsValid());
+										drawEntityNode(m_scene->GetEntityID(child.Raw()), child.Raw());
+									}
 
 									ImGui::TreePop();
 								}
@@ -536,7 +531,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 								ImGui::PopStyleVar();
 							};
 
-						drawEntityNode(entity);
+						drawEntityNode(id, entity);
 					}
 				}
 
@@ -567,11 +562,11 @@ void SandboxLayer::UpdateImGui(Duration delta)
 							.name = "3D Mesh (.gltf;.glb;.fbx;.obj)",
 							.pattern = "gltf;glb;fbx;obj"
 						};
-						Core::Platform::Get().OpenFileDialog(callback, SandboxApplication::Get().GetWindow(), {filter}, std::fs::current_path().generic_string());
+						Core::Platform::Get().OpenFileDialog(callback, EditorApplication::Get().GetWindow(), {filter}, std::fs::current_path().generic_string());
 					}
-					else if (ImGui::MenuItem("Light"))
+					else if (ImGui::MenuItem("Directional Light"))
 					{
-						auto light = m_scene->AddEntity(L"Light");
+						auto light = m_scene->AddEntity(L"Directional Light");
 						light->AddComponent<TransformComponent>();
 						light->AddComponent<LightRendererComponent>();
 					}
@@ -611,6 +606,10 @@ void SandboxLayer::UpdateImGui(Duration delta)
 			}
 		}
 		ImGui::End();
+	}
+
+	{
+		m_assetBrowser.UpdateImGui(delta);
 	}
 }
 
@@ -787,12 +786,12 @@ void SandboxLayer::SelectEntityUnderCursor()
 	RenderDevice::Get().SubmitContext(renderContext);
 }
 
-SandboxApplication& SandboxApplication::Get()
+EditorApplication& EditorApplication::Get()
 {
-	return Application::Get<SandboxApplication>();
+	return Application::Get<EditorApplication>();
 }
 
-SandboxApplication::SandboxApplication(int32_t argc, char** argv)
+EditorApplication::EditorApplication(int32_t argc, char** argv)
 	: Application(argc, argv)
 {
 	InitPlatform();
@@ -821,91 +820,33 @@ SandboxApplication::SandboxApplication(int32_t argc, char** argv)
 	// TODO: Remove depth format
 	InitImGui(m_window, Render::TextureFormat::D24_UNorm_S8_UInt);
 
-	{
-		ImGuiStyle& style = ImGui::GetStyle();
-		ImVec4* colors = style.Colors;
-
-		// Primary background
-		colors[ImGuiCol_WindowBg] = ImVec4(0.07f, 0.07f, 0.09f, 1.00f);  // #131318
-		colors[ImGuiCol_MenuBarBg] = ImVec4(0.12f, 0.12f, 0.15f, 1.00f); // #131318
-
-		colors[ImGuiCol_PopupBg] = ImVec4(0.18f, 0.18f, 0.22f, 1.00f);
-
-		// Headers
-		colors[ImGuiCol_Header] = ImVec4(0.18f, 0.18f, 0.22f, 1.00f);
-		colors[ImGuiCol_HeaderHovered] = ImVec4(0.30f, 0.30f, 0.40f, 1.00f);
-		colors[ImGuiCol_HeaderActive] = ImVec4(0.25f, 0.25f, 0.35f, 1.00f);
-
-		// Buttons
-		colors[ImGuiCol_Button] = ImVec4(0.20f, 0.22f, 0.27f, 1.00f);
-		colors[ImGuiCol_ButtonHovered] = ImVec4(0.30f, 0.32f, 0.40f, 1.00f);
-		colors[ImGuiCol_ButtonActive] = ImVec4(0.35f, 0.38f, 0.50f, 1.00f);
-
-		// Frame BG
-		colors[ImGuiCol_FrameBg] = ImVec4(0.15f, 0.15f, 0.18f, 1.00f);
-		colors[ImGuiCol_FrameBgHovered] = ImVec4(0.22f, 0.22f, 0.27f, 1.00f);
-		colors[ImGuiCol_FrameBgActive] = ImVec4(0.25f, 0.25f, 0.30f, 1.00f);
-
-		// Tabs
-		colors[ImGuiCol_Tab] = ImVec4(0.18f, 0.18f, 0.22f, 1.00f);
-		colors[ImGuiCol_TabHovered] = ImVec4(0.35f, 0.35f, 0.50f, 1.00f);
-		colors[ImGuiCol_TabActive] = ImVec4(0.25f, 0.25f, 0.38f, 1.00f);
-		colors[ImGuiCol_TabUnfocused] = ImVec4(0.13f, 0.13f, 0.17f, 1.00f);
-		colors[ImGuiCol_TabUnfocusedActive] = ImVec4(0.20f, 0.20f, 0.25f, 1.00f);
-
-		// Title
-		colors[ImGuiCol_TitleBg] = ImVec4(0.12f, 0.12f, 0.15f, 1.00f);
-		colors[ImGuiCol_TitleBgActive] = ImVec4(0.15f, 0.15f, 0.20f, 1.00f);
-		colors[ImGuiCol_TitleBgCollapsed] = ImVec4(0.10f, 0.10f, 0.12f, 1.00f);
-
-		// Borders
-		colors[ImGuiCol_Border] = ImVec4(0.20f, 0.20f, 0.25f, 0.50f);
-		colors[ImGuiCol_BorderShadow] = ImVec4(0.00f, 0.00f, 0.00f, 0.00f);
-
-		// Text
-		colors[ImGuiCol_Text] = ImVec4(0.90f, 0.90f, 0.95f, 1.00f);
-		colors[ImGuiCol_TextDisabled] = ImVec4(0.50f, 0.50f, 0.55f, 1.00f);
-
-		// Highlights
-		colors[ImGuiCol_CheckMark] = ImVec4(0.50f, 0.70f, 1.00f, 1.00f);
-		colors[ImGuiCol_SliderGrab] = ImVec4(0.50f, 0.70f, 1.00f, 1.00f);
-		colors[ImGuiCol_SliderGrabActive] = ImVec4(0.60f, 0.80f, 1.00f, 1.00f);
-		colors[ImGuiCol_ResizeGrip] = ImVec4(0.50f, 0.70f, 1.00f, 0.50f);
-		colors[ImGuiCol_ResizeGripHovered] = ImVec4(0.60f, 0.80f, 1.00f, 0.75f);
-		colors[ImGuiCol_ResizeGripActive] = ImVec4(0.70f, 0.90f, 1.00f, 1.00f);
-
-		// Scrollbar
-		colors[ImGuiCol_ScrollbarBg] = ImVec4(0.10f, 0.10f, 0.12f, 1.00f);
-		colors[ImGuiCol_ScrollbarGrab] = ImVec4(0.30f, 0.30f, 0.35f, 1.00f);
-		colors[ImGuiCol_ScrollbarGrabHovered] = ImVec4(0.40f, 0.40f, 0.50f, 1.00f);
-		colors[ImGuiCol_ScrollbarGrabActive] = ImVec4(0.45f, 0.45f, 0.55f, 1.00f);
-
-		// Table
-		colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.f, 1.f, 1.f, 0.024f);
-
-		// Style tweaks
-		style.WindowRounding = 5.0f;
-		style.FrameRounding = 5.0f;
-		style.GrabRounding = 5.0f;
-		style.TabRounding = 5.0f;
-		style.PopupRounding = 5.0f;
-		style.ScrollbarRounding = 5.0f;
-		style.WindowPadding = ImVec2(10, 10);
-		style.FramePadding = ImVec2(6, 4);
-		style.ItemSpacing = ImVec2(8, 6);
-		style.PopupBorderSize = 0.f;
-	}
-
-	// ImGuizmo
-	{
-		ImGuizmo::AllowAxisFlip(false);
-	}
+	ImGuizmo::AllowAxisFlip(false);
 
 	m_sandboxLayer = Ref<SandboxLayer>::Create(m_window);
 	PushLayer(m_sandboxLayer);
 }
 
-Core::Window* SandboxApplication::GetWindow() const
+Core::Window* EditorApplication::GetWindow() const
 {
 	return m_window;
+}
+
+void EditorApplication::InitImGui(Core::Window* window, Render::TextureFormat depthFormat)
+{
+	Application::InitImGui(window, depthFormat);
+
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
+	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
+
+	// Setup Dear ImGui style
+	ImGui::StyleColorsDark();
+	//ImGui::StyleColorsLight();
+
+	// TODO: Fix this!
+	io.FontGlobalScale = 1.5f;
+
+	EditorTheme::Init();
 }
