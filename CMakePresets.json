@@ -3,7 +3,7 @@
 	"configurePresets": [
 		{
 			"name": "vcpkg-visual-2026",
-			"generator": "Visual Studio 18 2026",
+			"generator": "Visual Studio 17 2022",
 			"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
 		}
 	],

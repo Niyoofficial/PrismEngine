@@ -12,6 +12,7 @@
 #include <filesystem>
 #include <fstream>
 #include <future>
+#include <shared_mutex>
 
 #include "Prism/Base/Base.h"
 

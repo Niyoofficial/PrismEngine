@@ -57,6 +57,7 @@ public:
 	const std::vector<WeakRef<Window>>& GetWindows() const { return m_windows; }
 
 	const BuiltinResources& GetBuiltinResources() const { return m_builtinResources; }
+	AssetManager& GetAssetManager() { return m_assetManager; }
 	const AssetManager& GetAssetManager() const { return m_assetManager; }
 
 protected:

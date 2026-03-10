@@ -2,7 +2,6 @@
 #include "Application.h"
 
 #include "Base.h"
-#include "Prism/Base/Paths.h"
 #include "Prism/Base/Platform.h"
 #include "Prism/Render/Layer.h"
 #include "Prism/Render/RenderCommandQueue.h"
@@ -19,8 +18,6 @@ Application::Application(int32_t argc, char** argv)
 		if (strcmp(argv[i], "-bypassCmdRecord") == 0)
 			m_bypassCmdRecording = true;
 	}
-
-	m_assetManager.GetHandleFromPath(Core::Paths::Get().GetProjectAssetsDir() / "A/B/C.txt");
 }
 
 Application::~Application()

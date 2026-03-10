@@ -6,13 +6,19 @@
 #include "EditorTheme.h"
 #include "imgui_internal.h"
 #include "Sandbox.h"
+#include "Prism/AssetManagement/TextureAsset.h"
 #include "Prism/Base/Paths.h"
+
+//#include "pix3.h"
 
 namespace Prism
 {
 AssetBrowserPanel::AssetBrowserPanel()
-	: m_assetsDirectory(Core::Paths::Get().GetProjectAssetsDir()), m_currentDirectory(m_assetsDirectory)
+	: m_assetsDirectory(Core::Paths::Get().GetProjectAssetsDir()), m_currentDirectory(m_assetsDirectory),
+	  m_folderIcon(EditorApplication::Get().GetAssetManager().LoadAsset<TextureAsset>("engine/folder_icon.png")),
+	  m_textureIcon(EditorApplication::Get().GetAssetManager().LoadAsset<TextureAsset>("engine/texture_icon.png"))
 {
+	UpdateDirectoryEntries(m_currentDirectory);
 }
 
 void AssetBrowserPanel::UpdateImGui(Duration delta)
@@ -279,32 +285,12 @@ void AssetBrowserPanel::RenderBody(bool grid)
 			char* filename = file.name.data();
 			char* filenameEnd = filename + file.name.size();
 
-			Ref<Render::Texture> texture;// m_directoryIcon->GetRendererID();
-			if (!isDir)
-			{
-				/*if (file.Type == FileType::Texture)
-				{
-					if (file.Thumbnail)
-					{
-						textureId = file.Thumbnail->GetRendererID();
-					}
-					else if (!textureCreated)
-					{
-						textureCreated = true;
-						file.Thumbnail = AssetManager::GetTexture2D(file.filepath.c_str());
-						textureId = file.Thumbnail->GetRendererID();
-					}
-					else
-					{
-						textureId = 0;
-					}
-				}
-				else
-				{
-					textureId = m_FileIcon->GetRendererID();
-				}*/
-			}
-
+			Ref<Render::Texture> texture;
+			if (isDir)
+				texture = m_folderIcon->GetRenderResource();
+			else
+				texture = m_textureIcon->GetRenderResource();
+			
 			if (!texture)
 				texture = EditorApplication::Get().GetBuiltinResources().blackTexture;
 

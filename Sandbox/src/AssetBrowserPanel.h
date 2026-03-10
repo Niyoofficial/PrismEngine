@@ -2,6 +2,7 @@
 #include <filesystem>
 #include <stack>
 
+#include "Prism/AssetManagement/TextureAsset.h"
 #include "Prism/Utilities/Duration.h"
 #include "Prism/UI/PrismImGui.h"
 
@@ -48,5 +49,8 @@ private:
 	float m_thumbnailSize = 128.0f;
 	ImGuiTextFilter m_filter;
 	float m_elapsedTime = 0.0f;
+
+	Ref<TextureAsset> m_folderIcon;
+	Ref<TextureAsset> m_textureIcon;
 };
 }
