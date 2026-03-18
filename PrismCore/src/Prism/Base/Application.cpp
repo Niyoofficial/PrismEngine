@@ -24,6 +24,7 @@ Application::~Application()
 {
 	if (m_imguiInitialized)
 		ShutdownImGui();
+	m_builtinResources.~BuiltinResources();
 	ShutdownPlatform();
 	ShutdownRenderer();
 }
@@ -168,22 +169,24 @@ void Application::InitRenderer(const Render::RenderDeviceParams& params)
 
 	RenderDevice::Create(params);
 
-	uint8_t data[32] = {0};
-	m_builtinResources.whiteTexture = Texture::Create({
-		.textureName = L"BuiltinWhiteTexture",
+	TextureDesc texDesc = {
 		.width = 2,
 		.height = 2,
 		.format = TextureFormat::RGBA16_UNorm,
 		.bindFlags = BindFlags::ShaderResource,
-		}, BarrierLayout::Common, {.data = data, .sizeInBytes = sizeof(data)});
-	memset(data, 1, sizeof(data));
-	m_builtinResources.blackTexture = Texture::Create({
-		.textureName = L"BuiltinBlackTexture",
-		.width = 2,
-		.height = 2,
-		.format = TextureFormat::RGBA16_UNorm,
-		.bindFlags = BindFlags::ShaderResource,
-		}, BarrierLayout::Common, {.data = data, .sizeInBytes = sizeof(data)});
+	};
+
+	std::vector<uint8_t> data;
+	data.resize(RenderDevice::Get().GetTotalSizeInBytes(texDesc), 0);
+
+	texDesc.textureName = L"BuiltinBlackTexture";
+	m_builtinResources.blackTexture = Texture::Create(texDesc, BarrierLayout::Common, {.data = data.data(), .sizeInBytes = (int64_t)data.size()});
+
+	memset(data.data(), 255, data.size());
+
+	texDesc.textureName = L"BuiltinWhiteTexture";
+	m_builtinResources.whiteTexture = Texture::Create(texDesc, BarrierLayout::Common, {.data = data.data(), .sizeInBytes = (int64_t)data.size()});
+
 }
 
 void Application::ShutdownRenderer()
@@ -216,8 +219,8 @@ void Application::InitImGui(Window* window, Render::TextureFormat depthFormat)
 
 void Application::ShutdownImGui()
 {
-	Platform::Get().ShutdownImGuiPlatform();
 	Render::RenderDevice::Get().ShutdownImGui();
+	Platform::Get().ShutdownImGuiPlatform();
 	ImGui::DestroyContext();
 }
 

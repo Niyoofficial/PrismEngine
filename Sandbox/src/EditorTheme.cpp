@@ -78,6 +78,8 @@ void EditorTheme::Init()
 	// Table
 	colors[ImGuiCol_TableRowBgAlt] = ImVec4(1.f, 1.f, 1.f, 0.024f);
 
+	colors[ImGuiCol_NavCursor] = {};
+
 	// Style tweaks
 	style.WindowRounding = 5.0f;
 	style.FrameRounding = 5.0f;
@@ -85,12 +87,12 @@ void EditorTheme::Init()
 	style.TabRounding = 5.0f;
 	style.PopupRounding = 5.0f;
 	style.ScrollbarRounding = 5.0f;
-	style.WindowPadding = ImVec2(10, 10);
-	style.FramePadding = ImVec2(6, 4);
-	style.ItemSpacing = ImVec2(8, 6);
+	style.WindowPadding = {10, 10};
+	style.FramePadding = {6, 4};
+	style.ItemSpacing = {8, 6};
 	style.PopupBorderSize = 0.f;
 
-	s_headerSelectedColor = ImVec4(0.19f, 0.53f, 0.78f, 1.00f);
+	s_headerSelectedColor = {0.19f, 0.53f, 0.78f, 1.00f};
 	s_headerHoveredColor = Lighten(colors[ImGuiCol_HeaderActive], 0.1f);
 	s_windowBgColor = colors[ImGuiCol_WindowBg];
 	s_windowBgAlternativeColor = Lighten(s_windowBgColor, 0.04f);
@@ -98,8 +100,8 @@ void EditorTheme::Init()
 	s_textColor = colors[ImGuiCol_Text];
 	s_textDisabledColor = colors[ImGuiCol_TextDisabled];
 
-	s_framePadding = ImVec2(4.0f, 2.0f);
-	s_popupItemSpacing = ImVec2(6.0f, 8.0f);
+	s_framePadding = {4.0f, 2.0f};
+	s_popupItemSpacing = {6.0f, 8.0f};
 
 	// Font loading
 	auto loadIconFont =

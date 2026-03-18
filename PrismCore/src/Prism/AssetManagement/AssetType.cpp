@@ -23,6 +23,16 @@ Ref<Asset> TextureAssetType::CreateAsset(AssetManager* assetManager, std::fs::pa
 	return Ref<TextureAsset>::Create(assetManager, path);
 }
 
+glm::float4 TextureAssetType::GetAssetIndicatorColor() const
+{
+	return {0.3f, 0.f, 0.f, 1.f};
+}
+
+std::string TextureAssetType::GetFileTypeName() const
+{
+	return "Texture";
+}
+
 AssetTypeRegistry& AssetTypeRegistry::Get()
 {
 	return LazySingleton<AssetTypeRegistry>::Get();

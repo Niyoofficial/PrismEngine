@@ -795,7 +795,7 @@ EditorApplication::EditorApplication(int32_t argc, char** argv)
 	: Application(argc, argv)
 {
 	InitPlatform();
-	InitRenderer({.enableDebugLayer = true, .initPixLibrary = false});
+	InitRenderer({.enableDebugLayer = false, .initPixLibrary = false});
 
 	auto displayInfo = Core::Platform::Get().GetDisplayInfo(Core::Platform::Get().GetPrimaryDisplayID());
 
@@ -836,8 +836,6 @@ void EditorApplication::InitImGui(Core::Window* window, Render::TextureFormat de
 	Application::InitImGui(window, depthFormat);
 
 	ImGuiIO& io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad; // Enable Gamepad Controls
 	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
 	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
 

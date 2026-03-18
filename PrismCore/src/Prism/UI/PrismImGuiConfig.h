@@ -11,3 +11,5 @@
         operator glm::float4() const { return glm::float4(x,y,z,w); }
 
 #define IM_DEBUG_BREAK PE_ASSERT(false)
+
+#define IMGUI_DEFINE_MATH_OPERATORS
