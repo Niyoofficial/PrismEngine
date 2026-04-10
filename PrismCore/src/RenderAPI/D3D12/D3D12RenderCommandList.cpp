@@ -226,6 +226,8 @@ void D3D12RenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& buff
 	if (it != m_rootResources.end() && !it->second.empty())
 		m_overriddenRootResources.insert(m_overriddenRootResources.end(), it->second.begin(), it->second.end());
 
+	if (paramName == L"g_primitiveBuffer")
+		PE_RENDER_LOG(Warn, "LOOOL");
 	if (bufferViews.empty())
 	{
 		m_rootResources.erase(paramName);
@@ -566,6 +568,9 @@ void D3D12RenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
 							auto allocation = D3D12RenderDevice::Get().AllocateDescriptors(GetDescriptorHeapTypeFromView(res));
 							BuildDynamicResourceDescriptor(res, allocation.GetCPUHandle());
 							int32_t handleIndex = allocation.GetHandleIndexInHeap();
+
+							if (std::string(varDesc.Name) == "g_primitiveBuffer")
+								PE_RENDER_LOG(Warn, "LOOL2 {}", handleIndex);
 
 							data = std::bit_cast<UINT>(handleIndex);
 

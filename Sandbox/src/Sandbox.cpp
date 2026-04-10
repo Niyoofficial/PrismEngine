@@ -562,7 +562,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 							.name = "3D Mesh (.gltf;.glb;.fbx;.obj)",
 							.pattern = "gltf;glb;fbx;obj"
 						};
-						Core::Platform::Get().OpenFileDialog(callback, EditorApplication::Get().GetWindow(), {filter}, std::fs::current_path().generic_string());
+						Core::Platform::Get().OpenFileDialog(callback, EditorApplication::Get().GetWindow(), {filter}, std::fs::current_path());
 					}
 					else if (ImGui::MenuItem("Directional Light"))
 					{

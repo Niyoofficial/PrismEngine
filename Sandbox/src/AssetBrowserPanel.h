@@ -10,34 +10,6 @@ namespace Prism
 {
 class AssetBrowserPanel
 {
-	struct SelectionWithDeletion : public ImGuiSelectionBasicStorage
-	{
-		int ApplyDeletionPreLoop(ImGuiMultiSelectIO* multiselectIO, int itemsCount);
-
-		template<typename ITEM_TYPE>
-		void ApplyDeletionPostLoop(ImGuiMultiSelectIO* multiselectIO, ImVector<ITEM_TYPE>& items, int itemCurrIdxToSelect)
-		{
-			// Rewrite item list (delete items) + convert old selection index (before deletion) to new selection index (after selection).
-			// If NavId was not part of selection, we will stay on same item.
-			ImVector<ITEM_TYPE> newItems;
-			newItems.reserve(items.Size - Size);
-			int item_next_idx_to_select = -1;
-			for (int idx = 0; idx < items.Size; idx++)
-			{
-				if (!Contains(GetStorageIdFromIndex(idx)))
-					newItems.push_back(items[idx]);
-				if (itemCurrIdxToSelect == idx)
-					item_next_idx_to_select = newItems.Size - 1;
-			}
-			items.swap(newItems);
-
-			// Update selection
-			Clear();
-			if (item_next_idx_to_select != -1 && multiselectIO->NavIdSelected)
-				SetItemSelected(GetStorageIdFromIndex(item_next_idx_to_select), true);
-		}
-	};
-
 	class SidePanel
 	{
 	public:
@@ -75,8 +47,6 @@ private:
 
 	void RenderSidePanelDirectory(const std::filesystem::path& path, int& currentIndex);
 	std::pair<bool, uint32_t> DirectoryTreeViewRecursive(const std::filesystem::path& path, uint32_t* count, uint64_t* selectionMask, ImGuiTreeNodeFlags flags);
-	//void UpdateDirectoryEntries(const std::filesystem::path& directory);
-	//void Refresh() { UpdateDirectoryEntries(m_currentDirectory); }
 
 private:
 	struct File
@@ -92,8 +62,6 @@ private:
 	};
 
 	std::filesystem::path m_assetsDirectory;
-	std::filesystem::path m_currentDirectory;
-	std::stack<std::filesystem::path> m_backStack;
 	std::vector<File> m_directoryEntries;
 	uint32_t m_currentlyVisibleItemsTreeView = 0;
 	ImGuiTextFilter m_filter;
@@ -101,13 +69,15 @@ private:
 	std::fs::path m_selectedFile;
 	std::vector<bool> m_sidePanelSelection;
 	int32_t m_sidePanelLastSelected;
-	SelectionWithDeletion m_selection;
+	ImGuiSelectionBasicStorage m_selection;
 
 	Ref<TextureAsset> m_folderIcon;
 	Ref<TextureAsset> m_textureIcon;
 
 	SidePanel m_sidePanel;
+	// Selected directories to display, copied over from the side panel each frame
 	std::vector<std::fs::path> m_activeDirs;
-	std::map<ImGuiID, std::fs::path> m_activePaths;
+	// All currently visible files and dirs
+	std::map<ImGuiID, std::fs::path> m_displayedPaths;
 };
 }

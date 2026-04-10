@@ -73,7 +73,7 @@ public:
 
 	virtual void OpenFileDialog(const std::function<void(std::vector<std::string>, int32_t)>& callback,
 								Window* window = nullptr, const std::vector<DialogFileFilter>& filters = {},
-								const std::string& defaultLocation = {}, bool allowMany = false) = 0;
+								const std::fs::path& defaultLocation = {}, bool allowMany = false) = 0;
 
 
 	virtual void InitializeImGuiPlatform(Window* window) = 0;

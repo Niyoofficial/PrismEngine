@@ -11,32 +11,6 @@
 
 namespace Prism
 {
-int AssetBrowserPanel::SelectionWithDeletion::ApplyDeletionPreLoop(ImGuiMultiSelectIO* multiselectIO, int itemsCount)
-{
-	if (Size == 0)
-		return -1;
-
-	// If focused item is not selected...
-	const int focused_idx = (int)multiselectIO->NavIdItem;  // Index of currently focused item
-	if (multiselectIO->NavIdSelected == false)  // This is merely a shortcut, == Contains(adapter->IndexToStorage(items, focused_idx))
-	{
-		multiselectIO->RangeSrcReset = true;    // Request to recover RangeSrc from NavId next frame. Would be ok to reset even when NavIdSelected==true, but it would take an extra frame to recover RangeSrc when deleting a selected item.
-		return focused_idx;             // Request to focus same item after deletion.
-	}
-
-	// If focused item is selected: land on first unselected item after focused item.
-	for (int idx = focused_idx + 1; idx < itemsCount; idx++)
-		if (!Contains(GetStorageIdFromIndex(idx)))
-			return idx;
-
-	// If focused item is selected: otherwise return last unselected item before focused item.
-	for (int idx = std::min(focused_idx, itemsCount) - 1; idx >= 0; idx--)
-		if (!Contains(GetStorageIdFromIndex(idx)))
-			return idx;
-
-	return -1;
-}
-
 AssetBrowserPanel::SidePanel::SidePanel(std::fs::path assetsDir, std::function<void()> onSelectionChanged)
 	: m_assetsDir(assetsDir), m_onSelectionChanged(onSelectionChanged)
 {
@@ -180,7 +154,7 @@ void AssetBrowserPanel::SidePanel::ApplySelectionRequests(ImGuiMultiSelectIO* mu
 		}
 	}
 
-	if (multiselectIO->Requests.size() > 0)
+	if (!multiselectIO->Requests.empty())
 		m_onSelectionChanged();
 }
 
@@ -280,7 +254,7 @@ bool AssetBrowserPanel::SidePanel::IsOpen(ImGuiID id) const
 }
 
 AssetBrowserPanel::AssetBrowserPanel()
-	: m_assetsDirectory(Core::Paths::Get().GetProjectAssetsDir()), m_currentDirectory(m_assetsDirectory),
+	: m_assetsDirectory(Core::Paths::Get().GetProjectAssetsDir()),
 	  m_folderIcon(EditorApplication::Get().GetAssetManager().LoadAsset<TextureAsset>("engine/folder_icon.png")),
 	  m_textureIcon(EditorApplication::Get().GetAssetManager().LoadAsset<TextureAsset>("engine/texture_icon.png")),
 	  m_sidePanel(m_assetsDirectory, [this](){m_selection.Clear();})	
@@ -314,7 +288,8 @@ void AssetBrowserPanel::UpdateImGui(Duration delta)
 void AssetBrowserPanel::RenderHeader()
 {
 	float cursorPosX = ImGui::GetCursorPosX();
-	m_filter.Draw("##asset_filter", ImGui::GetContentRegionAvail().x);
+	// TODO: Filtering
+	/*m_filter.Draw("##asset_filter", ImGui::GetContentRegionAvail().x);
 	if (!m_filter.IsActive())
 	{
 		ImGui::SameLine();
@@ -327,93 +302,57 @@ void AssetBrowserPanel::RenderHeader()
 	ImGui::Spacing();
 	ImGui::Spacing();
 
-	// Back button
-	{
-		bool disabledBackButton = false;
-		if (m_currentDirectory == m_assetsDirectory)
-			disabledBackButton = true;
-
-		if (disabledBackButton)
-		{
-			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-		}
-
-		if (ImGui::Button(ICON_MDI_ARROW_LEFT_CIRCLE))
-		{
-			m_backStack.push(m_currentDirectory);
-			//UpdateDirectoryEntries(m_currentDirectory.parent_path(), TODO);
-		}
-
-		if (disabledBackButton)
-		{
-			ImGui::PopStyleVar();
-		}
-	}
-
 	ImGui::SameLine();
-
-	// Front button
-	{
-		bool disabledFrontButton = false;
-		if (m_backStack.empty())
-			disabledFrontButton = true;
-
-		if (disabledFrontButton)
-		{
-			ImGui::PushStyleVar(ImGuiStyleVar_Alpha, ImGui::GetStyle().Alpha * 0.5f);
-		}
-
-		if (ImGui::Button(ICON_MDI_ARROW_RIGHT_CIRCLE))
-		{
-			const auto& top = m_backStack.top();
-			//UpdateDirectoryEntries(top, TODO);
-			m_backStack.pop();
-		}
-
-		if (disabledFrontButton)
-		{
-			ImGui::PopStyleVar();
-		}
-	}
-
-	ImGui::SameLine();
+	*/
 
 	constexpr const char* folderIcon = ICON_MDI_FOLDER;
 	ImGui::TextUnformatted(folderIcon);
 
-	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-	ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
-
-	std::filesystem::path projectDir = m_assetsDirectory.parent_path();
-	static std::filesystem::path absProjectDir = std::filesystem::absolute(m_assetsDirectory.parent_path());
-	static std::string absProjectDirString = absProjectDir.string();
-	static size_t absProjectDirLength = absProjectDirString.length();
-
-	std::string currentDir = m_currentDirectory.string();
-	const char* p = &currentDir[absProjectDirLength + 1];
-	const std::filesystem::path currentDirectory = p;
-
-	std::filesystem::path directoryToOpen;
-	for (auto& path : currentDirectory)
+	if (m_activeDirs.size() == 1)
 	{
-		projectDir /= path;
-		ImGui::SameLine();
-		if (ImGui::Button(path.filename().string().c_str()))
-			directoryToOpen = projectDir;
+		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+		ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
 
-		if (m_currentDirectory != projectDir)
+		std::filesystem::path projectDir = m_assetsDirectory.parent_path();
+		static std::filesystem::path absProjectDir = std::filesystem::absolute(m_assetsDirectory.parent_path());
+		static std::string absProjectDirString = absProjectDir.string();
+		static size_t absProjectDirLength = absProjectDirString.length();
+
+		std::string currentDir = m_activeDirs[0].string();
+		const char* p = &currentDir[absProjectDirLength + 1];
+		const std::filesystem::path currentDirectory = p;
+
+		std::filesystem::path directoryToOpen;
+		for (auto& path : currentDirectory)
 		{
+			projectDir /= path;
 			ImGui::SameLine();
-			constexpr const char* delimeter = "/";
-			ImGui::TextUnformatted(delimeter, delimeter + 1);
-		}
-	}
-	ImGui::PopStyleColor(2);
-	ImGui::PopStyleVar();
+			ImGui::PushID(projectDir.c_str());
+			ImGui::Button(path.filename().string().c_str());
+			ImGui::PopID();
 
-	//if (!directoryToOpen.empty())
-	//	UpdateDirectoryEntries(m_assetsDirectory / directoryToOpen, TODO);
+			if (ImGui::IsItemClicked(ImGuiMouseButton_Left))
+				directoryToOpen = projectDir;
+
+			if (m_activeDirs[0] != projectDir)
+			{
+				ImGui::SameLine();
+				constexpr const char* delimeter = "/";
+				ImGui::TextUnformatted(delimeter, delimeter + 1);
+			}
+		}
+		ImGui::PopStyleColor(2);
+		ImGui::PopStyleVar();
+
+		if (!directoryToOpen.empty() && std::fs::is_directory(directoryToOpen))
+			m_sidePanel.SetActiveDir(directoryToOpen);
+	}
+	else
+	{
+		ImGui::SameLine();
+		ImGui::TextUnformatted("<multiple>");
+	}
 }
 
 void AssetBrowserPanel::RenderSidePanelDirectory(const std::filesystem::path& path, int& currentIndex)
@@ -495,13 +434,13 @@ void AssetBrowserPanel::RenderBody()
 	if (ImGui::BeginChild("Assets", {}, ImGuiChildFlags_None, ImGuiWindowFlags_NoMove | ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoCollapse))
 	{
 		m_activeDirs = m_sidePanel.GetActiveDirs();
-		m_activePaths.clear();
+		m_displayedPaths.clear();
 
 		UpdateDirectoryEntries(m_assetsDirectory, 0);
 
 		std::vector<ImGuiID> listOfPathIDs;
-		listOfPathIDs.reserve(m_activePaths.size());
-		for (const auto& id : m_activePaths | std::views::keys)
+		listOfPathIDs.reserve(m_displayedPaths.size());
+		for (const auto& id : m_displayedPaths | std::views::keys)
 			listOfPathIDs.push_back(id);
 
 		constexpr float layoutItemSpacing = 10.f;
@@ -519,7 +458,7 @@ void AssetBrowserPanel::RenderBody()
 		constexpr float ITEM_PADDING = 4.f;
 		glm::float2 layoutItemSize = { scaledThumbnailSizeX + ITEM_PADDING * 2, scaledThumbnailSize + ITEM_PADDING * 2 };
 		int32_t layoutColumnCount = std::max((int)(availWidth / (layoutItemSize.x + layoutItemSpacing)), 1);
-		int32_t layoutLineCount = (m_activePaths.size() + layoutColumnCount - 1) / layoutColumnCount;
+		int32_t layoutLineCount = (m_displayedPaths.size() + layoutColumnCount - 1) / layoutColumnCount;
 
 		glm::float2 layoutItemStep = { layoutItemSize.x + layoutItemSpacing, layoutItemSize.y + layoutItemSpacing };
 		float layoutSelectableSpacing = std::max(floorf(layoutItemSpacing) - iconHitSpacing, 0.0f);
@@ -529,7 +468,7 @@ void AssetBrowserPanel::RenderBody()
 		startPos = glm::float2(startPos.x + layoutOuterPadding, startPos.y + layoutOuterPadding);
 		ImGui::SetCursorScreenPos(startPos);
 
-		ImGuiMultiSelectIO* multiselectIO = ImGui::BeginMultiSelect(ImGuiMultiSelectFlags_ClearOnEscape | ImGuiMultiSelectFlags_ClearOnClickVoid, m_selection.Size, m_activePaths.size());
+		ImGuiMultiSelectIO* multiselectIO = ImGui::BeginMultiSelect(ImGuiMultiSelectFlags_ClearOnEscape | ImGuiMultiSelectFlags_ClearOnClickVoid, m_selection.Size, m_displayedPaths.size());
 
 		m_selection.UserData = &listOfPathIDs;
 		m_selection.AdapterIndexToStorageId = 
@@ -540,17 +479,14 @@ void AssetBrowserPanel::RenderBody()
 
 		m_selection.ApplyRequests(multiselectIO);
 
-		//TODO: const bool want_delete = (ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_Repeat) && (m_selection.Size > 0)) || RequestDelete;
-		const int item_curr_idx_to_focus = -1; //TODO: want_delete ? m_selection.ApplyDeletionPreLoop(multiselectIO, Items.Size) : -1;
+		bool wantDelete = (ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_Repeat) && (m_selection.Size > 0)); // TODO: || RequestDelete;
 		//TODO: RequestDelete = false;
 
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(layoutSelectableSpacing, layoutSelectableSpacing));
 
-		const int columnCount = layoutColumnCount;
+		int32_t columnCount = layoutColumnCount;
 		ImGuiListClipper clipper;
 		clipper.Begin(layoutLineCount, layoutItemStep.y);
-		if (item_curr_idx_to_focus != -1)
-			clipper.IncludeItemByIndex(item_curr_idx_to_focus / columnCount); // Ensure focused item line is not clipped.
 		if (multiselectIO->RangeSrcItem != -1)
 			clipper.IncludeItemByIndex((int)multiselectIO->RangeSrcItem / columnCount); // Ensure RangeSrc item line is not clipped.
 		while (clipper.Step())
@@ -558,11 +494,11 @@ void AssetBrowserPanel::RenderBody()
 			for (int lineIdx = clipper.DisplayStart; lineIdx < clipper.DisplayEnd; lineIdx++)
 			{
 				const int itemMinIdxForCurrentLine = lineIdx * columnCount;
-				const int itemMaxIdxForCurrentLine = std::min((lineIdx + 1) * columnCount, (int)m_activePaths.size());
+				const int itemMaxIdxForCurrentLine = std::min((lineIdx + 1) * columnCount, (int)m_displayedPaths.size());
 				for (int item_idx = itemMinIdxForCurrentLine; item_idx < itemMaxIdxForCurrentLine; ++item_idx)
 				{
 					ImGuiID item = listOfPathIDs[item_idx];
-					std::fs::path currPath = m_activePaths[item];
+					std::fs::path currPath = m_displayedPaths[item];
 					ImGui::PushID(item);
 
 					// Position item
@@ -588,8 +524,7 @@ void AssetBrowserPanel::RenderBody()
 					if (ImGui::IsItemToggledSelection())
 						itemIsSelected = !itemIsSelected;
 
-					// Focus (for after deletion)
-					if (item_curr_idx_to_focus == item_idx)
+					if (wantDelete)
 						ImGui::SetKeyboardFocusHere(-1);
 
 					// Drag and drop
@@ -701,259 +636,35 @@ void AssetBrowserPanel::RenderBody()
 
 		multiselectIO = ImGui::EndMultiSelect();
 		m_selection.ApplyRequests(multiselectIO);
-		// TODO
-		//if (want_delete)
-		//	Selection.ApplyDeletionPostLoop(ms_io, Items, item_curr_idx_to_focus);
+
+		// TODO: Add confirmation monad
+		if (wantDelete)
+		{
+			int32_t idx = 0;
+			for (const auto& [id, path] : m_displayedPaths)
+			{
+				if (m_selection.Contains(m_selection.GetStorageIdFromIndex(idx)))
+					std::fs::remove(path);
+
+				++idx;
+			}
+
+			m_selection.Clear();
+		}
 	}
 	ImGui::EndChild();
-
-	
-
-
-	/*std::filesystem::path directoryToOpen;
-	std::filesystem::path directoryToDelete;
-
-	constexpr float padding = 4.0f;
-	float scaledThumbnailSize = m_thumbnailSize * ImGui::GetIO().FontGlobalScale;
-	float scaledThumbnailSizeX = scaledThumbnailSize * 0.55f;
-	float cellSize = scaledThumbnailSizeX + 2 * padding + scaledThumbnailSizeX * 0.1f;
-
-	constexpr float overlayPaddingY = 6.0f * padding;
-	constexpr float thumbnailPadding = overlayPaddingY * 0.5f;
-	float thumbnailSize = scaledThumbnailSizeX - thumbnailPadding;
-
-	ImVec2 backgroundThumbnailSize = { scaledThumbnailSizeX + padding * 2, scaledThumbnailSize + padding * 2 };
-
-	float panelWidth = ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ScrollbarSize;
-	int32_t columnCount = (int32_t)(panelWidth / cellSize);
-	columnCount = std::max(columnCount, 1);
-
-	float lineHeight = ImGui::GetTextLineHeight();
-	int flags = ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_ScrollY;
-
-	if (!grid)
-	{
-		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, {0, 0});
-		columnCount = 1;
-		flags |= ImGuiTableFlags_RowBg
-			| ImGuiTableFlags_NoPadOuterX
-			| ImGuiTableFlags_NoPadInnerX
-			| ImGuiTableFlags_SizingStretchSame;
-	}
-	else
-	{
-		ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, {scaledThumbnailSizeX * 0.05f, scaledThumbnailSizeX * 0.05f});
-		flags |= ImGuiTableFlags_PadOuterX | ImGuiTableFlags_SizingFixedFit;
-	}
-
-	ImVec2 cursorPos = ImGui::GetCursorPos();
-	const ImVec2 region = ImGui::GetContentRegionAvail();
-	ImGui::InvisibleButton("##DragDropTargetAssetPanelBody", region);
-
-	ImGui::SetNextItemAllowOverlap();
-	ImGui::SetCursorPos(cursorPos);
-
-	if (ImGui::BeginTable("BodyTable", columnCount, flags))
-	{
-		int i = 0;
-		for (auto& file : m_directoryEntries)
-		{
-			ImGui::PushID(i);
-
-			Ref<Render::Texture> texture;
-			if (file.isDirectory)
-				texture = m_folderIcon->GetRenderResource();
-			else
-				texture = m_textureIcon->GetRenderResource();
-			
-			if (!texture)
-				texture = EditorApplication::Get().GetBuiltinResources().blackTexture;
-
-			ImGui::TableNextColumn();
-
-			const auto& path = file.directoryEntry.path();
-
-			if (grid)
-			{
-				cursorPos = ImGui::GetCursorPos();
-
-				// Background button
-				std::string id = "##" + std::to_string(i);
-				//ImGui::InvisibleButton(id.c_str(), backgroundThumbnailSize);
-				ImGui::PushID(id.c_str());
-				ImGui::Selectable("", &file.selected, 0, backgroundThumbnailSize);
-				ImGui::PopID();
-
-				/*ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, EditorTheme::s_popupItemSpacing);
-				if (ImGui::BeginPopupContextItem())
-				{
-					if (ImGui::MenuItemEx("Delete", ICON_MDI_DELETE))
-					{
-						directoryToDelete = path;
-						ImGui::CloseCurrentPopup();
-					}
-					if (ImGui::MenuItemEx("Rename", ICON_MDI_RENAME))
-					{
-						ImGui::CloseCurrentPopup();
-					}
-
-					ImGui::Separator();
-
-					DrawContextMenuItems(path, isDir);
-					ImGui::EndPopup();
-				}
-				ImGui::PopStyleVar();#1#
-
-				/*if (ImGui::BeginDragDropTarget())
-				{
-					//if (isDir)
-					//	DragDropTarget(file.filepath);
-
-					ImGui::EndDragDropTarget();
-				}
-				if (ImGui::BeginDragDropSource())
-				{
-					//DragDropFrom(file.filepath, file.name);
-				}#1#
-
-				if (ImGui::IsItemHovered() && ImGui::IsMouseClicked(0))
-				{
-					m_selectedFile = file.filepath;
-				}
-				if (ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
-				{
-					if (file.isDirectory)
-					{
-						directoryToOpen = path;
-					}
-					else
-					{
-						/*OpenFile(path);#1#
-					}
-				}
-
-				// Background Image
-				/*{
-					ImVec2 rectMin = { cursorPos.x, cursorPos.y };
-					ImVec2 rectMax = { rectMin.x + backgroundThumbnailSize.x, rectMin.y + backgroundThumbnailSize.y };
-					ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetCurrentWindowRead()->Pos + rectMin, ImGui::GetCurrentWindowRead()->Pos + rectMax, ImGui::GetColorU32(EditorTheme::s_windowBgAlternativeColor), 6.0f);
-				}
-
-				if (m_selectedFile == file.filepath)
-				{
-					ImU32 hoverColor = ImGui::GetColorU32({ 0.2f, 0.5f, 0.9f, 0.18f });
-					ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), hoverColor, 6.0f);
-					ImGui::GetStyle().
-				}
-				else if (ImGui::IsItemHovered())
-				{
-					ImU32 hoverColor = ImGui::GetColorU32({0.2f, 0.5f, 0.9f, 0.18f});
-					ImGui::GetWindowDrawList()->AddRectFilled(ImGui::GetItemRectMin(), ImGui::GetItemRectMax(), hoverColor, 6.0f);
-				}#1#
-
-				// Thumbnail Image
-				ImGui::SetCursorPos({ cursorPos.x + thumbnailPadding * 0.75f, cursorPos.y + thumbnailPadding });
-				ImGui::SetNextItemAllowOverlap();
-				ImGui::Image(texture, {thumbnailSize, thumbnailSize});
-
-				// Type Color frame
-				const ImVec2 typeColorFrameSize = { scaledThumbnailSizeX, scaledThumbnailSizeX * 0.03f };
-				ImGui::SetCursorPosX(cursorPos.x + padding);
-				ImGui::Image(EditorApplication::Get().GetBuiltinResources().whiteTexture, typeColorFrameSize, { 0, 0 }, { 1, 1 },
-					file.isDirectory ? glm::float4(0.0f, 0.0f, 0.0f, 0.0f) : (file.assetType ? file.assetType->GetAssetIndicatorColor() : glm::float4{0.3f, 0.3f, 0.3f, 1.f}));
-
-				ImGui::SetCursorPos(ImGui::GetCursorPos() + ImVec2{padding * 2.f, padding * 2.f});
-				float fileTypeTextY = cursorPos.y + backgroundThumbnailSize.y - EditorTheme::s_smallFont->FontSize - padding * 4.0f;
-				const ImRect clipRect = ImRect({ ImGui::GetCursorScreenPos() },
-											   { ImGui::GetCursorScreenPos().x + scaledThumbnailSizeX, fileTypeTextY + ImGui::GetCurrentWindowRead()->Pos.y - padding });
-				ImGui::PushClipRect(clipRect.Min, clipRect.Max, true);
-				auto filename = file.filename.string();
-				ImGui::PushTextWrapPos(cursorPos.x + scaledThumbnailSizeX - padding * 2.f);
-				ImGui::TextWrapped("%s", filename.c_str());
-				ImGui::PopTextWrapPos();
-				ImGui::PopClipRect();
-
-				if (!file.isDirectory)
-				{
-					ImGui::SetCursorPos({ cursorPos.x + padding * 2.0f, fileTypeTextY });
-					ImGui::BeginDisabled();
-					ImGui::PushFont(EditorTheme::s_smallFont);
-					std::string fileTypeName = file.assetType ? file.assetType->GetFileTypeName() : "Unknown";
-					ImGui::Text("%s", fileTypeName.c_str());
-					ImGui::PopFont();
-					ImGui::EndDisabled();
-				}
-			}
-			else
-			{
-				constexpr ImGuiTreeNodeFlags teeNodeFlags = ImGuiTreeNodeFlags_FramePadding
-					| ImGuiTreeNodeFlags_SpanFullWidth
-					| ImGuiTreeNodeFlags_Leaf;
-
-				auto filename = file.filename.string();
-
-				const bool opened = ImGui::TreeNodeEx(filename.c_str(), teeNodeFlags, "");
-
-				if (file.isDirectory && ImGui::IsItemHovered() && ImGui::IsMouseDoubleClicked(0))
-					directoryToOpen = path;
-
-				if (ImGui::BeginDragDropSource())
-				{
-					//TODO DragDropFrom(file.filepath, file.name);
-				}
-
-				ImGui::SameLine();
-				ImGui::SetCursorPosX(ImGui::GetCursorPosX() - lineHeight);
-				ImGui::Image(texture, { lineHeight, lineHeight });
-				ImGui::SameLine();
-				ImGui::TextUnformatted(filename.c_str());
-
-				if (opened)
-					ImGui::TreePop();
-			}
-
-			ImGui::PopID();
-			++i;
-		}
-
-		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, EditorTheme::s_popupItemSpacing);
-		// TODO
-		/*if (ImGui::BeginPopupContextWindow("AssetPanelHierarchyContextWindow", ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
-		{
-			EditorLayer::GetInstance()->ResetContext();
-			DrawContextMenuItems(m_currentDirectory, true);
-			ImGui::EndPopup();
-		}#1#
-		ImGui::PopStyleVar();
-
-		ImGui::EndTable();
-
-		//if (!anyItemHovered && ImGui::IsItemClicked())
-		//	EditorLayer::GetInstance()->ResetContext();
-	}
-
-	ImGui::PopStyleVar();
-
-	if (!directoryToDelete.empty())
-	{
-		std::filesystem::remove_all(directoryToDelete);
-		//EditorLayer::GetInstance()->ResetContext();
-	}
-
-	if (!directoryToOpen.empty())
-		UpdateDirectoryEntries(directoryToOpen);*/
 }
 
 ImGuiID AssetBrowserPanel::UpdateDirectoryEntries(std::fs::path dir, ImGuiID id)
 {
 	bool activeDir = std::ranges::find(m_activeDirs, dir) != m_activeDirs.end();
 	if (activeDir)
-		m_activePaths.erase(id);
+		m_displayedPaths.erase(id);
 	for (auto& entry : std::fs::directory_iterator(dir))
 	{
 		++id;
 		if (activeDir)
-			m_activePaths[id] = entry;
+			m_displayedPaths[id] = entry;
 		if (entry.is_directory())
 			id = UpdateDirectoryEntries(entry, id);
 	}

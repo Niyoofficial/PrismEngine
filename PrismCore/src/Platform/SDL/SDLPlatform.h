@@ -24,7 +24,7 @@ public:
 
 	virtual void OpenFileDialog(const std::function<void(std::vector<std::string>, int32_t)>& callback,
 								Core::Window* window, const std::vector<Core::DialogFileFilter>& filters,
-								const std::string& defaultLocation, bool allowMany) override;
+								const std::fs::path& defaultLocation, bool allowMany) override;
 
 
 	virtual void InitializeImGuiPlatform(Core::Window* window) override;

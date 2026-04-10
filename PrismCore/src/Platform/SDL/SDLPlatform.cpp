@@ -463,7 +463,7 @@ void SDLShowOpenFileDialogCallback(void* userdata, const char* const* sdlFileLis
 
 void SDLPlatform::OpenFileDialog(const std::function<void(std::vector<std::string>, int32_t)>& callback,
 								 Core::Window* window, const std::vector<Core::DialogFileFilter>& filters,
-								 const std::string& defaultLocation, bool allowMany)
+								 const std::fs::path& defaultLocation, bool allowMany)
 {
 	auto* data = new SDLShowOpenFileDialogCallbackData;
 	data->callback = callback;
@@ -475,7 +475,7 @@ void SDLPlatform::OpenFileDialog(const std::function<void(std::vector<std::strin
 		sdlWindow = std::any_cast<SDL_Window*>(window->GetNativeWindow());
 
 	SDL_ShowOpenFileDialog(&SDLShowOpenFileDialogCallback, data, sdlWindow,
-						   data->sdlFilters.data(), data->sdlFilters.size(), defaultLocation.c_str(), allowMany);
+						   data->sdlFilters.data(), data->sdlFilters.size(), defaultLocation.lexically_normal().make_preferred().string().c_str(), allowMany);
 }
 
 void SDLPlatform::InitializeImGuiPlatform(Core::Window* window)
