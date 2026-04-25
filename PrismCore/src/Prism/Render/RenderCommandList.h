@@ -56,10 +56,8 @@ public:
 	virtual void SetVertexBuffer(const Ref<Buffer>& buffer, int64_t vertexSizeInBytes) = 0;
 	virtual void SetIndexBuffer(const Ref<Buffer>& buffer, IndexBufferFormat format) = 0;
 
-	virtual void SetTexture(const Ref<TextureView>& textureView, const std::wstring& paramName) = 0;
 	virtual void SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName) = 0;
-	virtual void SetBuffer(BufferView* bufferView, const std::wstring& paramName) = 0;
-	virtual void SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName) = 0;
+	virtual void SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::vector<std::any> dynamicAllocations, const std::wstring& paramName) = 0;
 
 	virtual void ClearRenderTargetView(const Ref<TextureView>& rtv, glm::float4* clearColor = nullptr) = 0;
 	virtual void ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags,

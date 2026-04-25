@@ -18,6 +18,7 @@ struct BufferDesc
 
 class Buffer : public RenderResource
 {
+	friend class RenderContext;
 public:
 	static Ref<Buffer> Create(const BufferDesc& desc, RawData initData = {});
 
@@ -37,5 +38,7 @@ public:
 protected:
 	explicit Buffer(RenderDevice* renderDevice);
 	virtual ~Buffer() override;
+
+	virtual std::any GetDynamicAllocation() const = 0;
 };
 }

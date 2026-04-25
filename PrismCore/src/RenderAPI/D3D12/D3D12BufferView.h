@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Prism/Render/BufferView.h"
 #include "RenderAPI/D3D12/D3D12DescriptorHeapManager.h"
+#include "RenderAPI/D3D12/D3D12DynamicBufferAllocator.h"
 #include "RenderAPI/D3D12/D3D12DynamicGPURingBuffer.h"
 
 namespace Prism::Render::D3D12
@@ -12,7 +13,7 @@ public:
 
 	virtual BufferViewDesc GetViewDesc() const override { return m_viewDesc; }
 
-	void BuildDynamicDescriptor(CD3DX12_CPU_DESCRIPTOR_HANDLE d3d12DescriptorHandle);
+	void BuildDynamicDescriptor(CD3DX12_CPU_DESCRIPTOR_HANDLE d3d12DescriptorHandle, DynamicBufferAllocator::Allocation allocation);
 
 	const DescriptorHeapAllocation& GetDescriptor() const { return m_descriptor; }
 

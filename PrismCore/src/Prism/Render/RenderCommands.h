@@ -206,22 +206,6 @@ SetIndexBufferRenderCommand(const Ref<Buffer>& inBuffer, IndexBufferFormat inFor
 	IndexBufferFormat format = {};
 };
 
-DEFINE_RENDER_COMMAND(SetTextureRenderCommand)
-{
-SetTextureRenderCommand(const Ref<TextureView>& inTextureView, const std::wstring& inParamName)
-    : textureView(inTextureView), paramName(inParamName)
-	{
-	}
-
-	void Execute(RenderCommandList* cmdList)
-	{
-		cmdList->SetTexture(textureView, paramName);
-	}
-
-	Ref<TextureView> textureView;
-	std::wstring paramName = {};
-};
-
 DEFINE_RENDER_COMMAND(SetTexturesRenderCommand)
 {
 	SetTexturesRenderCommand(const std::vector<Ref<TextureView>>& inTextureViews, const std::wstring& inParamName)
@@ -238,35 +222,20 @@ DEFINE_RENDER_COMMAND(SetTexturesRenderCommand)
 	std::wstring paramName = {};
 };
 
-DEFINE_RENDER_COMMAND(SetBufferRenderCommand)
-{
-SetBufferRenderCommand(const Ref<BufferView>& inBufferView, const std::wstring& inParamName)
-    : bufferView(inBufferView), paramName(inParamName)
-	{
-	}
-
-	void Execute(RenderCommandList* cmdList)
-	{
-		cmdList->SetBuffer(bufferView, paramName);
-	}
-
-	Ref<BufferView> bufferView;
-	std::wstring paramName = {};
-};
-
 DEFINE_RENDER_COMMAND(SetBuffersRenderCommand)
 {
-	SetBuffersRenderCommand(const std::vector<Ref<BufferView>>& inBufferViews, const std::wstring& inParamName)
-		: bufferViews(inBufferViews), paramName(inParamName)
+	SetBuffersRenderCommand(const std::vector<Ref<BufferView>>& inBufferViews, const std::vector<std::any>& inDynamicAllocations, const std::wstring& inParamName)
+		: bufferViews(inBufferViews), dynamicAllocations(inDynamicAllocations), paramName(inParamName)
 	{
 	}
 
 	void Execute(RenderCommandList* cmdList)
 	{
-		cmdList->SetBuffers(bufferViews, paramName);
+		cmdList->SetBuffers(bufferViews, dynamicAllocations, paramName);
 	}
 
 	std::vector<Ref<BufferView>> bufferViews;
+	std::vector<std::any> dynamicAllocations;
 	std::wstring paramName = {};
 };
 

@@ -20,16 +20,16 @@
 
 namespace Prism::Render::D3D12
 {
-static void BuildDynamicResourceDescriptor(RenderResourceView* view, CD3DX12_CPU_DESCRIPTOR_HANDLE d3d12DescriptorHandle)
+static void BuildDynamicResourceDescriptor(RenderResourceView* view, CD3DX12_CPU_DESCRIPTOR_HANDLE d3d12DescriptorHandle, DynamicBufferAllocator::Allocation allocation)
 {
 	if (view->GetResourceType() == ResourceType::Buffer)
 	{
-		view->GetSubType<D3D12BufferView>()->BuildDynamicDescriptor(d3d12DescriptorHandle);
+		view->GetSubType<D3D12BufferView>()->BuildDynamicDescriptor(d3d12DescriptorHandle, allocation);
 		return;
 	}
 	else if (view->GetResourceType() == ResourceType::Texture)
 	{
-		view->GetSubType<D3D12TextureView>()->BuildDynamicDescriptor(d3d12DescriptorHandle);
+		PE_ASSERT_NO_ENTRY("Dynamic textures are not implemented");
 		return;
 	}
 
@@ -178,14 +178,6 @@ void D3D12RenderCommandList::SetIndexBuffer(const Ref<Buffer>& buffer, IndexBuff
    m_commandList->IASetIndexBuffer(&view);
 }
 
-void D3D12RenderCommandList::SetTexture(const Ref<TextureView>& textureView, const std::wstring& paramName)
-{
-	if (textureView)
-		SetTextures({textureView}, paramName);
-	else
-		SetTextures({}, paramName);
-}
-
 void D3D12RenderCommandList::SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName)
 {
 	PE_ASSERT(!paramName.empty(), "Param name cannot be empty");
@@ -193,7 +185,10 @@ void D3D12RenderCommandList::SetTextures(const std::vector<Ref<TextureView>>& te
 	// We need to save the previous resource descriptor because GPU might still be using it
 	auto it = m_rootResources.find(paramName);
 	if (it != m_rootResources.end() && !it->second.empty())
-		m_overriddenRootResources.insert(m_overriddenRootResources.end(), it->second.begin(), it->second.end());
+	{
+		for (auto& [view, allocation] : it->second)
+			m_overriddenRootResources.emplace_back(view);
+	}
 
 	if (textureViews.empty())
 	{
@@ -208,15 +203,7 @@ void D3D12RenderCommandList::SetTextures(const std::vector<Ref<TextureView>>& te
 	}
 }
 
-void D3D12RenderCommandList::SetBuffer(BufferView* bufferView, const std::wstring& paramName)
-{
-	if (bufferView)
-		SetBuffers({bufferView}, paramName);
-	else
-		SetBuffers({}, paramName);
-}
-
-void D3D12RenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName)
+void D3D12RenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::vector<std::any> dynamicAllocations, const std::wstring& paramName)
 {
 	PE_ASSERT(!bufferViews.empty());
 	PE_ASSERT(!paramName.empty(), "Param name cannot be empty");
@@ -224,10 +211,11 @@ void D3D12RenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& buff
 	// We need to save the previous resource descriptor because GPU might still be using it
 	auto it = m_rootResources.find(paramName);
 	if (it != m_rootResources.end() && !it->second.empty())
-		m_overriddenRootResources.insert(m_overriddenRootResources.end(), it->second.begin(), it->second.end());
+	{
+		for (auto& [view, allocation] : it->second)
+			m_overriddenRootResources.emplace_back(view);
+	}
 
-	if (paramName == L"g_primitiveBuffer")
-		PE_RENDER_LOG(Warn, "LOOOL");
 	if (bufferViews.empty())
 	{
 		m_rootResources.erase(paramName);
@@ -236,8 +224,17 @@ void D3D12RenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& buff
 	{
 		auto& resources = m_rootResources[paramName];
 		resources = {};
-		for (auto& texView : bufferViews)
-			resources.emplace_back(texView);
+		for (int32_t i = 0; auto& bufView : bufferViews)
+		{
+			DynamicBufferAllocator::Allocation dynamicAllocation = {};
+			if (bufView->IsViewOfDynamicResource())
+			{
+				PE_ASSERT(dynamicAllocations.size() > i);
+				dynamicAllocation = std::any_cast<DynamicBufferAllocator::Allocation>(dynamicAllocations[i]);
+			}
+			resources.emplace_back(bufView, dynamicAllocation);
+			++i;
+		}
 	}
 }
 
@@ -558,27 +555,24 @@ void D3D12RenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
 				auto rootResIt = m_rootResources.find(StringToWString(varDesc.Name));
 				if (rootResIt != m_rootResources.end())
 				{
-					for (auto& res : rootResIt->second)
+					for (auto& [view, dynamicAllocation] : rootResIt->second)
 					{
-						PE_ASSERT(res);
+						PE_ASSERT(view);
 
 						UINT data;
-						if (res->IsViewOfDynamicResource())
+						if (view->IsViewOfDynamicResource())
 						{
-							auto allocation = D3D12RenderDevice::Get().AllocateDescriptors(GetDescriptorHeapTypeFromView(res));
-							BuildDynamicResourceDescriptor(res, allocation.GetCPUHandle());
-							int32_t handleIndex = allocation.GetHandleIndexInHeap();
-
-							if (std::string(varDesc.Name) == "g_primitiveBuffer")
-								PE_RENDER_LOG(Warn, "LOOL2 {}", handleIndex);
+							auto descriptor = D3D12RenderDevice::Get().AllocateDescriptors(GetDescriptorHeapTypeFromView(view));
+							BuildDynamicResourceDescriptor(view, descriptor.GetCPUHandle(), dynamicAllocation);
+							int32_t handleIndex = descriptor.GetHandleIndexInHeap();
 
 							data = std::bit_cast<UINT>(handleIndex);
 
-							m_dynamicDescriptors.push_back(std::move(allocation));
+							m_dynamicDescriptors.push_back(std::move(descriptor));
 						}
 						else
 						{
-							int32_t handleIndex = GetDescriptorFromView(res).GetHandleIndexInHeap();
+							int32_t handleIndex = GetDescriptorFromView(view).GetHandleIndexInHeap();
 
 							data = std::bit_cast<UINT>(handleIndex);
 						}

@@ -16,8 +16,6 @@ public:
 
 	virtual TextureViewDesc GetViewDesc() const override { return m_viewDesc; }
 
-	void BuildDynamicDescriptor(CD3DX12_CPU_DESCRIPTOR_HANDLE d3d12DescriptorHandle);
-
 	const DescriptorHeapAllocation& GetDescriptor() const { return m_descriptor; }
 	const DescriptorHeapAllocation& GetUavCpuDescriptor() const { return m_uavCpuDescriptor; }
 

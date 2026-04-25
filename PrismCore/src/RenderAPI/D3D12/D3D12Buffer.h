@@ -9,6 +9,7 @@ class D3D12RenderDevice;
 
 class D3D12Buffer : public Buffer
 {
+	friend DynamicBufferAllocator;
 public:
 	D3D12Buffer(D3D12RenderDevice* renderDevice, const BufferDesc& desc);
 	D3D12Buffer(D3D12RenderDevice* renderDevice, ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage, CPUAccess cpuAccess);
@@ -24,7 +25,7 @@ public:
 	// this will return 0 for everything else
 	int64_t GetDefaultOffset() const;
 
-	DynamicBufferAllocator::Allocation GetDynamicAllocation() const { return m_dynamicAllocation; }
+	std::any GetDynamicAllocation() const override { return m_dynamicAllocation; }
 
 private:
 	ComPtr<ID3D12Resource> m_resource;

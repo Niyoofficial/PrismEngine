@@ -96,11 +96,6 @@ D3D12TextureView::D3D12TextureView(TextureViewDesc desc, Texture* texture)
 	}
 }
 
-void D3D12TextureView::BuildDynamicDescriptor(CD3DX12_CPU_DESCRIPTOR_HANDLE d3d12DescriptorHandle)
-{
-	PE_ASSERT_NO_ENTRY();
-}
-
 D3D12_DESCRIPTOR_HEAP_TYPE D3D12TextureView::GetDescriptorHeapType() const
 {
 	return GetD3D12DescriptorHeapType(m_viewDesc.type);

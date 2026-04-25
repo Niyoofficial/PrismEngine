@@ -2,7 +2,7 @@
 
 namespace Prism::Render::Constants
 {
-constexpr int32_t MAX_FRAMES_IN_FLIGHT = 3;
+constexpr int32_t MAX_FRAMES_IN_FLIGHT = 1;
 
 constexpr uint32_t CMD_LIST_BYTE_SIZE = 1024 * 1024 * 1; // 1mb
 

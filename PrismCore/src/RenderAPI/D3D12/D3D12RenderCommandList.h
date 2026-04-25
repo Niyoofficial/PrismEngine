@@ -3,6 +3,7 @@
 #include "Prism/Render/RenderResourceView.h"
 #include "RenderAPI/D3D12/D3D12Base.h"
 #include "RenderAPI/D3D12/D3D12DescriptorHeapManager.h"
+#include "RenderAPI/D3D12/D3D12DynamicBufferAllocator.h"
 #include "RenderAPI/D3D12/D3D12PipelineStateCache.h"
 
 namespace Prism::Render::D3D12
@@ -29,10 +30,8 @@ public:
 	virtual void SetVertexBuffer(const Ref<Buffer>& buffer, int64_t vertexSizeInBytes) override;
 	virtual void SetIndexBuffer(const Ref<Buffer>& buffer, IndexBufferFormat format) override;
 
-	virtual void SetTexture(const Ref<TextureView>& textureView, const std::wstring& paramName) override;
 	virtual void SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName) override;
-	virtual void SetBuffer(BufferView* bufferView, const std::wstring& paramName) override;
-	virtual void SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::wstring& paramName) override;
+	virtual void SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::vector<std::any> dynamicAllocations, const std::wstring& paramName) override;
 
 	virtual void ClearRenderTargetView(const Ref<TextureView>& rtv, glm::float4* clearColor) override;
 	virtual void ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags,
@@ -78,7 +77,12 @@ private:
 	std::vector<Ref<TextureView>> m_renderTargetViews;
 	Ref<TextureView> m_depthStencilView;
 
-	std::unordered_map<std::wstring, std::vector<Ref<RenderResourceView>>> m_rootResources;
+	struct ResourceViewReference
+	{
+		Ref<RenderResourceView> view;
+		DynamicBufferAllocator::Allocation dynamicAllocation;
+	};
+	std::unordered_map<std::wstring, std::vector<ResourceViewReference>> m_rootResources;
 	std::vector<Ref<RenderResourceView>> m_overriddenRootResources;
 	std::vector<DescriptorHeapAllocation> m_dynamicDescriptors;
 };

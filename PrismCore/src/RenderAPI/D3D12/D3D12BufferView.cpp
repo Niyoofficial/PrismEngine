@@ -75,13 +75,13 @@ D3D12BufferView::D3D12BufferView(const BufferViewDesc& desc, Buffer* buffer)
 	}
 }
 
-void D3D12BufferView::BuildDynamicDescriptor(CD3DX12_CPU_DESCRIPTOR_HANDLE d3d12DescriptorHandle)
+void D3D12BufferView::BuildDynamicDescriptor(CD3DX12_CPU_DESCRIPTOR_HANDLE d3d12DescriptorHandle, DynamicBufferAllocator::Allocation allocation)
 {
 	PE_ASSERT(m_owningBuffer->GetBufferDesc().usage == ResourceUsage::Dynamic);
 	auto* d3d12Buffer = static_cast<D3D12Buffer*>(m_owningBuffer.Raw());
 	if (d3d12Buffer->GetBufferDesc().usage == ResourceUsage::Dynamic)
 	{
-		auto allocation = d3d12Buffer->GetDynamicAllocation();
+		PE_ASSERT(d3d12Buffer->GetDynamicAllocation().has_value());
 
 		auto d3d12ViewDesc = GetD3D12ConstantBufferViewDesc(
 			D3D12RenderDevice::Get().GetD3D12ResourceForDynamicAllocation(allocation.ringBufferID),

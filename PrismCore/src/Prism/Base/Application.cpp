@@ -168,6 +168,7 @@ void Application::InitRenderer(const Render::RenderDeviceParams& params)
 	using namespace Render;
 
 	RenderDevice::Create(params);
+	//RenderDevice::Get().SetBypassCommandRecording(true);
 
 	TextureDesc texDesc = {
 		.width = 2,

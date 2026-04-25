@@ -92,14 +92,7 @@ void RenderContext::SetIndexBuffer(const Ref<Buffer>& buffer, IndexBufferFormat 
 
 void RenderContext::SetTexture(const std::wstring& paramName, const Ref<TextureView>& textureView)
 {
-	if (textureView)
-	{
-		PE_ASSERT(textureView->GetTexture(), "View to invalid resource");
-
-		SafeReleaseResource(textureView->GetTexture());
-	}
-
-	m_commandRecorder.AllocateCommand<Commands::SetTextureRenderCommand>(textureView, paramName);
+	SetTextures(paramName, {textureView});
 }
 
 void RenderContext::SetTextures(const std::wstring& paramName, const std::vector<Ref<TextureView>>& textureViews)
@@ -119,29 +112,28 @@ void RenderContext::SetTextures(const std::wstring& paramName, const std::vector
 
 void RenderContext::SetBuffer(const std::wstring& paramName, const Ref<BufferView>& bufferView)
 {
-	if (bufferView)
-	{
-		PE_ASSERT(bufferView->GetBuffer(), "View to invalid resource");
-
-		SafeReleaseResource(bufferView->GetBuffer());
-	}
-
-	m_commandRecorder.AllocateCommand<Commands::SetBufferRenderCommand>(bufferView, paramName);
+	SetBuffers(paramName, {bufferView});
 }
 
 void RenderContext::SetBuffers(const std::wstring& paramName, const std::vector<Ref<BufferView>>& bufferViews)
 {
+	std::vector<std::any> dynamicAllocations;
+	dynamicAllocations.reserve(bufferViews.size());
 	for (BufferView* bufferView : bufferViews)
 	{
+		auto& allocation = dynamicAllocations.emplace_back();
 		if (bufferView)
 		{
 			PE_ASSERT(bufferView->GetBuffer(), "View to invalid resource");
 
 			SafeReleaseResource(bufferView->GetBuffer());
+
+			if (bufferView->IsViewOfDynamicResource())
+				allocation = bufferView->GetBuffer()->GetDynamicAllocation();
 		}
 	}
 
-	m_commandRecorder.AllocateCommand<Commands::SetBuffersRenderCommand>(bufferViews, paramName);
+	m_commandRecorder.AllocateCommand<Commands::SetBuffersRenderCommand>(bufferViews, dynamicAllocations, paramName);
 }
 
 void RenderContext::SetUniformBuffer(const std::wstring& paramName, void* data, int64_t size)
