@@ -3,7 +3,7 @@
 
 namespace Prism
 {
-class LightRendererComponent : public Component
+DECLARE_COMPONENT(LightRendererComponent, Component)
 {
 public:
 	virtual std::wstring GetComponentName() const override { return L"Light Renderer Component"; }

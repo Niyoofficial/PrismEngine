@@ -20,7 +20,7 @@ public:
 	void AddComponent(Component* component);
 
 	template<typename T, typename... Args> requires std::is_base_of_v<Component, T>
-	T* AddComponent(Args&&... args)
+	T* AddComponent(Args&&... args) requires std::is_base_of_v<Component, T>
 	{
 		auto comp = Ref<T>::Create(std::forward<Args>(args)...);
 		AddComponent(comp);
@@ -30,22 +30,23 @@ public:
 	Scene* GetOwningScene() const { return m_scene; }
 	int64_t GetComponentCount() const;
 	template<typename T>
-	bool HasComponent() const
+	bool HasComponent() const requires std::is_base_of_v<Component, T>
 	{
-		return m_components.contains(typeid(T).hash_code());
+		return HasComponent(typeid(T));
 	}
+	bool HasComponent(const std::type_info& type) const;
 	template<typename T>
-	T* GetComponent() const
+	T* GetComponent() const requires std::is_base_of_v<Component, T>
 	{
-		if (m_components.contains(typeid(T).hash_code()))
-			return static_cast<T*>(m_components.at(typeid(T).hash_code()).Raw());
-		return nullptr;
+		return static_cast<T*>(GetComponent(typeid(T)));
 	}
+	Component* GetComponent(const std::type_info& type) const;
 	template<typename T>
-	T* GetComponentChecked() const
+	T* GetComponentChecked() const requires std::is_base_of_v<Component, T>
 	{
-		return static_cast<T*>(m_components.at(typeid(T).hash_code()).Raw());
+		return static_cast<T*>(GetComponentChecked(typeid(T)));
 	}
+	Component* GetComponentChecked(std::type_info* type) const;
 	const std::unordered_map<size_t, Ref<Component>>& GetAllComponents() const { return m_components; }
 
 	void SetName(const std::wstring& name) { m_name = name; }

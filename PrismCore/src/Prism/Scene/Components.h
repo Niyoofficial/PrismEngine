@@ -25,7 +25,54 @@ protected:
 	Entity* m_parent = nullptr;
 };
 
-class TransformComponent : public Component
+class ComponentRegistry final
+{
+public:
+	static ComponentRegistry& Get();
+
+	void RegisterComponent(const std::type_info& derived, const std::type_info& base);
+	template<typename Derived, typename Base>
+	void RegisterComponent()
+	{
+		RegisterComponent(typeid(Derived), typeid(Base));
+	}
+
+	std::vector<const std::type_info*> GetAllDerived(const std::type_info& base) const;
+	template<typename T>
+	std::vector<std::type_info*> GetAllDerived() const
+	{
+		return GetAllDerived(*typeid(T));
+	}
+
+	std::vector<const std::type_info*> GetDirectlyDerived(const std::type_info& base) const;
+	template<typename T>
+	std::vector<std::type_info*> GetDirectlyDerived() const
+	{
+		return GetDirectlyDerived(*typeid(T));
+	}
+
+private:
+	std::map<const std::type_info*, std::vector<const std::type_info*>> m_registry;
+};
+
+template<typename Derived, typename Base> requires std::is_base_of_v<Component, Base>
+struct ComponentRegistrar
+{
+	friend Derived;
+private:
+	ComponentRegistrar() = default;
+
+	static inline bool s_registered = []()
+		{
+			ComponentRegistry::Get().RegisterComponent<Derived, Base>();
+			return true;
+		}();
+};
+
+#define DECLARE_COMPONENT(name, parent) \
+	class name : public parent, public ComponentRegistrar<name, parent>
+
+DECLARE_COMPONENT(TransformComponent, Component)
 {
 public:
 	virtual std::wstring GetComponentName() const override { return L"Transform Component"; }

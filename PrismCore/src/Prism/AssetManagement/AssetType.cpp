@@ -11,6 +11,11 @@ AssetType::AssetType()
 	AssetTypeRegistry::Get().AddAssetTypeToRegistry(this);
 }
 
+TextureAssetType* TextureAssetType::Get()
+{
+	return AssetTypeRegistry::Get().GetAssetType<TextureAssetType>();
+}
+
 std::vector<std::fs::path> TextureAssetType::GetAssociatedExtensions() const
 {
 	return {
@@ -25,7 +30,7 @@ Ref<Asset> TextureAssetType::CreateAsset(AssetManager* assetManager, std::fs::pa
 
 glm::float4 TextureAssetType::GetAssetIndicatorColor() const
 {
-	return {0.3f, 0.f, 0.f, 1.f};
+	return {0.4f, 0.f, 0.f, 1.f};
 }
 
 std::string TextureAssetType::GetFileTypeName() const
@@ -38,7 +43,7 @@ AssetTypeRegistry& AssetTypeRegistry::Get()
 	return LazySingleton<AssetTypeRegistry>::Get();
 }
 
-AssetType* AssetTypeRegistry::GetAssetTypeForExtension(std::fs::path extension)
+AssetType* AssetTypeRegistry::GetAssetTypeForExtension(std::fs::path extension) const
 {
 	std::shared_lock lock(m_assetTypesMutex);
 	auto it = m_assetTypes.find(extension);

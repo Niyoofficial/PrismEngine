@@ -16,13 +16,6 @@ void LightRendererComponent::DrawImGuiInspector()
 {
 	Component::DrawImGuiInspector();
 
-	ImGui::BeginTable("##component_table", 2,
-		ImGuiTableFlags_SizingStretchSame |
-		ImGuiTableFlags_BordersInnerV |
-		ImGuiTableFlags_Resizable |
-		ImGuiTableFlags_ContextMenuInBody |
-		ImGuiTableFlags_NoClip);
-
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
 	ImGui::Text("Intensity");
@@ -40,7 +33,5 @@ void LightRendererComponent::DrawImGuiInspector()
 	ImGui::PushID("color");
 	ImGui::ColorEdit3("", glm::value_ptr(m_color), ImGuiColorEditFlags_Float);
 	ImGui::PopID();
-
-	ImGui::EndTable();
 }
 }

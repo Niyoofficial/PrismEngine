@@ -17,6 +17,8 @@ struct AssetMeta
 class AssetManager
 {
 public:
+	static AssetManager& Get();
+
 	AssetManager();
 
 	Ref<Asset> FindAsset(AssetHandle handle) const;

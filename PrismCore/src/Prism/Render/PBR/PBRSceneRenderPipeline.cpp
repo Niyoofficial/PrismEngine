@@ -5,6 +5,7 @@
 #include "Prism/Render/RenderCommandQueue.h"
 #include "Prism/Render/RenderDevice.h"
 #include "Prism/Render/RenderUtils.h"
+#include "Prism/Render/PBR/PBREntityRenderProxy.h"
 
 namespace Prism::Render
 {
@@ -802,7 +803,7 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 	renderContext->SetUniformBuffer(L"g_sceneBuffer", sceneBasePassInfo);
 
 	int32_t proxyIndex = 0;
-	for (auto& proxy : renderInfo.proxies)
+	for (const Ref<EntityRenderProxy>& proxy : renderInfo.proxies)
 	{
 		auto [vb, ib] = RenderDevice::Get().GetVertexBufferCache().GetOrCreateMeshBuffers(m_defaultVertexAttributeList, proxy->GetMeshAsset());
 		renderContext->SetVertexBuffer(vb, GetVertexSize(m_defaultVertexAttributeList));
@@ -832,7 +833,9 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 		auto setTexture =
 			[&proxy, &renderContext](MeshLoading::TextureType textureType, std::wstring paramName)
 			{
-				if (auto texture = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), textureType))
+				if (auto* pbrProxy = dynamic_cast<PBREntityRenderProxy*>(proxy.Raw()); pbrProxy && pbrProxy->GetTexture(textureType))
+					renderContext->SetTexture(paramName, pbrProxy->GetTexture(textureType)->CreateDefaultSRV());
+				else if (auto texture = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), textureType))
 					renderContext->SetTexture(paramName, texture->CreateDefaultSRV());
 				else
 					renderContext->SetTexture(paramName, nullptr);

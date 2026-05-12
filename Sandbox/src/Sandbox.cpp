@@ -599,7 +599,18 @@ void SandboxLayer::UpdateImGui(Duration delta)
 					PE_ASSERT(component);
 
 					if (ImGui::CollapsingHeader(WStringToString(component->GetComponentName()).c_str(), ImGuiTreeNodeFlags_DefaultOpen))
+					{
+						ImGui::BeginTable("##component_table", 2,
+							ImGuiTableFlags_SizingStretchSame |
+							ImGuiTableFlags_BordersInnerV |
+							ImGuiTableFlags_Resizable |
+							ImGuiTableFlags_ContextMenuInBody |
+							ImGuiTableFlags_NoClip);
+
 						component->DrawImGuiInspector();
+
+						ImGui::EndTable();
+					}
 				}
 
 				ImGui::EndChild();

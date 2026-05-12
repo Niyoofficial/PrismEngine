@@ -38,19 +38,12 @@ void MeshRendererComponent::DrawImGuiInspector()
 {
 	Component::DrawImGuiInspector();
 
-	ImGui::BeginTable("##component_table", 2,
-					  ImGuiTableFlags_SizingStretchSame |
-					  ImGuiTableFlags_BordersInnerV |
-					  ImGuiTableFlags_Resizable |
-					  ImGuiTableFlags_ContextMenuInBody |
-					  ImGuiTableFlags_NoClip);
-
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
 	ImGui::Text("Filepath");
 
 	ImGui::TableNextColumn();
-	ImGui::Text("%s", WStringToString(m_meshAsset->GetLoadedFilepath()).c_str());
+	ImGui::TextWrapped("%s", WStringToString(m_meshAsset->GetLoadedFilepath()).c_str());
 
 	ImGui::TableNextRow();
 	ImGui::TableNextColumn();
@@ -60,7 +53,5 @@ void MeshRendererComponent::DrawImGuiInspector()
 	ImGui::PushID("node_index");
 	ImGui::DragInt("", &m_meshNode, 0.25f, 0, m_meshAsset->GetTotalNodeCount() - 1, "%d", ImGuiSliderFlags_AlwaysClamp);
 	ImGui::PopID();
-
-	ImGui::EndTable();
 }
 }

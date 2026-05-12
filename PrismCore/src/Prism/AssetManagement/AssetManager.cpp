@@ -1,10 +1,16 @@
 #include "AssetManager.h"
 
 #include "Prism/AssetManagement/AssetType.h"
+#include "Prism/Base/Application.h"
 #include "Prism/Base/Paths.h"
 
 namespace Prism
 {
+AssetManager& AssetManager::Get()
+{
+	return Core::Application::Get().GetAssetManager();
+}
+
 AssetManager::AssetManager()
 {
 	AssetTypeRegistry::Get().BuildAssetTypeAssociations();
@@ -106,7 +112,7 @@ std::fs::path AssetManager::GetAbsolutePath(std::fs::path path) const
 	path = NormalizePath(path);
 
 	auto enginePath = path.lexically_relative("engine");
-	if (!enginePath.empty())
+	if (!enginePath.empty() && !enginePath.string().starts_with(".."))
 		return Core::Paths::Get().GetEngineAssetsDir() / enginePath;
 	else
 		return Core::Paths::Get().GetProjectAssetsDir() / path;

@@ -20,6 +20,8 @@ public:
 class TextureAssetType : public AssetType
 {
 public:
+	static TextureAssetType* Get();
+
 	virtual std::vector<std::fs::path> GetAssociatedExtensions() const override;
 	virtual Ref<Asset> CreateAsset(AssetManager* assetManager, std::fs::path path) override;
 	glm::float4 GetAssetIndicatorColor() const override;
@@ -32,7 +34,19 @@ class AssetTypeRegistry
 public:
 	static AssetTypeRegistry& Get();
 
-	AssetType* GetAssetTypeForExtension(std::fs::path extension);
+	AssetType* GetAssetTypeForExtension(std::fs::path extension) const;
+	template<typename T>
+	T* GetAssetType() const requires std::is_base_of_v<AssetType, T>
+	{
+		auto it = std::ranges::find_if(m_collectedTypes,
+			[](AssetType* type)
+			{
+				return dynamic_cast<T*>(type);
+			});
+		if (it != m_collectedTypes.end())
+			return static_cast<T*>(*it);
+		return nullptr;
+	}
 
 	void AddAssetTypeToRegistry(AssetType* assetType);
 
@@ -42,7 +56,7 @@ private:
 	std::vector<AssetType*> m_collectedTypes;
 	std::shared_mutex m_collectedTypesMutex;
 	std::unordered_map<std::fs::path, AssetType*> m_assetTypes;
-	std::shared_mutex m_assetTypesMutex;
+	mutable std::shared_mutex m_assetTypesMutex;
 };
 }
 

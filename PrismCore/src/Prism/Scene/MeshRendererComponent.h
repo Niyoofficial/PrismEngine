@@ -13,7 +13,7 @@ namespace MeshLoading
 class MeshAsset;
 }
 
-class MeshRendererComponent : public Component
+DECLARE_COMPONENT(MeshRendererComponent, Component)
 {
 public:
 	MeshRendererComponent() = default;
@@ -27,7 +27,7 @@ public:
 
 	virtual void DrawImGuiInspector() override;
 
-private:
+protected:
 	Ref<MeshLoading::MeshAsset> m_meshAsset;
 	MeshLoading::MeshNode m_meshNode = -1;
 };

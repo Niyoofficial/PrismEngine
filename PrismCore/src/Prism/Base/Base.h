@@ -1,5 +1,7 @@
 #pragma once
 
+#include <filesystem>
+
 #include "Prism/Base/Logging.h"
 #include "Prism/Base/Assert.h"
 #include "Prism/Base/Ref.h"
@@ -33,6 +35,18 @@
 DECLARE_LOG_CATEGORY(PECore, "Prism-Core");
 #define PE_CORE_LOG(verbosity, ...) PE_LOG(PECore, verbosity, __VA_ARGS__)
 
+namespace glm
+{
+	typedef vec<2, uint, highp> uint2;
+	typedef vec<3, uint, highp> uint3;
+	typedef vec<4, uint, highp> uint4;
+}
+
+namespace std
+{
+	namespace fs = std::filesystem;
+}
+
 template<typename Type, size_t Size>
 struct std::hash<std::array<Type, Size>>
 {
@@ -59,20 +73,8 @@ struct std::hash<std::vector<Type>>
 	}
 };
 
-namespace glm
-{
-typedef vec<2, uint, highp> uint2;
-typedef vec<3, uint, highp> uint3;
-typedef vec<4, uint, highp> uint4;
-}
-
 namespace Prism::Core
 {
 void InitCore();
 void ShutdownCore();
-}
-
-namespace std
-{
-	namespace fs = std::filesystem;
 }

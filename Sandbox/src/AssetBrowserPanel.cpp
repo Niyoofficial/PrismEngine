@@ -454,7 +454,7 @@ void AssetBrowserPanel::RenderBody()
 
 		availWidth += floorf(layoutItemSpacing * 0.5f);
 
-		// Layout: calculate number of icon per line and number of lines
+		// Layout: calculate number of icons per line and number of lines
 		constexpr float ITEM_PADDING = 4.f;
 		glm::float2 layoutItemSize = { scaledThumbnailSizeX + ITEM_PADDING * 2, scaledThumbnailSize + ITEM_PADDING * 2 };
 		int32_t layoutColumnCount = std::max((int)(availWidth / (layoutItemSize.x + layoutItemSpacing)), 1);
@@ -532,24 +532,57 @@ void AssetBrowserPanel::RenderBody()
 					{
 						// Create payload with full selection OR single unselected item.
 						// (the later is only possible when using ImGuiMultiSelectFlags_SelectOnClickRelease)
-						if (ImGui::GetDragDropPayload() == NULL)
+						YAML::Emitter out;
+						out << YAML::BeginSeq;
+
+						AssetType* assetType = nullptr;
+						bool mixedTypes = false;
+						int32_t itemsCount = 0;
+
+						auto serializePath =
+							[&out, &assetType, &mixedTypes, &itemsCount](const std::fs::path& path)
+							{
+								auto currAssetType = AssetTypeRegistry::Get().GetAssetTypeForExtension(path.extension());
+
+								if (assetType && assetType != currAssetType)
+									mixedTypes = true;
+								else if (!assetType)
+									assetType = currAssetType;
+
+								if (auto relEnginePath = path.lexically_relative(Core::Paths::Get().GetEngineAssetsDir()); !relEnginePath.string().starts_with(".."))
+									out << ("engine" / relEnginePath).string();
+								else if (auto relProjectPath = path.lexically_relative(Core::Paths::Get().GetProjectAssetsDir()); !relProjectPath.string().starts_with(".."))
+									out << relProjectPath.string();
+
+								++itemsCount;
+							};
+
+						if (!itemIsSelected)
 						{
-							ImVector<ImGuiID> payload_items;
-							void* it = NULL;
-							ImGuiID id = 0;
-							if (!itemIsSelected)
-								payload_items.push_back(item);
-							else
-								while (m_selection.GetNextSelectedItem(&it, &id))
-									payload_items.push_back(id);
-							ImGui::SetDragDropPayload("ASSETS_BROWSER_ITEMS", payload_items.Data, (size_t)payload_items.size_in_bytes());
+							serializePath(currPath);
 						}
+						else
+						{
+							void* it = nullptr;
+							ImGuiID id = 0;
+							while (m_selection.GetNextSelectedItem(&it, &id))
+								serializePath(m_displayedPaths[id]);
+						}
+						out << YAML::EndSeq;
+
+						std::string payloadType = "ASSET_BROWSER_ITEMS_";
+						if (mixedTypes)
+							payloadType += "Mixed";
+						else if (assetType)
+							payloadType += assetType->GetFileTypeName();
+						else
+							payloadType += "Unknown";
+
+						ImGui::SetDragDropPayload(payloadType.c_str(), out.c_str(), out.size());
 
 						// Display payload content in tooltip, by extracting it from the payload data
 						// (we could read from selection, but it is more correct and reusable to read from payload)
-						const ImGuiPayload* payload = ImGui::GetDragDropPayload();
-						const int payload_count = (int)payload->DataSize / (int)sizeof(ImGuiID);
-						ImGui::Text("%d assets", payload_count);
+						ImGui::Text("%d assets", itemsCount);
 
 						ImGui::EndDragDropSource();
 					}

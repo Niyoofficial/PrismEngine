@@ -1,6 +1,8 @@
 #include "pcpch.h"
 #include "Components.h"
 
+#include "Prism/Utilities/LazySingleton.h"
+
 
 namespace Prism
 {
@@ -8,6 +10,34 @@ void Component::InitializeOwnership(Entity* parent)
 {
 	PE_ASSERT(m_parent == nullptr);
 	m_parent = parent;
+}
+
+ComponentRegistry& ComponentRegistry::Get()
+{
+	return LazySingleton<ComponentRegistry>::Get();
+}
+
+void ComponentRegistry::RegisterComponent(const std::type_info& derived, const std::type_info& base)
+{
+	m_registry[&base].push_back(&derived);
+}
+
+std::vector<const std::type_info*> ComponentRegistry::GetAllDerived(const std::type_info& base) const
+{
+	std::vector<const std::type_info*> allDerived;
+	auto directlyDerived = GetDirectlyDerived(base);
+	allDerived.append_range(directlyDerived);
+	for (auto* derived : directlyDerived)
+		allDerived.append_range(GetAllDerived(*derived));
+
+	return allDerived;
+}
+
+std::vector<const std::type_info*> ComponentRegistry::GetDirectlyDerived(const std::type_info& base) const
+{
+	if (m_registry.contains(&base))
+		return m_registry.at(&base);
+	return {};
 }
 
 void TransformComponent::SetTranslation(glm::float3 translation)
@@ -42,8 +72,6 @@ glm::float4x4 TransformComponent::GetTransform() const
 void TransformComponent::DrawImGuiInspector()
 {
 	Component::DrawImGuiInspector();
-
-	ImGui::BeginTable("##component_table", 2, ImGuiTableFlags_SizingStretchSame | ImGuiTableFlags_BordersInnerV | ImGuiTableFlags_Resizable | ImGuiTableFlags_ContextMenuInBody | ImGuiTableFlags_NoClip);
 
 	auto drawControlFloat3 =
 		[](const char* label, glm::float3& value, float speed)
@@ -96,7 +124,5 @@ void TransformComponent::DrawImGuiInspector()
 		SetRotation(glm::radians(rotation));
 
 	drawControlFloat3("Scale", m_scale, 0.01f);
-
-	ImGui::EndTable();
 }
 }

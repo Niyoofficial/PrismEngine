@@ -3,7 +3,7 @@
 #include "Prism/Render/Camera.h"
 #include "Prism/Scene/Entity.h"
 #include "Prism/Scene/LightRendererComponent.h"
-#include "Prism/Scene/MeshRendererComponent.h"
+#include "Prism/Scene/PBRMeshRendererComponent.h"
 
 namespace Prism
 {
@@ -148,12 +148,12 @@ Ref<Entity> Scene::CreateEntityHierarchyForMeshAsset(const Ref<MeshLoading::Mesh
 			{
 				auto nodeToRender = asset->GetNodeChild(node, 0);
 				if (asset->DoesNodeContainVertices(nodeToRender))
-					entity->AddComponent<MeshRendererComponent>(asset, nodeToRender);
+					entity->AddComponent<PBRMeshRendererComponent>(asset, nodeToRender);
 			}
 			else
 			{
 				if (asset->DoesNodeContainVertices(node))
-					entity->AddComponent<MeshRendererComponent>(asset, node);
+					entity->AddComponent<PBRMeshRendererComponent>(asset, node);
 				for (int32_t i = 0; i < asset->GetNodeChildrenCount(node); ++i)
 					processNode(asset->GetNodeChild(node, i), entity);
 			}
