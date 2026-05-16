@@ -14,6 +14,7 @@
 #include <filesystem>
 
 #include "EditorTheme.h"
+#include "Prism/Base/Paths.h"
 #include "Prism/Render/RenderCommandQueue.h"
 
 IMPLEMENT_APPLICATION(EditorApplication);
@@ -556,13 +557,14 @@ void SandboxLayer::UpdateImGui(Duration delta)
 							{
 								std::scoped_lock lock(m_fileLoadMutex);
 
-								m_filesToLoad = fileList;
+								for (const auto& file : fileList)
+									m_filesToLoad.emplace_back(AssetRegistry::Get().GetRelPath(file).string());
 							};
 						Core::DialogFileFilter filter = {
 							.name = "3D Mesh (.gltf;.glb;.fbx;.obj)",
 							.pattern = "gltf;glb;fbx;obj"
 						};
-						Core::Platform::Get().OpenFileDialog(callback, EditorApplication::Get().GetWindow(), {filter}, std::fs::current_path());
+						Core::Platform::Get().OpenFileDialog(callback, EditorApplication::Get().GetWindow(), {filter}, Core::Paths::Get().GetProjectAssetsDir());
 					}
 					else if (ImGui::MenuItem("Directional Light"))
 					{
@@ -635,7 +637,7 @@ void SandboxLayer::Update(Duration delta)
 
 		for (const auto& file : m_filesToLoad)
 		{
-			m_meshes.push_back(Ref<MeshLoading::MeshAsset>::Create(StringToWString(file)));
+			m_meshes.push_back(Ref<MeshLoading::MeshAsset>::Create(file.wstring()));
 			Entity* root = m_scene->CreateEntityHierarchyForMeshAsset(m_meshes.back());
 			m_scene->SetSelectedEntity(root);
 		}

@@ -836,7 +836,7 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 				if (auto* pbrProxy = dynamic_cast<PBREntityRenderProxy*>(proxy.Raw()); pbrProxy && pbrProxy->GetTexture(textureType))
 					renderContext->SetTexture(paramName, pbrProxy->GetTexture(textureType)->CreateDefaultSRV());
 				else if (auto texture = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), textureType))
-					renderContext->SetTexture(paramName, texture->CreateDefaultSRV());
+					renderContext->SetTexture(paramName, texture->GetRenderResource()->CreateDefaultSRV());
 				else
 					renderContext->SetTexture(paramName, nullptr);
 			};

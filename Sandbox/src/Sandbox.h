@@ -120,7 +120,7 @@ private:
 	Duration m_lastTimeButtonDown;
 
 	std::mutex m_fileLoadMutex;
-	std::vector<std::string> m_filesToLoad;
+	std::vector<std::fs::path> m_filesToLoad;
 };
 
 class EditorApplication final : public Core::Application

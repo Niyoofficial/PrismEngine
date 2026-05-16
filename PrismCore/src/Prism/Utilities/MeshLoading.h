@@ -2,6 +2,7 @@
 #include <variant>
 
 #include "assimp/Importer.hpp"
+#include "Prism/AssetManagement/TextureAsset.h"
 
 struct aiMesh;
 struct aiNode;
@@ -55,7 +56,7 @@ public:
 	int64_t GetNodeVertexCount(MeshNode node) const;
 	std::wstring GetNodeName(MeshNode node) const;
 
-	Render::Texture* GetNodeTexture(MeshNode node, TextureType type);
+	Ref<TextureAsset> GetNodeTexture(MeshNode node, TextureType type);
 
 	Bounds3f GetBoundingBox(MeshNode node) const;
 
@@ -81,7 +82,7 @@ private:
 	{
 		std::variant<aiNode*, aiMesh*> assimpNode;
 		MeshNode parent;
-		std::unordered_map<TextureType, Ref<Render::Texture>> textures;
+		std::unordered_map<TextureType, Ref<TextureAsset>> textures;
 	};
 	std::vector<NodeInfo> m_nodes;
 };

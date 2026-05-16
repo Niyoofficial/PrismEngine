@@ -550,7 +550,7 @@ void D3D12RenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
 				D3D12_SHADER_TYPE_DESC varTypeDesc;
 				PE_ASSERT_HR(varTypeReflection->GetDesc(&varTypeDesc));
 
-				PE_ASSERT(varTypeDesc.Type == D3D_SVT_INT, "Indices must by of type int");
+				PE_ASSERT(varTypeDesc.Type == D3D_SVT_INT, "Indices must be of type int");
 
 				auto rootResIt = m_rootResources.find(StringToWString(varDesc.Name));
 				if (rootResIt != m_rootResources.end())

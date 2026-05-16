@@ -11,7 +11,7 @@ public:
 	AssetType();
 	virtual ~AssetType() = default;
 
-	virtual std::vector<std::fs::path> GetAssociatedExtensions() const = 0;
+	virtual std::unordered_set<std::fs::path> GetAssociatedExtensions() const = 0;
 	virtual Ref<Asset> CreateAsset(AssetManager* assetManager, std::fs::path path) = 0;
 	virtual glm::float4 GetAssetIndicatorColor() const = 0;
 	virtual std::string GetFileTypeName() const = 0;
@@ -22,7 +22,7 @@ class TextureAssetType : public AssetType
 public:
 	static TextureAssetType* Get();
 
-	virtual std::vector<std::fs::path> GetAssociatedExtensions() const override;
+	virtual std::unordered_set<std::fs::path> GetAssociatedExtensions() const override;
 	virtual Ref<Asset> CreateAsset(AssetManager* assetManager, std::fs::path path) override;
 	glm::float4 GetAssetIndicatorColor() const override;
 	std::string GetFileTypeName() const override;

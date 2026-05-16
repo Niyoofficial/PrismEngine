@@ -13,20 +13,19 @@ class AssetBrowserPanel
 	class SidePanel
 	{
 	public:
-		explicit SidePanel(std::fs::path assetsDir, std::function<void()> onSelectionChanged);
+		explicit SidePanel(std::function<void()> onSelectionChanged);
 
 		void Render();
 		void SetActiveDir(std::fs::path path);
 		std::vector<std::fs::path> GetActiveDirs() const;
 
 	private:
-		void ForEachVisibleDir(std::fs::path path, const std::function<void(std::fs::path, ImGuiID)>& func);
+		void ForEachVisibleDir(std::fs::path path, const std::function<bool(std::fs::path)>& func);
 		void ApplySelectionRequests(ImGuiMultiSelectIO* multiselectIO);
-		void DrawDirectories(std::fs::path path, ImGuiID& id);
+		void DrawDirectories(std::fs::path path);
 		bool IsOpen(ImGuiID id) const;
 
 	private:
-		std::fs::path m_assetsDir;
 		ImGuiSelectionBasicStorage m_selectionStorage;
 		std::unordered_map<ImGuiID, std::fs::path> m_activeDirs;
 		std::function<void()> m_onSelectionChanged;
@@ -45,9 +44,6 @@ private:
 	ImGuiID UpdateDirectoryEntries(std::fs::path dir, ImGuiID id);
 	void DrawContextMenuItems(const std::filesystem::path& context, bool isDir);
 
-	void RenderSidePanelDirectory(const std::filesystem::path& path, int& currentIndex);
-	std::pair<bool, uint32_t> DirectoryTreeViewRecursive(const std::filesystem::path& path, uint32_t* count, uint64_t* selectionMask, ImGuiTreeNodeFlags flags);
-
 private:
 	struct File
 	{
@@ -61,14 +57,13 @@ private:
 		class AssetType* assetType = nullptr;
 	};
 
-	std::filesystem::path m_assetsDirectory;
 	std::vector<File> m_directoryEntries;
 	uint32_t m_currentlyVisibleItemsTreeView = 0;
 	ImGuiTextFilter m_filter;
 	float m_elapsedTime = 0.0f;
 	std::fs::path m_selectedFile;
 	std::vector<bool> m_sidePanelSelection;
-	int32_t m_sidePanelLastSelected;
+	int32_t m_sidePanelLastSelected = 0;
 	ImGuiSelectionBasicStorage m_selection;
 
 	Ref<TextureAsset> m_folderIcon;

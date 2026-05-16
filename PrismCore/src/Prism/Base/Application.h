@@ -3,6 +3,7 @@
 #include <vector>
 
 #include "Prism/AssetManagement/AssetManager.h"
+#include "Prism/AssetManagement/AssetRegistry.h"
 #include "Prism/Base/AppEvents.h"
 #include "Prism/Base/Window.h"
 #include "Prism/Utilities/Duration.h"
@@ -59,6 +60,8 @@ public:
 	const BuiltinResources& GetBuiltinResources() const { return m_builtinResources; }
 	AssetManager& GetAssetManager() { return m_assetManager; }
 	const AssetManager& GetAssetManager() const { return m_assetManager; }
+	AssetRegistry& GetAssetRegistry() { return m_assetRegistry; }
+	const AssetRegistry& GetAssetRegistry() const { return m_assetRegistry; }
 
 protected:
 	virtual void BeginFrame();
@@ -93,6 +96,7 @@ protected:
 
 	BuiltinResources m_builtinResources;
 	AssetManager m_assetManager;
+	AssetRegistry m_assetRegistry;
 
 	bool m_imguiInitialized = false;
 

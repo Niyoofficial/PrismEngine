@@ -16,7 +16,7 @@ TextureAssetType* TextureAssetType::Get()
 	return AssetTypeRegistry::Get().GetAssetType<TextureAssetType>();
 }
 
-std::vector<std::fs::path> TextureAssetType::GetAssociatedExtensions() const
+std::unordered_set<std::fs::path> TextureAssetType::GetAssociatedExtensions() const
 {
 	return {
 		".jpg", ".jpeg", ".hdr", ".png"

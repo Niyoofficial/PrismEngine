@@ -5,17 +5,28 @@
 
 #include "EditorTheme.h"
 #include "Sandbox.h"
+#include "xxhash.h"
 #include "Prism/AssetManagement/AssetType.h"
 #include "Prism/AssetManagement/TextureAsset.h"
 #include "Prism/Base/Paths.h"
 
 namespace Prism
 {
-AssetBrowserPanel::SidePanel::SidePanel(std::fs::path assetsDir, std::function<void()> onSelectionChanged)
-	: m_assetsDir(assetsDir), m_onSelectionChanged(onSelectionChanged)
+namespace
 {
-	m_selectionStorage.SetItemSelected(0, true);
-	m_activeDirs[0] = assetsDir;
+ImGuiID GetPathHash(std::fs::path path)
+{
+	auto stringPath = path.lexically_normal().string();
+	return XXH32(stringPath.c_str(), stringPath.size(), 0);
+}
+}
+
+AssetBrowserPanel::SidePanel::SidePanel(std::function<void()> onSelectionChanged)
+	: m_onSelectionChanged(onSelectionChanged)
+{
+	ImGuiID pathID = GetPathHash(Core::Paths::Get().GetProjectAssetsDir());
+	m_selectionStorage.SetItemSelected(pathID, true);
+	m_activeDirs[pathID] = Core::Paths::Get().GetProjectAssetsDir();
 }
 
 void AssetBrowserPanel::SidePanel::Render()
@@ -28,8 +39,7 @@ void AssetBrowserPanel::SidePanel::Render()
 
 	ApplySelectionRequests(multiselectIO);
 
-	ImGuiID id = 0;
-	DrawDirectories(m_assetsDir, id);
+	DrawDirectories(Core::Paths::Get().GetProjectAssetsDir());
 
 	multiselectIO = ImGui::EndMultiSelect();
 
@@ -39,37 +49,14 @@ void AssetBrowserPanel::SidePanel::Render()
 void AssetBrowserPanel::SidePanel::SetActiveDir(std::fs::path path)
 {
 	m_activeDirs.clear();
-	
-	std::function<bool(std::fs::path, ImGuiID&)> forEachDir =
-		[&forEachDir, pathToCompare = path, this](std::fs::path path, ImGuiID& id)
-		{
-			ImGuiID currID = id;
-			if (pathToCompare == path)
-			{
-				m_activeDirs[id] = path;
-				m_selectionStorage.Clear();
-				m_selectionStorage.SetItemSelected(id, true);
-				return true;
-			}
 
-			++id;
-			for (auto& entry : std::fs::directory_iterator(path))
-			{
-				if (!entry.is_directory())
-					continue;
+	auto pathID = GetPathHash(path);
+	m_activeDirs[pathID] = path.lexically_normal();
+	m_selectionStorage.Clear();
+	m_selectionStorage.SetItemSelected(pathID, true);
 
-				if (forEachDir(entry, id))
-				{
-					m_dirsToOpen.push_back(currID);
-					return true;
-				}
-			}
-
-			return false;
-		};
-
-	ImGuiID id = 0;
-	forEachDir(m_assetsDir, id);
+	while ((path = path.parent_path()) != Core::Paths::Get().GetProjectAssetsDir().parent_path())
+		m_dirsToOpen.push_back(GetPathHash(path));
 }
 
 std::vector<std::fs::path> AssetBrowserPanel::SidePanel::GetActiveDirs() const
@@ -80,37 +67,33 @@ std::vector<std::fs::path> AssetBrowserPanel::SidePanel::GetActiveDirs() const
 	return paths;
 }
 
-void AssetBrowserPanel::SidePanel::ForEachVisibleDir(std::fs::path path, const std::function<void(std::fs::path, ImGuiID)>& func)
+void AssetBrowserPanel::SidePanel::ForEachVisibleDir(std::fs::path path, const std::function<bool(std::fs::path)>& func)
 {
-	std::function<void(std::fs::path, const std::function<void(std::fs::path, ImGuiID)>&, ImGuiID&)> forEachInternal =
-		[&forEachInternal, this](std::fs::path path, const std::function<void(std::fs::path, ImGuiID)>& func, ImGuiID& id)
+	std::function<bool(std::fs::path, const std::function<bool(std::fs::path)>&)> forEachInternal =
+		[&forEachInternal, this](std::fs::path path, const std::function<bool(std::fs::path)>& func)
 		{
-			func(path, id);
-
-			bool open = IsOpen(id);
-			++id;
-			if (open)
+			bool toContinue = false;
+			toContinue = func(path);
+			if (toContinue)
 			{
-				for (auto& entry : std::fs::directory_iterator(path))
+				bool open = IsOpen(GetPathHash(path));
+				if (open)
 				{
-					if (!entry.is_directory())
-						continue;
+					for (const auto& entry : std::fs::directory_iterator(path))
+					{
+						if (!entry.is_directory())
+							continue;
 
-					forEachInternal(entry, func, id);
+						if (!forEachInternal(entry, func))
+							return false;
+					}
 				}
 			}
-			else
-			{
-				for (auto& entry : std::fs::recursive_directory_iterator(path))
-				{
-					if (entry.is_directory())
-						++id;
-				}
-			}
+
+			return toContinue;
 		};
 
-	ImGuiID id = 0;
-	forEachInternal(path, func, id);
+	forEachInternal(path, func);
 }
 
 void AssetBrowserPanel::SidePanel::ApplySelectionRequests(ImGuiMultiSelectIO* multiselectIO)
@@ -121,12 +104,15 @@ void AssetBrowserPanel::SidePanel::ApplySelectionRequests(ImGuiMultiSelectIO* mu
 		{
 			if (req.Selected)
 			{
-				ForEachVisibleDir(m_assetsDir,
-					[this](std::fs::path path, ImGuiID id)
-					{
-						m_selectionStorage.SetItemSelected(id, true);
-						m_activeDirs[id] = path;
-					});
+				ForEachVisibleDir(Core::Paths::Get().GetProjectAssetsDir(),
+								  [this](std::fs::path path)
+								  {
+									  auto hash = GetPathHash(path);
+									  m_selectionStorage.SetItemSelected(hash, true);
+									  m_activeDirs[hash] = path;
+
+									  return true;
+								  });
 			}
 			else
 			{
@@ -139,18 +125,33 @@ void AssetBrowserPanel::SidePanel::ApplySelectionRequests(ImGuiMultiSelectIO* mu
 			ImGuiID first = req.RangeFirstItem;
 			ImGuiID last = req.RangeLastItem;
 
-			ForEachVisibleDir(m_assetsDir,
-				[first, last, &req, this](std::fs::path path, ImGuiID id)
-				{
-					if (id >= std::min(first, last) && id <= std::max(first, last))
-					{
-						m_selectionStorage.SetItemSelected(id, req.Selected);
-						if (req.Selected)
-							m_activeDirs[id] = path;
-						else
-							m_activeDirs.erase(id);
-					}
-				});
+			bool found = false;
+			ForEachVisibleDir(Core::Paths::Get().GetProjectAssetsDir(),
+							  [&found, first, last, &req, this](std::fs::path path)
+							  {
+								  auto hash = GetPathHash(path);
+								  bool toContinue = true;
+								  if (hash == first || hash == last)
+								  {
+									  if (found)
+										  toContinue = false;
+									  found = !found;
+								  }
+
+								  if (found || !toContinue)
+								  {
+									  m_selectionStorage.SetItemSelected(hash, req.Selected);
+									  if (req.Selected)
+										  m_activeDirs[hash] = path;
+									  else
+										  m_activeDirs.erase(hash);
+								  }
+
+								  if (found && first == last)
+									  return false;
+
+								  return toContinue;
+							  });
 		}
 	}
 
@@ -158,10 +159,9 @@ void AssetBrowserPanel::SidePanel::ApplySelectionRequests(ImGuiMultiSelectIO* mu
 		m_onSelectionChanged();
 }
 
-void AssetBrowserPanel::SidePanel::DrawDirectories(std::fs::path path, ImGuiID& id)
+void AssetBrowserPanel::SidePanel::DrawDirectories(std::fs::path path)
 {
-	if (!std::fs::is_directory(path))
-		return;
+	path = path.lexically_normal();
 
 	ImGuiTreeNodeFlags treeNodeFlags =
 		ImGuiTreeNodeFlags_SpanFullWidth |
@@ -171,7 +171,7 @@ void AssetBrowserPanel::SidePanel::DrawDirectories(std::fs::path path, ImGuiID& 
 		ImGuiTreeNodeFlags_FramePadding;
 
 	bool hasChildren = false;
-	for (auto& entry : std::fs::directory_iterator(path))
+	for (const auto& entry : std::fs::directory_iterator(path))
 	{
 		if (entry.is_directory())
 		{
@@ -182,8 +182,10 @@ void AssetBrowserPanel::SidePanel::DrawDirectories(std::fs::path path, ImGuiID& 
 	if (!hasChildren)
 		treeNodeFlags |= ImGuiTreeNodeFlags_Leaf;
 
+	ImGuiID hash = GetPathHash(path);
+
 	bool wasSelected = false;
-	if (m_selectionStorage.Contains(id))
+	if (m_selectionStorage.Contains(hash))
 	{
 		treeNodeFlags |= ImGuiTreeNodeFlags_Selected;
 		ImGui::PushStyleColor(ImGuiCol_Header, EditorTheme::s_headerSelectedColor);
@@ -195,55 +197,47 @@ void AssetBrowserPanel::SidePanel::DrawDirectories(std::fs::path path, ImGuiID& 
 		ImGui::PushStyleColor(ImGuiCol_HeaderHovered, EditorTheme::s_headerHoveredColor);
 	}
 
-	ImGui::SetNextItemSelectionUserData(id);
-	ImGui::SetNextItemStorageID(id);
-	std::string nodeName = std::string(IsOpen(id) ? ICON_MDI_FOLDER_OPEN : ICON_MDI_FOLDER) + " " + path.filename().string();
-	bool open = ImGui::TreeNodeEx(path.lexically_normal().string().c_str(), treeNodeFlags, "%s", nodeName.c_str());
+	ImGui::SetNextItemSelectionUserData(hash);
+	ImGui::SetNextItemStorageID(hash);
+	std::string nodeName = std::string(IsOpen(hash) ? ICON_MDI_FOLDER_OPEN : ICON_MDI_FOLDER) + " " + path.filename().string();
+	bool open = ImGui::TreeNodeEx(path.string().c_str(), treeNodeFlags, "%s", nodeName.c_str());
 	ImGui::PopStyleColor(wasSelected ? 2 : 1);
 	if (open)
 	{
-		++id;
-		for (auto& entry : std::fs::directory_iterator(path))
-			DrawDirectories(entry, id);
+		for (const auto& entry : std::fs::directory_iterator(path))
+		{
+			// TODO: Stupid hack, because directories usually don't have extension, it avoids expensive is_directory call
+			if (!entry.path().has_extension() && entry.is_directory())
+				DrawDirectories(entry);
+		}
 		ImGui::TreePop();
 	}
 	else
 	{
 		if (ImGui::IsItemToggledOpen())
 		{
-			std::function<int32_t(ImGuiID&, int32_t)> closeAndUnselectChildren =
-				[&closeAndUnselectChildren, path, this](ImGuiID& id, int32_t depth)
+			std::function<bool(const std::fs::path&)> closeAndUnselectChildren =
+				[&closeAndUnselectChildren, this](const std::fs::path& path)
 				{
-					// Recursive close (the test for depth == 0 is because we call this on a node that was just closed!)
-					int unselectedCount = m_selectionStorage.Contains(id) ? 1 : 0;
-					if (depth == 0 || IsOpen(id))
-					{
-						ImGuiID childId = id;
-						for (auto& entry : std::fs::directory_iterator(path))
-						{
-							if (entry.is_directory())
-							{
-								++childId;
-								unselectedCount += closeAndUnselectChildren(childId, depth + 1);
-							}
-						}
-						ImGui::GetStateStorage()->SetBool(id, false);
-					}
+					ImGui::GetStateStorage()->SetBool(GetPathHash(path), false);
 
-					// Select root node if any of its child was selected, otherwise unselect
-					m_selectionStorage.SetItemSelected(id, (depth == 0 && unselectedCount > 0));
-					return unselectedCount;
+					bool wasSelected = false;
+					for (const auto& entry : std::fs::directory_iterator(path))
+					{
+						if (entry.is_directory())
+						{
+							auto childID = GetPathHash(entry);
+							wasSelected = m_selectionStorage.Contains(childID);
+							m_selectionStorage.SetItemSelected(childID, false);
+							if (IsOpen(childID))
+								wasSelected |= closeAndUnselectChildren(entry);
+						}
+					}
+					return wasSelected;
 				};
 
-			ImGuiID idCopy = id;
-			closeAndUnselectChildren(idCopy, 0);
-		}
-
-		++id;
-		for (auto& entry : std::fs::recursive_directory_iterator(path))
-		{
-			if (entry.is_directory())
-				++id;
+			if (closeAndUnselectChildren(path))
+				m_selectionStorage.SetItemSelected(hash, true);
 		}
 	}
 }
@@ -254,10 +248,9 @@ bool AssetBrowserPanel::SidePanel::IsOpen(ImGuiID id) const
 }
 
 AssetBrowserPanel::AssetBrowserPanel()
-	: m_assetsDirectory(Core::Paths::Get().GetProjectAssetsDir()),
-	  m_folderIcon(EditorApplication::Get().GetAssetManager().LoadAsset<TextureAsset>("engine/folder_icon.png")),
+	: m_folderIcon(EditorApplication::Get().GetAssetManager().LoadAsset<TextureAsset>("engine/folder_icon.png")),
 	  m_textureIcon(EditorApplication::Get().GetAssetManager().LoadAsset<TextureAsset>("engine/texture_icon.png")),
-	  m_sidePanel(m_assetsDirectory, [this](){m_selection.Clear();})	
+	  m_sidePanel([this](){m_selection.Clear();})	
 {
 }
 
@@ -308,16 +301,14 @@ void AssetBrowserPanel::RenderHeader()
 	constexpr const char* folderIcon = ICON_MDI_FOLDER;
 	ImGui::TextUnformatted(folderIcon);
 
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
+	ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
+
 	if (m_activeDirs.size() == 1)
 	{
-		ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 0.0f);
-		ImGui::PushStyleColor(ImGuiCol_Button, { 0.0f, 0.0f, 0.0f, 0.0f });
-		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, { 0.0f, 0.0f, 0.0f, 0.0f });
-
-		std::filesystem::path projectDir = m_assetsDirectory.parent_path();
-		static std::filesystem::path absProjectDir = std::filesystem::absolute(m_assetsDirectory.parent_path());
-		static std::string absProjectDirString = absProjectDir.string();
-		static size_t absProjectDirLength = absProjectDirString.length();
+		std::filesystem::path projectDir = Core::Paths::Get().GetProjectDir();
+		static size_t absProjectDirLength = projectDir.string().length();
 
 		std::string currentDir = m_activeDirs[0].string();
 		const char* p = &currentDir[absProjectDirLength + 1];
@@ -342,8 +333,6 @@ void AssetBrowserPanel::RenderHeader()
 				ImGui::TextUnformatted(delimeter, delimeter + 1);
 			}
 		}
-		ImGui::PopStyleColor(2);
-		ImGui::PopStyleVar();
 
 		if (!directoryToOpen.empty() && std::fs::is_directory(directoryToOpen))
 			m_sidePanel.SetActiveDir(directoryToOpen);
@@ -351,82 +340,13 @@ void AssetBrowserPanel::RenderHeader()
 	else
 	{
 		ImGui::SameLine();
-		ImGui::TextUnformatted("<multiple>");
+		ImGui::PushID("multiple_button");
+		ImGui::Button("<multiple>");
+		ImGui::PopID();
 	}
-}
 
-void AssetBrowserPanel::RenderSidePanelDirectory(const std::filesystem::path& path, int& currentIndex)
-{
-    // Only show directories
-    if (!std::filesystem::is_directory(path))
-        return;
-
-    ImGuiTreeNodeFlags baseFlags = ImGuiTreeNodeFlags_OpenOnArrow | ImGuiTreeNodeFlags_SpanFullWidth | ImGuiTreeNodeFlags_FramePadding;
-
-    // Selection state for this node
-    bool isSelected = m_sidePanelSelection[currentIndex];
-
-    ImGuiTreeNodeFlags nodeFlags = baseFlags;
-    if (isSelected)
-        nodeFlags |= ImGuiTreeNodeFlags_Selected;
-
-    // Check if this node has children
-    bool hasChild = false;
-    for (auto& entry : std::filesystem::directory_iterator(path))
-    {
-        if (entry.is_directory())
-        {
-	        hasChild = true;
-        	break;
-        }
-    }
-    if (!hasChild)
-        nodeFlags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
-
-    // Render node
-    std::string label = path.filename().string();
-    if (label.empty())
-		label = "Assets";
-    bool open = ImGui::TreeNodeEx((void*)(intptr_t)currentIndex, nodeFlags, "%s", label.c_str());
-
-    if (ImGui::IsItemClicked())
-    {
-        bool ctrl = ImGui::GetIO().KeyCtrl;
-        bool shift = ImGui::GetIO().KeyShift;
-        if (!ctrl && !shift)
-        {
-            // Single select
-            std::fill(m_sidePanelSelection.begin(), m_sidePanelSelection.end(), false);
-            m_sidePanelSelection[currentIndex] = true;
-            m_sidePanelLastSelected = currentIndex;
-        }
-        else if (shift && m_sidePanelLastSelected >= 0)
-        {
-            // Range select
-            int begin = std::min(m_sidePanelLastSelected, currentIndex);
-            int end = std::max(m_sidePanelLastSelected, currentIndex);
-            for (int i = begin; i <= end; ++i)
-                m_sidePanelSelection[i] = true;
-        }
-        else if (ctrl)
-        {
-            // Toggle select
-            m_sidePanelSelection[currentIndex] = !m_sidePanelSelection[currentIndex];
-            m_sidePanelLastSelected = currentIndex;
-        }
-    }
-
-    ++currentIndex;
-
-    if (open && hasChild)
-    {
-        for (auto& entry : std::filesystem::directory_iterator(path))
-        {
-            if (entry.is_directory())
-                RenderSidePanelDirectory(entry.path(), currentIndex);
-        }
-        ImGui::TreePop();
-    }
+	ImGui::PopStyleColor(2);
+	ImGui::PopStyleVar();
 }
 
 void AssetBrowserPanel::RenderBody()
@@ -436,7 +356,7 @@ void AssetBrowserPanel::RenderBody()
 		m_activeDirs = m_sidePanel.GetActiveDirs();
 		m_displayedPaths.clear();
 
-		UpdateDirectoryEntries(m_assetsDirectory, 0);
+		UpdateDirectoryEntries(Core::Paths::Get().GetProjectAssetsDir(), 0);
 
 		std::vector<ImGuiID> listOfPathIDs;
 		listOfPathIDs.reserve(m_displayedPaths.size());
@@ -549,10 +469,7 @@ void AssetBrowserPanel::RenderBody()
 								else if (!assetType)
 									assetType = currAssetType;
 
-								if (auto relEnginePath = path.lexically_relative(Core::Paths::Get().GetEngineAssetsDir()); !relEnginePath.string().starts_with(".."))
-									out << ("engine" / relEnginePath).string();
-								else if (auto relProjectPath = path.lexically_relative(Core::Paths::Get().GetProjectAssetsDir()); !relProjectPath.string().starts_with(".."))
-									out << relProjectPath.string();
+								out << AssetRegistry::Get().GetRelPath(path).string();
 
 								++itemsCount;
 							};
@@ -756,94 +673,5 @@ void AssetBrowserPanel::DrawContextMenuItems(const std::filesystem::path& contex
 			ImGui::CloseCurrentPopup();
 		}
 	}
-}
-
-std::pair<bool, uint32_t> AssetBrowserPanel::DirectoryTreeViewRecursive(const std::filesystem::path& path, uint32_t* count, uint64_t* selectionMask, ImGuiTreeNodeFlags flags)
-{
-	bool anyNodeClicked = false;
-	uint32_t nodeClicked = 0;
-
-	for (const auto& entry : std::filesystem::directory_iterator(path))
-	{
-		ImGuiTreeNodeFlags nodeFlags = flags;
-
-		auto& entryPath = entry.path();
-
-		if (!std::filesystem::is_directory(entryPath))
-			continue;
-
-		ImGui::TableNextRow();
-		ImGui::TableNextColumn();
-
-		bool selected = (*selectionMask & 1 << *count) != 0;
-		if (selected)
-		{
-			nodeFlags |= ImGuiTreeNodeFlags_Selected;
-			ImGui::PushStyleColor(ImGuiCol_Header, EditorTheme::s_headerSelectedColor);
-			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, EditorTheme::s_headerSelectedColor);
-		}
-		else
-		{
-			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, EditorTheme::s_headerHoveredColor);
-		}
-
-		const uint64_t id = *count;
-		bool open = ImGui::TreeNodeEx(reinterpret_cast<void*>(id), nodeFlags, "");
-		ImGui::PopStyleColor(selected ? 2 : 1);
-
-		if (ImGui::IsItemClicked() && !ImGui::IsItemToggledOpen())
-		{
-			//UpdateDirectoryEntries(entryPath, TODO);
-
-			nodeClicked = *count;
-			anyNodeClicked = true;
-		}
-
-		std::string name = entryPath.filename().string();
-		//TODO
-		/*if (ImGui::BeginDragDropTarget())
-		{
-			if (!entryIsFile)
-				DragDropTarget(filepath.c_str());
-
-			ImGui::EndDragDropTarget();
-		}
-		if (ImGui::BeginDragDropSource())
-		{
-			DragDropFrom(filepath.c_str(), name);
-		}*/
-
-		const char* folderIcon = open ? ICON_MDI_FOLDER_OPEN : ICON_MDI_FOLDER;
-
-		ImGui::SameLine();
-		ImGui::PushStyleColor(ImGuiCol_Text, EditorTheme::s_assetIconColor);
-		ImGui::TextUnformatted(folderIcon);
-		ImGui::PopStyleColor();
-		ImGui::SameLine();
-		ImGui::TextUnformatted(name.c_str());
-		m_currentlyVisibleItemsTreeView++;
-
-		(*count)--;
-
-		if (open)
-		{
-			auto [isClicked, clickedNode] = DirectoryTreeViewRecursive(entryPath, count, selectionMask, flags);
-
-			if (!anyNodeClicked)
-			{
-				anyNodeClicked = isClicked;
-				nodeClicked = clickedNode;
-			}
-
-			ImGui::TreePop();
-		}
-		else
-		{
-			for (auto& e : std::filesystem::recursive_directory_iterator(entryPath))
-				(*count)--;
-		}
-	}
-
-	return { anyNodeClicked, nodeClicked };
 }
 }

@@ -12,12 +12,12 @@ Paths& Paths::Get()
 
 std::fs::path Paths::GetEngineDir() const
 {
-	return PREPROCESSOR_TO_STRING(PE_ENGINE_DIR);
+	return std::fs::path(PREPROCESSOR_TO_STRING(PE_ENGINE_DIR)).lexically_normal();
 }
 
 std::fs::path Paths::GetProjectDir() const
 {
-	return std::filesystem::current_path();
+	return std::fs::current_path();
 }
 
 std::fs::path Paths::GetEngineAssetsDir() const

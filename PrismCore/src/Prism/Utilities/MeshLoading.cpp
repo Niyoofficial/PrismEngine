@@ -5,7 +5,8 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
-#include "Prism/Render/Texture.h"
+#include "Prism/AssetManagement/AssetManager.h"
+#include "Prism/AssetManagement/AssetRegistry.h"
 
 
 DECLARE_LOG_CATEGORY(AssimpLog, "Assimp");
@@ -100,12 +101,12 @@ void MeshNodeIterator::operator--()
 	--value;
 }
 
-static std::unordered_map<TextureType, Ref<Render::Texture>> LoadTexturesForMesh(const std::wstring& filePath, const aiScene* scene, aiMesh* assimpMesh, std::vector<Ref<Render::Texture>>& loadedTextures)
+static std::unordered_map<TextureType, Ref<TextureAsset>> LoadTexturesForMesh(const std::wstring& filePath, const aiScene* scene, aiMesh* assimpMesh)
 {
 	if (!scene->HasMaterials())
 		return {};
 
-	std::unordered_map<TextureType, Ref<Render::Texture>> textures;
+	std::unordered_map<TextureType, Ref<TextureAsset>> textures;
 
 	std::array textureTypesToTry = {
 		aiTextureType_BASE_COLOR,
@@ -155,41 +156,25 @@ static std::unordered_map<TextureType, Ref<Render::Texture>> LoadTexturesForMesh
 
 			const aiTexture* embeddedTexture = scene->GetEmbeddedTexture(path.C_Str());
 
-			std::wstring texturePath = embeddedTexture
-				? StringToWString(embeddedTexture->mFilename.C_Str())
-				: (std::fs::path(filePath).parent_path() / path.C_Str()).generic_wstring();
+			std::fs::path texturePath = embeddedTexture
+				? embeddedTexture->mFilename.C_Str()
+				: std::fs::path(filePath).parent_path() / path.C_Str();
 
-			// Check if this texture has already been loaded
-			bool foundTexture = false;
-			for (auto& texture : loadedTextures)
+			Ref<TextureAsset> texture;
+			if (embeddedTexture)
 			{
-				PE_ASSERT(texture);
-				if (texture->GetTextureDesc().textureName == texturePath)
-				{
-					textures[assimpTextureTypeToPrismTextureType(textureType)] = texture;
-					foundTexture = true;
-					break;
-				}
+				PE_ASSERT_NO_ENTRY();
+				/*texture = Render::Texture::CreateFromMemory(texturePath, embeddedTexture->pcData,
+					embeddedTexture->mHeight
+					? embeddedTexture->mHeight * embeddedTexture->mWidth
+					: embeddedTexture->mWidth, false, false);*/
+			}
+			else
+			{
+				texture = AssetManager::Get().LoadAsset<TextureAsset>(texturePath);
 			}
 
-			if (!foundTexture)
-			{
-				Ref<Render::Texture> texture;
-				if (embeddedTexture)
-				{
-					texture = Render::Texture::CreateFromMemory(texturePath, embeddedTexture->pcData,
-						embeddedTexture->mHeight
-						? embeddedTexture->mHeight * embeddedTexture->mWidth
-						: embeddedTexture->mWidth, false, false);
-				}
-				else
-				{
-					texture = Render::Texture::CreateFromFile(texturePath, false, false);
-				}
-
-				textures[assimpTextureTypeToPrismTextureType(textureType)] = texture;
-				loadedTextures.push_back(texture);
-			}
+			textures[assimpTextureTypeToPrismTextureType(textureType)] = texture;
 		}
 	}
 
@@ -199,7 +184,7 @@ static std::unordered_map<TextureType, Ref<Render::Texture>> LoadTexturesForMesh
 MeshAsset::MeshAsset(const std::wstring& filePath)
 	: m_filePath(filePath)
 {
-	const aiScene* scene = m_importer.ReadFile(WStringToString(filePath).c_str(),
+	const aiScene* scene = m_importer.ReadFile(AssetRegistry::Get().GetAbsPath(filePath).string().c_str(),
 											   aiProcess_Triangulate |
 											   aiProcess_ConvertToLeftHanded |
 											   //aiProcess_OptimizeMeshes |
@@ -231,7 +216,7 @@ MeshAsset::MeshAsset(const std::wstring& filePath)
 				NodeInfo nodeInfo = {
 					.assimpNode = assimpMesh,
 					.parent = currNode,
-					.textures = LoadTexturesForMesh(filePath, scene, assimpMesh, loadedTextures)
+					.textures = LoadTexturesForMesh(filePath, scene, assimpMesh)
 				};
 
 				m_nodes.push_back(nodeInfo);
@@ -326,7 +311,7 @@ std::wstring MeshAsset::GetNodeName(MeshNode node) const
 	return {};
 }
 
-Render::Texture* MeshAsset::GetNodeTexture(MeshNode node, TextureType type)
+Ref<TextureAsset> MeshAsset::GetNodeTexture(MeshNode node, TextureType type)
 {
 	if (m_nodes[node].textures.contains(type))
 		return m_nodes[node].textures.at(type);
