@@ -7,14 +7,14 @@
 
 namespace Prism
 {
-PBRMeshRendererComponent::PBRMeshRendererComponent(MeshLoading::MeshAsset* mesh, MeshLoading::MeshNode meshNode)
+PBRMeshRendererComponent::PBRMeshRendererComponent(MeshAsset* mesh, MeshNode meshNode)
 	: MeshRendererComponent(mesh, meshNode)
 {
-	m_albedo = mesh->GetNodeTexture(meshNode, MeshLoading::TextureType::Albedo);
-	m_normals = mesh->GetNodeTexture(meshNode, MeshLoading::TextureType::Normals);
-	m_metallic = mesh->GetNodeTexture(meshNode, MeshLoading::TextureType::Metallic);
-	m_roughness = mesh->GetNodeTexture(meshNode, MeshLoading::TextureType::Roughness);
-	m_emissive = mesh->GetNodeTexture(meshNode, MeshLoading::TextureType::Emissive);
+	m_albedoTexture = mesh->GetNodeTexture(meshNode, TextureType::Albedo);
+	m_normalTexture = mesh->GetNodeTexture(meshNode, TextureType::Normals);
+	m_metallicTexture = mesh->GetNodeTexture(meshNode, TextureType::Metallic);
+	m_roughnessTexture = mesh->GetNodeTexture(meshNode, TextureType::Roughness);
+	m_emissiveTexture = mesh->GetNodeTexture(meshNode, TextureType::Emissive);
 }
 
 void PBRMeshRendererComponent::DrawImGuiInspector()
@@ -30,7 +30,7 @@ void PBRMeshRendererComponent::DrawImGuiInspector()
 			ImGui::TableNextColumn();
 
 			ImGui::SetCursorScreenPos({ ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y + buttonSize / 2.f - ImGui::GetTextLineHeight() / 2.f });
-			ImGui::Text("%s", name.c_str());
+			ImGui::Text("%s", (name + " Texture").c_str());
 
 			ImGui::TableNextColumn();
 
@@ -73,6 +73,7 @@ void PBRMeshRendererComponent::DrawImGuiInspector()
 
 			ImGui::SameLine();
 
+			// Dropdown
 			auto selectedFilename = texture ? texture->GetAssetPath().filename() : "";
 			ImGui::PushID((name + "_combo").c_str());
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
@@ -87,13 +88,58 @@ void PBRMeshRendererComponent::DrawImGuiInspector()
 				ImGui::EndCombo();
 			}
 			ImGui::PopID();
+
+			glm::float2 dropdownRectMin = ImGui::GetItemRectMin();
+			glm::float2 dropdownRectMax = ImGui::GetItemRectMax();
+
+			ImGui::SetCursorScreenPos({ dropdownRectMin.x, dropdownRectMax.y + 4.f });
+			ImGui::PushID((name + "_RESET_BUTTON").c_str());
+			if (ImGui::Button("X"))
+				texture = nullptr;
+			ImGui::PopID();
 		};
 
-	drawTextureRow("Albedo", m_albedo);
-	drawTextureRow("Normals", m_normals);
-	drawTextureRow("Metallic", m_metallic);
-	drawTextureRow("Roughness", m_roughness);
-	drawTextureRow("Emissive", m_emissive);
+
+	ImGui::TableNextRow();
+	ImGui::TableNextColumn();
+
+	ImGui::Text("Albedo");
+
+	ImGui::TableNextColumn();
+
+	ImGui::PushID("ALBEDO_TINT");
+	ImGui::ColorEdit3("", &m_albedo.r);
+	ImGui::PopID();
+
+	drawTextureRow("Albedo", m_albedoTexture);
+	drawTextureRow("Normals", m_normalTexture);
+
+	ImGui::TableNextRow();
+	ImGui::TableNextColumn();
+
+	ImGui::Text("Metallic");
+
+	ImGui::TableNextColumn();
+
+	ImGui::PushID("METALLIC");
+	ImGui::SliderFloat("", &m_metallic, 0.f, 1.f);
+	ImGui::PopID();
+
+	drawTextureRow("Metallic", m_metallicTexture);
+
+	ImGui::TableNextRow();
+	ImGui::TableNextColumn();
+
+	ImGui::Text("Roughness");
+
+	ImGui::TableNextColumn();
+
+	ImGui::PushID("ROUGHNESS");
+	ImGui::SliderFloat("", &m_roughness, 0.f, 1.f);
+	ImGui::PopID();
+
+	drawTextureRow("Roughness", m_roughnessTexture);
+	drawTextureRow("Emissive", m_emissiveTexture);
 }
 
 Ref<Render::EntityRenderProxy> PBRMeshRendererComponent::CreateRenderProxy(glm::float4x4 transform) const
@@ -107,7 +153,14 @@ Ref<Render::EntityRenderProxy> PBRMeshRendererComponent::CreateRenderProxy(glm::
 				.meshAsset = m_meshAsset,
 				.meshNode = m_meshNode
 			},
-			.albedo = m_albedo ? m_albedo->GetRenderResource() : nullptr
+			.albedo = m_albedo,
+			.albedoTexture = m_albedoTexture ? m_albedoTexture->GetRenderResource() : nullptr,
+			.normalTexture = m_normalTexture ? m_normalTexture->GetRenderResource() : nullptr,
+			.metallic = m_metallic,
+			.metallicTexture = m_metallicTexture ? m_metallicTexture->GetRenderResource() : nullptr,
+			.roughness = m_roughness,
+			.roughnessTexture = m_roughnessTexture ? m_roughnessTexture->GetRenderResource() : nullptr,
+			.emissiveTexture = m_emissiveTexture ? m_emissiveTexture->GetRenderResource() : nullptr
 		};
 		return Ref<Render::PBREntityRenderProxy>::Create(initInfo);
 	}

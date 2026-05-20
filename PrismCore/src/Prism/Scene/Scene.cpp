@@ -127,13 +127,13 @@ void Scene::RemoveEntity(const Ref<Entity>& entity)
 	m_entities.erase(GetEntityID(entity));
 }
 
-Ref<Entity> Scene::CreateEntityHierarchyForMeshAsset(const Ref<MeshLoading::MeshAsset>& asset)
+Ref<Entity> Scene::CreateEntityHierarchyForMeshAsset(const Ref<MeshAsset>& asset)
 {
 	PE_ASSERT(asset);
 
 	Ref<Entity> root = nullptr;
-	std::function<void(MeshLoading::MeshNode, const Ref<Entity>&)> processNode =
-		[this, &processNode, asset, &root](MeshLoading::MeshNode node, const Ref<Entity>& parent)
+	std::function<void(MeshNode, const Ref<Entity>&)> processNode =
+		[this, &processNode, asset, &root](MeshNode node, const Ref<Entity>& parent)
 		{
 			Ref entity = AddEntity(asset->GetNodeName(node));
 			if (parent)

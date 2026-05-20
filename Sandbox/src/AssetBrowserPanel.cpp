@@ -399,8 +399,28 @@ void AssetBrowserPanel::RenderBody()
 
 		m_selection.ApplyRequests(multiselectIO);
 
-		bool wantDelete = (ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_Repeat) && (m_selection.Size > 0)); // TODO: || RequestDelete;
-		//TODO: RequestDelete = false;
+		bool pressedDelete = (ImGui::IsWindowFocused() && ImGui::Shortcut(ImGuiKey_Delete, ImGuiInputFlags_Repeat) && (m_selection.Size > 0));
+		bool confirmedDelete = false;
+
+		if (ImGui::BeginPopupModal("CONFIRM_DELETE_POPUP", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoTitleBar))
+		{
+			ImGui::Text("Are you sure you want to delete?");
+			if (ImGui::Button("Yes"))
+			{
+				confirmedDelete = true;
+				ImGui::CloseCurrentPopup();
+			}
+			ImGui::SameLine();
+ 			if (ImGui::Button("No"))
+ 			{
+				ImGui::CloseCurrentPopup();
+ 			}
+
+			ImGui::EndPopup();
+		}
+
+		if (pressedDelete)
+			ImGui::OpenPopup("CONFIRM_DELETE_POPUP");
 
 		ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(layoutSelectableSpacing, layoutSelectableSpacing));
 
@@ -444,14 +464,11 @@ void AssetBrowserPanel::RenderBody()
 					if (ImGui::IsItemToggledSelection())
 						itemIsSelected = !itemIsSelected;
 
-					if (wantDelete)
-						ImGui::SetKeyboardFocusHere(-1);
-
 					// Drag and drop
 					if (ImGui::BeginDragDropSource())
 					{
 						// Create payload with full selection OR single unselected item.
-						// (the later is only possible when using ImGuiMultiSelectFlags_SelectOnClickRelease)
+						// (the latter is only possible when using ImGuiMultiSelectFlags_SelectOnClickRelease)
 						YAML::Emitter out;
 						out << YAML::BeginSeq;
 
@@ -587,8 +604,7 @@ void AssetBrowserPanel::RenderBody()
 		multiselectIO = ImGui::EndMultiSelect();
 		m_selection.ApplyRequests(multiselectIO);
 
-		// TODO: Add confirmation monad
-		if (wantDelete)
+		if (confirmedDelete)
 		{
 			int32_t idx = 0;
 			for (const auto& [id, path] : m_displayedPaths)
@@ -613,7 +629,7 @@ ImGuiID AssetBrowserPanel::UpdateDirectoryEntries(std::fs::path dir, ImGuiID id)
 	for (auto& entry : std::fs::directory_iterator(dir))
 	{
 		++id;
-		if (activeDir)
+		if (activeDir && entry.path().extension() != ".meta")
 			m_displayedPaths[id] = entry;
 		if (entry.is_directory())
 			id = UpdateDirectoryEntries(entry, id);

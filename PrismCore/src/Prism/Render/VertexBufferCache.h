@@ -1,6 +1,6 @@
 #pragma once
+#include "Prism/AssetManagement/MeshAsset.h"
 #include "Prism/Render/Buffer.h"
-#include "Prism/Utilities/MeshLoading.h"
 
 namespace Prism::Render
 {
@@ -34,19 +34,19 @@ public:
 	};
 
 public:
-	MeshBuffers GetOrCreateMeshBuffers(const VertexAttributeList& attributeList, MeshLoading::MeshAsset* mesh);
-	NodeInfo GetNodeIndexInfo(MeshLoading::MeshAsset* mesh, MeshLoading::MeshNode node);
+	MeshBuffers GetOrCreateMeshBuffers(const VertexAttributeList& attributeList, MeshAsset* mesh);
+	NodeInfo GetNodeIndexInfo(MeshAsset* mesh, MeshNode node);
 
 private:
-	void CreateVertexBuffer(const VertexAttributeList& attributeList, MeshLoading::MeshAsset* mesh);
-	void CreateIndexBuffer(MeshLoading::MeshAsset* mesh);
+	void CreateVertexBuffer(const VertexAttributeList& attributeList, MeshAsset* mesh);
+	void CreateIndexBuffer(MeshAsset* mesh);
 
 private:
 	// TODO: Figure out a way to not store a hard ref to meshes
-	std::unordered_map<VertexAttributeList, std::unordered_map<Ref<MeshLoading::MeshAsset>, Ref<Buffer>>> m_vbCache;
+	std::unordered_map<VertexAttributeList, std::unordered_map<Ref<MeshAsset>, Ref<Buffer>>> m_vbCache;
 
-	using NodesIndexInfo = std::unordered_map<MeshLoading::MeshNode, NodeInfo>;
+	using NodesIndexInfo = std::unordered_map<MeshNode, NodeInfo>;
 
-	std::unordered_map<Ref<MeshLoading::MeshAsset>, std::pair<Ref<Buffer>, NodesIndexInfo>> m_ibCache;
+	std::unordered_map<Ref<MeshAsset>, std::pair<Ref<Buffer>, NodesIndexInfo>> m_ibCache;
 };
 }

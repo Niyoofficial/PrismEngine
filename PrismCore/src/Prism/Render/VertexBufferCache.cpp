@@ -34,7 +34,7 @@ int64_t GetVertexSize(const VertexAttributeList& attributeList)
 	return size;
 }
 
-VertexBufferCache::MeshBuffers VertexBufferCache::GetOrCreateMeshBuffers(const VertexAttributeList& attributeList, MeshLoading::MeshAsset* mesh)
+VertexBufferCache::MeshBuffers VertexBufferCache::GetOrCreateMeshBuffers(const VertexAttributeList& attributeList, MeshAsset* mesh)
 {
 	Buffer* vertexBuffer = nullptr;
 	Buffer* indexBuffer = nullptr;
@@ -69,12 +69,12 @@ VertexBufferCache::MeshBuffers VertexBufferCache::GetOrCreateMeshBuffers(const V
 	return {vertexBuffer, indexBuffer};
 }
 
-VertexBufferCache::NodeInfo VertexBufferCache::GetNodeIndexInfo(MeshLoading::MeshAsset* mesh, MeshLoading::MeshNode node)
+VertexBufferCache::NodeInfo VertexBufferCache::GetNodeIndexInfo(MeshAsset* mesh, MeshNode node)
 {
 	return m_ibCache.at(mesh).second.at(node);
 }
 
-void VertexBufferCache::CreateVertexBuffer(const VertexAttributeList& attributeList, MeshLoading::MeshAsset* mesh)
+void VertexBufferCache::CreateVertexBuffer(const VertexAttributeList& attributeList, MeshAsset* mesh)
 {
 	std::vector<uint8_t> vertices;
 	for (auto node : *mesh)
@@ -130,7 +130,7 @@ void VertexBufferCache::CreateVertexBuffer(const VertexAttributeList& attributeL
 													});
 }
 
-void VertexBufferCache::CreateIndexBuffer(MeshLoading::MeshAsset* mesh)
+void VertexBufferCache::CreateIndexBuffer(MeshAsset* mesh)
 {
 	std::vector<uint32_t> indices;
 	int32_t baseVertex = 0;

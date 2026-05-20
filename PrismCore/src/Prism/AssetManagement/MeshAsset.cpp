@@ -1,8 +1,7 @@
 ﻿#include "pcpch.h"
-#include "MeshLoading.h"
+#include "MeshAsset.h"
 
 #include "assimp/DefaultLogger.hpp"
-#include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
 #include "Prism/AssetManagement/AssetManager.h"
@@ -11,7 +10,7 @@
 
 DECLARE_LOG_CATEGORY(AssimpLog, "Assimp");
 
-namespace Prism::MeshLoading
+namespace Prism
 {
 class PrismLogger : public Assimp::Logger
 {
@@ -181,10 +180,10 @@ static std::unordered_map<TextureType, Ref<TextureAsset>> LoadTexturesForMesh(co
 	return textures;
 }
 
-MeshAsset::MeshAsset(const std::wstring& filePath)
-	: m_filePath(filePath)
+MeshAsset::MeshAsset(AssetManager* assetManager, const std::fs::path& path)
+	: Asset(assetManager, path)
 {
-	const aiScene* scene = m_importer.ReadFile(AssetRegistry::Get().GetAbsPath(filePath).string().c_str(),
+	const aiScene* scene = m_importer.ReadFile(AssetRegistry::Get().GetAbsPath(path).string().c_str(),
 											   aiProcess_Triangulate |
 											   aiProcess_ConvertToLeftHanded |
 											   //aiProcess_OptimizeMeshes |
@@ -205,7 +204,7 @@ MeshAsset::MeshAsset(const std::wstring& filePath)
 	std::vector<Ref<Render::Texture>> loadedTextures;
 
 	std::function<void(aiNode*)> processNode =
-		[this, &processNode, scene, &loadedTextures, &filePath](aiNode* assimpNode)
+		[this, &processNode, scene, &loadedTextures, &path](aiNode* assimpNode)
 		{
 			m_nodes.emplace_back(assimpNode, (MeshNode)m_nodes.size() - 1);
 			MeshNode currNode = (MeshNode)(m_nodes.size() - 1);
@@ -216,7 +215,7 @@ MeshAsset::MeshAsset(const std::wstring& filePath)
 				NodeInfo nodeInfo = {
 					.assimpNode = assimpMesh,
 					.parent = currNode,
-					.textures = LoadTexturesForMesh(filePath, scene, assimpMesh)
+					.textures = LoadTexturesForMesh(path, scene, assimpMesh)
 				};
 
 				m_nodes.push_back(nodeInfo);
