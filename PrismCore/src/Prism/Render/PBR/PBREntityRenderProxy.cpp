@@ -5,27 +5,30 @@ namespace Prism::Render
 PBREntityRenderProxy::PBREntityRenderProxy(const PBRRenderProxyInitInfo& initInfo)
 	: EntityRenderProxy(initInfo.renderProxyInitInfo),
 	  m_albedo(initInfo.albedo),
-	  m_normals(initInfo.normals),
+	  m_albedoTexture(initInfo.albedoTexture),
+	  m_normalTexture(initInfo.normalTexture),
 	  m_metallic(initInfo.metallic),
+	  m_metallicTexture(initInfo.metallicTexture),
 	  m_roughness(initInfo.roughness),
-	  m_emissive(initInfo.emissive)
+	  m_roughnessTexture(initInfo.roughnessTexture),
+	  m_emissiveTexture(initInfo.emissiveTexture)
 {
 }
 
-Ref<Texture> PBREntityRenderProxy::GetTexture(MeshLoading::TextureType type) const
+Ref<Texture> PBREntityRenderProxy::GetTexture(TextureType type) const
 {
 	switch (type)
 	{
-	case MeshLoading::TextureType::Albedo:
-		return m_albedo;
-	case MeshLoading::TextureType::Normals:
-		return m_normals;
-	case MeshLoading::TextureType::Metallic:
-		return m_metallic;
-	case MeshLoading::TextureType::Roughness:
-		return m_roughness;
-	case MeshLoading::TextureType::Emissive:
-		return m_emissive;
+	case TextureType::Albedo:
+		return m_albedoTexture;
+	case TextureType::Normals:
+		return m_normalTexture;
+	case TextureType::Metallic:
+		return m_metallicTexture;
+	case TextureType::Roughness:
+		return m_roughnessTexture;
+	case TextureType::Emissive:
+		return m_emissiveTexture;
 	}
 
 	return {};

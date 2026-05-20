@@ -92,7 +92,7 @@ PixelOutput psmain(PixelInput pin)
 		alpha = albedoTexture.Sample(g_samLinearWrap, pin.texCoords).a;
 	}
 	
-	clip(alpha - 0.1f);
+	//clip(alpha - 0.1f);
 	
 	if (g_metallicTexture != -1)
 	{

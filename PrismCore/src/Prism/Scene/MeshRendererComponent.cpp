@@ -4,13 +4,13 @@
 
 namespace Prism
 {
-MeshRendererComponent::MeshRendererComponent(MeshLoading::MeshAsset* mesh, MeshLoading::MeshNode meshNode)
+MeshRendererComponent::MeshRendererComponent(Ref<MeshAsset> mesh, MeshNode meshNode)
 	: m_meshAsset(mesh), m_meshNode(meshNode)
 {
 	PE_ASSERT(mesh && meshNode != -1);
 }
 
-void MeshRendererComponent::SetPrimitive(MeshLoading::MeshAsset* mesh, MeshLoading::MeshNode meshNode)
+void MeshRendererComponent::SetPrimitive(Ref<MeshAsset> mesh, MeshNode meshNode)
 {
 	PE_ASSERT(mesh && meshNode != -1);
 

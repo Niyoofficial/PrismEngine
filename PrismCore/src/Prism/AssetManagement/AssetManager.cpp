@@ -1,6 +1,7 @@
 #include "AssetManager.h"
 
 #include "Prism/AssetManagement/AssetType.h"
+#include "Prism/AssetManagement/MeshAsset.h"
 #include "Prism/Base/Application.h"
 #include "Prism/Base/Paths.h"
 
@@ -13,6 +14,7 @@ AssetManager& AssetManager::Get()
 
 AssetManager::AssetManager()
 {
+	InitMeshLoading();
 	AssetTypeRegistry::Get().BuildAssetTypeAssociations();
 }
 
@@ -166,19 +168,21 @@ AssetHandle AssetManager::RegisterAsset(std::fs::path path)
 
 Ref<Asset> AssetManager::CreateLoadedAsset(std::fs::path path, AssetHandle handle)
 {
-	std::unique_lock lock(m_loadedAssetsMutex);
-
-	auto it = m_loadedAssets.find(handle);
-	if (it == m_loadedAssets.end() || !it->second.IsValid())
 	{
-		AssetType* assetType = AssetTypeRegistry::Get().GetAssetTypeForExtension(path.extension());
-		Ref asset = assetType->CreateAsset(this, path);
-
-		m_loadedAssets[handle] = asset;
-
-		return asset;
+		std::shared_lock lock(m_loadedAssetsMutex);
+		auto it = m_loadedAssets.find(handle);
+		if (it != m_loadedAssets.end() && it->second.IsValid())
+			return it->second.Raw();
 	}
 
-	return m_loadedAssets.at(handle).Raw();
+	AssetType* assetType = AssetTypeRegistry::Get().GetAssetTypeForExtension(path.extension());
+	Ref asset = assetType->CreateAsset(this, path);
+
+	{
+		std::unique_lock lock(m_loadedAssetsMutex);
+		m_loadedAssets[handle] = asset;
+	}
+
+	return asset;
 }
 }

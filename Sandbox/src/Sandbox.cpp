@@ -14,6 +14,7 @@
 #include <filesystem>
 
 #include "EditorTheme.h"
+#include "Prism/AssetManagement/AssetType.h"
 #include "Prism/Base/Paths.h"
 #include "Prism/Render/RenderCommandQueue.h"
 
@@ -93,7 +94,7 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 		});
 
 	// TODO: Add create function on Ref class and make RefCounted not allow object creation on stack
-	//Ref sponza = new MeshLoading::MeshAsset(L"assets/SponzaCrytek/Sponza.gltf");
+	//Ref sponza = new MeshAsset(L"assets/SponzaCrytek/Sponza.gltf");
 
 	m_scene = Ref<Scene>::Create(L"Test Scene");
 	m_scene->SetRenderPipeline<PBRSceneRenderPipeline>();
@@ -172,6 +173,24 @@ void SandboxLayer::UpdateImGui(Duration delta)
 		if (CheckForViewportResize({viewportSize.x, viewportSize.y}))
 		{
 			ImGui::Image(m_editorViewportSRV, viewportSize);
+
+			if (ImGui::BeginDragDropTarget())
+			{
+				if (const ImGuiPayload* payload = ImGui::AcceptDragDropPayload(("ASSET_BROWSER_ITEMS_" + MeshAssetType::Get()->GetFileTypeName()).c_str()))
+				{
+					YAML::Node node = YAML::Load(std::string((char*)payload->Data, (char*)payload->Data + payload->DataSize));
+					if (node.IsSequence() && node.size() == 1)
+					{
+						auto path = node[0].as<std::string>();
+						if (!path.empty())
+						{
+							auto entity = m_scene->CreateEntityHierarchyForMeshAsset(AssetManager::Get().LoadAsset<MeshAsset>(path));
+							m_scene->SetSelectedEntity(entity);
+						}
+					}
+				}
+				ImGui::EndDragDropTarget();
+			}
 
 			// Gizmo
 			if (Entity* selectedEntity = m_scene->GetSelectedEntity())
@@ -630,20 +649,6 @@ void SandboxLayer::Update(Duration delta)
 {
 	using namespace Prism::Render;
 	Layer::Update(delta);
-
-	if (!m_filesToLoad.empty())
-	{
-		std::scoped_lock lock(m_fileLoadMutex);
-
-		for (const auto& file : m_filesToLoad)
-		{
-			m_meshes.push_back(Ref<MeshLoading::MeshAsset>::Create(file.wstring()));
-			Entity* root = m_scene->CreateEntityHierarchyForMeshAsset(m_meshes.back());
-			m_scene->SetSelectedEntity(root);
-		}
-
-		m_filesToLoad.clear();
-	}
 
 	if (m_viewportSize.x == 0 || m_viewportSize.y == 0)
 		return;

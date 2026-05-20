@@ -8,7 +8,6 @@
 #include "Prism/Render/PrimitiveBatch.h"
 #include "Prism/Render/Primitive.h"
 #include "Prism/Render/RenderConstants.h"
-#include "Prism/Utilities/MeshLoading.h"
 #include "ImGuizmo.h"
 #include "AssetBrowserPanel.h"
 
@@ -112,7 +111,7 @@ private:
 	Ref<Render::PrimitiveBatch> m_cube;
 	Ref<Render::PrimitiveBatch> m_sphere;
 
-	std::vector<Ref<MeshLoading::MeshAsset>> m_meshes;
+	std::vector<Ref<MeshAsset>> m_meshes;
 
 	float m_cameraSpeed = 5.f;
 	float m_mouseSpeed = 0.003f;
@@ -131,7 +130,7 @@ public:
 		std::vector<Vertex> vertices;
 		std::vector<uint32_t> indices;
 
-		std::unordered_map<MeshLoading::TextureType, Ref<Render::Texture>> textures;
+		std::unordered_map<TextureType, Ref<Render::Texture>> textures;
 	};
 
 	struct MeshData

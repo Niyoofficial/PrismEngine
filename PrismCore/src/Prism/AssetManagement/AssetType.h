@@ -28,6 +28,17 @@ public:
 	std::string GetFileTypeName() const override;
 };
 
+class MeshAssetType : public AssetType
+{
+public:
+	static MeshAssetType* Get();
+
+	virtual std::unordered_set<std::fs::path> GetAssociatedExtensions() const override;
+	virtual Ref<Asset> CreateAsset(AssetManager* assetManager, std::fs::path path) override;
+	glm::float4 GetAssetIndicatorColor() const override;
+	std::string GetFileTypeName() const override;
+};
+
 // This class is internally synchronized and therefore thread-safe
 class AssetTypeRegistry
 {
@@ -67,3 +78,4 @@ private:
 	} static_assert(true)
 
 REGISTER_ASSET_TYPE(TextureAssetType);
+REGISTER_ASSET_TYPE(MeshAssetType);

@@ -12,7 +12,7 @@ namespace Prism::Render
 class Texture;
 }
 
-namespace Prism::MeshLoading
+namespace Prism
 {
 enum class TextureType
 {
@@ -39,10 +39,10 @@ struct MeshNodeIterator
 	MeshNode value = -1;
 };
 
-class MeshAsset : public RefCounted
+class MeshAsset : public Asset
 {
 public:
-	explicit MeshAsset(const std::wstring& filePath);
+	MeshAsset(AssetManager* assetManager, const std::fs::path& path);
 
 	std::wstring GetLoadedFilepath() const;
 

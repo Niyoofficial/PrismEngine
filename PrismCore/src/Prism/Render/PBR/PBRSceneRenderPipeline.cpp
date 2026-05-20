@@ -2,6 +2,7 @@
 
 #include "Prism/Base/AppEvents.h"
 #include "Prism/Base/AppEvents.h"
+#include "Prism/Base/Application.h"
 #include "Prism/Render/RenderCommandQueue.h"
 #include "Prism/Render/RenderDevice.h"
 #include "Prism/Render/RenderUtils.h"
@@ -809,6 +810,8 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 		renderContext->SetVertexBuffer(vb, GetVertexSize(m_defaultVertexAttributeList));
 		renderContext->SetIndexBuffer(ib, IndexBufferFormat::Uint32);
 
+		auto* pbrProxy = dynamic_cast<PBREntityRenderProxy*>(proxy.Raw());
+
 		struct alignas(Constants::UNIFORM_BUFFER_ALIGNMENT) PrimitiveBasePassInfo
 		{
 			glm::float4x4 world;
@@ -822,30 +825,34 @@ void PBRSceneRenderPipeline::RenderBasePass(RenderContext* renderContext, const 
 			.world = proxy->GetWorldTransform(),
 			.normalMatrix = glm::transpose(glm::inverse(primitiveBasePassInfo.world)),
 			.material = {
-				.albedo = glm::float3(1.f, 1.f, 1.f),
-				.metallic = 1.f,
-				.roughness = 1.f,
+				.albedo = pbrProxy ? pbrProxy->GetAlbedo() : glm::float3(1.f, 1.f, 1.f),
+				.metallic = pbrProxy ? pbrProxy->GetMetallic() : 1.f,
+				.roughness = pbrProxy ? pbrProxy->GetRoughness() : 1.f,
 				.ao = 1.f
 			}
 		};
 		renderContext->SetUniformBuffer(L"g_primitiveBuffer", primitiveBasePassInfo);
 
 		auto setTexture =
-			[&proxy, &renderContext](MeshLoading::TextureType textureType, std::wstring paramName)
+			[&proxy, &renderContext, &pbrProxy](TextureType textureType, std::wstring paramName)
 			{
-				if (auto* pbrProxy = dynamic_cast<PBREntityRenderProxy*>(proxy.Raw()); pbrProxy && pbrProxy->GetTexture(textureType))
-					renderContext->SetTexture(paramName, pbrProxy->GetTexture(textureType)->CreateDefaultSRV());
-				else if (auto texture = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), textureType))
-					renderContext->SetTexture(paramName, texture->GetRenderResource()->CreateDefaultSRV());
+				if (pbrProxy)
+				{
+					if (auto texture = pbrProxy->GetTexture(textureType))
+						renderContext->SetTexture(paramName, pbrProxy->GetTexture(textureType)->CreateDefaultSRV());
+				}
 				else
-					renderContext->SetTexture(paramName, nullptr);
+				{
+					if (auto texture = proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), textureType))
+						renderContext->SetTexture(paramName, proxy->GetMeshAsset()->GetNodeTexture(proxy->GetMeshNode(), textureType)->GetRenderResource()->CreateDefaultSRV());
+				}
 			};
 
-		setTexture(MeshLoading::TextureType::Albedo, L"g_albedoTexture");
-		setTexture(MeshLoading::TextureType::Metallic, L"g_metallicTexture");
-		setTexture(MeshLoading::TextureType::Roughness, L"g_roughnessTexture");
-		setTexture(MeshLoading::TextureType::Normals, L"g_normalTexture");
-		setTexture(MeshLoading::TextureType::Emissive, L"g_emissiveTexture");
+		setTexture(TextureType::Albedo, L"g_albedoTexture");
+		setTexture(TextureType::Metallic, L"g_metallicTexture");
+		setTexture(TextureType::Roughness, L"g_roughnessTexture");
+		setTexture(TextureType::Normals, L"g_normalTexture");
+		setTexture(TextureType::Emissive, L"g_emissiveTexture");
 
 		auto nodeInfo = RenderDevice::Get().GetVertexBufferCache().GetNodeIndexInfo(proxy->GetMeshAsset(), proxy->GetMeshNode());
 		renderContext->DrawIndexed({

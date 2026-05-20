@@ -30,7 +30,7 @@ public:
 	void RemoveEntity(const Ref<Entity>& entity);
 
 	// Create an entity hierarchy representing the mesh assset, returns root entity
-	Ref<Entity> CreateEntityHierarchyForMeshAsset(const Ref<MeshLoading::MeshAsset>& asset);
+	Ref<Entity> CreateEntityHierarchyForMeshAsset(const Ref<MeshAsset>& asset);
 
 	template<typename T, typename... Args> requires std::is_base_of_v<Render::SceneRenderPipeline, T>
 	void SetRenderPipeline(Args&&... args)
