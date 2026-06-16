@@ -72,7 +72,9 @@ public:
 	void ReadbackTexture(const Ref<Texture>& textureToReadback, int32_t subresource,
 						 std::function<void(std::vector<glm::float4>)> callback);
 
-	void RenderImGui();
+	void AddCustomRenderCommand(const char* commandName, const std::function<void(RenderCommandList*)>& func);
+
+	void RenderImGui(ImDrawData* drawData);
 
 	void SetMarker(std::wstring string, glm::float3 color = {});
 	void BeginEvent(std::wstring string, glm::float3 color = {});

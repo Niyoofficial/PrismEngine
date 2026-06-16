@@ -1,9 +1,9 @@
 #include "PBRSceneRenderPipeline.h"
 
-#include "Prism/Base/AppEvents.h"
-#include "Prism/Base/AppEvents.h"
 #include "Prism/Base/Application.h"
+#include "Prism/Render/PipelineState.h"
 #include "Prism/Render/RenderCommandQueue.h"
+#include "Prism/Render/RenderConstants.h"
 #include "Prism/Render/RenderDevice.h"
 #include "Prism/Render/RenderUtils.h"
 #include "Prism/Render/PBR/PBREntityRenderProxy.h"
@@ -182,7 +182,7 @@ PBRSceneRenderPipeline::PBRSceneRenderPipeline()
 	GenerateBRDFIntegrationLUT(renderContext);
 
 	RenderDevice::Get().SubmitContext(renderContext);
-	RenderDevice::Get().GetRenderCommandQueue()->Flush();
+	RenderDevice::Get().GetRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
 }
 
 void PBRSceneRenderPipeline::Render(RenderContext* renderContext, const RenderSceneInfo& renderInfo)

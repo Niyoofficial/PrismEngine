@@ -15,13 +15,11 @@
 
 #include "EditorTheme.h"
 #include "Prism/AssetManagement/AssetType.h"
-#include "Prism/Base/Paths.h"
-#include "Prism/Render/RenderCommandQueue.h"
+#include "Prism/Render/PipelineState.h"
 
-IMPLEMENT_APPLICATION(EditorApplication);
 
-SandboxLayer::SandboxLayer(Core::Window* owningWindow)
-	: m_owningWindow(owningWindow)
+EditorLayer::EditorLayer(Core::Window* owningWindow, const Ref<Scene>& scene)
+	: m_owningWindow(owningWindow), m_scene(scene)
 {
 	using namespace Prism::Render;
 	Layer::Attach();
@@ -93,23 +91,11 @@ SandboxLayer::SandboxLayer(Core::Window* owningWindow)
 			}
 		});
 
-	// TODO: Add create function on Ref class and make RefCounted not allow object creation on stack
-	//Ref sponza = new MeshAsset(L"assets/SponzaCrytek/Sponza.gltf");
-
-	m_scene = Ref<Scene>::Create(L"Test Scene");
-	m_scene->SetRenderPipeline<PBRSceneRenderPipeline>();
-	//m_scene->CreateEntityHierarchyForMeshAsset(sponza);
-	auto lightEntity = m_scene->AddEntity(L"Light");
-	lightEntity->AddComponent<TransformComponent>()->SetRotation(m_sunRotation);
-	lightEntity->AddComponent<LightRendererComponent>();
-
-	glm::int2 windowSize = EditorApplication::Get().GetWindow()->GetSize();
-
-	m_camera = Ref<Camera>::Create(45.f, (float)windowSize.x / (float)windowSize.y, 0.1f, 10000.f);
+	m_camera = Ref<Camera>::Create(45.f, 16.f / 9.f, 0.1f, 10000.f);
 	m_camera->SetPosition({0.f, 0.f, 0.f});
 }
 
-void SandboxLayer::UpdateImGui(Duration delta)
+void EditorLayer::UpdateImGui(Duration delta)
 {
 	using namespace Prism::Render;
 	Layer::UpdateImGui(delta);
@@ -629,7 +615,7 @@ void SandboxLayer::UpdateImGui(Duration delta)
 	}
 }
 
-void SandboxLayer::Update(Duration delta)
+void EditorLayer::Update(Duration delta)
 {
 	using namespace Prism::Render;
 	Layer::Update(delta);
@@ -662,7 +648,7 @@ void SandboxLayer::Update(Duration delta)
 	RenderDevice::Get().SubmitContext(renderContext);
 }
 
-bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
+bool EditorLayer::CheckForViewportResize(glm::int2 viewportSize)
 {
 	using namespace Render;
 
@@ -713,7 +699,7 @@ bool SandboxLayer::CheckForViewportResize(glm::int2 viewportSize)
 	return true;
 }
 
-void SandboxLayer::SelectEntityUnderCursor()
+void EditorLayer::SelectEntityUnderCursor()
 {
 	using namespace Prism::Render;
 
@@ -786,67 +772,4 @@ void SandboxLayer::SelectEntityUnderCursor()
 		});
 
 	RenderDevice::Get().SubmitContext(renderContext);
-}
-
-EditorApplication& EditorApplication::Get()
-{
-	return Application::Get<EditorApplication>();
-}
-
-EditorApplication::EditorApplication(int32_t argc, char** argv)
-	: Application(argc, argv)
-{
-	InitPlatform();
-	InitRenderer({.enableDebugLayer = false, .initPixLibrary = false});
-
-	auto displayInfo = Core::Platform::Get().GetDisplayInfo(Core::Platform::Get().GetPrimaryDisplayID());
-
-	Core::WindowDesc windowParams = {
-		.windowTitle = L"Prism Editor",
-		.windowSize = {displayInfo.width / 1.25f, displayInfo.height / 1.25f},
-		.fullscreen = false
-	};
-	Render::SwapchainDesc swapchainDesc = {
-		.refreshRate = {
-			.numerator = 60,
-			.denominator = 1
-		},
-		.format = Render::TextureFormat::RGBA8_UNorm,
-		.sampleDesc = {
-			.count = 1,
-			.quality = 0
-		}
-	};
-	m_window = Core::Window::Create(windowParams, swapchainDesc);
-
-	// TODO: Remove depth format
-	InitImGui(m_window, Render::TextureFormat::D24_UNorm_S8_UInt);
-
-	ImGuizmo::AllowAxisFlip(false);
-
-	m_sandboxLayer = Ref<SandboxLayer>::Create(m_window);
-	PushLayer(m_sandboxLayer);
-}
-
-Core::Window* EditorApplication::GetWindow() const
-{
-	return m_window;
-}
-
-void EditorApplication::InitImGui(Core::Window* window, Render::TextureFormat depthFormat)
-{
-	Application::InitImGui(window, depthFormat);
-
-	ImGuiIO& io = ImGui::GetIO();
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable; // Enable Docking
-	io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable; // Enable Multi-Viewport / Platform Windows
-
-	// Setup Dear ImGui style
-	ImGui::StyleColorsDark();
-	//ImGui::StyleColorsLight();
-
-	// TODO: Fix this!
-	io.FontGlobalScale = 1.5f;
-
-	EditorTheme::Init();
 }

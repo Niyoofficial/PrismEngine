@@ -9,6 +9,7 @@ namespace Prism::Render
 DeferredCommandRecorder::DeferredCommandRecorder()
 	: m_commandLink(&m_root)
 {
+	m_commands.reserve(1024 * 100);
 	if (RenderDevice::Get().GetBypassCommandRecording())
 		m_commandListForBypass = RenderCommandList::Create();
 }

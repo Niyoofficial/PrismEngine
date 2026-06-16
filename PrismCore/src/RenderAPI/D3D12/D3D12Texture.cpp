@@ -87,7 +87,7 @@ D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, std::wstring filepat
 		GenerateMipMaps(context);
 
 		m_renderDevice->SubmitContext(context);
-		m_renderDevice->GetRenderCommandQueue()->Flush();
+		m_renderDevice->GetRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
 
 		stbi_image_free(loadedData);
 

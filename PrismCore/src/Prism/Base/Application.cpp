@@ -5,7 +5,9 @@
 #include "Prism/Base/Platform.h"
 #include "Prism/Render/Layer.h"
 #include "Prism/Render/RenderCommandQueue.h"
+#include "Prism/Render/RenderConstants.h"
 #include "Prism/Render/RenderDevice.h"
+#include "Prism/UI/imgui_threaded_rendering.h"
 
 namespace Prism::Core
 {
@@ -52,32 +54,36 @@ void Application::Run()
 		{
 			++m_frameCounter;
 
-			BeginFrame();
-
-			auto currTime = GetApplicationTime();
-			auto delta = currTime - m_previousFrameTime;
-			m_previousFrameTime = currTime;
-
-			if (m_imguiInitialized)
 			{
-				ImGuiNewFrame();
+				SCOPED_INSTRUMENTATION("Frame");
+
+				BeginFrame();
+
+				auto currTime = GetApplicationTime();
+				auto delta = currTime - m_previousFrameTime;
+				m_previousFrameTime = currTime;
+
+				if (m_imguiInitialized)
+				{
+					ImGuiNewFrame();
+					for (auto& layer : m_layerStack)
+						layer->UpdateImGui(delta);
+					ImGui::EndFrame();
+				}
+
 				for (auto& layer : m_layerStack)
-					layer->UpdateImGui(delta);
-				ImGui::EndFrame();
+					layer->Update(delta);
+
+				if (m_imguiInitialized)
+					m_imguiLayer->Update(delta);
+
+				EndFrame();
 			}
-
-			for (auto& layer : m_layerStack)
-				layer->Update(delta);
-
-			if (m_imguiInitialized)
-				m_imguiLayer->Update(delta);
-
-			EndFrame();
 		}
 	}
 
 	// Flush GPU work before exiting
-	Render::RenderDevice::Get().GetRenderCommandQueue()->Flush();
+	Render::RenderDevice::Get().GetRenderCommandQueue()->Flush(Render::CommandQueueFlushType::WaitForCompletion);
 }
 
 void Application::PushLayer(Render::Layer* layer)
@@ -96,12 +102,12 @@ void Application::PopLayer(Render::Layer* layer)
 	}
 }
 
-void Application::RegisterWindow(Window* window)
+void Application::RegisterWindow(Ref<Window> window)
 {
 	m_windows.emplace_back(window);
 }
 
-void Application::UnregisterWindow(Window* window)
+void Application::UnregisterWindow(Ref<Window> window)
 {
 	auto it = std::ranges::find(m_windows, WeakRef(window));
 	if (it != m_windows.end())
@@ -128,13 +134,6 @@ void Application::BeginFrame()
 void Application::EndFrame()
 {
 	TransitionBackBuffersToPresent();
-
-	for (auto window : m_windows)
-	{
-		PE_ASSERT(window.IsValid());
-
-		window->GetSwapchain()->Present();
-	}
 
 	if (m_imguiInitialized)
 	{
@@ -168,7 +167,7 @@ void Application::InitRenderer(const Render::RenderDeviceParams& params)
 	using namespace Render;
 
 	RenderDevice::Create(params);
-	//RenderDevice::Get().SetBypassCommandRecording(true);
+	RenderDevice::Get().SetBypassCommandRecording(m_bypassCmdRecording);
 
 	TextureDesc texDesc = {
 		.width = 2,
@@ -207,10 +206,17 @@ void Application::InitImGui(Window* window, Render::TextureFormat depthFormat)
 	{
 		void Update(Duration delta) override
 		{
+			ImGui::Render();
+
+			auto& snapshot = m_snapshots[Application::Get().GetCurrentFrame() % Render::Constants::MAX_FRAMES_IN_FLIGHT];
+			snapshot.SnapUsingSwap(ImGui::GetDrawData(), ImGui::GetTime());
+
 			auto context = Render::RenderDevice::Get().AllocateContext(L"ImGuiUpdate");
-			context->RenderImGui();
+			context->RenderImGui(&snapshot.DrawData);
 			Render::RenderDevice::Get().SubmitContext(context);
 		}
+
+		ImDrawDataSnapshot m_snapshots[Render::Constants::MAX_FRAMES_IN_FLIGHT];
 	};
 
 	m_imguiLayer = Ref<ImGuiLayer>::Create();
@@ -267,6 +273,14 @@ void Application::TransitionBackBuffersToPresent()
 			.layoutAfter = Render::BarrierLayout::Present
 		});
 	}
+
 	Render::RenderDevice::Get().SubmitContext(context);
+
+	for (auto window : m_windows)
+	{
+		PE_ASSERT(window.IsValid());
+
+		Render::RenderDevice::Get().GetRenderCommandQueue()->EnqueuePresent(window->GetSwapchain());
+	}
 }
 }

@@ -7,9 +7,6 @@
 #include "Prism/Utilities/StaticSingleton.h"
 
 
-DECLARE_LOG_CATEGORY(PERender, "Prism-Render");
-#define PE_RENDER_LOG(verbosity, ...) PE_LOG(PERender, verbosity, __VA_ARGS__)
-
 namespace Prism::Core
 {
 class Application;

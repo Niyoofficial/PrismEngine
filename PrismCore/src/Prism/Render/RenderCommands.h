@@ -10,15 +10,17 @@ struct RenderCommandBase
 	virtual void ExecuteAndDestruct(RenderCommandList* cmdList) = 0;
 	virtual ~RenderCommandBase() = default;
 
+	virtual std::string GetCommandString() { return {}; }
+
 	RenderCommandBase* next = nullptr;
 };
 
 template<typename T, typename StringT>
 struct RenderCommand : public RenderCommandBase
 {
-	static const wchar_t* GetCommandString()
+	static const wchar_t* GetCommandStringStatic()
 	{
-		return StringT::GetCommandString();
+		return StringT::GetCommandStringStatic();
 	}
 
 	virtual void ExecuteAndDestruct(RenderCommandList* cmdList) override final
@@ -34,22 +36,25 @@ struct RenderCommand : public RenderCommandBase
 #define DEFINE_RENDER_COMMAND(commandName)																			\
 	struct PREPROCESSOR_JOIN(commandName##String, __LINE__) 														\
 	{																												\
-		static const wchar_t* GetCommandString() { return PREPROCESSOR_TO_WIDE_STRING(commandName); }				\
+		static const wchar_t* GetCommandStringStatic() { return PREPROCESSOR_TO_WIDE_STRING(commandName); }			\
 	};																												\
 	struct commandName final : public RenderCommand<commandName, PREPROCESSOR_JOIN(commandName##String, __LINE__)>
 
 DEFINE_RENDER_COMMAND(CustomRenderCommand)
 {
-	explicit CustomRenderCommand(std::function<void(RenderCommandList*)> inFunc)
-		: func(inFunc)
+	explicit CustomRenderCommand(const char* inName, const std::function<void(RenderCommandList*)>& inFunc)
+		: name(inName), func(inFunc)
 	{
 	}
+
+	virtual std::string GetCommandString() override { return name; }
 
 	void Execute(RenderCommandList* cmdList)
 	{
 		func(cmdList);
 	}
 
+	std::string name;
 	std::function<void(RenderCommandList*)> func;
 };
 
@@ -279,9 +284,8 @@ ClearDepthStencilViewRenderCommand(const Ref<TextureView>& inDsv, Flags<ClearFla
 DEFINE_RENDER_COMMAND(BufferBarrierRenderCommand)
 {
 	explicit BufferBarrierRenderCommand(BufferBarrier inBufferBarrier)
-		: bufferBarrier(inBufferBarrier)
+		: bufferBarrier(inBufferBarrier), buffer(bufferBarrier.buffer)
 	{
-		buffer = bufferBarrier.buffer;
 	}
 
 	void Execute(RenderCommandList* cmdList)
@@ -296,9 +300,8 @@ DEFINE_RENDER_COMMAND(BufferBarrierRenderCommand)
 DEFINE_RENDER_COMMAND(TextureBarrierRenderCommand)
 {
 	explicit TextureBarrierRenderCommand(TextureBarrier inTextureBarrier)
-		: textureBarrier(inTextureBarrier)
+		: textureBarrier(inTextureBarrier), texture(textureBarrier.texture)
 	{
-		texture = textureBarrier.texture;
 	}
 
 	void Execute(RenderCommandList* cmdList)

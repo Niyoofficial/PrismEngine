@@ -12,6 +12,7 @@
 #endif
 
 #include "imgui_impl_dx12.h"
+#include "Prism/Render/RenderConstants.h"
 #include "RenderAPI/D3D12/D3D12BufferView.h"
 #include "RenderAPI/D3D12/D3D12RootSignature.h"
 #include "RenderAPI/D3D12/D3D12TextureView.h"

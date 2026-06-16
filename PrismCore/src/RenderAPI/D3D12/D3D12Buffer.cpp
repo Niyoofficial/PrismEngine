@@ -1,6 +1,7 @@
 ﻿#include "pcpch.h"
 #include "D3D12Buffer.h"
 
+#include "Prism/Render/RenderConstants.h"
 #include "RenderAPI/D3D12/D3D12RenderDevice.h"
 #include "RenderAPI/D3D12/D3D12TypeConversions.h"
 

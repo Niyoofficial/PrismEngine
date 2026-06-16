@@ -122,8 +122,16 @@ DescriptorHeap::DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t descript
 	AddNewBlock(0, descriptorsCount);
 }
 
+DescriptorHeap::DescriptorHeap(DescriptorHeap&& other) noexcept
+	: m_descriptorHeap(std::move(other.m_descriptorHeap)), m_freeBlocksByOffset(std::move(other.m_freeBlocksByOffset)),
+	  m_freeBlocksBySize(std::move(other.m_freeBlocksBySize)), m_desc(other.m_desc)
+{
+}
+
 DescriptorHeapAllocation DescriptorHeap::Allocate(int32_t count)
 {
+	std::lock_guard lock(m_allocationMutex);
+
 	auto sizeIt = std::ranges::min_element(m_freeBlocksBySize,
 										   [count](auto e1, auto e2) -> bool
 										   {
@@ -132,6 +140,8 @@ DescriptorHeapAllocation DescriptorHeap::Allocate(int32_t count)
 											   return (e1.first < e2.first);
 										   });
 
+	PE_ASSERT(sizeIt != m_freeBlocksBySize.end(), "Failed to allocate descriptors!");
+
 	return AllocateFromFreeBlock(sizeIt, count);
 }
 
@@ -139,6 +149,8 @@ void DescriptorHeap::Free(DescriptorHeapAllocation&& allocation)
 {
 	if (!D3D12RenderDevice::TryGet())
 		return;
+
+	std::lock_guard lock(m_allocationMutex);
 
 	uint32_t handleSize = D3D12RenderDevice::Get().GetDescriptorHandleSize(GetHeapType());
 	int32_t offset = (int32_t)((allocation.GetCPUHandle().ptr - m_descriptorHeap->GetCPUDescriptorHandleForHeapStart().ptr) / handleSize);
@@ -225,8 +237,6 @@ D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeap::GetHeapType() const
 
 DescriptorHeapAllocation DescriptorHeap::AllocateFromFreeBlock(const SizesMapTypeIt& freeBlock, int32_t count)
 {
-	PE_ASSERT(freeBlock != m_freeBlocksBySize.end(), "Failed to allocate descriptors!");
-
 	auto offsetIt = freeBlock->second;
 	int32_t allocationOffset = offsetIt->first;
 
@@ -293,7 +303,6 @@ GPUDescriptorHeapManager::GPUDescriptorHeapManager(D3D12_DESCRIPTOR_HEAP_TYPE ty
 
 DescriptorHeapAllocation GPUDescriptorHeapManager::Allocate(int32_t count)
 {
-	// TODO: Should be thread safe!
 	return m_heap.Allocate(count);
 }
 }

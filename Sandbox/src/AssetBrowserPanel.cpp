@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <filesystem>
 
+#include "EditorApplication.h"
 #include "EditorTheme.h"
 #include "Sandbox.h"
 #include "xxhash.h"
@@ -250,7 +251,7 @@ bool AssetBrowserPanel::SidePanel::IsOpen(ImGuiID id) const
 AssetBrowserPanel::AssetBrowserPanel()
 	: m_folderIcon(EditorApplication::Get().GetAssetManager().LoadAsset<TextureAsset>("engine/folder_icon.png")),
 	  m_textureIcon(EditorApplication::Get().GetAssetManager().LoadAsset<TextureAsset>("engine/texture_icon.png")),
-	  m_sidePanel([this](){m_selection.Clear();})	
+	  m_sidePanel([this](){m_selection.Clear();})
 {
 }
 

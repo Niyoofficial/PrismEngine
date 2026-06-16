@@ -74,8 +74,9 @@ public:
 	DescriptorHeap(D3D12_DESCRIPTOR_HEAP_TYPE type, int32_t descriptorsCount, bool shouldBeGPUVisible);
 	~DescriptorHeap() = default;
 
-	DescriptorHeap(DescriptorHeap&& other) = default;
-	DescriptorHeap& operator=(DescriptorHeap&& other) = default;
+	DescriptorHeap(DescriptorHeap&& other) noexcept;
+
+	DescriptorHeap& operator=(DescriptorHeap&& other) = delete;
 
 	// No copies allowed
 	DescriptorHeap(const DescriptorHeap& other) = delete;
@@ -98,6 +99,8 @@ private:
 	SizesMapType m_freeBlocksBySize;
 
 	D3D12_DESCRIPTOR_HEAP_DESC m_desc;
+
+	std::mutex m_allocationMutex;
 };
 
 class CPUDescriptorHeapManager

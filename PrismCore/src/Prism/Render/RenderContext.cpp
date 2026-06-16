@@ -1,7 +1,9 @@
 ﻿#include "pcpch.h"
 #include "RenderContext.h"
 
+#include "Prism/Base/Application.h"
 #include "Prism/Render/RenderCommands.h"
+#include "Prism/Render/RenderConstants.h"
 #include "Prism/Render/RenderResourceCreation.h"
 #include "Prism/Render/RenderUtils.h"
 
@@ -34,7 +36,7 @@ void RenderContext::SetPSO(const ComputePipelineStateDesc& pso)
 
 void RenderContext::SetStencilRef(uint32_t ref)
 {
-	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>("SetStencilRef",
 		[ref](RenderCommandList* cmdList)
 		{
 			cmdList->SetStencilRef(ref);
@@ -184,7 +186,7 @@ void RenderContext::ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::f
 	PE_ASSERT(uav);
 	SafeReleaseResource(uav->GetTexture());
 
-	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>("ClearUnorderedAccessView",
 		[values, uav](RenderCommandList* cmdList)
 		{
 			cmdList->ClearUnorderedAccessView(uav, values);
@@ -196,7 +198,7 @@ void RenderContext::ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::u
 	PE_ASSERT(uav);
 	SafeReleaseResource(uav->GetTexture());
 
-	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>("ClearUnorderedAccessView",
 		[values, uav](RenderCommandList* cmdList)
 		{
 			cmdList->ClearUnorderedAccessView(uav, values);
@@ -375,18 +377,26 @@ void RenderContext::ReadbackTexture(const Ref<Texture>& textureToReadback, int32
 		});
 }
 
-void RenderContext::RenderImGui()
+void RenderContext::AddCustomRenderCommand(const char* commandName, const std::function<void(RenderCommandList*)>& func)
 {
-	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
-		[](RenderCommandList* cmdList)
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(commandName, func);
+}
+
+void RenderContext::RenderImGui(ImDrawData* drawData)
+{
+	auto window = Core::Application::Get().GetMainWindow(); // TODO: hardcoded main window
+	Swapchain* swapchain = window->GetSwapchain();
+	int32_t index = swapchain->GetCurrentBackBufferIndex();
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>("RenderImGui",
+		[swapchain, index, drawData](RenderCommandList* cmdList)
 		{
-			cmdList->RenderImGui();
+			cmdList->RenderImGui(swapchain, index, drawData);
 		});
 }
 
 void RenderContext::SetMarker(std::wstring string, glm::float3 color)
 {
-	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>("SetMarker",
 		[markerColor = color, formatString = string](RenderCommandList* cmdList)
 		{
 			cmdList->SetMarker(markerColor, formatString);
@@ -395,7 +405,7 @@ void RenderContext::SetMarker(std::wstring string, glm::float3 color)
 
 void RenderContext::BeginEvent(std::wstring string, glm::float3 color)
 {
-	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>("BeginEvent",
 		[markerColor = color, formatString = string](RenderCommandList* cmdList)
 		{
 			cmdList->BeginEvent(markerColor, formatString);
@@ -404,7 +414,7 @@ void RenderContext::BeginEvent(std::wstring string, glm::float3 color)
 
 void RenderContext::EndEvent()
 {
-	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>(
+	m_commandRecorder.AllocateCommand<Commands::CustomRenderCommand>("EndEvent",
 		[](RenderCommandList* cmdList)
 		{
 			cmdList->EndEvent();

@@ -2,6 +2,7 @@
 #include "Texture.h"
 
 #include "Prism/Render/RenderCommandQueue.h"
+#include "Prism/Render/RenderConstants.h"
 #include "Prism/Render/RenderResourceCreation.h"
 #include "Prism/Render/RenderUtils.h"
 
@@ -429,7 +430,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 	if (!context)
 	{
 		RenderDevice::Get().SubmitContext(renderContext);
-		RenderDevice::Get().GetRenderCommandQueue()->Flush();
+		RenderDevice::Get().GetRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
 	}
 	else
 	{

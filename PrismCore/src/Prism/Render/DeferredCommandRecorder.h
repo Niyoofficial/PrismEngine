@@ -1,6 +1,5 @@
 ﻿#pragma once
 #include "Prism/Render/RenderCommands.h"
-#include "Prism/Render/RenderConstants.h"
 #include "Prism/Utilities/MemoryUtils.h"
 
 namespace Prism::Render
@@ -25,14 +24,18 @@ public:
 		}
 		else
 		{
-			//PE_RENDER_LOG(Info, "Recording: {}", T::GetCommandString());
-
 			size_t alignedOffset = Align(m_newCommandOffset, alignof(T));
 			m_newCommandOffset = alignedOffset + sizeof(T);
+			m_commands.insert(m_commands.end(), m_newCommandOffset - m_commands.size(), 0);
 			PE_ASSERT(alignedOffset <= m_commands.size() && m_commands.size() - alignedOffset >= sizeof(T));
 			auto* command = (Commands::RenderCommandBase*)new (m_commands.data() + alignedOffset) T(std::forward<Args>(args)...);
 			*m_commandLink = command;
 			m_commandLink = &command->next;
+
+			/*if (command->GetCommandString().empty())
+				PE_RENDER_LOG(Info, "Recording: {}", T::GetCommandStringStatic());
+			else
+				PE_RENDER_LOG(Info, "Recording: {}_{}", T::GetCommandStringStatic(), command->GetCommandString());*/
 		}
 	}
 
@@ -44,8 +47,7 @@ private:
 	void RecordCommands(RenderCommandList* commandList);
 
 private:
-	// TODO: Replace with a chunk allocator
-	std::array<uint8_t, Constants::CMD_LIST_BYTE_SIZE> m_commands = {};
+	std::vector<uint8_t> m_commands = {};
 	size_t m_newCommandOffset = 0;
 	Commands::RenderCommandBase* m_root = nullptr;
 	Commands::RenderCommandBase** m_commandLink = nullptr;

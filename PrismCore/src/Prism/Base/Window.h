@@ -26,6 +26,8 @@ public:
 
 	static Ref<Window> Create(const WindowDesc& windowDesc, const Render::SwapchainDesc& swapchainDesc);
 
+	virtual void DestroyWindow();
+
 	// Returns native window for the platform abstraction
 	// if we are using any (like SDL) or native platform window if we don't
 	virtual std::any GetNativeWindow() const = 0;

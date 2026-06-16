@@ -11,6 +11,8 @@ class SDLWindow final : public Core::Window
 public:
 	explicit SDLWindow(const Core::WindowDesc& windowParams, const Render::SwapchainDesc& swapchainDesc);
 
+	virtual void DestroyWindow() override;
+
 	virtual std::any GetNativeWindow() const override;
 	virtual std::any GetPlatformNativeWindow() const override;
 

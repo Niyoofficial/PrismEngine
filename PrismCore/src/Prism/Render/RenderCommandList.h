@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "Prism/Base/Window.h"
 #include "Prism/Render/PipelineState.h"
 #include "Prism/Utilities/PreservingObjectContainer.h"
 
@@ -80,7 +81,7 @@ public:
 	virtual void CopyTextureRegion(const Ref<Texture>& dest, glm::int3 destLoc, int32_t destSubresourceIndex,
 								   const Ref<Texture>& src, int32_t srcSubresourceIndex, Box3I srcBox) = 0;
 
-	virtual void RenderImGui() = 0;
+	virtual void RenderImGui(Swapchain* swapchain, int32_t backbufferIndex, ImDrawData* drawData) = 0;
 
 	virtual void SetMarker(glm::float3 color, std::wstring string) = 0;
 	virtual void BeginEvent(glm::float3 color, std::wstring string) = 0;

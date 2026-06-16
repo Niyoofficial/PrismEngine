@@ -96,3 +96,12 @@ target_link_libraries(${PROJECT_NAME} PRIVATE yaml-cpp::yaml-cpp)
 
 find_package(crossguid CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE crossguid)
+
+option(ENABLE_SUPERLUMINAL_API "Enable Superluminal API integration" ON)
+
+if (ENABLE_SUPERLUMINAL_API)
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../ThirdParty/SuperluminalAPI")
+find_package(SuperluminalAPI REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE SuperluminalAPI)
+target_compile_definitions(${PROJECT_NAME} PUBLIC "ENABLE_SUPERLUMINAL_API=1")
+endif()

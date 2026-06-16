@@ -24,10 +24,9 @@ public:
 
 	virtual TextureView* GetBackBufferRTV(int32_t index) const override;
 	virtual TextureView* GetCurrentBackBufferRTV() const override;
-	virtual int32_t GetCurrentBackBufferIndex() const override;
 
 private:
-	void GatherBackbuffersAndCreateRTVs();
+	void GatherBackBuffersAndCreateRTVs();
 
 private:
 	WeakRef<Core::Window> m_owningWindow;

@@ -60,20 +60,10 @@ struct alignas(Render::Constants::UNIFORM_BUFFER_ALIGNMENT) BloomSettingsUniform
 	int32_t lod = 0;
 };
 
-struct Vertex
-{
-	glm::float3 position;
-	glm::float3 normal;
-	glm::float3 tangent;
-	glm::float3 bitangent;
-	glm::float3 color;
-	glm::float2 texCoords;
-};
-
-class SandboxLayer : public Render::Layer
+class EditorLayer : public Render::Layer
 {
 public:
-	SandboxLayer(Core::Window* owningWindow);
+	EditorLayer(Core::Window* owningWindow, const Ref<Scene>& scene);
 
 	void UpdateImGui(Duration delta) override;
 	virtual void Update(Duration delta) override;
@@ -88,8 +78,6 @@ private:
 
 	Ref<Scene> m_scene;
 	
-	glm::float3 m_sunRotation = {0.f, glm::radians(-7.f), glm::radians(-101.f)};
-
 	ImGuizmo::OPERATION m_gizmoOperation = ImGuizmo::UNIVERSAL;
 	ImGuizmo::MODE m_gizmoMode = ImGuizmo::LOCAL;
 
@@ -120,35 +108,4 @@ private:
 
 	std::mutex m_fileLoadMutex;
 	std::vector<std::fs::path> m_filesToLoad;
-};
-
-class EditorApplication final : public Core::Application
-{
-public:
-	struct PrimitiveData
-	{
-		std::vector<Vertex> vertices;
-		std::vector<uint32_t> indices;
-
-		std::unordered_map<TextureType, Ref<Render::Texture>> textures;
-	};
-
-	struct MeshData
-	{
-		std::vector<PrimitiveData> primitives;
-	};
-
-public:
-	static EditorApplication& Get();
-
-	EditorApplication(int32_t argc, char** argv);
-
-	Core::Window* GetWindow() const;
-
-protected:
-	void InitImGui(Core::Window* window, Render::TextureFormat depthFormat) override;
-
-private:
-	Ref<Core::Window> m_window;
-	Ref<SandboxLayer> m_sandboxLayer;
 };

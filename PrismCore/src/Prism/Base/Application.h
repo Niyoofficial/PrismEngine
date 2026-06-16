@@ -47,8 +47,8 @@ public:
 	void PushLayer(Render::Layer* layer);
 	void PopLayer(Render::Layer* layer);
 
-	void RegisterWindow(Window* window);
-	void UnregisterWindow(Window* window);
+	void RegisterWindow(Ref<Window> window);
+	void UnregisterWindow(Ref<Window> window);
 
 	void CloseApplication();
 
@@ -62,6 +62,8 @@ public:
 	const AssetManager& GetAssetManager() const { return m_assetManager; }
 	AssetRegistry& GetAssetRegistry() { return m_assetRegistry; }
 	const AssetRegistry& GetAssetRegistry() const { return m_assetRegistry; }
+
+	virtual Ref<Window> GetMainWindow() const = 0;
 
 protected:
 	virtual void BeginFrame();

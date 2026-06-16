@@ -14,9 +14,8 @@
 namespace Prism::Render::D3D12
 {
 D3D12Swapchain::D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc)
-	: m_owningWindow(window), m_swapchainDesc(swapchainDesc)
+	: Swapchain(swapchainDesc), m_owningWindow(window), m_swapchainDesc(swapchainDesc)
 {
-	// TODO: add viewport support https://www.reddit.com/r/vulkan/comments/vxxu1k/using_multiple_swapchains/
 	DXGI_SWAP_CHAIN_DESC1 dxgiSwapchainDesc = {
 		.Width = (UINT)m_owningWindow->GetSize().x,
 		.Height = (UINT)m_owningWindow->GetSize().y,
@@ -50,7 +49,7 @@ D3D12Swapchain::D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc
 
 	m_backBuffers.reserve(swapchainDesc.bufferCount);
 	m_backBufferRTVs.reserve(swapchainDesc.bufferCount);
-	GatherBackbuffersAndCreateRTVs();
+	GatherBackBuffersAndCreateRTVs();
 
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::WindowResized>(
 		[this](Core::AppEvent event)
@@ -66,7 +65,7 @@ void D3D12Swapchain::Present()
 
 void D3D12Swapchain::Resize()
 {
-	RenderDevice::Get().GetRenderCommandQueue()->Flush();
+	RenderDevice::Get().GetRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
 
 	m_backBufferRTVs.clear();
 	m_backBuffers.clear();
@@ -76,7 +75,7 @@ void D3D12Swapchain::Resize()
 		m_owningWindow->GetSize().x, m_owningWindow->GetSize().y,
 		GetDXGIFormat(swapchainDesc.format), DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
-	GatherBackbuffersAndCreateRTVs();
+	GatherBackBuffersAndCreateRTVs();
 }
 
 SwapchainDesc D3D12Swapchain::GetSwapchainDesc() const
@@ -94,12 +93,7 @@ TextureView* D3D12Swapchain::GetCurrentBackBufferRTV() const
 	return GetBackBufferRTV(GetCurrentBackBufferIndex());
 }
 
-int32_t D3D12Swapchain::GetCurrentBackBufferIndex() const
-{
-	return (int32_t)m_swapchain->GetCurrentBackBufferIndex();
-}
-
-void D3D12Swapchain::GatherBackbuffersAndCreateRTVs()
+void D3D12Swapchain::GatherBackBuffersAndCreateRTVs()
 {
 	SwapchainDesc swapchainDesc = GetSwapchainDesc();
 
@@ -111,7 +105,7 @@ void D3D12Swapchain::GatherBackbuffersAndCreateRTVs()
 		m_backBuffers.push_back(Ref<D3D12Texture>::Create(
 			&D3D12RenderDevice::Get(), // TODO: Remove static access to render device from here
 			swapchainTexture,
-			std::wstring(L"Backbuffer_") + std::to_wstring(i + 1),
+			std::wstring(L"Backbuffer_") + std::to_wstring(i),
 			ResourceUsage::Default,
 			RenderTargetClearValue{swapchainDesc.format, {0.f, 0.f, 0.f, 0.f}}));
 

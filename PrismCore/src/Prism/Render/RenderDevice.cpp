@@ -2,6 +2,7 @@
 #include "RenderDevice.h"
 
 #include "Prism/Render/RenderCommandQueue.h"
+#include "Prism/Render/RenderConstants.h"
 #include "Prism/Render/RenderResourceCreation.h"
 
 
@@ -116,7 +117,7 @@ Ref<Buffer> RenderDevice::CreateBuffer(const BufferDesc& desc, RawData initData)
 			context->UpdateBuffer(buffer, initData);
 
 			SubmitContext(context);
-			GetRenderCommandQueue()->Flush();
+			GetRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
 		}
 		else
 		{
@@ -138,7 +139,7 @@ Ref<Texture> RenderDevice::CreateTexture(const TextureDesc& desc, BarrierLayout 
 		context->UpdateTexture(texture, initData, 0);
 
 		SubmitContext(context);
-		GetRenderCommandQueue()->Flush();
+		GetRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
 	}
 
 	return texture;
@@ -170,7 +171,7 @@ Ref<Texture> RenderDevice::CreateTexture(const TextureDesc& desc, const Ref<Buff
 	context->CopyBufferRegion(texture, { 0, 0, 0 }, 0, uploadBuffer, 0);
 
 	SubmitContext(context);
-	GetRenderCommandQueue()->Flush();
+	GetRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
 
 	return texture;
 }

@@ -63,6 +63,7 @@ D3D12RenderCommandList::D3D12RenderCommandList()
 {
 	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommandAllocator(
 		D3D12_COMMAND_LIST_TYPE_DIRECT, IID_PPV_ARGS(&m_commandAllocator)));
+	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->GetDeviceRemovedReason());
 	PE_ASSERT_HR(D3D12RenderDevice::Get().GetD3D12Device()->CreateCommandList(
 		0,
 		D3D12_COMMAND_LIST_TYPE_DIRECT,
@@ -426,24 +427,12 @@ void D3D12RenderCommandList::CopyTextureRegion(const Ref<Texture>& dest, glm::in
    m_commandList->CopyTextureRegion(&destTexLoc, (UINT)destLoc.x, (UINT)destLoc.y, (UINT)destLoc.z, &srcTexLoc, (srcBox.size.x <= 0 || srcBox.size.y <= 0 || srcBox.size.z <= 0) ? nullptr : &d3d12Box);
 }
 
-void D3D12RenderCommandList::RenderImGui()
+void D3D12RenderCommandList::RenderImGui(Swapchain* swapchain, int32_t backbufferIndex, ImDrawData* drawData)
 {
-	ImGui::Render();
+	auto descriptor = static_cast<D3D12TextureView*>(swapchain->GetBackBufferRTV(backbufferIndex))->GetDescriptor().GetCPUHandle();
+	m_commandList->OMSetRenderTargets(1, &descriptor, true, nullptr);
 
-	const auto& windows = Core::Application::Get().GetWindows();
-	if (!windows.empty())
-	{
-		PE_ASSERT(windows.front().IsValid());
-
-		// TODO: We don't have a concept of main window so we just get the first one for now
-		auto mainWindow = windows.front();
-		auto* currentBackBuffer = static_cast<D3D12TextureView*>(mainWindow->GetSwapchain()->GetCurrentBackBufferRTV());
-
-		auto descriptor = currentBackBuffer->GetDescriptor().GetCPUHandle();
-		m_commandList->OMSetRenderTargets(1, &descriptor, true, nullptr);
-	}
-
-	ImGui_ImplDX12_RenderDrawData(ImGui::GetDrawData(), m_commandList.Get());
+	ImGui_ImplDX12_RenderDrawData(drawData, m_commandList.Get());
 }
 
 void D3D12RenderCommandList::SetMarker(glm::float3 color, std::wstring string)

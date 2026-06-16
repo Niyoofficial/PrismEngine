@@ -11,6 +11,7 @@
 #include "Prism/Utilities/ScopeExit.h"
 #include "Prism/Utilities/Flags.h"
 #include "Prism/Base/CommonTypes.h"
+#include "Prism/Utilities/Instrumentation.h"
 
 #include "Prism/UI/PrismImGui.h"
 

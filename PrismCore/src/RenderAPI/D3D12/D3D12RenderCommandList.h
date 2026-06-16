@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "Prism/Render/RenderCommandList.h"
 #include "Prism/Render/RenderResourceView.h"
+#include "Prism/Render/Swapchain.h"
 #include "RenderAPI/D3D12/D3D12Base.h"
 #include "RenderAPI/D3D12/D3D12DescriptorHeapManager.h"
 #include "RenderAPI/D3D12/D3D12DynamicBufferAllocator.h"
@@ -54,7 +55,7 @@ public:
 	virtual void CopyTextureRegion(const Ref<Texture>& dest, glm::int3 destLoc, int32_t destSubresourceIndex,
 								   const Ref<Texture>& src, int32_t srcSubresourceIndex, Box3I srcBox) override;
 
-	virtual void RenderImGui() override;
+	virtual void RenderImGui(Swapchain* swapchain, int32_t backbufferIndex, ImDrawData* drawData) override;
 
 	virtual void SetMarker(glm::float3 color, std::wstring string) override;
 	virtual void BeginEvent(glm::float3 color, std::wstring string) override;

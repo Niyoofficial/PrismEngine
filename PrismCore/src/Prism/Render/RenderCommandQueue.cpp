@@ -9,7 +9,55 @@
 
 namespace Prism::Render
 {
-uint64_t RenderCommandQueue::Submit(RenderContext* context)
+template<class... Ts>
+struct Overloaded : Ts... { using Ts::operator()...; };
+
+RenderCommandQueue::RenderCommandQueue()
+	: m_commandRecordingThread(
+		[commandQueue = this](std::stop_token st)
+		{
+			//auto test = commandQueue;
+			while (!st.stop_requested())
+			{
+				RecordingInfo recordingInfo;
+				{
+					std::unique_lock lock(commandQueue->m_recordingMutex);
+
+					if (commandQueue->m_recordingQueue.empty())
+					{
+						commandQueue->m_recordingCV.notify_one();
+						continue;
+					}
+
+					recordingInfo = commandQueue->m_recordingQueue.front();
+					commandQueue->m_recordingQueue.pop();
+				}
+
+				std::visit(Overloaded{
+					[&commandQueue](const ContextRecordingInfo& context)
+					{
+						if (context.renderContext)
+						{
+							context.renderContext->m_commandRecorder.RecordCommands(context.cmdList);
+							context.cmdList->Close();
+
+							//PE_RENDER_LOG(Info, "Executing \"{}\"", WStringToString(context.renderContext->m_debugName));
+							commandQueue->Execute(context.cmdList);
+
+							commandQueue->SignalFence(context.fenceValue);
+						}
+					},
+					[](const PresentRecordingInfo& present)
+					{
+						//PE_RENDER_LOG(Info, "Presenting \"{}\"", present.swapchain->GetCurrentBackBufferIndex());
+						present.swapchain->Present();
+					}}, recordingInfo);
+			}
+		})
+{
+}
+
+uint64_t RenderCommandQueue::Submit(const Ref<RenderContext>& context)
 {
 	PE_ASSERT(context);
 
@@ -20,12 +68,14 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 
 	Ref<RenderCommandList> cmdList;
 	if (RenderDevice::Get().GetBypassCommandRecording())
+	{
 		cmdList = context->m_commandRecorder.GetCommandListForBypass();
+	}
 	else
+	{
 		cmdList = RenderCommandList::Create();
-
-	Ref<RenderCommandList> cmdListCopy = cmdList;
-	context->SafeReleaseResource(cmdListCopy);
+		context->SafeReleaseResource(cmdList);
+	}
 
 	m_submittedContexts.emplace_back(SubmittedRenderContext{
 		.fenceValue = m_lastSubmittedCmdListFenceValue,
@@ -33,31 +83,44 @@ uint64_t RenderCommandQueue::Submit(RenderContext* context)
 		.renderContext = context
 	});
 
-	m_cmdListsQueue.push({cmdList, m_lastSubmittedCmdListFenceValue});
+	{
+		std::unique_lock lock(m_recordingMutex);
+		m_recordingQueue.emplace(ContextRecordingInfo{context, cmdList, m_lastSubmittedCmdListFenceValue});
+	}
 
-	auto func =
-		[this, cmdRecorder = &context->m_commandRecorder, cmdList = cmdList.Raw()]()
-		{
-			if (!RenderDevice::Get().GetBypassCommandRecording())
-				cmdRecorder->RecordCommands(cmdList);
-
-			cmdList->Close();
-
-			TryExecuteQueuedCmdListsAsync();
-		};
-
-	func();
-	//auto future = std::async(std::launch::async, func);
-
-	return GetLastSubmittedCmdListFenceValue();
+	return m_lastSubmittedCmdListFenceValue;
 }
 
-void RenderCommandQueue::Flush()
+void RenderCommandQueue::EnqueuePresent(const Ref<Swapchain>& swapchain)
 {
-	uint64_t fenceValue = IncreaseAndSignalFence();
-	SetMarker({1.f, 0.f, 0.f}, L"Flush");
-	WaitForFenceToComplete(fenceValue);
-	ReleaseStaleResources();
+	RenderDevice::Get().AddResourceToReleaseQueueWhenFrameEnds(swapchain);
+
+	swapchain->AdvanceBackBufferIndex();
+
+	{
+		std::unique_lock lock(m_recordingMutex);
+		m_recordingQueue.emplace(PresentRecordingInfo{swapchain});
+	}
+}
+
+void RenderCommandQueue::Flush(CommandQueueFlushType flushType)
+{
+	// This part happens no matter what flush type is chosen
+	{
+		std::unique_lock lock(m_recordingMutex);
+
+		m_recordingQueue.push({});
+
+		m_recordingCV.wait(lock, [this]() { return m_recordingQueue.empty(); });
+	}
+
+	if (flushType == CommandQueueFlushType::WaitForCompletion)
+	{
+		uint64_t fenceValue = IncreaseAndSignalFence();
+		SetMarker({ 1.f, 0.f, 0.f }, L"Flush");
+		WaitForFenceToComplete(fenceValue);
+		ReleaseStaleResources();
+	}
 }
 
 uint64_t RenderCommandQueue::GetLastSubmittedCmdListFenceValue() const
@@ -106,7 +169,7 @@ void RenderCommandQueue::ReleaseStaleResources()
 
 void RenderCommandQueue::TryExecuteQueuedCmdListsAsync()
 {
-	{
+	/*{
 		std::lock_guard lock(m_cmdListsExecutingMutex);
 
 		if (m_isCurrentlyExecuting)
@@ -115,20 +178,19 @@ void RenderCommandQueue::TryExecuteQueuedCmdListsAsync()
 		m_isCurrentlyExecuting = true;
 	}
 
-	while (!m_cmdListsQueue.empty() && m_cmdListsQueue.front().cmdList->IsClosed())
+	while (!m_recordingQueue.empty() && m_recordingQueue.front()->IsClosed())
 	{
-		auto cmdListToExecute = m_cmdListsQueue.front();
+		auto cmdListToExecute = m_recordingQueue.front();
 
-		m_cmdListsQueue.pop();
-		Execute(cmdListToExecute.cmdList);
-		SignalFence(cmdListToExecute.fenceValue);
-		m_lastQueuedCmdListFenceValue = cmdListToExecute.fenceValue;
+		m_recordingQueue.pop();
+		Execute(cmdListToExecute);
+		m_lastQueuedCmdListFenceValue = IncreaseAndSignalFence();
 	}
 
 	{
 		std::lock_guard lock(m_cmdListsExecutingMutex);
 
 		m_isCurrentlyExecuting = false;
-	}
+	}*/
 }
 }

@@ -22,6 +22,7 @@ struct SwapchainDesc
 
 class Swapchain : public RefCounted
 {
+	friend class RenderCommandQueue;
 public:
 	static Ref<Swapchain> Create(Core::Window* window, SwapchainDesc swapchainDesc);
 
@@ -32,6 +33,15 @@ public:
 
 	virtual class TextureView* GetBackBufferRTV(int32_t index) const = 0;
 	virtual TextureView* GetCurrentBackBufferRTV() const = 0;
-	virtual int32_t GetCurrentBackBufferIndex() const = 0;
+	int32_t GetCurrentBackBufferIndex() const { return m_currentBackBufferIndex; }
+
+protected:
+	explicit Swapchain(SwapchainDesc desc);
+
+	void AdvanceBackBufferIndex();
+
+protected:
+	SwapchainDesc m_desc;
+	int32_t m_currentBackBufferIndex = 0;
 };
 }

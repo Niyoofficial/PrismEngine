@@ -13,8 +13,12 @@ Ref<Window> Window::Create(const WindowDesc& windowDesc, const Render::Swapchain
 	return window;
 }
 
-Window::~Window()
+void Window::DestroyWindow()
 {
 	Application::Get().UnregisterWindow(this);
+}
+
+Window::~Window()
+{
 }
 }

@@ -19,6 +19,14 @@ SDLWindow::SDLWindow(const Core::WindowDesc& windowParams, const Render::Swapcha
 	m_swapchain = Render::Swapchain::Create(this, swapchainDesc);
 }
 
+void SDLWindow::DestroyWindow()
+{
+	Window::DestroyWindow();
+
+	// TODO: Properly handle destroying the window
+	SDL_DestroyWindow(m_nativeWindow);
+}
+
 std::any SDLWindow::GetNativeWindow() const
 {
 	return m_nativeWindow;
