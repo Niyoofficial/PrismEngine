@@ -75,6 +75,8 @@ public:
 								Window* window = nullptr, const std::vector<DialogFileFilter>& filters = {},
 								const std::fs::path& defaultLocation = {}, bool allowMany = false) = 0;
 
+	virtual void SetCurrentThreadDescription(std::wstring description) = 0;
+
 
 	virtual void InitializeImGuiPlatform(Window* window) = 0;
 	virtual void ShutdownImGuiPlatform() = 0;

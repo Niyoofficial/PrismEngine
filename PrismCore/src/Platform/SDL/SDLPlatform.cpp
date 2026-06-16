@@ -478,6 +478,17 @@ void SDLPlatform::OpenFileDialog(const std::function<void(std::vector<std::strin
 						   data->sdlFilters.data(), data->sdlFilters.size(), defaultLocation.lexically_normal().make_preferred().string().c_str(), allowMany);
 }
 
+#if PE_PLATFORM_WINDOWS
+#define WIN32_LEAN_AND_MEAN
+#include "Windows.h"
+#endif
+void SDLPlatform::SetCurrentThreadDescription(std::wstring description)
+{
+#if PE_PLATFORM_WINDOWS
+	SetThreadDescription(GetCurrentThread(), description.c_str());
+#endif
+}
+
 void SDLPlatform::InitializeImGuiPlatform(Core::Window* window)
 {
 	ImGui_ImplSDL3_InitForD3D(std::any_cast<SDL_Window*>(window->GetNativeWindow()));

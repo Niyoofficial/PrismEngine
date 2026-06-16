@@ -19,6 +19,8 @@ Application::Application(int32_t argc, char** argv)
 		// TODO: Case insensitive comparison
 		if (strcmp(argv[i], "-bypassCmdRecord") == 0)
 			m_bypassCmdRecording = true;
+		else if (strcmp(argv[i], "-enableRenderDebugLayer") == 0)
+			m_enableRenderDebugLayer = true;
 	}
 }
 
@@ -162,10 +164,11 @@ void Application::ShutdownPlatform()
 	Platform::TryDestroy();
 }
 
-void Application::InitRenderer(const Render::RenderDeviceParams& params)
+void Application::InitRenderer(Render::RenderDeviceParams params)
 {
 	using namespace Render;
 
+	params.enableDebugLayer |= m_enableRenderDebugLayer;
 	RenderDevice::Create(params);
 	RenderDevice::Get().SetBypassCommandRecording(m_bypassCmdRecording);
 

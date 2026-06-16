@@ -3,6 +3,7 @@
 
 #include <future>
 
+#include "Prism/Base/Platform.h"
 #include "Prism/Render/RenderContext.h"
 #include "Prism/Render/RenderResourceCreation.h"
 
@@ -16,9 +17,12 @@ RenderCommandQueue::RenderCommandQueue()
 	: m_commandRecordingThread(
 		[commandQueue = this](std::stop_token st)
 		{
+			Core::Platform::Get().SetCurrentThreadDescription(L"RenderQueueThread");
 			//auto test = commandQueue;
 			while (!st.stop_requested())
 			{
+				SCOPED_INSTRUMENTATION("RenderQueueLoop");
+
 				RecordingInfo recordingInfo;
 				{
 					std::unique_lock lock(commandQueue->m_recordingMutex);
@@ -36,6 +40,8 @@ RenderCommandQueue::RenderCommandQueue()
 				std::visit(Overloaded{
 					[&commandQueue](const ContextRecordingInfo& context)
 					{
+						SCOPED_INSTRUMENTATION("ContextRecording", !context.renderContext ? "Invalid context - flush" : "", context.renderContext ? MAKE_COLOR(200, 50, 50) : MAKE_COLOR(0, 0, 0));
+
 						if (context.renderContext)
 						{
 							context.renderContext->m_commandRecorder.RecordCommands(context.cmdList);
@@ -49,6 +55,8 @@ RenderCommandQueue::RenderCommandQueue()
 					},
 					[](const PresentRecordingInfo& present)
 					{
+						SCOPED_INSTRUMENTATION("Present", nullptr, MAKE_COLOR(200, 200, 50));
+
 						//PE_RENDER_LOG(Info, "Presenting \"{}\"", present.swapchain->GetCurrentBackBufferIndex());
 						present.swapchain->Present();
 					}}, recordingInfo);

@@ -26,6 +26,8 @@ public:
 								Core::Window* window, const std::vector<Core::DialogFileFilter>& filters,
 								const std::fs::path& defaultLocation, bool allowMany) override;
 
+	virtual void SetCurrentThreadDescription(std::wstring description) override;
+
 
 	virtual void InitializeImGuiPlatform(Core::Window* window) override;
 	virtual void ShutdownImGuiPlatform() override;

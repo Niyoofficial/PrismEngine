@@ -74,7 +74,7 @@ protected:
 	void InitPlatform();
 	void ShutdownPlatform();
 
-	void InitRenderer(const Render::RenderDeviceParams& params);
+	void InitRenderer(Render::RenderDeviceParams params);
 	void ShutdownRenderer();
 
 	virtual void InitImGui(Window* window, Render::TextureFormat depthFormat);
@@ -103,5 +103,6 @@ protected:
 	bool m_imguiInitialized = false;
 
 	bool m_bypassCmdRecording = false;
+	bool m_enableRenderDebugLayer = false;
 };
 }
