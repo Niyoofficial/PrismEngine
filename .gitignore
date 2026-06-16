@@ -24,3 +24,9 @@ Sandbox/RunSandbox-*.bat
 **.user
 out/
 enc_temp_folder/
+
+# JetBrains IDE files
+.idea/
+
+# vcpkg
+**/vcpkg_installed/
