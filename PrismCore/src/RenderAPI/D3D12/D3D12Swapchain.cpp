@@ -76,6 +76,8 @@ void D3D12Swapchain::Resize()
 		GetDXGIFormat(swapchainDesc.format), DXGI_SWAP_CHAIN_FLAG_ALLOW_MODE_SWITCH));
 
 	GatherBackBuffersAndCreateRTVs();
+
+	m_currentBackBufferIndex = 0;
 }
 
 SwapchainDesc D3D12Swapchain::GetSwapchainDesc() const
