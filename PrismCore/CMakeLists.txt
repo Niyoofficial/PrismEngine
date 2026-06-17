@@ -1,44 +1,43 @@
 cmake_minimum_required(VERSION 3.26)
 
-if(NOT "${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}" STREQUAL "")
-	set(PE_WINDOWS_SDK_VERSION ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION})
-else()
-	set(PE_WINDOWS_SDK_VERSION ${CMAKE_SYSTEM_VERSION})
-endif()
-
-find_library(D3D12_LIB NAMES d3d12 HINTS "$ENV{ProgramFiles\(x86\)}/Windows Kits/10/Lib/${PE_WINDOWS_SDK_VERSION}/um/x64")
-
 project(PrismCore)
 
 file(GLOB_RECURSE SOURCES
-	src/*
+        src/*
 )
+
+option(PE_D3D12_BACKEND "Enable DirectX 12 render backend" OFF)
+option(PE_VULKAN_BACKEND "Enable Vulkan render backend" ON)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 add_library(${CMAKE_PROJECT_NAME}::Core ALIAS ${PROJECT_NAME})
 
 target_include_directories(${PROJECT_NAME}
-	PUBLIC
-		${PROJECT_SOURCE_DIR}/src
+        PUBLIC
+        ${PROJECT_SOURCE_DIR}/src
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC
-	$<$<CONFIG:Debug>:PE_BUILD_DEBUG=1>
-	$<$<CONFIG:RelWithDebInfo>:PE_BUILD_PROFILE=1>
-	$<$<CONFIG:Release>:PE_BUILD_RELEASE=1>
+        $<$<CONFIG:Debug>:PE_BUILD_DEBUG=1>
+        $<$<CONFIG:RelWithDebInfo>:PE_BUILD_PROFILE=1>
+        $<$<CONFIG:Release>:PE_BUILD_RELEASE=1>
 )
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC PE_ENGINE_DIR=${PROJECT_SOURCE_DIR})
 message(STATUS "Engine directory set to: ${PROJECT_SOURCE_DIR}")
 
 if (WIN32)
-	target_compile_options(${PROJECT_NAME} PUBLIC "$<$<C_COMPILER_ID:MSVC>:/utf-8>")
-	target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
-	target_compile_options(${PROJECT_NAME} PUBLIC "/Zc:preprocessor")
-	target_compile_definitions(${PROJECT_NAME} PUBLIC "PE_PLATFORM_WINDOWS=1")
-	target_compile_definitions(${PROJECT_NAME} PUBLIC "USE_PIX=1")
-	add_definitions(-DUNICODE -D_UNICODE)
-endif()
+    target_compile_options(${PROJECT_NAME} PUBLIC "$<$<C_COMPILER_ID:MSVC>:/utf-8>")
+    target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
+    target_compile_options(${PROJECT_NAME} PUBLIC "/Zc:preprocessor")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC "PE_PLATFORM_WINDOWS=1")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC "USE_PIX=1")
+
+    add_definitions(-DUNICODE -D_UNICODE)
+
+    find_package(winpixevent CONFIG REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::WinPixEventRuntime)
+endif ()
 
 target_precompile_headers(${PROJECT_NAME} PRIVATE src/pcpch.h)
 
@@ -63,31 +62,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE imguizmo::imguizmo)
 find_package(assimp CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE assimp::assimp)
 
-find_package(directxtk12 CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectXTK12)
-
-find_package(directx-headers CONFIG REQUIRED)
-find_package(directx12-agility CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility)
-
-if(TARGET Microsoft::DirectX12-Agility)
-	file(MAKE_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/D3D12")
-	add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PROPERTY:Microsoft::DirectX12-Core,IMPORTED_LOCATION_RELEASE> $<TARGET_FILE_DIR:Sandbox>/D3D12/D3D12Core.dll
-		COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PROPERTY:Microsoft::DirectX12-Layers,IMPORTED_LOCATION_DEBUG> $<TARGET_FILE_DIR:Sandbox>/D3D12/D3D12SDKLayers.dll
-		COMMAND_EXPAND_LISTS
-	)
-endif()
-
-find_package(directx-dxc CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectXShaderCompiler)
-
-target_link_libraries(${PROJECT_NAME} PRIVATE dxgi.lib)
-target_link_libraries(${PROJECT_NAME} PRIVATE dxguid.lib)
-
-find_package(winpixevent CONFIG REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::WinPixEventRuntime)
-
 find_package(xxHash CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE xxHash::xxhash)
 
@@ -97,11 +71,53 @@ target_link_libraries(${PROJECT_NAME} PRIVATE yaml-cpp::yaml-cpp)
 find_package(crossguid CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE crossguid)
 
+if (PE_D3D12_BACKEND)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC "PE_SUPPORT_D3D12=1")
+    target_compile_definitions(${PROJECT_NAME} PUBLIC "USE_PIX=1")
+
+    if (NOT "${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}" STREQUAL "")
+        set(PE_WINDOWS_SDK_VERSION ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION})
+    else ()
+        set(PE_WINDOWS_SDK_VERSION ${CMAKE_SYSTEM_VERSION})
+    endif ()
+
+    find_library(D3D12_LIB NAMES d3d12 HINTS "$ENV{ProgramFiles\(x86\)}/Windows Kits/10/Lib/${PE_WINDOWS_SDK_VERSION}/um/x64")
+
+    find_package(directxtk12 CONFIG REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectXTK12)
+
+    find_package(directx-headers CONFIG REQUIRED)
+    find_package(directx12-agility CONFIG REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectX-Headers Microsoft::DirectX-Guids Microsoft::DirectX12-Agility)
+
+    if (TARGET Microsoft::DirectX12-Agility)
+        file(MAKE_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/D3D12")
+        add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
+                COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PROPERTY:Microsoft::DirectX12-Core,IMPORTED_LOCATION_RELEASE> $<TARGET_FILE_DIR:Sandbox>/D3D12/D3D12Core.dll
+                COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_PROPERTY:Microsoft::DirectX12-Layers,IMPORTED_LOCATION_DEBUG> $<TARGET_FILE_DIR:Sandbox>/D3D12/D3D12SDKLayers.dll
+                COMMAND_EXPAND_LISTS
+        )
+    endif ()
+
+    find_package(directx-dxc CONFIG REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectXShaderCompiler)
+
+    target_link_libraries(${PROJECT_NAME} PRIVATE dxgi.lib)
+    target_link_libraries(${PROJECT_NAME} PRIVATE dxguid.lib)
+endif ()
+
+if (PE_VULKAN_BACKEND)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC "PE_SUPPORT_VULKAN=1")
+
+    find_package(Vulkan REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
+endif ()
+
 option(ENABLE_SUPERLUMINAL_API "Enable Superluminal API integration" ON)
 
 if (ENABLE_SUPERLUMINAL_API)
-list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../ThirdParty/SuperluminalAPI")
-find_package(SuperluminalAPI REQUIRED)
-target_link_libraries(${PROJECT_NAME} PRIVATE SuperluminalAPI)
-target_compile_definitions(${PROJECT_NAME} PUBLIC "ENABLE_SUPERLUMINAL_API=1")
-endif()
+    list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../ThirdParty/SuperluminalAPI")
+    find_package(SuperluminalAPI REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE SuperluminalAPI)
+    target_compile_definitions(${PROJECT_NAME} PUBLIC "ENABLE_SUPERLUMINAL_API=1")
+endif ()
