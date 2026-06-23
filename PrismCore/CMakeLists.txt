@@ -111,6 +111,9 @@ if (PE_VULKAN_BACKEND)
 
     find_package(Vulkan REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
+
+    find_package(VulkanMemoryAllocator CONFIG REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)
 endif ()
 
 option(ENABLE_SUPERLUMINAL_API "Enable Superluminal API integration" ON)

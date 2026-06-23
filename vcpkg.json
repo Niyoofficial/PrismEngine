@@ -27,7 +27,8 @@
 		"winpixevent",
 		"xxhash",
 		"yaml-cpp",
-		"crossguid"
+		"crossguid",
+		"vulkan-memory-allocator"
 	],
 	"overrides": [
 		{
