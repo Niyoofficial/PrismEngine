@@ -51,3 +51,5 @@ SpacesInParentheses: false
 UseTab: ForIndentation
 IndentWidth: 4
 TabWidth: 4
+SeparateDefinitionBlocks: Always
+InsertBraces: true
