@@ -14,4 +14,6 @@ static VkImageUsageFlags GetVkImageUsageFlags(Flags<BindFlags> flags);
 static VkImageAspectFlags GetVkImageAspectFlags(TextureFormat format);
 
 static VkFormat GetVkFormat(TextureFormat format);
+
+static VkBufferUsageFlags GetVkBufferUsageFlags(Flags<BindFlags> flags);
 } // namespace Prism::Render::Vulkan

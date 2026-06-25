@@ -253,3 +253,44 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const TextureFormat format)
 		return VK_FORMAT_UNDEFINED;
 	}
 }
+
+VkBufferUsageFlags Prism::Render::Vulkan::GetVkBufferUsageFlags(Flags<BindFlags> flags)
+{
+	VkBufferUsageFlags bufferUsageFlags{};
+
+	if (flags.HasAnyFlags(BindFlags::VertexBuffer))
+	{
+		bufferUsageFlags |= VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+	}
+
+	if (flags.HasAnyFlags(BindFlags::IndexBuffer))
+	{
+		bufferUsageFlags |= VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+	}
+
+	if (flags.HasAnyFlags(BindFlags::UniformBuffer))
+	{
+		bufferUsageFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+	}
+
+	if (flags.HasAnyFlags(BindFlags::ShaderResource))
+	{
+		bufferUsageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+		bufferUsageFlags |= VK_BUFFER_USAGE_UNIFORM_TEXEL_BUFFER_BIT;
+	}
+
+	if (flags.HasAnyFlags(BindFlags::UnorderedAccess))
+	{
+		bufferUsageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
+	}
+
+	if (flags.HasAnyFlags(BindFlags::IndirectDrawArgs))
+	{
+		bufferUsageFlags |= VK_BUFFER_USAGE_INDIRECT_BUFFER_BIT;
+	}
+
+	bufferUsageFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+	bufferUsageFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
+	return bufferUsageFlags;
+}
