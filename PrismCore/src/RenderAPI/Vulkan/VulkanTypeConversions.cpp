@@ -294,3 +294,32 @@ VkBufferUsageFlags Prism::Render::Vulkan::GetVkBufferUsageFlags(Flags<BindFlags>
 
 	return bufferUsageFlags;
 }
+
+VmaAllocationCreateInfo Prism::Render::Vulkan::GetVmaAllocationCreateInfo(const ResourceUsage usage,
+                                                                          const Flags<CPUAccess> cpuAccess)
+{
+	VmaAllocationCreateInfo allocationCreateInfo{};
+
+	switch (usage)
+	{
+	case ResourceUsage::Default:
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_GPU_ONLY;
+		break;
+	case ResourceUsage::Dynamic:
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_TO_GPU;
+		allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+		break;
+	case ResourceUsage::Staging:
+		allocationCreateInfo.usage = VMA_MEMORY_USAGE_CPU_ONLY;
+		if (cpuAccess.HasAnyFlags(CPUAccess::Read))
+		{
+			allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+		}
+		else if (cpuAccess.HasAnyFlags(CPUAccess::Write))
+		{
+			allocationCreateInfo.flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+		}
+	}
+
+	return allocationCreateInfo;
+}

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 #include "Prism/Render/RenderTypes.h"
 
@@ -16,4 +17,6 @@ static VkImageAspectFlags GetVkImageAspectFlags(TextureFormat format);
 static VkFormat GetVkFormat(TextureFormat format);
 
 static VkBufferUsageFlags GetVkBufferUsageFlags(Flags<BindFlags> flags);
+
+static VmaAllocationCreateInfo GetVmaAllocationCreateInfo(ResourceUsage usage, Flags<CPUAccess> cpuAccess);
 } // namespace Prism::Render::Vulkan
