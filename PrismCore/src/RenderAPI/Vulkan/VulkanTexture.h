@@ -12,7 +12,6 @@ class VulkanRenderDevice;
 struct VulkanTextureResource
 {
 	VkImage image = VK_NULL_HANDLE;
-	VkImageView imageView = VK_NULL_HANDLE;
 	VkSampler sampler = VK_NULL_HANDLE;
 	VmaAllocation allocation = nullptr;
 
@@ -51,8 +50,6 @@ public:
 
 private:
 	void CreateImage(const VulkanRenderDevice* renderDevice, const TextureDesc& desc);
-
-	void CreateImageView(const VulkanRenderDevice* renderDevice, const TextureDesc& desc);
 
 	void CreateSampler(VulkanRenderDevice* renderDevice, const TextureDesc& desc);
 

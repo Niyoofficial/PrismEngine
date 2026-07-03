@@ -12,7 +12,6 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
                                                     BarrierLayout initLayout) : Texture(renderDevice), m_originalDesc(desc)
 {
 	CreateImage(renderDevice, desc);
-	CreateImageView(renderDevice, desc);
 	CreateSampler(renderDevice, desc);
 }
 
@@ -58,7 +57,6 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		const VkDeviceSize imageSize = width * height * STBI_rgb_alpha * bytesPerChannel;
 
 		CreateImage(renderDevice, m_originalDesc);
-		CreateImageView(renderDevice, m_originalDesc);
 		CreateSampler(renderDevice, m_originalDesc);
 
 		UploadTextureData(renderDevice, pixels, imageSize);
@@ -106,7 +104,6 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		const VkDeviceSize imageSize = width * height * STBI_rgb_alpha;
 
 		CreateImage(renderDevice, m_originalDesc);
-		CreateImageView(renderDevice, m_originalDesc);
 		CreateSampler(renderDevice, m_originalDesc);
 
 		UploadTextureData(renderDevice, pixels, imageSize);
@@ -136,12 +133,6 @@ Prism::Render::Vulkan::VulkanTexture::~VulkanTexture()
 
 		m_texture.image = VK_NULL_HANDLE;
 		m_texture.allocation = nullptr;
-	}
-
-	if (m_texture.imageView)
-	{
-		vkDestroyImageView(device->GetDevice(), m_texture.imageView, nullptr);
-		m_texture.imageView = VK_NULL_HANDLE;
 	}
 
 	if (m_texture.sampler)
@@ -219,26 +210,6 @@ void Prism::Render::Vulkan::VulkanTexture::CreateImage(const VulkanRenderDevice*
 		}
 	}
 #endif
-}
-
-void Prism::Render::Vulkan::VulkanTexture::CreateImageView(const VulkanRenderDevice* renderDevice, const TextureDesc& desc)
-{
-	const VkImageViewCreateInfo info{
-	    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-	    .image = m_texture.image,
-	    .viewType = GetVkImageViewType(desc.dimension, desc.GetArraySize()),
-	    .format = GetVkFormat(m_originalDesc.format),
-	    .subresourceRange =
-	        {
-	            .aspectMask = GetVkImageAspectFlags(m_originalDesc.format),
-	            .baseMipLevel = 0,
-	            .levelCount = static_cast<uint32_t>(m_originalDesc.mipLevels),
-	            .baseArrayLayer = 0,
-	            .layerCount = m_originalDesc.Is3D() ? 1 : static_cast<uint32_t>(m_originalDesc.GetArraySize()),
-	        },
-	};
-
-	PE_ASSERT(vkCreateImageView(renderDevice->GetDevice(), &info, nullptr, &m_texture.imageView) == VK_SUCCESS);
 }
 
 void Prism::Render::Vulkan::VulkanTexture::CreateSampler(VulkanRenderDevice* renderDevice, const TextureDesc& desc)
