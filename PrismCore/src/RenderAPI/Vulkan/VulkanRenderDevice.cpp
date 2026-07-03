@@ -52,8 +52,6 @@ Prism::Render::Vulkan::VulkanRenderDevice::VulkanRenderDevice(const RenderDevice
 
 	CreateAllocator();
 
-	CreateRenderCommandQueue();
-
 	InitDeviceSubsystems();
 }
 
