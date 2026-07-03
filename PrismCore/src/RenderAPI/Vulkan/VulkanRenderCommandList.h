@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan_core.h>
 #include "Prism/Render/RenderCommandList.h"
+#include "Prism/Render/RenderResourceView.h"
 
 namespace Prism::Render::Vulkan
 {
