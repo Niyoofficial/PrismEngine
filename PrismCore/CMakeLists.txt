@@ -116,7 +116,7 @@ if (PE_VULKAN_BACKEND)
     target_compile_definitions(${PROJECT_NAME} PUBLIC "PE_SUPPORT_VULKAN=1")
 
     file(GLOB_RECURSE VULKAN_SOURCES "src/RenderAPI/Vulkan/*")
-    target_sources(${PROJECT_NAME} PRIVATE ${VUKLAN_SOURCES})
+    target_sources(${PROJECT_NAME} PRIVATE ${VULKAN_SOURCES})
 
     find_package(Vulkan REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
