@@ -6,6 +6,9 @@ file(GLOB_RECURSE SOURCES
         src/*
 )
 
+list(FILTER SOURCES EXCLUDE REGEX "src/RenderAPI/D3D12/.*")
+list(FILTER SOURCES EXCLUDE REGEX "src/RenderAPI/Vulkan/.*")
+
 option(PE_D3D12_BACKEND "Enable DirectX 12 render backend" OFF)
 option(PE_VULKAN_BACKEND "Enable Vulkan render backend" ON)
 
@@ -75,6 +78,9 @@ if (PE_D3D12_BACKEND)
     target_compile_definitions(${PROJECT_NAME} PUBLIC "PE_SUPPORT_D3D12=1")
     target_compile_definitions(${PROJECT_NAME} PUBLIC "USE_PIX=1")
 
+    file(GLOB_RECURSE D3D12_SOURCES "src/RenderAPI/D3D12/*")
+    target_sources(${PROJECT_NAME} PRIVATE ${D3D12_SOURCES})
+
     if (NOT "${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}" STREQUAL "")
         set(PE_WINDOWS_SDK_VERSION ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION})
     else ()
@@ -108,6 +114,9 @@ endif ()
 
 if (PE_VULKAN_BACKEND)
     target_compile_definitions(${PROJECT_NAME} PUBLIC "PE_SUPPORT_VULKAN=1")
+
+    file(GLOB_RECURSE VULKAN_SOURCES "src/RenderAPI/Vulkan/*")
+    target_sources(${PROJECT_NAME} PRIVATE ${VUKLAN_SOURCES})
 
     find_package(Vulkan REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
