@@ -3,20 +3,21 @@
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 #include "Prism/Render/RenderTypes.h"
+#include "Prism/Utilities/Flags.h"
 
 namespace Prism::Render::Vulkan
 {
-static VkImageType GetVkImageType(ResourceDimension dimension);
+VkImageType GetVkImageType(ResourceDimension dimension);
 
-static VkImageViewType GetVkImageViewType(ResourceDimension dimension, uint32_t arrayLayers);
+VkImageViewType GetVkImageViewType(ResourceDimension dimension, uint32_t arrayLayers);
 
-static VkImageUsageFlags GetVkImageUsageFlags(Flags<BindFlags> flags);
+VkImageUsageFlags GetVkImageUsageFlags(Flags<BindFlags> flags);
 
-static VkImageAspectFlags GetVkImageAspectFlags(TextureFormat format);
+VkImageAspectFlags GetVkImageAspectFlags(TextureFormat format);
 
-static VkFormat GetVkFormat(TextureFormat format);
+VkFormat GetVkFormat(TextureFormat format);
 
-static VkBufferUsageFlags GetVkBufferUsageFlags(Flags<BindFlags> flags);
+VkBufferUsageFlags GetVkBufferUsageFlags(Flags<BindFlags> flags);
 
-static VmaAllocationCreateInfo GetVmaAllocationCreateInfo(ResourceUsage usage, Flags<CPUAccess> cpuAccess);
+VmaAllocationCreateInfo GetVmaAllocationCreateInfo(ResourceUsage usage, Flags<CPUAccess> cpuAccess);
 } // namespace Prism::Render::Vulkan

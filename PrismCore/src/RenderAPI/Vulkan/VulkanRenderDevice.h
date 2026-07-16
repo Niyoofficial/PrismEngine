@@ -2,7 +2,9 @@
 
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
+
 #include "Prism/Render/RenderDevice.h"
+#include "VulkanPipelineCache.h"
 
 namespace Prism::Render::Vulkan
 {
@@ -31,6 +33,8 @@ public:
 
 	[[nodiscard]] uint32_t GetGraphicsQueueFamilyIndex() const { return m_graphicsQueueFamilyIndex; }
 
+	[[nodiscard]] VulkanPipelineCache* GetPipelineCache() const { return m_pipelineCache.get(); }
+
 private:
 	Ref<BufferView> CreateBufferView_Impl(const BufferViewDesc& desc, Buffer* buffer) override;
 	Ref<TextureView> CreateTextureView_Impl(const TextureViewDesc& desc, Texture* texture) override;
@@ -41,7 +45,7 @@ private:
 
 	void PickPhysicalDevice();
 
-	bool AreValidationLayerSupported() const;
+	[[nodiscard]] bool AreValidationLayerSupported() const;
 
 	bool AreDeviceExtensionSupported(VkPhysicalDevice physicalDevice) const;
 
@@ -63,6 +67,7 @@ private:
 	VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 
 	std::unique_ptr<VulkanRenderCommandQueue> m_commandQueue;
+	std::unique_ptr<VulkanPipelineCache> m_pipelineCache;
 
 	bool m_initializedImGui = false;
 };

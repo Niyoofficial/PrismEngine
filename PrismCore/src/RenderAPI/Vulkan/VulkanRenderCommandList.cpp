@@ -247,7 +247,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearRenderTargetView(const
 	    .layerCount = VK_REMAINING_ARRAY_LAYERS,
 	};
 
-	vkCmdClearColorImage(m_commandBuffer, view->GetVkImage(), VK_IMAGE_LAYOUT_GENERAL, &vkClearColor, 1, &range);
+	const auto* texture = dynamic_cast<VulkanTexture*>(view->GetTexture());
+
+	vkCmdClearColorImage(m_commandBuffer, texture->GetVulkanTextureResource().image, VK_IMAGE_LAYOUT_GENERAL, &vkClearColor, 1,
+	                     &range);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags,
@@ -278,7 +281,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearDepthStencilView(const
 	    .layerCount = VK_REMAINING_ARRAY_LAYERS,
 	};
 
-	vkCmdClearDepthStencilImage(m_commandBuffer, view->GetVkImage(), VK_IMAGE_LAYOUT_GENERAL, &clearDepthStencil, 1, &range);
+	const auto* texture = dynamic_cast<VulkanTexture*>(view->GetTexture());
+
+	vkCmdClearDepthStencilImage(m_commandBuffer, texture->GetVulkanTextureResource().image, VK_IMAGE_LAYOUT_GENERAL,
+	                            &clearDepthStencil, 1, &range);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::float4 values)
@@ -289,7 +295,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(co
 	    .float32 = {values.r, values.g, values.b, values.a},
 	};
 
-	vkCmdClearColorImage(m_commandBuffer, view->GetVkImage(), VK_IMAGE_LAYOUT_GENERAL, &vkClearColor, 1, nullptr);
+	const auto* texture = dynamic_cast<VulkanTexture*>(view->GetTexture());
+
+	vkCmdClearColorImage(m_commandBuffer, texture->GetVulkanTextureResource().image, VK_IMAGE_LAYOUT_GENERAL, &vkClearColor, 1,
+	                     nullptr);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::uint4 values)
@@ -300,7 +309,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(co
 	    .uint32 = {values.r, values.g, values.b, values.a},
 	};
 
-	vkCmdClearColorImage(m_commandBuffer, view->GetVkImage(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, nullptr);
+	const auto* texture = dynamic_cast<VulkanTexture*>(view->GetTexture());
+
+	vkCmdClearColorImage(m_commandBuffer, texture->GetVulkanTextureResource().image, VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1,
+	                     nullptr);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const BufferBarrier barrier)
@@ -473,37 +485,31 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::RenderImGui(Swapchain* swap
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::SetMarker(glm::float3 color, std::wstring string)
 {
-	if (vkCmdInsertDebugUtilsLabelEXT)
-	{
-		const VkDebugUtilsLabelEXT labelInfo{
-		    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-		    .color = {color.r, color.g, color.b, 1.0f},
-		};
+	const std::string utf8LabelName = WStringToString(string);
 
-		vkCmdInsertDebugUtilsLabelEXT(m_commandBuffer, &labelInfo);
-	}
+	const VkDebugUtilsLabelEXT labelInfo{
+	    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+	    .pLabelName = utf8LabelName.c_str(),
+	    .color = {color.r, color.g, color.b, 1.0f},
+	};
+
+	vkCmdInsertDebugUtilsLabelEXT(m_commandBuffer, &labelInfo);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::BeginEvent(glm::float3 color, std::wstring string)
 {
-	if (vkCmdBeginDebugUtilsLabelEXT)
-	{
-		const VkDebugUtilsLabelEXT labelInfo{
-		    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
-		    .color = {color.r, color.g, color.b, 1.0f},
-		};
+	const std::string utf8LabelName = WStringToString(string);
 
-		vkCmdBeginDebugUtilsLabelEXT(m_commandBuffer, &labelInfo);
-	}
+	const VkDebugUtilsLabelEXT labelInfo{
+	    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT,
+	    .pLabelName = utf8LabelName.c_str(),
+	    .color = {color.r, color.g, color.b, 1.0f},
+	};
+
+	vkCmdBeginDebugUtilsLabelEXT(m_commandBuffer, &labelInfo);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::EndEvent()
-{
-	if (vkCmdEndDebugUtilsLabelEXT)
-	{
-		vkCmdEndDebugUtilsLabelEXT(m_commandBuffer);
-	}
-}
+void Prism::Render::Vulkan::VulkanRenderCommandList::EndEvent() { vkCmdEndDebugUtilsLabelEXT(m_commandBuffer); }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type) {}
 
@@ -513,7 +519,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetupDrawOrDispatch(Pipelin
 	{
 		BeginDynamicRendering();
 
-		const VkPipeline pipeline = VulkanRenderDevice::Get().GetPipelineCache().GetOrCreatePipeline(
+		const VkPipeline pipeline = VulkanRenderDevice::Get().GetPipelineCache()->GetOrCreatePipeline(
 		    m_currentGraphicsPSO, m_renderTargetViews, m_depthStencilView);
 
 		vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline);
@@ -522,7 +528,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetupDrawOrDispatch(Pipelin
 	{
 		EndDynamicRendering();
 
-		const VkPipeline pipeline = VulkanRenderDevice::Get().GetPipelineCache().GetOrCreatePipeline(m_currentComputePSO);
+		const VkPipeline pipeline = VulkanRenderDevice::Get().GetPipelineCache()->GetOrCreatePipeline(m_currentComputePSO);
 
 		vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 	}

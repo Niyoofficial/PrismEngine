@@ -5,6 +5,7 @@
 #include "VulkanBuffer.h"
 #include "VulkanBufferView.h"
 #include "VulkanRenderCommandQueue.h"
+#include "VulkanTextureView.h"
 
 constexpr std::string_view applicationName = "PrismEngine";
 constexpr uint32_t applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -109,7 +110,9 @@ Prism::Ref<Prism::Render::BufferView> Prism::Render::Vulkan::VulkanRenderDevice:
 
 Prism::Ref<Prism::Render::TextureView>
 Prism::Render::Vulkan::VulkanRenderDevice::CreateTextureView_Impl(const TextureViewDesc& desc, Texture* texture)
-{}
+{
+	return Ref<VulkanTextureView>::Create(desc, texture);
+}
 
 void Prism::Render::Vulkan::VulkanRenderDevice::CreateVulkanInstance(const RenderDeviceParams& params)
 {
