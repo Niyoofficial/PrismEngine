@@ -6,39 +6,7 @@
 #include "VulkanRenderDevice.h"
 #include "VulkanTexture.h"
 #include "VulkanTextureView.h"
-
-// TODO
-// move to VulkanTypeConversions
-static VkImageLayout BarrierLayoutToVkImageLayout(const Prism::Render::BarrierLayout layout)
-{
-	switch (layout)
-	{
-	case Prism::Render::BarrierLayout::Undefined:
-		return VK_IMAGE_LAYOUT_UNDEFINED;
-	case Prism::Render::BarrierLayout::Common:
-		return VK_IMAGE_LAYOUT_GENERAL;
-	case Prism::Render::BarrierLayout::Present:
-		return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
-	case Prism::Render::BarrierLayout::GenericRead:
-		return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	case Prism::Render::BarrierLayout::RenderTarget:
-		return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-	case Prism::Render::BarrierLayout::UnorderedAccess:
-		return VK_IMAGE_LAYOUT_GENERAL;
-	case Prism::Render::BarrierLayout::DepthStencilWrite:
-		return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-	case Prism::Render::BarrierLayout::DepthStencilRead:
-		return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
-	case Prism::Render::BarrierLayout::ShaderResource:
-		return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	case Prism::Render::BarrierLayout::CopySource:
-		return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-	case Prism::Render::BarrierLayout::CopyDest:
-		return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-	default:
-		return VK_IMAGE_LAYOUT_GENERAL;
-	}
-}
+#include "VulkanTypeConversions.h"
 
 Prism::Render::Vulkan::VulkanRenderCommandList::VulkanRenderCommandList()
 {
@@ -342,8 +310,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 	    .srcAccessMask = static_cast<VkAccessFlags>(barrier.accessBefore.GetUnderlyingType()),
 	    .dstAccessMask = static_cast<VkAccessFlags>(barrier.accessAfter.GetUnderlyingType()),
-	    .oldLayout = BarrierLayoutToVkImageLayout(barrier.layoutBefore),
-	    .newLayout = BarrierLayoutToVkImageLayout(barrier.layoutAfter),
+	    .oldLayout = GetVkImageLayout(barrier.layoutBefore),
+	    .newLayout = GetVkImageLayout(barrier.layoutAfter),
 	    .image = texture->GetVulkanTextureResource().image,
 	    .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
 	                         .baseMipLevel = 0,

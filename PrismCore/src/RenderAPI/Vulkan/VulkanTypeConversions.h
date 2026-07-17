@@ -20,4 +20,6 @@ VkFormat GetVkFormat(TextureFormat format);
 VkBufferUsageFlags GetVkBufferUsageFlags(Flags<BindFlags> flags);
 
 VmaAllocationCreateInfo GetVmaAllocationCreateInfo(ResourceUsage usage, Flags<CPUAccess> cpuAccess);
+
+VkImageLayout GetVkImageLayout(BarrierLayout layout);
 } // namespace Prism::Render::Vulkan

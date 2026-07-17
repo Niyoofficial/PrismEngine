@@ -323,3 +323,34 @@ VmaAllocationCreateInfo Prism::Render::Vulkan::GetVmaAllocationCreateInfo(const 
 
 	return allocationCreateInfo;
 }
+
+VkImageLayout Prism::Render::Vulkan::BarrierLayoutToVkImageLayout(const BarrierLayout layout)
+{
+	switch (layout)
+	{
+	case BarrierLayout::Undefined:
+		return VK_IMAGE_LAYOUT_UNDEFINED;
+	case BarrierLayout::Common:
+		return VK_IMAGE_LAYOUT_GENERAL;
+	case BarrierLayout::Present:
+		return VK_IMAGE_LAYOUT_PRESENT_SRC_KHR;
+	case BarrierLayout::GenericRead:
+		return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	case BarrierLayout::RenderTarget:
+		return VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+	case BarrierLayout::UnorderedAccess:
+		return VK_IMAGE_LAYOUT_GENERAL;
+	case BarrierLayout::DepthStencilWrite:
+		return VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+	case BarrierLayout::DepthStencilRead:
+		return VK_IMAGE_LAYOUT_DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+	case BarrierLayout::ShaderResource:
+		return VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	case BarrierLayout::CopySource:
+		return VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+	case BarrierLayout::CopyDest:
+		return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+	default:
+		return VK_IMAGE_LAYOUT_GENERAL;
+	}
+}
