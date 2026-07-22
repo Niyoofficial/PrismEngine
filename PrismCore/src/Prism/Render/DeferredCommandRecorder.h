@@ -10,6 +10,7 @@ class DeferredCommandRecorder
 
 public:
 	DeferredCommandRecorder();
+	~DeferredCommandRecorder();
 
 	template<typename T, typename... Args>
 	void AllocateCommand(Args&&... args) requires std::is_base_of_v<Commands::RenderCommandBase, T>
@@ -25,10 +26,14 @@ public:
 		else
 		{
 			size_t alignedOffset = Align(m_newCommandOffset, alignof(T));
+			if (alignedOffset + sizeof(T) >= CMD_PAGE_SIZE)
+			{
+				m_commandPages.push_back(new uint8_t[CMD_PAGE_SIZE]);
+				m_pageIndex++;
+				alignedOffset = 0;
+			}
 			m_newCommandOffset = alignedOffset + sizeof(T);
-			m_commands.insert(m_commands.end(), m_newCommandOffset - m_commands.size(), 0);
-			PE_ASSERT(alignedOffset <= m_commands.size() && m_commands.size() - alignedOffset >= sizeof(T));
-			auto* command = (Commands::RenderCommandBase*)new (m_commands.data() + alignedOffset) T(std::forward<Args>(args)...);
+			auto* command = (Commands::RenderCommandBase*)new (m_commandPages[m_pageIndex] + alignedOffset) T(std::forward<Args>(args)...);
 			*m_commandLink = command;
 			m_commandLink = &command->next;
 
@@ -47,8 +52,10 @@ private:
 	void RecordCommands(RenderCommandList* commandList);
 
 private:
-	std::vector<uint8_t> m_commands = {};
+	constexpr static size_t CMD_PAGE_SIZE = 1024ull * 100;
+	std::vector<uint8_t*> m_commandPages;
 	size_t m_newCommandOffset = 0;
+	int32_t m_pageIndex = 0;
 	Commands::RenderCommandBase* m_root = nullptr;
 	Commands::RenderCommandBase** m_commandLink = nullptr;
 
