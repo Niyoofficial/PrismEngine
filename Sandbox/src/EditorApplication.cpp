@@ -2,6 +2,7 @@
 
 #include "EditorTheme.h"
 #include "Prism/Base/Platform.h"
+#include "Prism/Render/RenderCommandQueue.h"
 #include "Prism/Render/PBR/PBRSceneRenderPipeline.h"
 #include "Prism/Scene/Components.h"
 #include "Prism/Scene/Entity.h"
@@ -48,17 +49,21 @@ namespace Prism
 
 		ImGuizmo::AllowAxisFlip(false);
 
-		m_scene = Ref<Scene>::Create(L"Test Scene");
-		m_scene->SetRenderPipeline<Render::PBRSceneRenderPipeline>();
-		//Ref sponza = new MeshAsset(L"assets/SponzaCrytek/Sponza.gltf");
+		m_scene = AssetManager::Get().CreateAsset<Scene>();
+		
+		auto lightEntity = m_scene->CreateEntity("Light");
+		lightEntity.AddComponent<TransformComponent>()->SetRotation({ 0.f, glm::radians(-7.f), glm::radians(-101.f) });
+		lightEntity.AddComponent<LightRendererComponent>();
 
-		//m_scene->CreateEntityHierarchyForMeshAsset(sponza);
-		auto lightEntity = m_scene->AddEntity(L"Light");
-		lightEntity->AddComponent<TransformComponent>()->SetRotation({ 0.f, glm::radians(-7.f), glm::radians(-101.f) });
-		lightEntity->AddComponent<LightRendererComponent>();
+		m_editorLayer = Ref<EditorLayer>::Create(m_window, m_scene);
+		PushLayer(m_editorLayer);
 
-		m_sandboxLayer = Ref<EditorLayer>::Create(m_window, m_scene);
-		PushLayer(m_sandboxLayer);
+	    SceneAssetType::Get()->SetOnOpenScene(
+	        [this](Scene* scene)
+	        {
+				Render::RenderDevice::Get().GetRenderCommandQueue()->Flush(Render::CommandQueueFlushType::WaitForCompletion);
+	            m_editorLayer->SetScene(scene);
+	        });
 	}
 
 	void EditorApplication::InitImGui(Core::Window* window, Render::TextureFormat depthFormat)

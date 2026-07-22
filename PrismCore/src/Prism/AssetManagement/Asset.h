@@ -1,20 +1,41 @@
 #pragma once
 
 #include "pcpch.h"
+#include "crossguid/guid.hpp"
 
 namespace Prism
 {
+class AssetType;
+using AssetHandle = xg::Guid;
+
 // Assets are created by the asset manager
 class Asset : public RefCounted
 {
+friend class AssetManager;
 public:
-	std::fs::path GetAssetPath() const { return m_assetPath; }
+	AssetHandle GetHandle() const { return m_handle; }
+
+	virtual AssetType* GetAssetType() const = 0;
 
 protected:
-	Asset(class AssetManager* assetManager, std::fs::path path);
+	Asset(AssetManager* assetManager, AssetHandle handle);
+
+private:
+
+	virtual void SaveAsset(const std::fs::path& path, YAML::Emitter& emitter) = 0;
 
 protected:
 	AssetManager* m_assetManager = nullptr;
-	std::fs::path m_assetPath;
+	const AssetHandle m_handle;
+};
+}
+
+namespace YAML
+{
+template<>
+struct convert<Prism::AssetHandle>
+{
+    static Node encode(const Prism::AssetHandle& rhs);
+    static bool decode(const Node& node, Prism::AssetHandle& rhs);
 };
 }

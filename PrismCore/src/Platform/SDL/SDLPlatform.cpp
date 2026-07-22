@@ -461,9 +461,9 @@ void SDLShowOpenFileDialogCallback(void* userdata, const char* const* sdlFileLis
 	data->callback(fileList, filter);
 }
 
-void SDLPlatform::OpenFileDialog(const std::function<void(std::vector<std::string>, int32_t)>& callback,
-								 Core::Window* window, const std::vector<Core::DialogFileFilter>& filters,
-								 const std::fs::path& defaultLocation, bool allowMany)
+void SDLPlatform::ShowFileDialog(const std::function<void(std::vector<std::string>, int32_t)>& callback,
+                                 Core::FileDialogType type, Core::Window* window, const std::vector<Core::DialogFileFilter>& filters,
+	                             const std::fs::path& defaultLocation, bool allowMany)
 {
 	auto* data = new SDLShowOpenFileDialogCallbackData;
 	data->callback = callback;
@@ -474,12 +474,22 @@ void SDLPlatform::OpenFileDialog(const std::function<void(std::vector<std::strin
 	if (window)
 		sdlWindow = std::any_cast<SDL_Window*>(window->GetNativeWindow());
 
-	SDL_ShowOpenFileDialog(&SDLShowOpenFileDialogCallback, data, sdlWindow,
-						   data->sdlFilters.data(), data->sdlFilters.size(), defaultLocation.lexically_normal().make_preferred().string().c_str(), allowMany);
+	auto props = SDL_CreateProperties();
+    SDL_SetPointerProperty(props, SDL_PROP_FILE_DIALOG_FILTERS_POINTER, data->sdlFilters.data());
+    SDL_SetNumberProperty(props, SDL_PROP_FILE_DIALOG_NFILTERS_NUMBER, data->sdlFilters.size());
+    SDL_SetPointerProperty(props, SDL_PROP_FILE_DIALOG_WINDOW_POINTER, sdlWindow);
+    SDL_SetStringProperty(props, SDL_PROP_FILE_DIALOG_LOCATION_STRING,
+                          (defaultLocation.lexically_normal().make_preferred().string() + "\\").c_str());
+    SDL_SetBooleanProperty(props, SDL_PROP_FILE_DIALOG_MANY_BOOLEAN, allowMany);
+
+	SDL_ShowFileDialogWithProperties(GetSDLFileDialogType(type), &SDLShowOpenFileDialogCallback, data, props);
+
+	SDL_DestroyProperties(props);
 }
 
 #if PE_PLATFORM_WINDOWS
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include "Windows.h"
 #endif
 void SDLPlatform::SetCurrentThreadDescription(std::wstring description)

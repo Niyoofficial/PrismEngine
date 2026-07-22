@@ -7,11 +7,15 @@ namespace Prism
 DECLARE_COMPONENT(PBRMeshRendererComponent, MeshRendererComponent)
 {
 public:
+	PBRMeshRendererComponent() = default;
 	PBRMeshRendererComponent(MeshAsset* mesh, MeshNode meshNode);
 
 	virtual std::wstring GetComponentName() const override { return L"PBR Mesh Renderer Component"; }
 	virtual void DrawImGuiInspector() override;
 	virtual Ref<Render::EntityRenderProxy> CreateRenderProxy(glm::float4x4 transform) const override;
+
+	virtual YAML::Node ToYAML() const override;
+	virtual void FromYAML(const YAML::Node& node) override;
 
 protected:
 	glm::float3 m_albedo = {1.f, 1.f, 1.f};

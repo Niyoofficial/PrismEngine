@@ -34,4 +34,18 @@ void LightRendererComponent::DrawImGuiInspector()
 	ImGui::ColorEdit3("", glm::value_ptr(m_color), ImGuiColorEditFlags_Float);
 	ImGui::PopID();
 }
+
+YAML::Node LightRendererComponent::ToYAML() const
+{
+	YAML::Node node;
+    node["Color"] = m_color;
+    node["Intensity"] = m_intensity;
+	return node;
+}
+
+void LightRendererComponent::FromYAML(const YAML::Node& node)
+{
+    m_color = node["Color"].as<glm::float3>();
+    m_intensity = node["Intensity"].as<float>();
+}
 }

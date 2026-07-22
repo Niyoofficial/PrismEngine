@@ -1482,9 +1482,9 @@ D3D12_BOX GetD3D12Box(Box3I box, Texture* texture, int32_t subresource)
 		.left = (UINT)box.location.x,
 		.top = (UINT)box.location.y,
 		.front = (UINT)box.location.z,
-		.right = (UINT)(box.size.x == 0 ? max(1, texture->GetTextureDesc().GetWidth() >> subresource) - box.location.x : box.location.x + box.size.x),
-		.bottom = (UINT)(box.size.y == 0 ? max(1, texture->GetTextureDesc().GetHeight() >> subresource) - box.location.y : (UINT)box.location.y + box.size.y),
-		.back = (UINT)(box.size.z == 0 ? max(1, texture->GetTextureDesc().GetDepth() >> subresource) - box.location.z : (UINT)box.location.z + box.size.z)
+		.right = (UINT)(box.size.x == 0 ? std::max(1, texture->GetTextureDesc().GetWidth() >> subresource) - box.location.x : box.location.x + box.size.x),
+		.bottom = (UINT)(box.size.y == 0 ? std::max(1, texture->GetTextureDesc().GetHeight() >> subresource) - box.location.y : (UINT)box.location.y + box.size.y),
+		.back = (UINT)(box.size.z == 0 ? std::max(1, texture->GetTextureDesc().GetDepth() >> subresource) - box.location.z : (UINT)box.location.z + box.size.z)
 	};
 }
 

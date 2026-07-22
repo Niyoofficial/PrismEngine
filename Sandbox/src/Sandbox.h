@@ -65,6 +65,8 @@ class EditorLayer : public Render::Layer
 public:
 	EditorLayer(Core::Window* owningWindow, const Ref<Scene>& scene);
 
+	void SetScene(const Ref<Scene>& scene);
+
 	void UpdateImGui(Duration delta) override;
 	virtual void Update(Duration delta) override;
 
@@ -77,6 +79,7 @@ private:
 	WeakRef<Core::Window> m_owningWindow;
 
 	Ref<Scene> m_scene;
+    Ref<Render::PBRSceneRenderPipeline> m_renderPipeline;
 	
 	ImGuizmo::OPERATION m_gizmoOperation = ImGuizmo::UNIVERSAL;
 	ImGuizmo::MODE m_gizmoMode = ImGuizmo::LOCAL;
@@ -108,4 +111,8 @@ private:
 
 	std::mutex m_fileLoadMutex;
 	std::vector<std::fs::path> m_filesToLoad;
+
+	bool m_savingScene = false;
+	std::atomic<bool> m_sceneFileChosen = false;
+	std::string m_saveSceneFile;
 };

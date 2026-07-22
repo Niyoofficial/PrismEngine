@@ -6,10 +6,10 @@
 
 namespace Prism
 {
-void Component::InitializeOwnership(Entity* parent)
+void Component::InitializeOwnership(int64_t parentId)
 {
-	PE_ASSERT(m_parent == nullptr);
-	m_parent = parent;
+	PE_ASSERT(m_parentId == -1);
+	m_parentId = parentId;
 }
 
 ComponentRegistry& ComponentRegistry::Get()
@@ -17,9 +17,9 @@ ComponentRegistry& ComponentRegistry::Get()
 	return LazySingleton<ComponentRegistry>::Get();
 }
 
-void ComponentRegistry::RegisterComponent(const std::type_info& derived, const std::type_info& base)
+Ref<Component> ComponentRegistry::CreateComponentFromHash(size_t hash) const
 {
-	m_registry[&base].push_back(&derived);
+	return m_creationFunctions.at(hash)();
 }
 
 std::vector<const std::type_info*> ComponentRegistry::GetAllDerived(const std::type_info& base) const
@@ -124,5 +124,21 @@ void TransformComponent::DrawImGuiInspector()
 		SetRotation(glm::radians(rotation));
 
 	drawControlFloat3("Scale", m_scale, 0.01f);
+}
+
+YAML::Node TransformComponent::ToYAML() const
+{
+	YAML::Node node;
+	node["Translation"] = m_translation;
+	node["Rotation"] = m_rotation;
+	node["Scale"] = m_scale;
+	return node;
+}
+
+void TransformComponent::FromYAML(const YAML::Node& node)
+{
+	m_translation = node["Translation"].as<glm::float3>();
+	m_rotation = node["Rotation"].as<glm::quat>();
+	m_scale = node["Scale"].as<glm::float3>();
 }
 }

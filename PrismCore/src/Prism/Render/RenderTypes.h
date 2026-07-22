@@ -625,8 +625,7 @@ enum class CPUAccess
 
 enum class ResourceUsage
 {
-	// A resource that requires read and write access by the GPU and can also be occasionally
-	// written by the CPU.
+	// A resource that requires read and write access by the GPU.
 	// D3D11 Counterpart: D3D11_USAGE_DEFAULT. OpenGL counterpart: GL_DYNAMIC_DRAW.
 	// Default buffers do not allow CPU access and must use CPUAccess::None flag.
 	Default = 0,

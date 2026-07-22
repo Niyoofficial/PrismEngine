@@ -1,12 +1,11 @@
 #pragma once
 
 #include "pcpch.h"
-#include "Prism/AssetManagement/Asset.h"
-#include "crossguid/guid.hpp"
+#include "Prism/AssetManagement/AssetType.h"
 
 namespace Prism
 {
-using AssetHandle = xg::Guid;
+class AssetType;
 
 struct AssetMeta
 {
@@ -33,7 +32,6 @@ public:
 	{
 		if (Ref<T> asset = dynamic_cast<T*>(FindAsset(handle).Raw()))
 			return asset;
-		PE_ASSERT(false);
 		return {};
 	}
 	template<typename T>
@@ -41,7 +39,6 @@ public:
 	{
 		if (Ref<T> asset = dynamic_cast<T*>(FindAsset(path).Raw()))
 			return asset;
-		PE_ASSERT(false);
 		return {};
 	}
 	template<typename T>
@@ -49,7 +46,6 @@ public:
 	{
 		if (Ref<T> asset = dynamic_cast<T*>(LoadAsset(handle).Raw()))
 			return asset;
-		PE_ASSERT(false);
 		return {};
 	}
 	template<typename T>
@@ -57,7 +53,6 @@ public:
 	{
 		if (Ref<T> asset = dynamic_cast<T*>(LoadAsset(path).Raw()))
 			return asset;
-		PE_ASSERT(false);
 		return {};
 	}
 	template<typename T>
@@ -71,14 +66,33 @@ public:
 		return LoadAssetAsync(path);
 	}
 
+	// Create asset without assigning it to any path, this is useful for assets that are generated at runtime and don't have a file representation
+	Ref<Asset> CreateAsset(AssetType* assetType);
+	template<typename T>
+	Ref<T> CreateAsset() requires std::is_base_of_v<Asset, T>
+	{
+		return dynamic_cast<T*>(CreateAsset(AssetTypeRegistry::Get().GetAssetTypeForAsset<T>()).Raw());
+	}
+
+	/**
+	 * @param asset Asset you want to save
+	 * @param filePath File path to use to save the asset, if no path is specified it will be taken from the asset itself
+	 * (if the asset doesn't have a path i.e. it is a runtime generated asset an assert will be triggered)
+	 */
+	void SaveAsset(const Ref<Asset>& asset, std::fs::path filePath = "");
+
 	// Searches the registry to find if there is any handle associated with this path
 	AssetHandle GetHandleFromPath(std::fs::path path) const;
+	std::fs::path GetPathFromHandle(AssetHandle handle) const;
+
+	YAML::Node GetMetadata(std::fs::path path);
+	YAML::Node GetMetadata(AssetHandle handle);
 
 	std::fs::path NormalizePath(std::fs::path path) const;
-	std::fs::path GetAbsolutePath(std::fs::path path) const;
 
 private:
-	AssetHandle RegisterAsset(std::fs::path path);
+	void SaveMetadata(AssetHandle handle, const YAML::Emitter& emitter);
+	void CreateDefaultMetadata(YAML::Emitter& emitter, AssetHandle handle, const std::fs::path& path);
 
 	Ref<Asset> CreateLoadedAsset(std::fs::path path, AssetHandle handle);
 

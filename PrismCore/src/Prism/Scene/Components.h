@@ -2,27 +2,28 @@
 
 namespace Prism
 {
-class Entity;
-
 class Component : public RefCounted
 {
-	friend Entity;
+	friend class Scene;
 public:
 	Component() = default;
 	virtual ~Component() = default;
 
 	virtual std::wstring GetComponentName() const = 0;
 
-	Entity* GetParent() const { return m_parent; }
+	int64_t GetParentId() const { return m_parentId; }
 
 	virtual void DrawImGuiInspector() {}
 
-protected:
-	// Used by the Entity class to initialize the parent
-	void InitializeOwnership(Entity* parent);
+	virtual YAML::Node ToYAML() const = 0;
+	virtual void FromYAML(const YAML::Node& node) = 0;
 
 protected:
-	Entity* m_parent = nullptr;
+	// Used by the Scene class to initialize the parent
+	void InitializeOwnership(int64_t parentId);
+
+protected:
+	int64_t m_parentId = -1;
 };
 
 class ComponentRegistry final
@@ -30,12 +31,14 @@ class ComponentRegistry final
 public:
 	static ComponentRegistry& Get();
 
-	void RegisterComponent(const std::type_info& derived, const std::type_info& base);
 	template<typename Derived, typename Base>
 	void RegisterComponent()
 	{
-		RegisterComponent(typeid(Derived), typeid(Base));
+		m_registry[&typeid(Base)].push_back(&typeid(Derived));
+		m_creationFunctions[typeid(Derived).hash_code()] = []() { return Ref<Derived>::Create(); };
 	}
+
+	Ref<Component> CreateComponentFromHash(size_t hash) const;
 
 	std::vector<const std::type_info*> GetAllDerived(const std::type_info& base) const;
 	template<typename T>
@@ -53,6 +56,7 @@ public:
 
 private:
 	std::map<const std::type_info*, std::vector<const std::type_info*>> m_registry;
+	std::map<size_t, std::function<Ref<Component>()>> m_creationFunctions;
 };
 
 template<typename Derived, typename Base> requires std::is_base_of_v<Component, Base>
@@ -88,6 +92,9 @@ public:
 	glm::float3 GetScale() const { return m_scale; }
 
 	virtual void DrawImGuiInspector() override;
+
+	virtual YAML::Node ToYAML() const override;
+	virtual void FromYAML(const YAML::Node& node) override;
 
 private:
 	glm::float3 m_translation = {0.f, 0.f, 0.f};

@@ -26,6 +26,13 @@ struct DisplayInfo
 	int32_t refreshRateDenominator; /**< precise refresh rate denominator */
 };
 
+enum class FileDialogType
+{
+    OpenFile,
+    SaveFile,
+    OpenFolder
+};
+
 /*
  * An entry for filters for file dialogs.
  *
@@ -71,9 +78,9 @@ public:
 	virtual DisplayInfo GetDisplayInfo(uint32_t displayID) = 0;
 	virtual uint32_t GetPrimaryDisplayID() = 0;
 
-	virtual void OpenFileDialog(const std::function<void(std::vector<std::string>, int32_t)>& callback,
-								Window* window = nullptr, const std::vector<DialogFileFilter>& filters = {},
-								const std::fs::path& defaultLocation = {}, bool allowMany = false) = 0;
+	virtual void ShowFileDialog(const std::function<void(std::vector<std::string>, int32_t)>& callback,
+                                FileDialogType type, Window* window = nullptr,
+                                const std::vector<DialogFileFilter>& filters = {}, const std::fs::path& defaultLocation = {}, bool allowMany = false) = 0;
 
 	virtual void SetCurrentThreadDescription(std::wstring description) = 0;
 

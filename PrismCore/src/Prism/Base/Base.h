@@ -43,6 +43,37 @@ namespace glm
 	typedef vec<4, uint, highp> uint4;
 }
 
+namespace YAML
+{
+template<>
+struct convert<glm::float2>
+{
+    static Node encode(const glm::float2& rhs);
+    static bool decode(const Node& node, glm::float2& rhs);
+};
+
+template<>
+struct convert<glm::float3>
+{
+    static Node encode(const glm::float3& rhs);
+    static bool decode(const Node& node, glm::float3& rhs);
+};
+
+template<>
+struct convert<glm::float4>
+{
+    static Node encode(const glm::float4& rhs);
+    static bool decode(const Node& node, glm::float4& rhs);
+};
+
+template<>
+struct convert<glm::quat>
+{
+    static Node encode(const glm::quat& rhs);
+    static bool decode(const Node& node, glm::quat& rhs);
+};
+}
+
 namespace std
 {
 	namespace fs = std::filesystem;

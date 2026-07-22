@@ -183,6 +183,12 @@ public:
 	bool operator==(const Ref<T2>& otherRef) const noexcept { return m_object == otherRef.m_object; }
 	template<typename T2> requires std::is_base_of_v<T, T2>
 	bool operator!=(const Ref<T2>& otherRef) const noexcept { return m_object != otherRef.m_object; }
+	template<typename T2> requires std::is_base_of_v<T, T2>
+	bool operator==(T2 const* other) const noexcept { return m_object == other; }
+	template<typename T2> requires std::is_base_of_v<T, T2>
+	bool operator!=(T2 const* other) const noexcept { return m_object != other; }
+
+	auto operator<=>(const Ref&) const = default;
 
 	T& operator*() const noexcept { return *m_object; }
 	T* operator->() const noexcept { return Raw(); }
@@ -257,6 +263,12 @@ public:
 	bool operator==(const WeakRef<T2>& otherRef) const noexcept { return m_object == otherRef.m_object; }
 	template<typename T2> requires std::is_base_of_v<T, T2>
 	bool operator!=(const WeakRef<T2>& otherRef) const noexcept { return m_object != otherRef.m_object; }
+	template<typename T2> requires std::is_base_of_v<T, T2>
+	bool operator==(T2 const* other) const noexcept { return m_object == other; }
+	template<typename T2> requires std::is_base_of_v<T, T2>
+	bool operator!=(T2 const* other) const noexcept { return m_object != other; }
+
+	auto operator<=>(const WeakRef&) const = default;
 
 	bool IsValid() const { return m_object ? ReferenceManager::IsAlive(m_object) : false; }
 

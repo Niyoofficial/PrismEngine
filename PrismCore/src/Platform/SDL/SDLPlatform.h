@@ -22,9 +22,9 @@ public:
 	virtual Core::DisplayInfo GetDisplayInfo(uint32_t displayID) override;
 	virtual uint32_t GetPrimaryDisplayID() override;
 
-	virtual void OpenFileDialog(const std::function<void(std::vector<std::string>, int32_t)>& callback,
-								Core::Window* window, const std::vector<Core::DialogFileFilter>& filters,
-								const std::fs::path& defaultLocation, bool allowMany) override;
+	virtual void ShowFileDialog(const std::function<void(std::vector<std::string>, int32_t)>& callback, Core::FileDialogType type,
+                                Core::Window* window, const std::vector<Core::DialogFileFilter>& filters,
+                                const std::fs::path& defaultLocation, bool allowMany) override;
 
 	virtual void SetCurrentThreadDescription(std::wstring description) override;
 
