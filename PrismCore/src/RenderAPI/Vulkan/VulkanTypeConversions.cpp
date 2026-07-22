@@ -324,7 +324,7 @@ VmaAllocationCreateInfo Prism::Render::Vulkan::GetVmaAllocationCreateInfo(const 
 	return allocationCreateInfo;
 }
 
-VkImageLayout Prism::Render::Vulkan::BarrierLayoutToVkImageLayout(const BarrierLayout layout)
+VkImageLayout Prism::Render::Vulkan::GetVkImageLayout(const BarrierLayout layout)
 {
 	switch (layout)
 	{
