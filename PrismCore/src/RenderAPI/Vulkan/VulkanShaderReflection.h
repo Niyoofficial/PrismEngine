@@ -30,7 +30,16 @@ struct VulkanShaderReflection
 
 	[[nodiscard]] const SpvReflectBlockVariable& GetPushConstantBlock(uint32_t index) const;
 
+	[[nodiscard]] uint32_t GetInputVariableCount() const;
+
+	[[nodiscard]] const SpvReflectInterfaceVariable& GetInputVariable(uint32_t index) const;
+
+	const std::vector<SpvReflectInterfaceVariable*>& GetInputVariables() const;
+	const std::vector<SpvReflectInterfaceVariable*>& GetOutputVariables() const;
+
 private:
 	SpvReflectShaderModule m_module{};
+	std::vector<SpvReflectInterfaceVariable*> m_inputVariables;
+	std::vector<SpvReflectInterfaceVariable*> m_outputVariables;
 };
 } // namespace Prism::Render::Vulkan
