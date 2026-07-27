@@ -1,14 +1,13 @@
 #pragma once
 
 #define SPIRV_REFLECT_USE_SYSTEM_SPIRV_H
+#include "Prism/Render/Shader.h"
 #include "spirv_reflect.h"
 
 namespace Prism::Render::Vulkan
 {
 struct VulkanShaderReflection
 {
-	SpvReflectShaderModule module{};
-
 	VulkanShaderReflection() = default;
 
 	~VulkanShaderReflection();
@@ -18,5 +17,20 @@ struct VulkanShaderReflection
 
 	VulkanShaderReflection(VulkanShaderReflection&& other) noexcept;
 	VulkanShaderReflection& operator=(VulkanShaderReflection&& other) noexcept;
+
+	[[nodiscard]] SpvReflectResult Create(size_t size, const void* data);
+
+	[[nodiscard]] ShaderType GetStage() const;
+
+	[[nodiscard]] uint32_t GetDescriptorSetCount() const;
+
+	[[nodiscard]] const SpvReflectDescriptorSet& GetDescriptorSet(uint32_t index) const;
+
+	[[nodiscard]] uint32_t GetPushConstantBlockCount() const;
+
+	[[nodiscard]] const SpvReflectBlockVariable& GetPushConstantBlock(uint32_t index) const;
+
+private:
+	SpvReflectShaderModule m_module{};
 };
 } // namespace Prism::Render::Vulkan

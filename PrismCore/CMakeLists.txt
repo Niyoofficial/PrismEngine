@@ -123,6 +123,9 @@ if (PE_VULKAN_BACKEND)
 
     find_package(VulkanMemoryAllocator CONFIG REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)
+
+    find_package(unofficial-spirv-reflect CONFIG REQUIRED)
+    target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::spirv-reflect)
 endif ()
 
 option(ENABLE_SUPERLUMINAL_API "Enable Superluminal API integration" ON)

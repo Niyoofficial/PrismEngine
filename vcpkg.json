@@ -28,7 +28,8 @@
 		"xxhash",
 		"yaml-cpp",
 		"crossguid",
-		"vulkan-memory-allocator"
+		"vulkan-memory-allocator",
+		"spirv-reflect"
 	],
 	"overrides": [
 		{
