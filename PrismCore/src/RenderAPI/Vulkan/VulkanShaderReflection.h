@@ -20,7 +20,7 @@ struct VulkanShaderReflection
 
 	[[nodiscard]] SpvReflectResult Create(size_t size, const void* data);
 
-	[[nodiscard]] ShaderType GetStage() const;
+	[[nodiscard]] ShaderType GetShaderType() const;
 
 	[[nodiscard]] uint32_t GetDescriptorSetCount() const;
 
@@ -38,7 +38,7 @@ struct VulkanShaderReflection
 
 	[[nodiscard]] const std::vector<SpvReflectInterfaceVariable*>& GetOutputVariables() const;
 
-	[[nodiscard]] const SpvReflectDescriptorSet* FindDescriptorSetByBinding(uint32_t set) const;
+	[[nodiscard]] const SpvReflectDescriptorSet* FindDescriptorSet(uint32_t set) const;
 
 private:
 	SpvReflectShaderModule m_module{};

@@ -354,3 +354,24 @@ VkImageLayout Prism::Render::Vulkan::GetVkImageLayout(const BarrierLayout layout
 		return VK_IMAGE_LAYOUT_GENERAL;
 	}
 }
+
+VkShaderStageFlags Prism::Render::Vulkan::GetVkShaderStageFlags(ShaderType type)
+{
+	switch (type)
+	{
+	case ShaderType::VS:
+		return VK_SHADER_STAGE_VERTEX_BIT;
+	case ShaderType::PS:
+		return VK_SHADER_STAGE_FRAGMENT_BIT;
+	case ShaderType::GS:
+		return VK_SHADER_STAGE_GEOMETRY_BIT;
+	case ShaderType::HS:
+		return VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT;
+	case ShaderType::DS:
+		return VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT;
+	case ShaderType::CS:
+		return VK_SHADER_STAGE_COMPUTE_BIT;
+	default:
+		return VK_SHADER_STAGE_ALL;
+	}
+}

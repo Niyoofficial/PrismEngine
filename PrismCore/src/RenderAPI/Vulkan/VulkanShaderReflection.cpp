@@ -55,7 +55,7 @@ SpvReflectResult Prism::Render::Vulkan::VulkanShaderReflection::Create(const siz
 	return result;
 }
 
-Prism::Render::ShaderType Prism::Render::Vulkan::VulkanShaderReflection::GetStage() const
+Prism::Render::ShaderType Prism::Render::Vulkan::VulkanShaderReflection::GetShaderType() const
 {
 	switch (m_module.shader_stage)
 	{
@@ -120,7 +120,7 @@ const std::vector<SpvReflectInterfaceVariable*>& Prism::Render::Vulkan::VulkanSh
 	return m_outputVariables;
 }
 
-const SpvReflectDescriptorSet* Prism::Render::Vulkan::VulkanShaderReflection::FindDescriptorSetByBinding(const uint32_t set) const
+const SpvReflectDescriptorSet* Prism::Render::Vulkan::VulkanShaderReflection::FindDescriptorSet(const uint32_t set) const
 {
 	for (uint32_t i = 0; i < m_module.descriptor_set_count; ++i)
 	{

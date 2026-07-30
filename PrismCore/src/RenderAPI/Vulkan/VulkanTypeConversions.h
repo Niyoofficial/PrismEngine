@@ -3,6 +3,7 @@
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
 #include "Prism/Render/RenderTypes.h"
+#include "Prism/Render/Shader.h"
 #include "Prism/Utilities/Flags.h"
 
 namespace Prism::Render::Vulkan
@@ -22,4 +23,6 @@ VkBufferUsageFlags GetVkBufferUsageFlags(Flags<BindFlags> flags);
 VmaAllocationCreateInfo GetVmaAllocationCreateInfo(ResourceUsage usage, Flags<CPUAccess> cpuAccess);
 
 VkImageLayout GetVkImageLayout(BarrierLayout layout);
+
+VkShaderStageFlags GetVkShaderStageFlags(ShaderType type);
 } // namespace Prism::Render::Vulkan
