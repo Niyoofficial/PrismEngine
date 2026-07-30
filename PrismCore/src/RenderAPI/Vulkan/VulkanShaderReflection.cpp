@@ -119,3 +119,16 @@ const std::vector<SpvReflectInterfaceVariable*>& Prism::Render::Vulkan::VulkanSh
 {
 	return m_outputVariables;
 }
+
+const SpvReflectDescriptorSet* Prism::Render::Vulkan::VulkanShaderReflection::FindDescriptorSetByBinding(const uint32_t set) const
+{
+	for (uint32_t i = 0; i < m_module.descriptor_set_count; ++i)
+	{
+		if (m_module.descriptor_sets[i].set == set)
+		{
+			return &m_module.descriptor_sets[i];
+		}
+	}
+
+	return nullptr;
+}

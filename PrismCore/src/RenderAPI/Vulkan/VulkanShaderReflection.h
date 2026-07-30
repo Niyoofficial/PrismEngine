@@ -34,8 +34,11 @@ struct VulkanShaderReflection
 
 	[[nodiscard]] const SpvReflectInterfaceVariable& GetInputVariable(uint32_t index) const;
 
-	const std::vector<SpvReflectInterfaceVariable*>& GetInputVariables() const;
-	const std::vector<SpvReflectInterfaceVariable*>& GetOutputVariables() const;
+	[[nodiscard]] const std::vector<SpvReflectInterfaceVariable*>& GetInputVariables() const;
+
+	[[nodiscard]] const std::vector<SpvReflectInterfaceVariable*>& GetOutputVariables() const;
+
+	[[nodiscard]] const SpvReflectDescriptorSet* FindDescriptorSetByBinding(uint32_t set) const;
 
 private:
 	SpvReflectShaderModule m_module{};
