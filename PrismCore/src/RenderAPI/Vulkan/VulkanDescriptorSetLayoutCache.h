@@ -33,6 +33,11 @@ public:
 	[[nodiscard]] VkDescriptorSetLayout GetOrCreateDescriptorSetLayout(std::span<const VulkanShaderReflection> shaderReflections,
 	                                                                   uint32_t set);
 
+	[[nodiscard]] VkDescriptorSetLayout GetOrCreateDescriptorSetLayout(const DescriptorSetLayoutKey& layoutKey);
+
+	[[nodiscard]] static DescriptorSetLayoutKey BuildLayoutKey(std::span<const VulkanShaderReflection> shaderReflections,
+	                                                           uint32_t set);
+
 private:
 	static uint32_t GetDescriptorCount(const SpvReflectDescriptorBinding& binding);
 
