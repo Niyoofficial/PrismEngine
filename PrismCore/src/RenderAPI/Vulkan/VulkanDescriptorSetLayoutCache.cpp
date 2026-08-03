@@ -14,7 +14,7 @@ Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::~VulkanDescriptorSetLayou
 }
 
 VkDescriptorSetLayout Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::GetOrCreateDescriptorSetLayout(
-    const std::span<const VulkanShaderReflection> shaderReflections, const uint32_t set)
+    const std::span<const VulkanShaderReflection* const> shaderReflections, const uint32_t set)
 {
 	return GetOrCreateDescriptorSetLayout(BuildLayoutKey(shaderReflections, set));
 }
@@ -63,13 +63,13 @@ Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::GetOrCreateDescriptorSetL
 }
 
 Prism::Render::Vulkan::DescriptorSetLayoutKey Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::BuildLayoutKey(
-    const std::span<const VulkanShaderReflection> shaderReflections, const uint32_t set)
+    const std::span<const VulkanShaderReflection* const> shaderReflections, const uint32_t set)
 {
 	DescriptorSetLayoutKey layoutKey;
 
 	for (const auto& reflection : shaderReflections)
 	{
-		const auto* descriptorSet = reflection.FindDescriptorSet(set);
+		const auto* descriptorSet = reflection->FindDescriptorSet(set);
 
 		if (!descriptorSet)
 		{
@@ -91,7 +91,7 @@ Prism::Render::Vulkan::DescriptorSetLayoutKey Prism::Render::Vulkan::VulkanDescr
 				    .binding = binding.binding,
 				    .type = static_cast<VkDescriptorType>(binding.descriptor_type),
 				    .count = descriptorCount,
-				    .stageFlags = GetVkShaderStageFlags(reflection.GetShaderType()),
+				    .stageFlags = GetVkShaderStageFlags(reflection->GetShaderType()),
 				});
 			}
 			else
@@ -100,7 +100,7 @@ Prism::Render::Vulkan::DescriptorSetLayoutKey Prism::Render::Vulkan::VulkanDescr
 
 				PE_ASSERT(it->count == descriptorCount);
 
-				it->stageFlags |= GetVkShaderStageFlags(reflection.GetShaderType());
+				it->stageFlags |= GetVkShaderStageFlags(reflection->GetShaderType());
 			}
 		}
 	}

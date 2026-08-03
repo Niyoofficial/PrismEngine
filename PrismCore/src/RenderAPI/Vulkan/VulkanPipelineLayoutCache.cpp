@@ -14,7 +14,7 @@ Prism::Render::Vulkan::VulkanPipelineLayoutCache::~VulkanPipelineLayoutCache()
 }
 
 VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePipelineLayout(
-    const std::span<const VulkanShaderReflection> shaderReflections)
+    const std::span<const VulkanShaderReflection* const> shaderReflections)
 {
 	PipelineLayoutKey pipelineKey;
 
@@ -43,9 +43,9 @@ VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePi
 
 	for (const auto& reflection : shaderReflections)
 	{
-		for (uint32_t i = 0; i < reflection.GetPushConstantBlockCount(); ++i)
+		for (uint32_t i = 0; i < reflection->GetPushConstantBlockCount(); ++i)
 		{
-			const auto& block = reflection.GetPushConstantBlock(i);
+			const auto& block = reflection->GetPushConstantBlock(i);
 
 			auto it = std::ranges::find_if(pipelineKey.pushConstants, [&](const PushConstantKey& key)
 			                               { return key.offset == block.offset && key.size == block.size; });
@@ -55,12 +55,12 @@ VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePi
 				pipelineKey.pushConstants.push_back({
 				    .offset = block.offset,
 				    .size = block.size,
-				    .stageFlags = GetVkShaderStageFlags(reflection.GetShaderType()),
+				    .stageFlags = GetVkShaderStageFlags(reflection->GetShaderType()),
 				});
 			}
 			else
 			{
-				it->stageFlags |= GetVkShaderStageFlags(reflection.GetShaderType());
+				it->stageFlags |= GetVkShaderStageFlags(reflection->GetShaderType());
 			}
 		}
 	}

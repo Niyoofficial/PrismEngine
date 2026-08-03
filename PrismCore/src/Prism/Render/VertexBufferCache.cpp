@@ -9,32 +9,57 @@ int64_t GetVertexSize(const VertexAttributeList& attributeList)
 	int64_t size = 0;
 	for (auto att : attributeList)
 	{
-		switch (att)
-		{
-		case VertexAttribute::Position:
-			size += sizeof(glm::float3);
-			break;
-		case VertexAttribute::Normal:
-			size += sizeof(glm::float3);
-			break;
-		case VertexAttribute::TexCoord:
-			size += sizeof(glm::float2);
-			break;
-		case VertexAttribute::Tangent:
-			size += sizeof(glm::float3);
-			break;
-		case VertexAttribute::Bitangent:
-			size += sizeof(glm::float3);
-			break;
-		case VertexAttribute::Color:
-			size += sizeof(glm::float4);
-			break;
-		}
+		size += GetVertexAttributeSize(att);
 	}
 	return size;
 }
 
-VertexBufferCache::MeshBuffers VertexBufferCache::GetOrCreateMeshBuffers(const VertexAttributeList& attributeList, MeshAsset* mesh)
+uint32_t GetVertexAttributeSize(const VertexAttribute& attribute)
+{
+	switch (attribute)
+	{
+	case VertexAttribute::Position:
+		return sizeof(glm::float3);
+	case VertexAttribute::Normal:
+		return sizeof(glm::float3);
+	case VertexAttribute::TexCoord:
+		return sizeof(glm::float2);
+	case VertexAttribute::Tangent:
+		return sizeof(glm::float3);
+	case VertexAttribute::Bitangent:
+		return sizeof(glm::float3);
+	case VertexAttribute::Color:
+		return sizeof(glm::float4);
+	default:
+		PE_ASSERT_NO_ENTRY("Unknown vertex attribute");
+		return 0;
+	}
+}
+
+uint32_t GetVertexLocation(const VertexAttribute attribute)
+{
+	switch (attribute)
+	{
+	case VertexAttribute::Position:
+		return 0;
+	case VertexAttribute::Normal:
+		return 1;
+	case VertexAttribute::TexCoord:
+		return 2;
+	case VertexAttribute::Tangent:
+		return 3;
+	case VertexAttribute::Bitangent:
+		return 4;
+	case VertexAttribute::Color:
+		return 5;
+	default:
+		PE_ASSERT_NO_ENTRY("Unknown vertex attribute");
+		return 0;
+	}
+}
+
+VertexBufferCache::MeshBuffers VertexBufferCache::GetOrCreateMeshBuffers(const VertexAttributeList& attributeList,
+                                                                         MeshAsset* mesh)
 {
 	Buffer* vertexBuffer = nullptr;
 	Buffer* indexBuffer = nullptr;
@@ -79,13 +104,12 @@ void VertexBufferCache::CreateVertexBuffer(const VertexAttributeList& attributeL
 	std::vector<uint8_t> vertices;
 	for (auto node : *mesh)
 	{
-		auto appendAttribute =
-			[&vertices](auto att)
-			{
-				size_t startOffset = vertices.size();
-				vertices.insert(vertices.end(), sizeof(att), 0);
-				memcpy(vertices.data() + startOffset, &att, sizeof(att));
-			};
+		auto appendAttribute = [&vertices](auto att)
+		{
+			size_t startOffset = vertices.size();
+			vertices.insert(vertices.end(), sizeof(att), 0);
+			memcpy(vertices.data() + startOffset, &att, sizeof(att));
+		};
 
 		if (mesh->DoesNodeContainVertices(node))
 		{
@@ -119,15 +143,13 @@ void VertexBufferCache::CreateVertexBuffer(const VertexAttributeList& attributeL
 		}
 	}
 
-	m_vbCache[attributeList][mesh] = Buffer::Create({
-														.bufferName = L"VertexBuffer",
-														.size = (int64_t)vertices.size(),
-														.bindFlags = BindFlags::VertexBuffer,
-													},
-													{
-														.data = vertices.data(),
-														.sizeInBytes = (int64_t)vertices.size()
-													});
+	m_vbCache[attributeList][mesh] = Buffer::Create(
+	    {
+	        .bufferName = L"VertexBuffer",
+	        .size = (int64_t)vertices.size(),
+	        .bindFlags = BindFlags::VertexBuffer,
+	    },
+	    {.data = vertices.data(), .sizeInBytes = (int64_t)vertices.size()});
 }
 
 void VertexBufferCache::CreateIndexBuffer(MeshAsset* mesh)
@@ -147,14 +169,12 @@ void VertexBufferCache::CreateIndexBuffer(MeshAsset* mesh)
 		}
 	}
 
-	m_ibCache[mesh].first = Buffer::Create({
-											   .bufferName = L"IndexBuffer",
-											   .size = (int64_t)(indices.size() * sizeof(uint32_t)),
-											   .bindFlags = BindFlags::IndexBuffer,
-										   },
-										   {
-											   .data = indices.data(),
-											   .sizeInBytes = (int64_t)(indices.size() * sizeof(uint32_t))
-										   });
+	m_ibCache[mesh].first = Buffer::Create(
+	    {
+	        .bufferName = L"IndexBuffer",
+	        .size = (int64_t)(indices.size() * sizeof(uint32_t)),
+	        .bindFlags = BindFlags::IndexBuffer,
+	    },
+	    {.data = indices.data(), .sizeInBytes = (int64_t)(indices.size() * sizeof(uint32_t))});
 }
-}
+} // namespace Prism::Render

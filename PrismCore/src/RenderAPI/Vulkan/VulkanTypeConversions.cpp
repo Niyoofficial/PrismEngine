@@ -1,5 +1,7 @@
 #include "VulkanTypeConversions.h"
 
+#include "Prism/Render/VertexBufferCache.h"
+
 VkImageType Prism::Render::Vulkan::GetVkImageType(const ResourceDimension dimension)
 {
 	switch (dimension)
@@ -13,6 +15,7 @@ VkImageType Prism::Render::Vulkan::GetVkImageType(const ResourceDimension dimens
 	case ResourceDimension::TexCube:
 		return VK_IMAGE_TYPE_2D;
 	default:
+		PE_ASSERT_NO_ENTRY("Unknown ResourceDimension");
 		return VK_IMAGE_TYPE_2D;
 	}
 }
@@ -30,6 +33,7 @@ VkImageViewType Prism::Render::Vulkan::GetVkImageViewType(const ResourceDimensio
 	case ResourceDimension::TexCube:
 		return arrayLayers > 6 ? VK_IMAGE_VIEW_TYPE_CUBE_ARRAY : VK_IMAGE_VIEW_TYPE_CUBE;
 	default:
+		PE_ASSERT_NO_ENTRY("Unknown ResourceDimension");
 		return VK_IMAGE_VIEW_TYPE_2D;
 	}
 }
@@ -69,6 +73,7 @@ VkImageAspectFlags Prism::Render::Vulkan::GetVkImageAspectFlags(const TextureFor
 	case TextureFormat::D32_Float_S8X24_UInt:
 		return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
 	default:
+		PE_ASSERT_NO_ENTRY("Unknown TextureFormat");
 		return VK_IMAGE_ASPECT_COLOR_BIT;
 	}
 }
@@ -250,6 +255,7 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const TextureFormat format)
 	case TextureFormat::BC7_UNorm_SRGB:
 		return VK_FORMAT_BC7_SRGB_BLOCK;
 	default:
+		PE_ASSERT_NO_ENTRY("Unknown TextureFormat");
 		return VK_FORMAT_UNDEFINED;
 	}
 }
@@ -351,11 +357,12 @@ VkImageLayout Prism::Render::Vulkan::GetVkImageLayout(const BarrierLayout layout
 	case BarrierLayout::CopyDest:
 		return VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
 	default:
+		PE_ASSERT_NO_ENTRY("Unknown BarrierLayout");
 		return VK_IMAGE_LAYOUT_GENERAL;
 	}
 }
 
-VkShaderStageFlags Prism::Render::Vulkan::GetVkShaderStageFlags(ShaderType type)
+VkShaderStageFlags Prism::Render::Vulkan::GetVkShaderStageFlags(const ShaderType type)
 {
 	switch (type)
 	{
@@ -372,6 +379,299 @@ VkShaderStageFlags Prism::Render::Vulkan::GetVkShaderStageFlags(ShaderType type)
 	case ShaderType::CS:
 		return VK_SHADER_STAGE_COMPUTE_BIT;
 	default:
+		PE_ASSERT_NO_ENTRY("Unknown ShaderType");
 		return VK_SHADER_STAGE_ALL;
 	}
+}
+
+VkFormat Prism::Render::Vulkan::GetVkFormat(const VertexAttribute attribute)
+{
+	switch (attribute)
+	{
+	case VertexAttribute::Position:
+	case VertexAttribute::Normal:
+	case VertexAttribute::Tangent:
+	case VertexAttribute::Bitangent:
+		return VK_FORMAT_R32G32B32_SFLOAT;
+	case VertexAttribute::TexCoord:
+		return VK_FORMAT_R32G32_SFLOAT;
+	case VertexAttribute::Color:
+		return VK_FORMAT_R32G32B32A32_SFLOAT;
+	default:
+		PE_ASSERT_NO_ENTRY("Unknown VertexAttribute");
+		return VK_FORMAT_R32G32B32_SFLOAT;
+	}
+}
+
+VkPrimitiveTopology Prism::Render::Vulkan::GetVkPrimitiveTopology(const TopologyType topologyType)
+{
+	switch (topologyType)
+	{
+	case TopologyType::PointList:
+		return VK_PRIMITIVE_TOPOLOGY_POINT_LIST;
+	case TopologyType::LineList:
+		return VK_PRIMITIVE_TOPOLOGY_LINE_LIST;
+	case TopologyType::LineStrip:
+		return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP;
+	case TopologyType::TriangleList:
+		return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+	case TopologyType::TriangleStrip:
+		return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP;
+	case TopologyType::LineListAdj:
+		return VK_PRIMITIVE_TOPOLOGY_LINE_LIST_WITH_ADJACENCY;
+	case TopologyType::LineStripAdj:
+		return VK_PRIMITIVE_TOPOLOGY_LINE_STRIP_WITH_ADJACENCY;
+	case TopologyType::TriangleListAdj:
+		return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST_WITH_ADJACENCY;
+	case TopologyType::TriangleStripAdj:
+		return VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY;
+	case TopologyType::ControlPointPatchlist1:
+	case TopologyType::ControlPointPatchlist2:
+	case TopologyType::ControlPointPatchlist3:
+	case TopologyType::ControlPointPatchlist4:
+	case TopologyType::ControlPointPatchlist5:
+	case TopologyType::ControlPointPatchlist6:
+	case TopologyType::ControlPointPatchlist7:
+	case TopologyType::ControlPointPatchlist8:
+	case TopologyType::ControlPointPatchlist9:
+	case TopologyType::ControlPointPatchlist10:
+	case TopologyType::ControlPointPatchlist11:
+	case TopologyType::ControlPointPatchlist12:
+	case TopologyType::ControlPointPatchlist13:
+	case TopologyType::ControlPointPatchlist14:
+	case TopologyType::ControlPointPatchlist15:
+	case TopologyType::ControlPointPatchlist16:
+	case TopologyType::ControlPointPatchlist17:
+	case TopologyType::ControlPointPatchlist18:
+	case TopologyType::ControlPointPatchlist19:
+	case TopologyType::ControlPointPatchlist20:
+	case TopologyType::ControlPointPatchlist21:
+	case TopologyType::ControlPointPatchlist22:
+	case TopologyType::ControlPointPatchlist23:
+	case TopologyType::ControlPointPatchlist24:
+	case TopologyType::ControlPointPatchlist25:
+	case TopologyType::ControlPointPatchlist26:
+	case TopologyType::ControlPointPatchlist27:
+	case TopologyType::ControlPointPatchlist28:
+	case TopologyType::ControlPointPatchlist29:
+	case TopologyType::ControlPointPatchlist30:
+	case TopologyType::ControlPointPatchlist31:
+	case TopologyType::ControlPointPatchlist32:
+		return VK_PRIMITIVE_TOPOLOGY_PATCH_LIST;
+	case TopologyType::Undefined:
+	default:
+		PE_ASSERT_NO_ENTRY("Unknown TopologyType");
+		return VK_PRIMITIVE_TOPOLOGY_MAX_ENUM;
+	}
+}
+
+VkPolygonMode Prism::Render::Vulkan::GetVkPolygonMode(const FillMode fillMode)
+{
+	switch (fillMode)
+	{
+	case FillMode::Wireframe:
+		return VK_POLYGON_MODE_LINE;
+	case FillMode::Solid:
+		return VK_POLYGON_MODE_FILL;
+	default:
+		PE_ASSERT_NO_ENTRY("Unknown FillMode");
+		return VK_POLYGON_MODE_FILL;
+	}
+}
+
+VkCullModeFlags Prism::Render::Vulkan::GetVkCullModeFlags(const CullMode cullMode)
+{
+	switch (cullMode)
+	{
+	case CullMode::None:
+		return VK_CULL_MODE_NONE;
+	case CullMode::Front:
+		return VK_CULL_MODE_FRONT_BIT;
+	case CullMode::Back:
+		return VK_CULL_MODE_BACK_BIT;
+	default:
+		PE_ASSERT_NO_ENTRY("Unknown CullMode");
+		return VK_CULL_MODE_BACK_BIT;
+	}
+}
+
+VkSampleCountFlagBits Prism::Render::Vulkan::GetVkSampleCountFlagBits(const uint32_t sampleCount)
+{
+	switch (sampleCount)
+	{
+	case 1:
+		return VK_SAMPLE_COUNT_1_BIT;
+	case 2:
+		return VK_SAMPLE_COUNT_2_BIT;
+	case 4:
+		return VK_SAMPLE_COUNT_4_BIT;
+	case 8:
+		return VK_SAMPLE_COUNT_8_BIT;
+	case 16:
+		return VK_SAMPLE_COUNT_16_BIT;
+	case 32:
+		return VK_SAMPLE_COUNT_32_BIT;
+	case 64:
+		return VK_SAMPLE_COUNT_64_BIT;
+	default:
+		PE_ASSERT_NO_ENTRY("Unknown sampleCount");
+		return VK_SAMPLE_COUNT_1_BIT;
+	}
+}
+
+VkCompareOp Prism::Render::Vulkan::GetVkCompareOp(const ComparisionFunction function)
+{
+	switch (function)
+	{
+	case ComparisionFunction::Never:
+		return VK_COMPARE_OP_NEVER;
+	case ComparisionFunction::Less:
+		return VK_COMPARE_OP_LESS;
+	case ComparisionFunction::Equal:
+		return VK_COMPARE_OP_EQUAL;
+	case ComparisionFunction::LessEqual:
+		return VK_COMPARE_OP_LESS_OR_EQUAL;
+	case ComparisionFunction::Greater:
+		return VK_COMPARE_OP_GREATER;
+	case ComparisionFunction::NotEqual:
+		return VK_COMPARE_OP_NOT_EQUAL;
+	case ComparisionFunction::GreaterEqual:
+		return VK_COMPARE_OP_GREATER_OR_EQUAL;
+	default:
+		PE_ASSERT_NO_ENTRY("Unknown ComparisionFunction");
+		return VK_COMPARE_OP_ALWAYS;
+	}
+}
+
+VkStencilOp Prism::Render::Vulkan::GetVkStencilOp(const StencilOperation operation)
+{
+	switch (operation)
+	{
+	case StencilOperation::Keep:
+		return VK_STENCIL_OP_KEEP;
+	case StencilOperation::Zero:
+		return VK_STENCIL_OP_ZERO;
+	case StencilOperation::Replace:
+		return VK_STENCIL_OP_REPLACE;
+	case StencilOperation::IncrSat:
+		return VK_STENCIL_OP_INCREMENT_AND_CLAMP;
+	case StencilOperation::DecrSat:
+		return VK_STENCIL_OP_DECREMENT_AND_CLAMP;
+	case StencilOperation::Invert:
+		return VK_STENCIL_OP_INVERT;
+	case StencilOperation::IncrWrap:
+		return VK_STENCIL_OP_INCREMENT_AND_WRAP;
+	case StencilOperation::DecrWrap:
+		return VK_STENCIL_OP_DECREMENT_AND_WRAP;
+	case StencilOperation::Undefined:
+		return VK_STENCIL_OP_KEEP;
+	default:
+		PE_ASSERT_NO_ENTRY("Unknown StencilOperation");
+		return VK_STENCIL_OP_KEEP;
+	}
+}
+
+VkStencilOpState Prism::Render::Vulkan::GetVkStencilOpState(const DepthStencilOperationDesc& desc, const uint8_t readMask,
+                                                            const uint8_t writeMask, const uint32_t reference)
+{
+	return VkStencilOpState{
+	    .failOp = GetVkStencilOp(desc.stencilFail),
+	    .passOp = GetVkStencilOp(desc.stencilPass),
+	    .depthFailOp = GetVkStencilOp(desc.stencilDepthFail),
+	    .compareOp = GetVkCompareOp(desc.stencilFunction),
+	    .compareMask = readMask,
+	    .writeMask = writeMask,
+	    .reference = reference,
+	};
+}
+
+VkBlendFactor Prism::Render::Vulkan::GetVkBlendFactor(const BlendFactor factor)
+{
+	switch (factor)
+	{
+	case BlendFactor::Zero:
+		return VK_BLEND_FACTOR_ZERO;
+	case BlendFactor::One:
+		return VK_BLEND_FACTOR_ONE;
+	case BlendFactor::SrcColor:
+		return VK_BLEND_FACTOR_SRC_COLOR;
+	case BlendFactor::InvSrcColor:
+		return VK_BLEND_FACTOR_ONE_MINUS_SRC_COLOR;
+	case BlendFactor::SrcAlpha:
+		return VK_BLEND_FACTOR_SRC_ALPHA;
+	case BlendFactor::InvSrcAlpha:
+		return VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+	case BlendFactor::DestAlpha:
+		return VK_BLEND_FACTOR_DST_ALPHA;
+	case BlendFactor::InvDestAlpha:
+		return VK_BLEND_FACTOR_ONE_MINUS_DST_ALPHA;
+	case BlendFactor::DestColor:
+		return VK_BLEND_FACTOR_DST_COLOR;
+	case BlendFactor::InvDestColor:
+		return VK_BLEND_FACTOR_ONE_MINUS_DST_COLOR;
+	case BlendFactor::SrcAlphaSat:
+		return VK_BLEND_FACTOR_SRC_ALPHA_SATURATE;
+	case BlendFactor::ConstantBlendFactor:
+		return VK_BLEND_FACTOR_CONSTANT_COLOR;
+	case BlendFactor::InvConstantBlendFactor:
+		return VK_BLEND_FACTOR_ONE_MINUS_CONSTANT_COLOR;
+	case BlendFactor::Src1Color:
+		return VK_BLEND_FACTOR_SRC1_COLOR;
+	case BlendFactor::InvSrc1Color:
+		return VK_BLEND_FACTOR_ONE_MINUS_SRC1_COLOR;
+	case BlendFactor::Src1Alpha:
+		return VK_BLEND_FACTOR_SRC1_ALPHA;
+	case BlendFactor::InvSrc1Alpha:
+		return VK_BLEND_FACTOR_ONE_MINUS_SRC1_ALPHA;
+	default:
+		PE_ASSERT_NO_ENTRY("Unknown BlendFactor");
+		return VK_BLEND_FACTOR_ONE;
+	}
+}
+
+VkBlendOp Prism::Render::Vulkan::GetVkBlendOp(const BlendOperation operation)
+{
+	switch (operation)
+	{
+	case BlendOperation::Add:
+		return VK_BLEND_OP_ADD;
+	case BlendOperation::Subtract:
+		return VK_BLEND_OP_SUBTRACT;
+	case BlendOperation::RevSubtract:
+		return VK_BLEND_OP_REVERSE_SUBTRACT;
+	case BlendOperation::Min:
+		return VK_BLEND_OP_MIN;
+	case BlendOperation::Max:
+		return VK_BLEND_OP_MAX;
+	default:
+		PE_ASSERT_NO_ENTRY("Unknown BlendOperation");
+		return VK_BLEND_OP_ADD;
+	}
+}
+
+VkColorComponentFlags Prism::Render::Vulkan::GetVkColorComponentFlags(ColorMask mask)
+{
+	VkColorComponentFlags flags = 0;
+
+	if ((mask & ColorMask::Red) == ColorMask::Red)
+	{
+		flags |= VK_COLOR_COMPONENT_R_BIT;
+	}
+
+	if ((mask & ColorMask::Green) == ColorMask::Green)
+	{
+		flags |= VK_COLOR_COMPONENT_G_BIT;
+	}
+
+	if ((mask & ColorMask::Blue) == ColorMask::Blue)
+	{
+		flags |= VK_COLOR_COMPONENT_B_BIT;
+	}
+
+	if ((mask & ColorMask::Alpha) == ColorMask::Alpha)
+	{
+		flags |= VK_COLOR_COMPONENT_A_BIT;
+	}
+
+	return flags;
 }

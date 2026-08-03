@@ -30,12 +30,12 @@ class VulkanDescriptorSetLayoutCache
 public:
 	~VulkanDescriptorSetLayoutCache();
 
-	[[nodiscard]] VkDescriptorSetLayout GetOrCreateDescriptorSetLayout(std::span<const VulkanShaderReflection> shaderReflections,
-	                                                                   uint32_t set);
+	[[nodiscard]] VkDescriptorSetLayout
+	GetOrCreateDescriptorSetLayout(std::span<const VulkanShaderReflection* const> shaderReflections, uint32_t set);
 
 	[[nodiscard]] VkDescriptorSetLayout GetOrCreateDescriptorSetLayout(const DescriptorSetLayoutKey& layoutKey);
 
-	[[nodiscard]] static DescriptorSetLayoutKey BuildLayoutKey(std::span<const VulkanShaderReflection> shaderReflections,
+	[[nodiscard]] static DescriptorSetLayoutKey BuildLayoutKey(std::span<const VulkanShaderReflection* const> shaderReflections,
 	                                                           uint32_t set);
 
 private:

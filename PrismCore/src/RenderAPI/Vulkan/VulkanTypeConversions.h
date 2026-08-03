@@ -6,6 +6,11 @@
 #include "Prism/Render/Shader.h"
 #include "Prism/Utilities/Flags.h"
 
+namespace Prism::Render
+{
+enum class VertexAttribute;
+}
+
 namespace Prism::Render::Vulkan
 {
 VkImageType GetVkImageType(ResourceDimension dimension);
@@ -25,4 +30,29 @@ VmaAllocationCreateInfo GetVmaAllocationCreateInfo(ResourceUsage usage, Flags<CP
 VkImageLayout GetVkImageLayout(BarrierLayout layout);
 
 VkShaderStageFlags GetVkShaderStageFlags(ShaderType type);
+
+VkFormat GetVkFormat(VertexAttribute attribute);
+
+VkPrimitiveTopology GetVkPrimitiveTopology(TopologyType topologyType);
+
+VkPolygonMode GetVkPolygonMode(FillMode fillMode);
+
+VkCullModeFlags GetVkCullModeFlags(CullMode cullMode);
+
+VkSampleCountFlagBits GetVkSampleCountFlagBits(uint32_t sampleCount);
+
+VkCompareOp GetVkCompareOp(ComparisionFunction function);
+
+VkStencilOp GetVkStencilOp(StencilOperation operation);
+
+VkStencilOpState GetVkStencilOpState(const DepthStencilOperationDesc& desc, uint8_t readMask = 0xFF, uint8_t writeMask = 0xFF,
+                                     uint32_t reference = 0);
+
+VkBlendFactor GetVkBlendFactor(BlendFactor factor);
+
+VkBlendOp GetVkBlendOp(BlendOperation operation);
+
+VkColorComponentFlags GetVkColorComponentFlags(ColorMask mask);
+
+VkLogicOp GetVkLogicOp(LogicOperation);
 } // namespace Prism::Render::Vulkan

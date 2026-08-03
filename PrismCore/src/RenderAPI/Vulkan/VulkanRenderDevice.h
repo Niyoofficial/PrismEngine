@@ -5,9 +5,11 @@
 
 #include "Prism/Render/RenderDevice.h"
 #include "VulkanPipelineCache.h"
+#include "VulkanShaderCompiler.h"
 
 namespace Prism::Render::Vulkan
 {
+class VulkanPipelineLayoutCache;
 class VulkanRenderCommandQueue;
 
 class VulkanRenderDevice : public RenderDevice
@@ -33,7 +35,14 @@ public:
 
 	[[nodiscard]] uint32_t GetGraphicsQueueFamilyIndex() const { return m_graphicsQueueFamilyIndex; }
 
+	[[nodiscard]] VulkanPipelineLayoutCache* GetPipelineLayoutCache() const { return m_pipelineLayoutCache.get(); }
+
 	[[nodiscard]] VulkanPipelineCache* GetPipelineCache() const { return m_pipelineCache.get(); }
+
+	[[nodiscard]] VulkanShaderCompiler* GetVulkanShaderCompiler() const
+	{
+		return static_cast<VulkanShaderCompiler*>(GetShaderCompiler());
+	}
 
 private:
 	Ref<BufferView> CreateBufferView_Impl(const BufferViewDesc& desc, Buffer* buffer) override;
@@ -67,6 +76,7 @@ private:
 	VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 
 	std::unique_ptr<VulkanRenderCommandQueue> m_commandQueue;
+	std::unique_ptr<VulkanPipelineLayoutCache> m_pipelineLayoutCache;
 	std::unique_ptr<VulkanPipelineCache> m_pipelineCache;
 
 	bool m_initializedImGui = false;

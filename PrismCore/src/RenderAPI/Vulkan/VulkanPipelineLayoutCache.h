@@ -34,7 +34,7 @@ public:
 
 	~VulkanPipelineLayoutCache();
 
-	[[nodiscard]] VkPipelineLayout GetOrCreatePipelineLayout(std::span<const VulkanShaderReflection> shaderReflections);
+	[[nodiscard]] VkPipelineLayout GetOrCreatePipelineLayout(std::span<const VulkanShaderReflection* const> shaderReflections);
 
 private:
 	VulkanDescriptorSetLayoutCache& m_descriptorSetLayoutCache;
