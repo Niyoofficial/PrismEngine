@@ -19,6 +19,7 @@
 			"features": [
 				"docking-experimental",
 				"dx12-binding",
+				"vulkan-binding",
 				"sdl3-binding",
 				"wchar32"
 			]

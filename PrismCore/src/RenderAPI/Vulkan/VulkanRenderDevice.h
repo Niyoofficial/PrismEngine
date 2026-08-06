@@ -9,6 +9,7 @@
 
 namespace Prism::Render::Vulkan
 {
+class VulkanDescriptorSetLayoutCache;
 class VulkanPipelineLayoutCache;
 class VulkanRenderCommandQueue;
 
@@ -21,7 +22,29 @@ public:
 	explicit VulkanRenderDevice(const RenderDeviceParams& params);
 	~VulkanRenderDevice() override;
 
-	Ref<Buffer> CreateBuffer(const BufferDesc& desc) override;
+	[[nodiscard]] Ref<Buffer> CreateBuffer(const BufferDesc& desc) override;
+
+	[[nodiscard]] Ref<Texture> CreateTexture(const TextureDesc& desc, BarrierLayout initLayout) override;
+
+	[[nodiscard]] Ref<Texture> CreateTexture(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish) override;
+
+	[[nodiscard]] Ref<Texture> CreateTexture(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap,
+	                                         bool waitForLoadFinish) override;
+
+	[[nodiscard]] int64_t GetTotalSizeInBytes(BufferDesc buffDesc) const override;
+
+	[[nodiscard]] int64_t GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource = 0,
+	                                          int32_t numSubresources = -1) const override;
+
+	[[nodiscard]] SubresourceFootprint GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex = 0) const override;
+
+	[[nodiscard]] int64_t GetTexturePitchAlignment() const override;
+
+	void InitializeImGui(Core::Window* window, TextureFormat depthFormat);
+
+	void ShutdownImGui();
+
+	void ImGuiNewFrame();
 
 	[[nodiscard]] VkDevice GetDevice() const { return m_device; }
 
@@ -68,6 +91,12 @@ private:
 
 	uint32_t FindGraphicsQueueFamilyIndex(VkPhysicalDevice physicalDevice) const;
 
+	void CreateDescriptorSetLayoutCache();
+
+	void CreatePipelineLayoutCache();
+
+	void CreatePipelineCache();
+
 	VkInstance m_instance = VK_NULL_HANDLE;
 	VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 	VkDevice m_device = VK_NULL_HANDLE;
@@ -76,6 +105,7 @@ private:
 	VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 
 	std::unique_ptr<VulkanRenderCommandQueue> m_commandQueue;
+	std::unique_ptr<VulkanDescriptorSetLayoutCache> m_descriptorSetLayoutCache;
 	std::unique_ptr<VulkanPipelineLayoutCache> m_pipelineLayoutCache;
 	std::unique_ptr<VulkanPipelineCache> m_pipelineCache;
 

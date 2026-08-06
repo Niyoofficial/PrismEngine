@@ -1,11 +1,16 @@
 #include "VulkanRenderDevice.h"
 
 #include <SDL3/SDL_vulkan.h>
+#include <imgui_impl_sdl3.h>
 #include <iostream>
 #include "VulkanBuffer.h"
 #include "VulkanBufferView.h"
+#include "VulkanPipelineLayoutCache.h"
 #include "VulkanRenderCommandQueue.h"
+#include "VulkanTexture.h"
 #include "VulkanTextureView.h"
+#include "VulkanTypeConversions.h"
+#include "imgui_impl_vulkan.h"
 
 constexpr std::string_view applicationName = "PrismEngine";
 constexpr uint32_t applicationVersion = VK_MAKE_VERSION(1, 0, 0);
@@ -16,6 +21,7 @@ constexpr std::array<const char*, 1> applicationValidationLayers{
 constexpr std::array<const char*, 1> applicationDeviceExtensions{
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
+constexpr int64_t defaultVulkanMemoryAlignment = 256;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                     VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -54,6 +60,12 @@ Prism::Render::Vulkan::VulkanRenderDevice::VulkanRenderDevice(const RenderDevice
 	CreateAllocator();
 
 	InitDeviceSubsystems();
+
+	CreateDescriptorSetLayoutCache();
+
+	CreatePipelineLayoutCache();
+
+	CreatePipelineCache();
 }
 
 Prism::Render::Vulkan::VulkanRenderDevice::~VulkanRenderDevice()
@@ -95,6 +107,112 @@ Prism::Render::Vulkan::VulkanRenderDevice::~VulkanRenderDevice()
 Prism::Ref<Prism::Render::Buffer> Prism::Render::Vulkan::VulkanRenderDevice::CreateBuffer(const BufferDesc& desc)
 {
 	return Ref<VulkanBuffer>::Create(this, desc);
+}
+
+Prism::Ref<Prism::Render::Texture> Prism::Render::Vulkan::VulkanRenderDevice::CreateTexture(const TextureDesc& desc,
+                                                                                            BarrierLayout initLayout)
+{
+	return Ref<VulkanTexture>::Create(this, desc, initLayout);
+}
+
+Prism::Ref<Prism::Render::Texture>
+Prism::Render::Vulkan::VulkanRenderDevice::CreateTexture(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish)
+{
+	return Ref<VulkanTexture>::Create(this, std::move(filepath), loadAsCubemap, waitForLoadFinish);
+}
+
+Prism::Ref<Prism::Render::Texture> Prism::Render::Vulkan::VulkanRenderDevice::CreateTexture(std::wstring name, void* imageData,
+                                                                                            int64_t dataSize, bool loadAsCubemap,
+                                                                                            bool waitForLoadFinish)
+{
+	return Ref<VulkanTexture>::Create(this, std::move(name), imageData, dataSize, loadAsCubemap, waitForLoadFinish);
+}
+
+int64_t Prism::Render::Vulkan::VulkanRenderDevice::GetTotalSizeInBytes(const BufferDesc buffDesc) const { return buffDesc.size; }
+
+int64_t Prism::Render::Vulkan::VulkanRenderDevice::GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource,
+                                                                       int32_t numSubresources) const
+{
+	const uint32_t bytesPerPixel = GetBytesPerPixel(texDesc.format);
+
+	const int32_t totalSubresources = texDesc.GetSubresourceCount();
+
+	if (numSubresources < 0)
+	{
+		numSubresources = totalSubresources - firstSubresource;
+	}
+
+	int64_t totalSize = 0;
+
+	for (int32_t subresource = 0; subresource < numSubresources; ++subresource)
+	{
+		const int32_t mip = (firstSubresource + subresource) % texDesc.GetMipLevels();
+
+		const int32_t width = std::max(1, texDesc.width >> mip);
+
+		const int32_t height = std::max(1, texDesc.height >> mip);
+
+		const int32_t depth = std::max(1, texDesc.GetDepth());
+
+		totalSize += static_cast<int64_t>(width) * height * depth * bytesPerPixel;
+	}
+
+	return totalSize;
+}
+
+Prism::Render::SubresourceFootprint
+Prism::Render::Vulkan::VulkanRenderDevice::GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex) const
+{
+	const uint32_t bytesPerPixel = GetBytesPerPixel(texDesc.format);
+
+	const int32_t mip = subresourceIndex % texDesc.GetMipLevels();
+
+	const int32_t width = std::max(1, texDesc.width >> mip);
+
+	const int32_t height = std::max(1, texDesc.height >> mip);
+
+	const int32_t depth = std::max(1, texDesc.GetDepth());
+
+	const SubresourceFootprint footprint{
+	    .size = {width, height, depth},
+	    .rowPitch = static_cast<int64_t>(width) * bytesPerPixel,
+	};
+
+	return footprint;
+}
+
+int64_t Prism::Render::Vulkan::VulkanRenderDevice::GetTexturePitchAlignment() const { return defaultVulkanMemoryAlignment; }
+
+void Prism::Render::Vulkan::VulkanRenderDevice::InitializeImGui(Core::Window* window, TextureFormat depthFormat)
+{
+	if (m_initializedImGui)
+	{
+		return;
+	}
+
+	m_initializedImGui = true;
+}
+
+void Prism::Render::Vulkan::VulkanRenderDevice::ShutdownImGui()
+{
+	if (!m_initializedImGui)
+	{
+		return;
+	}
+
+	m_initializedImGui = false;
+}
+
+void Prism::Render::Vulkan::VulkanRenderDevice::ImGuiNewFrame()
+{
+	if (!m_initializedImGui)
+	{
+		return;
+	}
+
+	ImGui_ImplVulkan_NewFrame();
+	ImGui_ImplSDL3_NewFrame();
+	ImGui::NewFrame();
 }
 
 Prism::Render::RenderCommandQueue* Prism::Render::Vulkan::VulkanRenderDevice::GetRenderCommandQueue() const
@@ -353,4 +471,19 @@ uint32_t Prism::Render::Vulkan::VulkanRenderDevice::FindGraphicsQueueFamilyIndex
 	PE_ASSERT(false, "Failed to find a graphics queue family index for the Vulkan device");
 
 	return UINT32_MAX;
+}
+
+void Prism::Render::Vulkan::VulkanRenderDevice::CreateDescriptorSetLayoutCache()
+{
+	m_descriptorSetLayoutCache = std::make_unique<VulkanDescriptorSetLayoutCache>();
+}
+
+void Prism::Render::Vulkan::VulkanRenderDevice::CreatePipelineLayoutCache()
+{
+	m_pipelineLayoutCache = std::make_unique<VulkanPipelineLayoutCache>(*m_descriptorSetLayoutCache);
+}
+
+void Prism::Render::Vulkan::VulkanRenderDevice::CreatePipelineCache()
+{
+	m_pipelineCache = std::make_unique<VulkanPipelineCache>();
 }

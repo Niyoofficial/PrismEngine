@@ -22,9 +22,9 @@ VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePi
 
 	for (const auto& reflection : shaderReflections)
 	{
-		for (uint32_t i = 0; i < reflection.GetDescriptorSetCount(); ++i)
+		for (uint32_t i = 0; i < reflection->GetDescriptorSetCount(); ++i)
 		{
-			usedSets.insert(reflection.GetDescriptorSet(i).set);
+			usedSets.insert(reflection->GetDescriptorSet(i).set);
 		}
 	}
 

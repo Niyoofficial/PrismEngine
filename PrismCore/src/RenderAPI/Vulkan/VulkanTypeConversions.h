@@ -55,4 +55,6 @@ VkBlendOp GetVkBlendOp(BlendOperation operation);
 VkColorComponentFlags GetVkColorComponentFlags(ColorMask mask);
 
 VkLogicOp GetVkLogicOp(LogicOperation);
+
+uint32_t GetBytesPerPixel(TextureFormat format);
 } // namespace Prism::Render::Vulkan

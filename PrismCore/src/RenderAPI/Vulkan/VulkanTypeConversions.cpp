@@ -675,3 +675,28 @@ VkColorComponentFlags Prism::Render::Vulkan::GetVkColorComponentFlags(ColorMask 
 
 	return flags;
 }
+
+uint32_t Prism::Render::Vulkan::GetBytesPerPixel(const TextureFormat format)
+{
+	switch (format)
+	{
+	case TextureFormat::RGBA8_UNorm:
+	case TextureFormat::RGBA8_UNorm_SRGB:
+	case TextureFormat::RGBA8_UInt:
+	case TextureFormat::RGBA8_SNorm:
+	case TextureFormat::RGBA8_SInt:
+		return 4;
+	case TextureFormat::BGRA8_UNorm:
+	case TextureFormat::BGRA8_UNorm_SRGB:
+		return 4;
+	case TextureFormat::R32_Float:
+	case TextureFormat::R32_UInt:
+	case TextureFormat::R32_SInt:
+		return 4;
+	case TextureFormat::D32_Float:
+		return 4;
+	default:
+		PE_ASSERT_NO_ENTRY("Format not implemented");
+		return 4;
+	}
+}
