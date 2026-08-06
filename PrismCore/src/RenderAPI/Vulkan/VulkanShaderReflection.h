@@ -1,8 +1,8 @@
 #pragma once
 
 #define SPIRV_REFLECT_USE_SYSTEM_SPIRV_H
+#include <spirv_reflect.h>
 #include "Prism/Render/Shader.h"
-#include "spirv_reflect.h"
 
 namespace Prism::Render::Vulkan
 {

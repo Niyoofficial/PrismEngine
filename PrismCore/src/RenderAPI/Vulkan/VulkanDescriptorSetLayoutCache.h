@@ -1,6 +1,7 @@
 #pragma once
 
 #include <span>
+#define SPIRV_REFLECT_USE_SYSTEM_SPIRV_H
 #include <spirv_reflect.h>
 #include <vulkan/vulkan_core.h>
 
