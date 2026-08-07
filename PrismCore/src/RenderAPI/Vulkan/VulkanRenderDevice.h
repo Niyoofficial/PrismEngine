@@ -40,11 +40,11 @@ public:
 
 	[[nodiscard]] int64_t GetTexturePitchAlignment() const override;
 
-	void InitializeImGui(Core::Window* window, TextureFormat depthFormat);
+	void InitializeImGui(Core::Window* window, TextureFormat depthFormat) override;
 
-	void ShutdownImGui();
+	void ShutdownImGui() override;
 
-	void ImGuiNewFrame();
+	void ImGuiNewFrame() override;
 
 	[[nodiscard]] VkDevice GetDevice() const { return m_device; }
 
@@ -66,6 +66,8 @@ public:
 	{
 		return static_cast<VulkanShaderCompiler*>(GetShaderCompiler());
 	}
+
+	[[nodiscard]] VulkanRenderCommandQueue* GetVulkanRenderCommandQueue() const { return m_commandQueue.get(); }
 
 private:
 	Ref<BufferView> CreateBufferView_Impl(const BufferViewDesc& desc, Buffer* buffer) override;

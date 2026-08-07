@@ -40,6 +40,9 @@ public:
 	explicit VulkanTexture(VulkanRenderDevice* renderDevice, std::wstring name, void* imageData, int64_t dataSize,
 	                       bool loadAsCubemap = false, bool waitForLoadFinish = true);
 
+	// special constructor for creating a VulkanTexture from an existing VkImage, e.g. for swapchain images
+	explicit VulkanTexture(VulkanRenderDevice* renderDevice, VkImage image, const TextureDesc& desc);
+
 	~VulkanTexture() override;
 
 	void WaitForLoadFinish() override;

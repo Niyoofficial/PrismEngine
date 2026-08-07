@@ -121,13 +121,28 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 	}
 }
 
+Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, VkImage image, const TextureDesc& desc) :
+    Texture(renderDevice), m_originalDesc(desc)
+{
+	m_texture.image = image;
+	m_texture.format = GetVkFormat(desc.format);
+	m_texture.width = desc.width;
+	m_texture.height = desc.height;
+	m_texture.depth = desc.Is3D() ? desc.GetDepth() : 1;
+	m_texture.mipLevels = desc.mipLevels;
+	m_texture.arrayLayers = desc.GetArraySize();
+	m_texture.aspectMask = GetVkImageAspectFlags(desc.format);
+	m_texture.currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	m_texture.allocation = nullptr;
+}
+
 Prism::Render::Vulkan::VulkanTexture::~VulkanTexture()
 {
 	VulkanTexture::WaitForLoadFinish();
 
 	const auto* device = dynamic_cast<VulkanRenderDevice*>(m_renderDevice);
 
-	if (m_texture.image)
+	if (m_texture.image && m_texture.allocation)
 	{
 		vmaDestroyImage(device->GetAllocator(), m_texture.image, m_texture.allocation);
 

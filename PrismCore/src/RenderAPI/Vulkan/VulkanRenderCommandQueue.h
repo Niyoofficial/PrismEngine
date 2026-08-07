@@ -25,11 +25,20 @@ public:
 
 	void Execute(RenderCommandList* cmdList) override;
 
+	void SetSubmitSynchronization(VkSemaphore waitSemaphore, VkPipelineStageFlags waitStage, VkSemaphore signalSemaphore);
+
+	[[nodiscard]] VkQueue GetQueue() const { return m_queue; }
+
 private:
 	VkQueue m_queue = VK_NULL_HANDLE;
 	uint32_t m_queueFamilyIndex = 0;
 
 	uint64_t m_fenceValue = 0;
 	VkSemaphore m_timelineSemaphore = VK_NULL_HANDLE;
+
+	VkSemaphore m_waitSemaphore = VK_NULL_HANDLE;
+	VkPipelineStageFlags m_waitStage = 0;
+
+	VkSemaphore m_signalSemaphore = VK_NULL_HANDLE;
 };
 } // namespace Prism::Render::Vulkan

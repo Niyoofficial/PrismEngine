@@ -33,7 +33,7 @@ public:
 
 	virtual class TextureView* GetBackBufferRTV(int32_t index) const = 0;
 	virtual TextureView* GetCurrentBackBufferRTV() const = 0;
-	int32_t GetCurrentBackBufferIndex() const { return m_currentBackBufferIndex; }
+	uint32_t GetCurrentBackBufferIndex() const { return m_currentBackBufferIndex; }
 
 protected:
 	explicit Swapchain(SwapchainDesc desc);
@@ -42,6 +42,6 @@ protected:
 
 protected:
 	SwapchainDesc m_desc;
-	int32_t m_currentBackBufferIndex = 0;
+	uint32_t m_currentBackBufferIndex = 0;
 };
 }
