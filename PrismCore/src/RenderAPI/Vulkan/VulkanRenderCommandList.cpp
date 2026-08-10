@@ -477,7 +477,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetMarker(glm::float3 color
 	    .color = {color.r, color.g, color.b, 1.0f},
 	};
 
-	vkCmdInsertDebugUtilsLabelEXTFunction(m_commandBuffer, &labelInfo);
+	if (vkCmdInsertDebugUtilsLabelEXTFunction)
+	{
+		vkCmdInsertDebugUtilsLabelEXTFunction(m_commandBuffer, &labelInfo);
+	}
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::BeginEvent(glm::float3 color, std::wstring string)
@@ -490,10 +493,19 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginEvent(glm::float3 colo
 	    .color = {color.r, color.g, color.b, 1.0f},
 	};
 
-	vkCmdBeginDebugUtilsLabelEXTFunction(m_commandBuffer, &labelInfo);
+	if (vkCmdBeginDebugUtilsLabelEXTFunction)
+	{
+		vkCmdBeginDebugUtilsLabelEXTFunction(m_commandBuffer, &labelInfo);
+	}
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::EndEvent() { vkCmdEndDebugUtilsLabelEXTFunction(m_commandBuffer); }
+void Prism::Render::Vulkan::VulkanRenderCommandList::EndEvent()
+{
+	if (vkCmdEndDebugUtilsLabelEXTFunction)
+	{
+		vkCmdEndDebugUtilsLabelEXTFunction(m_commandBuffer);
+	}
+}
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type) {}
 
