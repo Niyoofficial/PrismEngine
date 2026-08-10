@@ -121,6 +121,12 @@ if (PE_VULKAN_BACKEND)
     find_package(Vulkan REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
 
+    if (WIN32)
+        target_include_directories(${PROJECT_NAME} PRIVATE "$ENV{VULKAN_SDK}/Include")
+
+        target_link_libraries(${PROJECT_NAME} PRIVATE "$ENV{VULKAN_SDK}/Lib/dxcompiler.lib")
+    endif ()
+
     find_package(VulkanMemoryAllocator CONFIG REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)
 

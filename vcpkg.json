@@ -30,7 +30,8 @@
 		"yaml-cpp",
 		"crossguid",
 		"vulkan-memory-allocator",
-		"spirv-reflect"
+		"spirv-reflect",
+		"spirv-headers"
 	],
 	"overrides": [
 		{
