@@ -8,9 +8,25 @@
 #include "VulkanTextureView.h"
 #include "VulkanTypeConversions.h"
 
+namespace
+{
+PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXTFunction = nullptr;
+PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXTFunction = nullptr;
+PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabelEXTFunction = nullptr;
+} // namespace
+
 Prism::Render::Vulkan::VulkanRenderCommandList::VulkanRenderCommandList()
 {
 	const auto& device = VulkanRenderDevice::Get();
+
+	vkCmdBeginDebugUtilsLabelEXTFunction = reinterpret_cast<PFN_vkCmdBeginDebugUtilsLabelEXT>(
+	    vkGetDeviceProcAddr(device.GetDevice(), "vkCmdBeginDebugUtilsLabelEXT"));
+
+	vkCmdEndDebugUtilsLabelEXTFunction =
+	    reinterpret_cast<PFN_vkCmdEndDebugUtilsLabelEXT>(vkGetDeviceProcAddr(device.GetDevice(), "vkCmdEndDebugUtilsLabelEXT"));
+
+	vkCmdInsertDebugUtilsLabelEXTFunction = reinterpret_cast<PFN_vkCmdInsertDebugUtilsLabelEXT>(
+	    vkGetDeviceProcAddr(device.GetDevice(), "vkCmdInsertDebugUtilsLabelEXT"));
 
 	uint32_t queueFamily = 0;
 
@@ -461,7 +477,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetMarker(glm::float3 color
 	    .color = {color.r, color.g, color.b, 1.0f},
 	};
 
-	vkCmdInsertDebugUtilsLabelEXT(m_commandBuffer, &labelInfo);
+	vkCmdInsertDebugUtilsLabelEXTFunction(m_commandBuffer, &labelInfo);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::BeginEvent(glm::float3 color, std::wstring string)
@@ -474,10 +490,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginEvent(glm::float3 colo
 	    .color = {color.r, color.g, color.b, 1.0f},
 	};
 
-	vkCmdBeginDebugUtilsLabelEXT(m_commandBuffer, &labelInfo);
+	vkCmdBeginDebugUtilsLabelEXTFunction(m_commandBuffer, &labelInfo);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::EndEvent() { vkCmdEndDebugUtilsLabelEXT(m_commandBuffer); }
+void Prism::Render::Vulkan::VulkanRenderCommandList::EndEvent() { vkCmdEndDebugUtilsLabelEXTFunction(m_commandBuffer); }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type) {}
 
