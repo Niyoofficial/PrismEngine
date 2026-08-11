@@ -5,10 +5,17 @@
 
 Prism::Render::Vulkan::VulkanShaderCompiler::VulkanShaderCompiler()
 {
-	PE_ASSERT(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&m_dxcUtils)));
-	PE_ASSERT(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&m_dxcCompiler)));
+	HRESULT dxcUtilsResult = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&m_dxcUtils));
+	PE_ASSERT(SUCCEEDED(dxcUtilsResult), "DxcCreateInstance(DxcUtils) failed: HRESULT = 0x{:08X}",
+	          static_cast<uint32_t>(dxcUtilsResult));
 
-	PE_ASSERT(m_dxcUtils->CreateDefaultIncludeHandler(&m_dxcIncludeHandler));
+	HRESULT dxcCompilerResult = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&m_dxcCompiler));
+	PE_ASSERT(SUCCEEDED(dxcCompilerResult), "DxcCreateInstance(CLSID_DxcCompiler) failed: HRESULT = 0x{:08X}",
+	          static_cast<uint32_t>(dxcCompilerResult));
+
+	HRESULT includeHeaderResult = m_dxcUtils->CreateDefaultIncludeHandler(&m_dxcIncludeHandler);
+	PE_ASSERT(SUCCEEDED(includeHeaderResult), "CreateDefaultIncludeHandler failed: HRESULT = 0x{:08X}",
+	          static_cast<uint32_t>(includeHeaderResult));
 
 	for (std::error_code error;
 	     const auto& file : std::filesystem::directory_iterator(Core::Paths::Get().GetIntermediateDir(), error))
