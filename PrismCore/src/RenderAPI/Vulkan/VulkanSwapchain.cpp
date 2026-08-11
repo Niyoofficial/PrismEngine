@@ -10,7 +10,7 @@
 Prism::Render::Vulkan::VulkanSwapchain::VulkanSwapchain(Core::Window* window, SwapchainDesc desc) :
     Swapchain(desc), m_window(window), m_desc(desc)
 {
-	const auto sdlWindow = std::any_cast<SDL_Window*>(window->GetPlatformNativeWindow());
+	const auto sdlWindow = std::any_cast<SDL_Window*>(window->GetNativeWindow());
 
 	PE_ASSERT(SDL_Vulkan_CreateSurface(sdlWindow, VulkanRenderDevice::Get().GetVulkanInstance(), nullptr, &m_surface));
 
