@@ -285,6 +285,11 @@ Prism::Render::Vulkan::VulkanRenderDevice::CreateTextureView_Impl(const TextureV
 
 void Prism::Render::Vulkan::VulkanRenderDevice::CreateVulkanInstance(const RenderDeviceParams& params)
 {
+	if (!SDL_Vulkan_LoadLibrary(nullptr))
+	{
+		std::cerr << "SDL_Vulkan_LoadLibrary failed: " << SDL_GetError() << std::endl;
+	}
+
 	VkApplicationInfo applicationInfo{
 	    .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
 	    .pApplicationName = applicationName.data(),
