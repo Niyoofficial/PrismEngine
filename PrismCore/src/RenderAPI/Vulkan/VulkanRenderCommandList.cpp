@@ -353,6 +353,21 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateBuffer(const Ref<Buff
 void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateTexture(const Ref<Texture>& texture, RawData data,
                                                                    const int32_t subresourceIndex)
 {
+	const BufferDesc bufferDesc{
+	    .size = data.sizeInBytes,
+	    .bindFlags = BindFlags::None,
+	    .usage = ResourceUsage::Staging,
+	    .cpuAccess = CPUAccess::Write,
+	};
+
+	const auto stagingBuffer = VulkanRenderDevice::Get().CreateBuffer(bufferDesc);
+
+	void* mapped = stagingBuffer->Map(CPUAccess::Write);
+	memcpy(mapped, data.data, data.sizeInBytes);
+	stagingBuffer->Unmap();
+
+	const auto* vulkanBuffer = dynamic_cast<VulkanBuffer*>(stagingBuffer.Raw());
+
 	const auto* vulkanTexture = dynamic_cast<VulkanTexture*>(texture.Raw());
 
 	const VkBufferImageCopy region{
@@ -366,7 +381,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateTexture(const Ref<Tex
 	                    static_cast<uint32_t>(vulkanTexture->GetTextureDesc().GetHeight()), 1},
 	};
 
-	vkCmdCopyBufferToImage(m_commandBuffer, nullptr, vulkanTexture->GetVulkanTextureResource().image,
+	vkCmdCopyBufferToImage(m_commandBuffer, vulkanBuffer->GetVkBuffer(), vulkanTexture->GetVulkanTextureResource().image,
 	                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
