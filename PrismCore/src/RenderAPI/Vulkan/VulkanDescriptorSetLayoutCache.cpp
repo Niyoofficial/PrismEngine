@@ -89,14 +89,14 @@ Prism::Render::Vulkan::DescriptorSetLayoutKey Prism::Render::Vulkan::VulkanDescr
 			{
 				layoutKey.bindings.push_back({
 				    .binding = binding.binding,
-				    .type = static_cast<VkDescriptorType>(binding.descriptor_type),
+				    .type = GetVkDescriptorType(binding.descriptor_type),
 				    .count = descriptorCount,
 				    .stageFlags = GetVkShaderStageFlags(reflection->GetShaderType()),
 				});
 			}
 			else
 			{
-				PE_ASSERT(it->type == static_cast<VkDescriptorType>(binding.descriptor_type));
+				PE_ASSERT(it->type == GetVkDescriptorType(binding.descriptor_type));
 
 				PE_ASSERT(it->count == descriptorCount);
 

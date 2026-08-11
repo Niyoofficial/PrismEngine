@@ -242,6 +242,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearDepthStencilView(const
 {
 	const auto* view = dynamic_cast<VulkanTextureView*>(dsv.Raw());
 
+	const DepthStencilValue depthStencilValue = clearValue ? *clearValue : DepthStencilValue{.depth = 1.0f, .stencil = 0};
+
 	VkImageAspectFlags aspectMask = 0;
 	if (flags & ClearFlags::ClearDepth)
 	{
@@ -253,8 +255,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearDepthStencilView(const
 	}
 
 	const VkClearDepthStencilValue clearDepthStencil{
-	    .depth = clearValue->depth,
-	    .stencil = clearValue->stencil,
+	    .depth = depthStencilValue.depth,
+	    .stencil = depthStencilValue.stencil,
 	};
 
 	const VkImageSubresourceRange range{

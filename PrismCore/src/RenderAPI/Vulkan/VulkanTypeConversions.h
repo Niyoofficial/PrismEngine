@@ -5,6 +5,8 @@
 #include "Prism/Render/RenderTypes.h"
 #include "Prism/Render/Shader.h"
 #include "Prism/Utilities/Flags.h"
+#define SPIRV_REFLECT_USE_SYSTEM_SPIRV_H
+#include <spirv_reflect.h>
 
 namespace Prism::Render
 {
@@ -57,4 +59,6 @@ VkColorComponentFlags GetVkColorComponentFlags(ColorMask mask);
 VkLogicOp GetVkLogicOp(LogicOperation);
 
 uint32_t GetBytesPerPixel(TextureFormat format);
+
+VkDescriptorType GetVkDescriptorType(SpvReflectDescriptorType type);
 } // namespace Prism::Render::Vulkan

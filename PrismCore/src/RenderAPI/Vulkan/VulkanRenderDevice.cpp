@@ -245,9 +245,6 @@ void Prism::Render::Vulkan::VulkanRenderDevice::ShutdownImGui()
 	vkDeviceWaitIdle(m_device);
 
 	ImGui_ImplVulkan_Shutdown();
-	ImGui_ImplSDL3_Shutdown();
-
-	ImGui::DestroyContext();
 
 	m_initializedImGui = false;
 }
@@ -260,8 +257,6 @@ void Prism::Render::Vulkan::VulkanRenderDevice::ImGuiNewFrame()
 	}
 
 	ImGui_ImplVulkan_NewFrame();
-	ImGui_ImplSDL3_NewFrame();
-	ImGui::NewFrame();
 }
 
 Prism::Render::RenderCommandQueue* Prism::Render::Vulkan::VulkanRenderDevice::GetRenderCommandQueue() const

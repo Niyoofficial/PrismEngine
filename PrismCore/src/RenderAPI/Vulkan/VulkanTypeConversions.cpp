@@ -87,6 +87,8 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const TextureFormat format)
 {
 	switch (format)
 	{
+	case TextureFormat::Unknown:
+		return VK_FORMAT_UNDEFINED;
 	case TextureFormat::RGBA32_Typeless:
 		return VK_FORMAT_R32G32B32A32_SFLOAT;
 	case TextureFormat::RGBA32_Float:
@@ -123,6 +125,11 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const TextureFormat format)
 		return VK_FORMAT_R32G32_UINT;
 	case TextureFormat::RG32_SInt:
 		return VK_FORMAT_R32G32_SINT;
+	case TextureFormat::R32G8X24_Typeless:
+	case TextureFormat::R32_Float_X8X24_Typeless:
+	case TextureFormat::X32_Typeless_G8X24_UInt:
+	case TextureFormat::D32_Float_S8X24_UInt:
+		return VK_FORMAT_D32_SFLOAT_S8_UINT;
 	case TextureFormat::RGB10A2_Typeless:
 		return VK_FORMAT_A2B10G10R10_UNORM_PACK32;
 	case TextureFormat::RGB10A2_UNorm:
@@ -157,20 +164,19 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const TextureFormat format)
 		return VK_FORMAT_R16G16_SINT;
 	case TextureFormat::R32_Typeless:
 		return VK_FORMAT_R32_SFLOAT;
+	case TextureFormat::D32_Float:
+		return VK_FORMAT_D32_SFLOAT;
 	case TextureFormat::R32_Float:
 		return VK_FORMAT_R32_SFLOAT;
 	case TextureFormat::R32_UInt:
 		return VK_FORMAT_R32_UINT;
 	case TextureFormat::R32_SInt:
 		return VK_FORMAT_R32_SINT;
-	case TextureFormat::D32_Float:
-		return VK_FORMAT_D32_SFLOAT;
-	case TextureFormat::D16_UNorm:
-		return VK_FORMAT_D16_UNORM;
+	case TextureFormat::R24G8_Typeless:
+	case TextureFormat::R24_UNorm_X8_Typeless:
+	case TextureFormat::X24_Typeless_G8_UInt:
 	case TextureFormat::D24_UNorm_S8_UInt:
 		return VK_FORMAT_D24_UNORM_S8_UINT;
-	case TextureFormat::D32_Float_S8X24_UInt:
-		return VK_FORMAT_D32_SFLOAT_S8_UINT;
 	case TextureFormat::RG8_Typeless:
 		return VK_FORMAT_R8G8_UNORM;
 	case TextureFormat::RG8_UNorm:
@@ -185,6 +191,8 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const TextureFormat format)
 		return VK_FORMAT_R16_UNORM;
 	case TextureFormat::R16_Float:
 		return VK_FORMAT_R16_SFLOAT;
+	case TextureFormat::D16_UNorm:
+		return VK_FORMAT_D16_UNORM;
 	case TextureFormat::R16_UNorm:
 		return VK_FORMAT_R16_UNORM;
 	case TextureFormat::R16_UInt:
@@ -205,18 +213,14 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const TextureFormat format)
 		return VK_FORMAT_R8_SINT;
 	case TextureFormat::A8_UNorm:
 		return VK_FORMAT_R8_UNORM;
-	case TextureFormat::BGRA8_UNorm:
-		return VK_FORMAT_B8G8R8A8_UNORM;
-	case TextureFormat::BGRA8_UNorm_SRGB:
-		return VK_FORMAT_B8G8R8A8_SRGB;
-	case TextureFormat::BGRA8_Typeless:
-		return VK_FORMAT_B8G8R8A8_UNORM;
-	case TextureFormat::BGRX8_UNorm:
-		return VK_FORMAT_B8G8R8A8_UNORM;
-	case TextureFormat::BGRX8_UNorm_SRGB:
-		return VK_FORMAT_B8G8R8A8_SRGB;
-	case TextureFormat::BGRX8_Typeless:
-		return VK_FORMAT_B8G8R8A8_UNORM;
+	case TextureFormat::R1_UNorm:
+		return VK_FORMAT_UNDEFINED;
+	case TextureFormat::RGB9E5_SHAREDEXP:
+		return VK_FORMAT_E5B9G9R9_UFLOAT_PACK32;
+	case TextureFormat::RG8_B8G8_UNorm:
+		return VK_FORMAT_G8_B8R8_2PLANE_420_UNORM;
+	case TextureFormat::G8R8_G8B8_UNorm:
+		return VK_FORMAT_R8G8B8_UNORM;
 	case TextureFormat::BC1_Typeless:
 		return VK_FORMAT_BC1_RGBA_UNORM_BLOCK;
 	case TextureFormat::BC1_UNorm:
@@ -247,6 +251,24 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const TextureFormat format)
 		return VK_FORMAT_BC5_UNORM_BLOCK;
 	case TextureFormat::BC5_SNorm:
 		return VK_FORMAT_BC5_SNORM_BLOCK;
+	case TextureFormat::B5G6R5_UNorm:
+		return VK_FORMAT_B5G6R5_UNORM_PACK16;
+	case TextureFormat::B5G5R5A1_UNorm:
+		return VK_FORMAT_B5G5R5A1_UNORM_PACK16;
+	case TextureFormat::BGRA8_UNorm:
+		return VK_FORMAT_B8G8R8A8_UNORM;
+	case TextureFormat::BGRX8_UNorm:
+		return VK_FORMAT_B8G8R8A8_UNORM;
+	case TextureFormat::R10G10B10_XR_BIAS_A2_UNorm:
+		return VK_FORMAT_A2R10G10B10_UNORM_PACK32;
+	case TextureFormat::BGRA8_Typeless:
+		return VK_FORMAT_B8G8R8A8_UNORM;
+	case TextureFormat::BGRA8_UNorm_SRGB:
+		return VK_FORMAT_B8G8R8A8_SRGB;
+	case TextureFormat::BGRX8_Typeless:
+		return VK_FORMAT_B8G8R8A8_UNORM;
+	case TextureFormat::BGRX8_UNorm_SRGB:
+		return VK_FORMAT_B8G8R8A8_SRGB;
 	case TextureFormat::BC6H_Typeless:
 		return VK_FORMAT_BC6H_UFLOAT_BLOCK;
 	case TextureFormat::BC6H_UF16:
@@ -259,10 +281,11 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const TextureFormat format)
 		return VK_FORMAT_BC7_UNORM_BLOCK;
 	case TextureFormat::BC7_UNorm_SRGB:
 		return VK_FORMAT_BC7_SRGB_BLOCK;
-	default:
-		PE_ASSERT_NO_ENTRY("Unknown TextureFormat");
-		return VK_FORMAT_UNDEFINED;
+	case TextureFormat::NumFormats:
+		break;
 	}
+	PE_ASSERT_NO_ENTRY("Unknown TextureFormat");
+	return VK_FORMAT_UNDEFINED;
 }
 
 VkBufferUsageFlags Prism::Render::Vulkan::GetVkBufferUsageFlags(Flags<BindFlags> flags)
@@ -542,6 +565,8 @@ VkCompareOp Prism::Render::Vulkan::GetVkCompareOp(const ComparisionFunction func
 		return VK_COMPARE_OP_NOT_EQUAL;
 	case ComparisionFunction::GreaterEqual:
 		return VK_COMPARE_OP_GREATER_OR_EQUAL;
+	case ComparisionFunction::Always:
+		return VK_COMPARE_OP_ALWAYS;
 	default:
 		PE_ASSERT_NO_ENTRY("Unknown ComparisionFunction");
 		return VK_COMPARE_OP_ALWAYS;
@@ -795,5 +820,39 @@ uint32_t Prism::Render::Vulkan::GetBytesPerPixel(const TextureFormat format)
 	default:
 		PE_ASSERT_NO_ENTRY("Format not implemented");
 		return 0;
+	}
+}
+
+VkDescriptorType Prism::Render::Vulkan::GetVkDescriptorType(const SpvReflectDescriptorType type)
+{
+	switch (type)
+	{
+	case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER:
+		return VK_DESCRIPTOR_TYPE_SAMPLER;
+	case SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER:
+		return VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	case SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLED_IMAGE:
+		return VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+	case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_IMAGE:
+		return VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+	case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER:
+		return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+	case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER:
+		return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+	case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+		return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+	case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+		return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+	case SPV_REFLECT_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
+		return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+	case SPV_REFLECT_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
+		return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC;
+	case SPV_REFLECT_DESCRIPTOR_TYPE_INPUT_ATTACHMENT:
+		return VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT;
+	case SPV_REFLECT_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR:
+		return VK_DESCRIPTOR_TYPE_ACCELERATION_STRUCTURE_KHR;
+	default:
+		PE_ASSERT_NO_ENTRY("Unsupported SPIR-V descriptor type");
+		return VK_DESCRIPTOR_TYPE_MAX_ENUM;
 	}
 }
