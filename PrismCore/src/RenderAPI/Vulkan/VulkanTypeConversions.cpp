@@ -68,12 +68,17 @@ VkImageAspectFlags Prism::Render::Vulkan::GetVkImageAspectFlags(const TextureFor
 	{
 	case TextureFormat::D16_UNorm:
 	case TextureFormat::D32_Float:
+	case TextureFormat::R32_Float_X8X24_Typeless:
 		return VK_IMAGE_ASPECT_DEPTH_BIT;
 	case TextureFormat::D24_UNorm_S8_UInt:
 	case TextureFormat::D32_Float_S8X24_UInt:
+	case TextureFormat::R24G8_Typeless:
+	case TextureFormat::R32G8X24_Typeless:
 		return VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+	case TextureFormat::X24_Typeless_G8_UInt:
+	case TextureFormat::X32_Typeless_G8X24_UInt:
+		return VK_IMAGE_ASPECT_STENCIL_BIT;
 	default:
-		PE_ASSERT_NO_ENTRY("Unknown TextureFormat");
 		return VK_IMAGE_ASPECT_COLOR_BIT;
 	}
 }
@@ -680,23 +685,115 @@ uint32_t Prism::Render::Vulkan::GetBytesPerPixel(const TextureFormat format)
 {
 	switch (format)
 	{
+	case TextureFormat::RGBA32_Typeless:
+	case TextureFormat::RGBA32_Float:
+	case TextureFormat::RGBA32_UInt:
+	case TextureFormat::RGBA32_SInt:
+	case TextureFormat::BC6H_Typeless:
+	case TextureFormat::BC6H_UF16:
+	case TextureFormat::BC6H_SF16:
+	case TextureFormat::BC7_Typeless:
+	case TextureFormat::BC7_UNorm:
+	case TextureFormat::BC7_UNorm_SRGB:
+		return 16;
+	case TextureFormat::RGB32_Typeless:
+	case TextureFormat::RGB32_Float:
+	case TextureFormat::RGB32_UInt:
+	case TextureFormat::RGB32_SInt:
+		return 12;
+	case TextureFormat::RGBA16_Typeless:
+	case TextureFormat::RGBA16_Float:
+	case TextureFormat::RGBA16_UNorm:
+	case TextureFormat::RGBA16_UInt:
+	case TextureFormat::RGBA16_SNorm:
+	case TextureFormat::RGBA16_SInt:
+	case TextureFormat::RG32_Typeless:
+	case TextureFormat::RG32_Float:
+	case TextureFormat::RG32_UInt:
+	case TextureFormat::RG32_SInt:
+	case TextureFormat::R32G8X24_Typeless:
+	case TextureFormat::D32_Float_S8X24_UInt:
+	case TextureFormat::R32_Float_X8X24_Typeless:
+	case TextureFormat::BC2_Typeless:
+	case TextureFormat::BC2_UNorm:
+	case TextureFormat::BC2_UNorm_SRGB:
+	case TextureFormat::BC3_Typeless:
+	case TextureFormat::BC3_UNorm:
+	case TextureFormat::BC3_UNorm_SRGB:
+	case TextureFormat::BC5_Typeless:
+	case TextureFormat::BC5_UNorm:
+	case TextureFormat::BC5_SNorm:
+		return 8;
+	case TextureFormat::X32_Typeless_G8X24_UInt:
+	case TextureFormat::RGB10A2_Typeless:
+	case TextureFormat::RGB10A2_UNorm:
+	case TextureFormat::RGB10A2_UInt:
+	case TextureFormat::R11G11B10_Float:
+	case TextureFormat::RGBA8_Typeless:
 	case TextureFormat::RGBA8_UNorm:
 	case TextureFormat::RGBA8_UNorm_SRGB:
 	case TextureFormat::RGBA8_UInt:
 	case TextureFormat::RGBA8_SNorm:
 	case TextureFormat::RGBA8_SInt:
-		return 4;
-	case TextureFormat::BGRA8_UNorm:
-	case TextureFormat::BGRA8_UNorm_SRGB:
-		return 4;
+	case TextureFormat::RG16_Typeless:
+	case TextureFormat::RG16_Float:
+	case TextureFormat::RG16_UNorm:
+	case TextureFormat::RG16_UInt:
+	case TextureFormat::RG16_SNorm:
+	case TextureFormat::RG16_SInt:
+	case TextureFormat::R32_Typeless:
+	case TextureFormat::D32_Float:
 	case TextureFormat::R32_Float:
 	case TextureFormat::R32_UInt:
 	case TextureFormat::R32_SInt:
+	case TextureFormat::R24G8_Typeless:
+	case TextureFormat::D24_UNorm_S8_UInt:
+	case TextureFormat::R24_UNorm_X8_Typeless:
+	case TextureFormat::X24_Typeless_G8_UInt:
+	case TextureFormat::RGB9E5_SHAREDEXP:
+	case TextureFormat::BGRA8_UNorm:
+	case TextureFormat::BGRX8_UNorm:
+	case TextureFormat::R10G10B10_XR_BIAS_A2_UNorm:
+	case TextureFormat::BGRA8_Typeless:
+	case TextureFormat::BGRA8_UNorm_SRGB:
+	case TextureFormat::BGRX8_Typeless:
+	case TextureFormat::BGRX8_UNorm_SRGB:
 		return 4;
-	case TextureFormat::D32_Float:
-		return 4;
+	case TextureFormat::RG8_Typeless:
+	case TextureFormat::RG8_UNorm:
+	case TextureFormat::RG8_UInt:
+	case TextureFormat::RG8_SNorm:
+	case TextureFormat::RG8_SInt:
+	case TextureFormat::R16_Typeless:
+	case TextureFormat::R16_Float:
+	case TextureFormat::D16_UNorm:
+	case TextureFormat::R16_UNorm:
+	case TextureFormat::R16_UInt:
+	case TextureFormat::R16_SNorm:
+	case TextureFormat::R16_SInt:
+	case TextureFormat::RG8_B8G8_UNorm:
+	case TextureFormat::G8R8_G8B8_UNorm:
+	case TextureFormat::B5G6R5_UNorm:
+	case TextureFormat::B5G5R5A1_UNorm:
+	case TextureFormat::BC1_Typeless:
+	case TextureFormat::BC1_UNorm:
+	case TextureFormat::BC1_UNorm_SRGB:
+	case TextureFormat::BC4_Typeless:
+	case TextureFormat::BC4_UNorm:
+	case TextureFormat::BC4_SNorm:
+		return 2;
+	case TextureFormat::R8_Typeless:
+	case TextureFormat::R8_UNorm:
+	case TextureFormat::R8_UInt:
+	case TextureFormat::R8_SNorm:
+	case TextureFormat::R8_SInt:
+	case TextureFormat::A8_UNorm:
+	case TextureFormat::R1_UNorm:
+		return 1;
+	case TextureFormat::Unknown:
+	case TextureFormat::NumFormats:
 	default:
 		PE_ASSERT_NO_ENTRY("Format not implemented");
-		return 4;
+		return 0;
 	}
 }

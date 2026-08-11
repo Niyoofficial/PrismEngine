@@ -491,7 +491,15 @@ void SDLPlatform::SetCurrentThreadDescription(std::wstring description)
 
 void SDLPlatform::InitializeImGuiPlatform(Core::Window* window)
 {
-	ImGui_ImplSDL3_InitForD3D(std::any_cast<SDL_Window*>(window->GetNativeWindow()));
+	const auto sdlWindow = std::any_cast<SDL_Window*>(window->GetNativeWindow());
+
+#if PE_SUPPORT_VULKAN
+	ImGui_ImplSDL3_InitForVulkan(sdlWindow);
+#elif PE_SUPPORT_D3D12
+	ImGui_ImplSDL3_InitForD3D(sdlWindow);
+#else
+	PE_ASSERT_NO_ENTRY("Not supported render backend!");
+#endif
 	initializedImGui = true;
 }
 

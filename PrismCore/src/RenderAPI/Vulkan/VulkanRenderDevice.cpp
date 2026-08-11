@@ -22,6 +22,7 @@ constexpr std::array<const char*, 1> applicationDeviceExtensions{
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 };
 constexpr int64_t defaultVulkanMemoryAlignment = 256;
+constexpr uint32_t defaultImGuiDescriptorPoolSize = 1000;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                     VkDebugUtilsMessageTypeFlagsEXT messageType,
@@ -190,22 +191,9 @@ void Prism::Render::Vulkan::VulkanRenderDevice::InitializeImGui(Core::Window* wi
 		return;
 	}
 
-	IMGUI_CHECKVERSION();
-
-	ImGui::CreateContext();
-
-	ImGuiIO& io = ImGui::GetIO();
-
-	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
-	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
-
-	ImGui::StyleColorsDark();
-
-	const auto sdlWindow = std::any_cast<SDL_Window*>(window->GetNativeWindow());
-
-	PE_ASSERT(sdlWindow);
-
-	PE_ASSERT(ImGui_ImplSDL3_InitForVulkan(sdlWindow));
+	const auto* swapchain = window->GetSwapchain();
+	const auto swapchainDesc = swapchain->GetSwapchainDesc();
+	const VkFormat swapchainFormat = GetVkFormat(swapchainDesc.format);
 
 	ImGui_ImplVulkan_InitInfo initInfo{
 	    .ApiVersion = applicationVulkanApiVersion,
@@ -218,8 +206,18 @@ void Prism::Render::Vulkan::VulkanRenderDevice::InitializeImGui(Core::Window* wi
 	    .MinImageCount = 2,
 	    .ImageCount = 2,
 	    .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
-	    .DescriptorPoolSize = IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE,
+	    .DescriptorPoolSize = defaultImGuiDescriptorPoolSize,
 	    .UseDynamicRendering = true,
+	    .PipelineRenderingCreateInfo =
+	        {
+	            .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+	            .pNext = nullptr,
+	            .viewMask = 0,
+	            .colorAttachmentCount = 1,
+	            .pColorAttachmentFormats = &swapchainFormat,
+	            .depthAttachmentFormat = VK_FORMAT_UNDEFINED,
+	            .stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
+	        },
 	    .Allocator = nullptr,
 	    .CheckVkResultFn =
 	        [](const VkResult result)
