@@ -190,6 +190,50 @@ void Prism::Render::Vulkan::VulkanRenderDevice::InitializeImGui(Core::Window* wi
 		return;
 	}
 
+	IMGUI_CHECKVERSION();
+
+	ImGui::CreateContext();
+
+	ImGuiIO& io = ImGui::GetIO();
+
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+	ImGui::StyleColorsDark();
+
+	const auto sdlWindow = std::any_cast<SDL_Window*>(window->GetNativeWindow());
+
+	PE_ASSERT(sdlWindow);
+
+	PE_ASSERT(ImGui_ImplSDL3_InitForVulkan(sdlWindow));
+
+	ImGui_ImplVulkan_InitInfo initInfo{
+	    .ApiVersion = applicationVulkanApiVersion,
+	    .Instance = m_instance,
+	    .PhysicalDevice = m_physicalDevice,
+	    .Device = m_device,
+	    .QueueFamily = m_graphicsQueueFamilyIndex,
+	    .Queue = m_commandQueue->GetQueue(),
+	    .DescriptorPool = VK_NULL_HANDLE,
+	    .MinImageCount = 2,
+	    .ImageCount = 2,
+	    .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+	    .DescriptorPoolSize = IMGUI_IMPL_VULKAN_MINIMUM_IMAGE_SAMPLER_POOL_SIZE,
+	    .UseDynamicRendering = true,
+	    .Allocator = nullptr,
+	    .CheckVkResultFn =
+	        [](const VkResult result)
+	    {
+		    if (result != VK_SUCCESS)
+		    {
+			    std::cerr << "[ImGui Vulkan] VkResult = " << result << std::endl;
+
+			    PE_ASSERT(false);
+		    }
+	    },
+	};
+	PE_ASSERT(ImGui_ImplVulkan_Init(&initInfo));
+
 	m_initializedImGui = true;
 }
 
@@ -199,6 +243,13 @@ void Prism::Render::Vulkan::VulkanRenderDevice::ShutdownImGui()
 	{
 		return;
 	}
+
+	vkDeviceWaitIdle(m_device);
+
+	ImGui_ImplVulkan_Shutdown();
+	ImGui_ImplSDL3_Shutdown();
+
+	ImGui::DestroyContext();
 
 	m_initializedImGui = false;
 }

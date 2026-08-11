@@ -465,7 +465,29 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::CopyTextureRegion(const Ref
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::RenderImGui(Swapchain* swapchain, int32_t backbufferIndex,
                                                                  ImDrawData* drawData)
-{}
+{
+	if (!drawData)
+	{
+		return;
+	}
+
+	if (m_renderingActive)
+	{
+		EndDynamicRendering();
+	}
+
+	const auto backbuffer = swapchain->GetBackBufferRTV(backbufferIndex);
+
+	m_renderTargetViews.clear();
+	m_renderTargetViews.push_back(backbuffer);
+	m_depthStencilView = nullptr;
+
+	BeginDynamicRendering();
+
+	ImGui_ImplVulkan_RenderDrawData(drawData, m_commandBuffer);
+
+	EndDynamicRendering();
+}
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::SetMarker(glm::float3 color, std::wstring string)
 {
