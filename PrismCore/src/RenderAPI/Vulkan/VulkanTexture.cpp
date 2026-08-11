@@ -268,9 +268,10 @@ void Prism::Render::Vulkan::VulkanTexture::UploadTextureData(const VulkanRenderD
 	memcpy(mappedData, pixels, imageSize);
 	vmaUnmapMemory(renderDevice->GetAllocator(), stagingAllocation);
 
-	auto cmd = std::make_unique<VulkanRenderCommandList>();
+	auto cmd = RenderCommandList::Create();
+	const auto* vulkanCmd = dynamic_cast<VulkanRenderCommandList*>(cmd.Raw());
 
-	VkCommandBuffer vkCmd = cmd->GetVkCommandBuffer();
+	VkCommandBuffer vkCmd = vulkanCmd->GetVkCommandBuffer();
 
 	VkImageMemoryBarrier barrier{
 	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
@@ -326,7 +327,7 @@ void Prism::Render::Vulkan::VulkanTexture::UploadTextureData(const VulkanRenderD
 
 	const auto vulkanQueue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
 
-	vulkanQueue->Execute(cmd.release());
+	vulkanQueue->Execute(cmd);
 	vulkanQueue->WaitForFenceToComplete(vulkanQueue->GetFenceValue());
 
 	vmaDestroyBuffer(renderDevice->GetAllocator(), stagingBuffer, stagingAllocation);
