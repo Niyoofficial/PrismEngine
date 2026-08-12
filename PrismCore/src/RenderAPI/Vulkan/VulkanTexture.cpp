@@ -11,8 +11,42 @@
 Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, const TextureDesc& desc,
                                                     BarrierLayout initLayout) : Texture(renderDevice), m_originalDesc(desc)
 {
+	m_texture.currentLayout = GetVkImageLayout(initLayout);
+
 	CreateImage(renderDevice, desc);
 	CreateSampler(renderDevice, desc);
+
+	if (const VkImageLayout targetLayout = GetVkImageLayout(initLayout); targetLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+	{
+		auto cmd = RenderCommandList::Create();
+		const auto* vulkanCmd = dynamic_cast<VulkanRenderCommandList*>(cmd.Raw());
+		VkCommandBuffer vkCmd = vulkanCmd->GetVkCommandBuffer();
+
+		VkImageMemoryBarrier barrier{
+		    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+		    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
+		    .newLayout = targetLayout,
+		    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		    .image = m_texture.image,
+		    .subresourceRange{
+		        .aspectMask = m_texture.aspectMask,
+		        .baseMipLevel = 0,
+		        .levelCount = static_cast<uint32_t>(m_originalDesc.mipLevels),
+		        .baseArrayLayer = 0,
+		        .layerCount = m_texture.arrayLayers,
+		    },
+		};
+
+		vkCmdPipelineBarrier(vkCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,
+		                     nullptr, 1, &barrier);
+
+		const auto vulkanQueue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
+		vulkanQueue->Execute(cmd);
+		vulkanQueue->WaitForFenceToComplete(vulkanQueue->GetFenceValue());
+
+		m_texture.currentLayout = targetLayout;
+	}
 }
 
 Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, std::wstring filepath, bool loadAsCubemap,
@@ -203,7 +237,13 @@ void Prism::Render::Vulkan::VulkanTexture::CreateImage(const VulkanRenderDevice*
 
 	PE_ASSERT(result == VK_SUCCESS);
 
-	m_texture.currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+	m_texture.format = GetVkFormat(desc.format);
+	m_texture.width = desc.width;
+	m_texture.height = desc.height;
+	m_texture.depth = desc.Is3D() ? desc.GetDepth() : 1;
+	m_texture.mipLevels = desc.mipLevels;
+	m_texture.arrayLayers = desc.Is3D() ? 1 : desc.GetArraySize();
+	m_texture.aspectMask = GetVkImageAspectFlags(desc.format);
 
 #ifdef VK_EXT_debug_utils
 	if (!desc.textureName.empty())

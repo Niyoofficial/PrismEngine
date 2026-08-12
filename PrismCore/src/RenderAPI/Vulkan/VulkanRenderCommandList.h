@@ -75,6 +75,8 @@ public:
 
 	[[nodiscard]] VkCommandBuffer GetVkCommandBuffer() const { return m_commandBuffer; }
 
+	void KeepAlive(const Ref<Buffer>& buffer);
+
 private:
 	void BindDescriptorSets(PipelineStateType type);
 
@@ -95,6 +97,7 @@ private:
 
 	std::vector<PendingColorClear> m_pendingColorClears;
 	std::optional<PendingDepthClear> m_pendingDepthClear;
+	std::vector<Ref<Buffer>> m_pendingStagingBuffers;
 
 	bool m_renderingActive = false;
 

@@ -51,6 +51,10 @@ public:
 
 	[[nodiscard]] VulkanTextureResource GetVulkanTextureResource() const { return m_texture; }
 
+	[[nodiscard]] VkImageLayout GetCurrentLayout() const { return m_texture.currentLayout; }
+
+	void SetCurrentLayout(const VkImageLayout layout) { m_texture.currentLayout = layout; }
+
 private:
 	void CreateImage(const VulkanRenderDevice* renderDevice, const TextureDesc& desc);
 

@@ -221,7 +221,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearRenderTargetView(const
 {
 	auto* view = dynamic_cast<VulkanTextureView*>(rtv.Raw());
 
-	glm::float4 rtClearColor {0.f, 0.f, 0.f, 0.f};
+	glm::float4 rtClearColor{0.f, 0.f, 0.f, 0.f};
 	if (clearColor)
 	{
 		rtClearColor.x = clearColor->x;
@@ -376,26 +376,81 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateTexture(const Ref<Tex
 	const auto stagingBuffer = VulkanRenderDevice::Get().CreateBuffer(bufferDesc);
 
 	void* mapped = stagingBuffer->Map(CPUAccess::Write);
+	PE_ASSERT(mapped != nullptr);
+
 	memcpy(mapped, data.data, data.sizeInBytes);
+
 	stagingBuffer->Unmap();
 
 	const auto* vulkanBuffer = dynamic_cast<VulkanBuffer*>(stagingBuffer.Raw());
 
-	const auto* vulkanTexture = dynamic_cast<VulkanTexture*>(texture.Raw());
+	auto* vulkanTexture = dynamic_cast<VulkanTexture*>(texture.Raw());
+
+	const VkImage image = vulkanTexture->GetVulkanTextureResource().image;
+	const TextureDesc& desc = vulkanTexture->GetTextureDesc();
+
+	VkImageLayout currentLayout = vulkanTexture->GetVulkanTextureResource().currentLayout;
+
+	VkImageMemoryBarrier barrierToTransfer{
+	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+	    .srcAccessMask = 0,
+	    .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+	    .oldLayout = currentLayout,
+	    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+	    .image = image,
+	    .subresourceRange{
+	        .aspectMask = GetVkImageAspectFlags(desc.format),
+	        .baseMipLevel = static_cast<uint32_t>(subresourceIndex),
+	        .levelCount = 1,
+	        .baseArrayLayer = 0,
+	        .layerCount = desc.Is3D() ? 1u : static_cast<uint32_t>(desc.GetArraySize()),
+	    },
+	};
+
+	vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
+	                     nullptr, 1, &barrierToTransfer);
 
 	const VkBufferImageCopy region{
 	    .bufferOffset = 0,
-	    .imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	                         .mipLevel = static_cast<uint32_t>(subresourceIndex),
-	                         .baseArrayLayer = 0,
-	                         .layerCount = 1},
+	    .imageSubresource =
+	        {
+	            .aspectMask = GetVkImageAspectFlags(desc.format),
+	            .mipLevel = static_cast<uint32_t>(subresourceIndex),
+	            .baseArrayLayer = 0,
+	            .layerCount = 1,
+	        },
 	    .imageOffset = {0, 0, 0},
-	    .imageExtent = {static_cast<uint32_t>(vulkanTexture->GetTextureDesc().GetWidth()),
-	                    static_cast<uint32_t>(vulkanTexture->GetTextureDesc().GetHeight()), 1},
+	    .imageExtent =
+	        {
+	            static_cast<uint32_t>(vulkanTexture->GetTextureDesc().GetWidth()),
+	            static_cast<uint32_t>(vulkanTexture->GetTextureDesc().GetHeight()),
+	            desc.Is3D() ? static_cast<uint32_t>(desc.GetDepth()) : 1u,
+	        },
 	};
 
-	vkCmdCopyBufferToImage(m_commandBuffer, vulkanBuffer->GetVkBuffer(), vulkanTexture->GetVulkanTextureResource().image,
-	                       VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+	vkCmdCopyBufferToImage(m_commandBuffer, vulkanBuffer->GetVkBuffer(), image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+	const VkImageMemoryBarrier barrierToShader{
+	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+	    .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
+	    .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
+	    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+	    .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+	    .image = image,
+	    .subresourceRange = barrierToTransfer.subresourceRange,
+	};
+
+	vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
+	                     VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr,
+	                     1, &barrierToShader);
+
+	vulkanTexture->SetCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+
+	KeepAlive(stagingBuffer);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::CopyBufferRegion(const Ref<Buffer>& dest, const int64_t destOffset,
@@ -555,6 +610,11 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::EndEvent()
 	{
 		vkCmdEndDebugUtilsLabelEXTFunction(m_commandBuffer);
 	}
+}
+
+void Prism::Render::Vulkan::VulkanRenderCommandList::KeepAlive(const Ref<Buffer>& buffer)
+{
+	m_pendingStagingBuffers.push_back(buffer);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
