@@ -105,16 +105,6 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::Execute(RenderCommandList*
 
 	PE_ASSERT(vkEndCommandBuffer(vkCommandBuffer) == VK_SUCCESS);
 
-	IncreaseFenceValue();
-
-	const uint64_t signalValue = m_fenceValue;
-
-	const VkTimelineSemaphoreSubmitInfo timelineInfo{
-	    .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
-	    .signalSemaphoreValueCount = 1,
-	    .pSignalSemaphoreValues = &signalValue,
-	};
-
 	VkSemaphore waitSemaphores[1];
 	VkPipelineStageFlags waitStages[1];
 
@@ -139,7 +129,6 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::Execute(RenderCommandList*
 
 	const VkSubmitInfo submitInfo{
 	    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-	    .pNext = &timelineInfo,
 	    .waitSemaphoreCount = waitCount,
 	    .pWaitSemaphores = waitSemaphores,
 	    .pWaitDstStageMask = waitStages,
