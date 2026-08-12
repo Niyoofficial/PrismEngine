@@ -1,5 +1,6 @@
 #include "Common.hlsli"
 #include "FullscreenTriangleVertexShader.hlsli"
+#include "BindlessResources.hlsli"
 
 cbuffer Resources
 {
@@ -67,7 +68,7 @@ float4 psmain(FullscreenVertexOut pin) : SV_Target
 	if (g_outlineTexture != -1 && g_outlineSettings != -1)
 	{
 		Texture2D<float2> outlineTexture = ResourceDescriptorHeap[g_outlineTexture];
-		ConstantBuffer<OutlineSettings> outlineSettings = ResourceDescriptorHeap[g_outlineSettings];
+		OutlineSettings outlineSettings = GET_BINDLESS_CBUFFER(OutlineSettings, g_outlineSettings);
 
 		uint2 texSize;
 		outlineTexture.GetDimensions(texSize.x, texSize.y);

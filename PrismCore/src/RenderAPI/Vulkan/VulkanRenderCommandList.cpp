@@ -3,6 +3,8 @@
 #include <vulkan/vulkan_core.h>
 
 #include "VulkanBuffer.h"
+#include "VulkanBufferView.h"
+#include "VulkanPipelineLayoutCache.h"
 #include "VulkanRenderDevice.h"
 #include "VulkanTexture.h"
 #include "VulkanTextureView.h"
@@ -219,8 +221,17 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearRenderTargetView(const
 {
 	auto* view = dynamic_cast<VulkanTextureView*>(rtv.Raw());
 
+	glm::float4 rtClearColor {0.f, 0.f, 0.f, 0.f};
+	if (clearColor)
+	{
+		rtClearColor.x = clearColor->x;
+		rtClearColor.y = clearColor->y;
+		rtClearColor.z = clearColor->z;
+		rtClearColor.w = clearColor->w;
+	}
+
 	const VkClearColorValue vkClearColor{
-	    .float32 = {clearColor->x, clearColor->y, clearColor->z, clearColor->w},
+	    .float32 = {rtClearColor.x, rtClearColor.y, rtClearColor.z, rtClearColor.w},
 	};
 
 	constexpr VkImageSubresourceRange range{
@@ -546,7 +557,98 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::EndEvent()
 	}
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type) {}
+void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
+{
+	auto& device = VulkanRenderDevice::Get();
+
+	std::vector<const VulkanShaderReflection*> reflections;
+
+	auto* compiler = device.GetVulkanShaderCompiler();
+
+	if (type == PipelineStateType::Graphics)
+	{
+		const auto& vs = compiler->GetOrCreateShader(m_currentGraphicsPSO.vs);
+		const auto& ps = compiler->GetOrCreateShader(m_currentGraphicsPSO.ps);
+		reflections = {&vs.reflection, &ps.reflection};
+	}
+	else
+	{
+		const auto& cs = compiler->GetOrCreateShader(m_currentComputePSO.cs);
+		reflections = {&cs.reflection};
+	}
+
+	const VkPipelineLayout pipelineLayout = device.GetPipelineLayoutCache()->GetOrCreatePipelineLayout(reflections);
+
+	const VkPipelineBindPoint bindPoint =
+	    type == PipelineStateType::Graphics ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE;
+
+	VkDescriptorSet bindlessSet = device.GetBindlessManager().GetSet();
+	vkCmdBindDescriptorSets(m_commandBuffer, bindPoint, pipelineLayout, 0, 1, &bindlessSet, 0, nullptr);
+
+	std::array<uint8_t, 128> pushConstantData{};
+	uint32_t pushConstantOffset = 0;
+	uint32_t pushConstantEnd = 0;
+	bool hasPushConstants = false;
+
+	for (const auto* reflection : reflections)
+	{
+		for (uint32_t i = 0; i < reflection->GetPushConstantBlockCount(); ++i)
+		{
+			const auto& block = reflection->GetPushConstantBlock(i);
+
+			hasPushConstants = true;
+			pushConstantOffset = block.offset;
+			pushConstantEnd = std::max(pushConstantEnd, block.offset + block.size);
+
+			for (uint32_t m = 0; m < block.member_count; ++m)
+			{
+				const auto& member = block.members[m];
+
+				if (!member.name)
+				{
+					continue;
+				}
+
+				const std::wstring memberName = StringToWString(member.name);
+
+				auto it = m_boundResources.find(memberName);
+				if (it == m_boundResources.end() || it->second.empty())
+				{
+					continue;
+				}
+
+				RenderResourceView* resourceView = it->second[0].Raw();
+
+				uint32_t bindlessIndex = UINT32_MAX;
+
+				if (auto* textureView = dynamic_cast<VulkanTextureView*>(resourceView))
+				{
+					bindlessIndex = textureView->GetBindlessIndex();
+				}
+				else if (auto* bufferView = dynamic_cast<VulkanBufferView*>(resourceView))
+				{
+					bindlessIndex = bufferView->GetBindlessIndex();
+				}
+
+				if (bindlessIndex != UINT32_MAX)
+				{
+					PE_ASSERT(member.offset + sizeof(uint32_t) <= pushConstantData.size(), "Resources block too large");
+					std::memcpy(pushConstantData.data() + member.offset, &bindlessIndex, sizeof(uint32_t));
+				}
+			}
+		}
+	}
+
+	if (hasPushConstants)
+	{
+		const VkShaderStageFlags stageFlags = type == PipelineStateType::Graphics
+		    ? (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
+		    : VK_SHADER_STAGE_COMPUTE_BIT;
+
+		vkCmdPushConstants(m_commandBuffer, pipelineLayout, stageFlags, pushConstantOffset, pushConstantEnd - pushConstantOffset,
+		                   pushConstantData.data());
+	}
+}
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
 {

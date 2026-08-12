@@ -1,4 +1,5 @@
 #include "BRDF.hlsli"
+#include "BindlessResources.hlsli"
 
 cbuffer Resources
 {
@@ -66,8 +67,8 @@ float3 CalcLight(BRDFSurface surface, float3 lightColor, float3 toLight, float3 
 
 float4 psmain(VertexOut pin) : SV_Target
 {
-	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_sceneBuffer];
-	ConstantBuffer<DirectionalLightPassBuffer> dirLightPassBuffer = ResourceDescriptorHeap[g_dirLightPassBuffer];
+	SceneBuffer sceneBuffer = GET_BINDLESS_CBUFFER(SceneBuffer, g_sceneBuffer);
+	DirectionalLightPassBuffer dirLightPassBuffer = GET_BINDLESS_CBUFFER(DirectionalLightPassBuffer, g_dirLightPassBuffer);
 	
 	Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
 	Texture2D roughnessMetalAOTexture = ResourceDescriptorHeap[g_roughnessMetalAOTexture];

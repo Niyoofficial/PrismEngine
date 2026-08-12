@@ -37,6 +37,8 @@ public:
 		return m_imguiDescriptorSet;
 	}
 
+	[[nodiscard]] uint32_t GetBindlessIndex();
+
 private:
 	TextureViewDesc m_viewDesc;
 
@@ -45,5 +47,7 @@ private:
 	// TODO
 	// bad solution, just for first engine build. should be handled other way
 	VkDescriptorSet m_imguiDescriptorSet = VK_NULL_HANDLE;
+
+	uint32_t m_bindlessIndex = UINT32_MAX;
 };
 } // namespace Prism::Render::Vulkan

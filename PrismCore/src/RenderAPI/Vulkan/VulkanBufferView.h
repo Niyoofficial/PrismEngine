@@ -16,10 +16,14 @@ public:
 
 	[[nodiscard]] VkDescriptorType GetDescriptorType() const { return m_descriptorType; }
 
+	[[nodiscard]] uint32_t GetBindlessIndex();
+
 private:
 	BufferViewDesc m_viewDesc;
 
 	VkDescriptorBufferInfo m_descriptorBufferInfo{};
 	VkDescriptorType m_descriptorType{};
+
+	uint32_t m_bindlessIndex = UINT32_MAX;
 };
 } // namespace Prism::Render::Vulkan

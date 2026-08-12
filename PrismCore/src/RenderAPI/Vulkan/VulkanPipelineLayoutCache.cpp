@@ -19,6 +19,7 @@ VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePi
 	PipelineLayoutKey pipelineKey;
 
 	std::set<uint32_t> usedSets;
+	usedSets.insert(0); // reserved for bindless descriptor set
 
 	for (const auto& reflection : shaderReflections)
 	{
@@ -34,10 +35,15 @@ VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePi
 
 	for (const uint32_t set : usedSets)
 	{
+		if (set == 0)
+		{
+			pipelineKey.descriptorSets.push_back({});
+			setLayouts.push_back(VulkanRenderDevice::Get().GetBindlessManager().GetLayout());
+			continue;
+		}
+
 		auto layoutKey = VulkanDescriptorSetLayoutCache::BuildLayoutKey(shaderReflections, set);
-
 		pipelineKey.descriptorSets.push_back(layoutKey);
-
 		setLayouts.push_back(m_descriptorSetLayoutCache.GetOrCreateDescriptorSetLayout(layoutKey));
 	}
 

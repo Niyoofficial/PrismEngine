@@ -146,7 +146,7 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 	std::wstring target = GetTargetStringForShader(desc.shaderType, 6, 8);
 
 	const wchar_t* preprocessArguments[] = {
-	    inputFilename.c_str(), L"-P", L"-I", inputPathNoFile.c_str(), L"-I", engineInputPathNoFile.c_str(),
+	    inputFilename.c_str(), L"-P", L"-I", inputPathNoFile.c_str(), L"-I", engineInputPathNoFile.c_str(), L"-D", L"VULKAN=1",
 	};
 
 	const wchar_t* compileArguments[] = {
@@ -171,6 +171,8 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 	    L"-I",
 	    engineInputPathNoFile.c_str(),
 	    L"-enable-16bit-types",
+	    L"-D",
+	    L"VULKAN=1",
 	};
 
 	static_assert(std::is_same_v<uint64_t, XXH64_hash_t>);

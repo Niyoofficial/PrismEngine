@@ -60,6 +60,8 @@ Prism::Render::Vulkan::VulkanRenderDevice::VulkanRenderDevice(const RenderDevice
 
 	CreateAllocator();
 
+	m_bindlessManager.Initialize(m_device);
+
 	InitDeviceSubsystems();
 
 	CreateDescriptorSetLayoutCache();
@@ -72,6 +74,8 @@ Prism::Render::Vulkan::VulkanRenderDevice::VulkanRenderDevice(const RenderDevice
 Prism::Render::Vulkan::VulkanRenderDevice::~VulkanRenderDevice()
 {
 	m_commandQueue.reset();
+
+	m_bindlessManager.Shutdown(m_device);
 
 	if (m_allocator)
 	{
@@ -456,8 +460,24 @@ void Prism::Render::Vulkan::VulkanRenderDevice::CreateLogicalDevice()
 	    .pQueuePriorities = &queuePriority,
 	};
 
+	VkPhysicalDeviceDescriptorIndexingFeatures featureDescriptorIndexing{
+	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+	    .shaderUniformBufferArrayNonUniformIndexing = VK_TRUE,
+	    .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
+	    .shaderStorageBufferArrayNonUniformIndexing = VK_TRUE,
+	    .shaderStorageImageArrayNonUniformIndexing = VK_TRUE,
+	    .descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE,
+	    .descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
+	    .descriptorBindingStorageImageUpdateAfterBind = VK_TRUE,
+	    .descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE,
+	    .descriptorBindingPartiallyBound = VK_TRUE,
+	    .descriptorBindingVariableDescriptorCount = VK_TRUE,
+	    .runtimeDescriptorArray = VK_TRUE,
+	};
+
 	VkPhysicalDeviceVulkan13Features features13{
 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+	    .pNext = &featureDescriptorIndexing,
 	    .synchronization2 = VK_TRUE,
 	    .dynamicRendering = VK_TRUE,
 	};

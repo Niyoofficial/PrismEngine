@@ -4,6 +4,7 @@
 #include <vulkan/vulkan_core.h>
 
 #include "Prism/Render/RenderDevice.h"
+#include "VulkanBindlessManager.h"
 #include "VulkanPipelineCache.h"
 #include "VulkanShaderCompiler.h"
 
@@ -33,10 +34,10 @@ public:
 
 	[[nodiscard]] int64_t GetTotalSizeInBytes(BufferDesc buffDesc) const override;
 
-	[[nodiscard]] int64_t GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource = 0,
-	                                          int32_t numSubresources = -1) const override;
+	[[nodiscard]] int64_t GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource,
+	                                          int32_t numSubresources) const override;
 
-	[[nodiscard]] SubresourceFootprint GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex = 0) const override;
+	[[nodiscard]] SubresourceFootprint GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex) const override;
 
 	[[nodiscard]] int64_t GetTexturePitchAlignment() const override;
 
@@ -68,6 +69,8 @@ public:
 	}
 
 	[[nodiscard]] VulkanRenderCommandQueue* GetVulkanRenderCommandQueue() const { return m_commandQueue.get(); }
+
+	[[nodiscard]] VulkanBindlessManager& GetBindlessManager() { return m_bindlessManager; }
 
 private:
 	Ref<BufferView> CreateBufferView_Impl(const BufferViewDesc& desc, Buffer* buffer) override;
@@ -110,6 +113,7 @@ private:
 	std::unique_ptr<VulkanDescriptorSetLayoutCache> m_descriptorSetLayoutCache;
 	std::unique_ptr<VulkanPipelineLayoutCache> m_pipelineLayoutCache;
 	std::unique_ptr<VulkanPipelineCache> m_pipelineCache;
+	VulkanBindlessManager m_bindlessManager;
 
 	bool m_initializedImGui = false;
 };

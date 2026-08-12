@@ -1,4 +1,5 @@
 #include "BRDF.hlsli"
+#include "BindlessResources.hlsli"
 
 cbuffer Resources
 {
@@ -14,7 +15,7 @@ struct IntegrationData
 [numthreads(8, 8, 1)]
 void main(int3 dispatchThreadID : SV_DispatchThreadID)
 {
-	ConstantBuffer<IntegrationData> integrationData = ResourceDescriptorHeap[g_integrationData];
+	IntegrationData integrationData = GET_BINDLESS_CBUFFER(IntegrationData, g_integrationData);
 	RWTexture2D<float2> outputTexture = ResourceDescriptorHeap[g_outputTexture];
 	
 	float2 uv = float2(((float)dispatchThreadID.x + 0.5f) / integrationData.resolution, ((float)dispatchThreadID.y + 0.5f) / integrationData.resolution);

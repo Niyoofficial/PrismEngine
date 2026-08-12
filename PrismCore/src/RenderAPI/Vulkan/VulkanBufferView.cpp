@@ -1,5 +1,6 @@
 #include "VulkanBufferView.h"
 #include "VulkanBuffer.h"
+#include "VulkanRenderDevice.h"
 
 Prism::Render::Vulkan::VulkanBufferView::VulkanBufferView(const BufferViewDesc& desc, Buffer* buffer) : m_viewDesc(desc)
 {
@@ -7,7 +8,7 @@ Prism::Render::Vulkan::VulkanBufferView::VulkanBufferView(const BufferViewDesc& 
 
 	m_owningBuffer = buffer;
 
-	const auto* vkBuffer = static_cast<VulkanBuffer*>(m_owningBuffer.Raw());
+	const auto* vkBuffer = dynamic_cast<VulkanBuffer*>(m_owningBuffer.Raw());
 
 	m_descriptorBufferInfo.buffer = vkBuffer->GetVkBuffer();
 	m_descriptorBufferInfo.offset = m_viewDesc.offset;
@@ -18,17 +19,29 @@ Prism::Render::Vulkan::VulkanBufferView::VulkanBufferView(const BufferViewDesc& 
 	case BufferViewType::CBV:
 		m_descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		break;
-
 	case BufferViewType::SRV:
-		m_descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-		break;
-
 	case BufferViewType::UAV:
 		m_descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
 		break;
-
 	default:
 		PE_ASSERT(false, "Unsupported buffer view type");
 		break;
 	}
+}
+
+uint32_t Prism::Render::Vulkan::VulkanBufferView::GetBindlessIndex()
+{
+	if (m_bindlessIndex != UINT32_MAX)
+	{
+		return m_bindlessIndex;
+	}
+
+	auto& device = VulkanRenderDevice::Get();
+	auto& bindless = device.GetBindlessManager();
+
+	m_bindlessIndex = bindless.AllocateSlot(BindlessBinding::RawBuffer);
+	bindless.WriteRawBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer, m_descriptorBufferInfo.offset,
+	                            m_descriptorBufferInfo.range);
+
+	return m_bindlessIndex;
 }
