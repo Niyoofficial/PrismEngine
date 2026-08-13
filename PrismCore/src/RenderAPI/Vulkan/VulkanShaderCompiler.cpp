@@ -308,6 +308,21 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 
 			PE_ASSERT(reflectResult == SPV_REFLECT_RESULT_SUCCESS, "Failed to create SPIR-V reflection for {}",
 			          WStringToString(desc.filepath));
+
+			for (uint32_t i = 0; i < output.reflection.GetDescriptorSetCount(); i++)
+			{
+				const auto& set = output.reflection.GetDescriptorSet(i);
+
+				PE_RENDER_LOG(Info, "SET {}", set.set);
+
+				for (uint32_t b = 0; b < set.binding_count; b++)
+				{
+					const auto& binding = *set.bindings[b];
+
+					PE_RENDER_LOG(Warn, "set={} binding={} name={} type={} count={}", set.set, binding.binding, binding.name,
+					              static_cast<uint32_t>(binding.descriptor_type), binding.count);
+				}
+			}
 		}
 
 		m_shaderCache[desc] = {shaderHash, std::move(output)};

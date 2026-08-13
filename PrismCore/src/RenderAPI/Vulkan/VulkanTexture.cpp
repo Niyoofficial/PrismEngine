@@ -43,7 +43,8 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 
 		const auto vulkanQueue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
 		vulkanQueue->Execute(cmd);
-		vulkanQueue->WaitForFenceToComplete(vulkanQueue->GetFenceValue());
+		const uint64_t fenceValue = vulkanQueue->IncreaseAndSignalFence();
+		vulkanQueue->WaitForFenceToComplete(fenceValue);
 
 		m_texture.currentLayout = targetLayout;
 	}
@@ -366,9 +367,9 @@ void Prism::Render::Vulkan::VulkanTexture::UploadTextureData(const VulkanRenderD
 	}
 
 	const auto vulkanQueue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
-
 	vulkanQueue->Execute(cmd);
-	vulkanQueue->WaitForFenceToComplete(vulkanQueue->GetFenceValue());
+	const uint64_t fenceValue = vulkanQueue->IncreaseAndSignalFence();
+	vulkanQueue->WaitForFenceToComplete(fenceValue);
 
 	vmaDestroyBuffer(renderDevice->GetAllocator(), stagingBuffer, stagingAllocation);
 

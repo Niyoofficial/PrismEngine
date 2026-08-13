@@ -117,10 +117,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::Execute(RenderCommandList*
 		waitCount = 1;
 	}
 
-	VkSemaphore signalSemaphores[2];
+	VkSemaphore signalSemaphores[1];
 	uint32_t signalCount = 0;
-
-	signalSemaphores[signalCount++] = m_timelineSemaphore;
 
 	if (m_signalSemaphore != VK_NULL_HANDLE)
 	{
