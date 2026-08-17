@@ -6,20 +6,19 @@
 
 namespace Prism::Render::Vulkan
 {
-enum class BindlessBinding : uint32_t
-{
-	Texture2D = 0,
-	TextureCube = 1,
-	RawBuffer = 2,
-	Count
-};
-
-constexpr uint32_t BindlessSet = 0;
-constexpr uint32_t MaxBindlessDescriptorsPerBinding = 4096;
 
 class VulkanBindlessManager
 {
 public:
+	static constexpr uint32_t SamplerCount = 7;
+
+	static constexpr uint32_t SamplerBindingBegin = 0;
+	static constexpr uint32_t ResourcesBinding = 7;
+	static constexpr uint32_t ResourceHeapBinding = 8;
+	static constexpr uint32_t LegacyBufferHeapBinding = 9;
+
+	static constexpr uint32_t MaxBindlessDescriptors = 4096;
+
 	void Initialize(VkDevice device);
 	void Shutdown(VkDevice device);
 
@@ -27,11 +26,23 @@ public:
 
 	[[nodiscard]] VkDescriptorSet GetSet() const { return m_set; }
 
-	[[nodiscard]] uint32_t AllocateSlot(BindlessBinding binding);
-	void FreeSlot(BindlessBinding binding, uint32_t slot);
+	[[nodiscard]] uint32_t AllocateResource();
 
-	void WriteTexture(VkDevice device, uint32_t slot, VkImageView view, VkImageLayout layout);
-	void WriteRawBuffer(VkDevice device, uint32_t slot, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range);
+	void FreeResource(uint32_t index);
+
+	void WriteSampledImage(VkDevice device, uint32_t index, VkImageView view, VkImageLayout layout);
+
+	void WriteStorageImage(VkDevice device, uint32_t index, VkImageView view, VkImageLayout layout);
+
+	void WriteUniformBuffer(VkDevice device, uint32_t index, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range);
+
+	void WriteStorageBuffer(VkDevice device, uint32_t index, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range);
+
+	void WriteResourcesBuffer(VkDevice device, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range);
+
+	void WriteSampler(VkDevice device, uint32_t samplerIndex, VkSampler sampler);
+
+	void WriteLegacyBuffer(VkDevice device, uint32_t index, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range);
 
 private:
 	struct FreeList
@@ -45,6 +56,7 @@ private:
 	VkDescriptorPool m_pool{};
 	VkDescriptorSet m_set{};
 
-	FreeList m_freeLists[static_cast<size_t>(BindlessBinding::Count)];
+	FreeList m_resourceFreeList;
 };
+
 } // namespace Prism::Render::Vulkan

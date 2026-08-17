@@ -28,22 +28,24 @@ Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::GetOrCreateDescriptorSetL
 	}
 
 	std::vector<VkDescriptorSetLayoutBinding> bindings;
-
 	bindings.reserve(layoutKey.bindings.size());
 
 	for (const auto& [binding, type, count, stageFlags] : layoutKey.bindings)
 	{
-		VkDescriptorSetLayoutBinding descriptorSetLayoutBinding{
+		PE_ASSERT(count > 0);
+		PE_ASSERT(type != VK_DESCRIPTOR_TYPE_MAX_ENUM);
+		PE_ASSERT(stageFlags != 0);
+
+		bindings.push_back({
 		    .binding = binding,
 		    .descriptorType = type,
 		    .descriptorCount = count,
 		    .stageFlags = stageFlags,
 		    .pImmutableSamplers = nullptr,
-		};
-		bindings.push_back(descriptorSetLayoutBinding);
+		});
 	}
 
-	VkDescriptorSetLayoutCreateInfo createInfo{
+	const VkDescriptorSetLayoutCreateInfo createInfo{
 	    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 	    .bindingCount = static_cast<uint32_t>(bindings.size()),
 	    .pBindings = bindings.data(),
@@ -67,6 +69,9 @@ Prism::Render::Vulkan::DescriptorSetLayoutKey Prism::Render::Vulkan::VulkanDescr
 {
 	DescriptorSetLayoutKey layoutKey;
 
+	// set 0 is reserved for bindless
+	PE_ASSERT(set != 0);
+
 	for (const auto& reflection : shaderReflections)
 	{
 		const auto* descriptorSet = reflection->FindDescriptorSet(set);
@@ -76,11 +81,19 @@ Prism::Render::Vulkan::DescriptorSetLayoutKey Prism::Render::Vulkan::VulkanDescr
 			continue;
 		}
 
+		const VkShaderStageFlags stageFlags = GetVkShaderStageFlags(reflection->GetShaderType());
+
 		for (uint32_t i = 0; i < descriptorSet->binding_count; ++i)
 		{
+			PE_ASSERT(descriptorSet->bindings[i] != nullptr);
+
 			const auto& binding = *descriptorSet->bindings[i];
 
+			const VkDescriptorType descriptorType = GetVkDescriptorType(binding.descriptor_type);
+
 			const uint32_t descriptorCount = GetDescriptorCount(binding);
+
+			PE_ASSERT(descriptorCount > 0);
 
 			auto it = std::ranges::find_if(layoutKey.bindings,
 			                               [&](const DescriptorBindingKey& key) { return key.binding == binding.binding; });
@@ -89,19 +102,19 @@ Prism::Render::Vulkan::DescriptorSetLayoutKey Prism::Render::Vulkan::VulkanDescr
 			{
 				layoutKey.bindings.push_back({
 				    .binding = binding.binding,
-				    .type = GetVkDescriptorType(binding.descriptor_type),
+				    .type = descriptorType,
 				    .count = descriptorCount,
-				    .stageFlags = GetVkShaderStageFlags(reflection->GetShaderType()),
+				    .stageFlags = stageFlags,
 				});
-			}
-			else
-			{
-				PE_ASSERT(it->type == GetVkDescriptorType(binding.descriptor_type));
 
-				PE_ASSERT(it->count == descriptorCount);
-
-				it->stageFlags |= GetVkShaderStageFlags(reflection->GetShaderType());
+				continue;
 			}
+
+			PE_ASSERT(it->type == descriptorType, "Descriptor type mismatch between shader stages");
+
+			PE_ASSERT(it->count == descriptorCount, "Descriptor count mismatch between shader stages");
+
+			it->stageFlags |= stageFlags;
 		}
 	}
 

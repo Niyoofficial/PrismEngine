@@ -34,6 +34,12 @@ public:
 
 	~VulkanPipelineLayoutCache();
 
+	VulkanPipelineLayoutCache(const VulkanPipelineLayoutCache&) = delete;
+	VulkanPipelineLayoutCache& operator=(const VulkanPipelineLayoutCache&) = delete;
+
+	VulkanPipelineLayoutCache(VulkanPipelineLayoutCache&&) = delete;
+	VulkanPipelineLayoutCache& operator=(VulkanPipelineLayoutCache&&) = delete;
+
 	[[nodiscard]] VkPipelineLayout GetOrCreatePipelineLayout(std::span<const VulkanShaderReflection* const> shaderReflections);
 
 private:

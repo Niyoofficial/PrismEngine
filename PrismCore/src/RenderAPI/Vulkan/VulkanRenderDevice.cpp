@@ -18,8 +18,9 @@ constexpr uint32_t applicationVulkanApiVersion = VK_API_VERSION_1_3;
 constexpr std::array<const char*, 1> applicationValidationLayers{
     "VK_LAYER_KHRONOS_validation",
 };
-constexpr std::array<const char*, 1> applicationDeviceExtensions{
+constexpr std::array<const char*, 2> applicationDeviceExtensions{
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME,
 };
 constexpr int64_t defaultVulkanMemoryAlignment = 256;
 constexpr uint32_t defaultImGuiDescriptorPoolSize = 1000;
@@ -460,8 +461,14 @@ void Prism::Render::Vulkan::VulkanRenderDevice::CreateLogicalDevice()
 	    .pQueuePriorities = &queuePriority,
 	};
 
+	VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT featureMutableDescriptorType{
+	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,
+	    .mutableDescriptorType = VK_TRUE,
+	};
+
 	VkPhysicalDeviceDescriptorIndexingFeatures featureDescriptorIndexing{
 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+	    .pNext = &featureMutableDescriptorType,
 	    .shaderUniformBufferArrayNonUniformIndexing = VK_TRUE,
 	    .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
 	    .shaderStorageBufferArrayNonUniformIndexing = VK_TRUE,

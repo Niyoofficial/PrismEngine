@@ -5,69 +5,146 @@
 
 Prism::Render::Vulkan::VulkanPipelineLayoutCache::~VulkanPipelineLayoutCache()
 {
-	const auto device = VulkanRenderDevice::Get().GetDevice();
+	const VkDevice device = VulkanRenderDevice::Get().GetDevice();
 
-	for (const auto& layout : m_cache | std::views::values)
+	for (const auto& pipelineLayout : m_cache | std::views::values)
 	{
-		vkDestroyPipelineLayout(device, layout, nullptr);
+		if (pipelineLayout != VK_NULL_HANDLE)
+		{
+			vkDestroyPipelineLayout(device, pipelineLayout, nullptr);
+		}
 	}
 }
 
 VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePipelineLayout(
     const std::span<const VulkanShaderReflection* const> shaderReflections)
 {
+	PE_ASSERT(!shaderReflections.empty());
+
 	PipelineLayoutKey pipelineKey;
 
-	std::set<uint32_t> usedSets;
-	usedSets.insert(0); // reserved for bindless descriptor set
-
-	for (const auto& reflection : shaderReflections)
-	{
-		for (uint32_t i = 0; i < reflection->GetDescriptorSetCount(); ++i)
-		{
-			usedSets.insert(reflection->GetDescriptorSet(i).set);
-		}
-	}
+	// set 0 is reserved for bindless
+	pipelineKey.descriptorSets.emplace_back();
 
 	std::vector<VkDescriptorSetLayout> setLayouts;
 
-	setLayouts.reserve(usedSets.size());
+	setLayouts.push_back(VulkanRenderDevice::Get().GetBindlessManager().GetLayout());
 
-	for (const uint32_t set : usedSets)
+	uint32_t maxSet = 0;
+
+	for (const VulkanShaderReflection* reflection : shaderReflections)
 	{
-		if (set == 0)
-		{
-			pipelineKey.descriptorSets.push_back({});
-			setLayouts.push_back(VulkanRenderDevice::Get().GetBindlessManager().GetLayout());
-			continue;
-		}
+		PE_ASSERT(reflection != nullptr);
 
-		auto layoutKey = VulkanDescriptorSetLayoutCache::BuildLayoutKey(shaderReflections, set);
-		pipelineKey.descriptorSets.push_back(layoutKey);
-		setLayouts.push_back(m_descriptorSetLayoutCache.GetOrCreateDescriptorSetLayout(layoutKey));
+		const uint32_t descriptorSetCount = reflection->GetDescriptorSetCount();
+
+		for (uint32_t i = 0; i < descriptorSetCount; ++i)
+		{
+			const SpvReflectDescriptorSet& descriptorSet = reflection->GetDescriptorSet(i);
+
+			const uint32_t set = descriptorSet.set;
+
+			if (set == 0)
+			{
+				continue;
+			}
+
+			maxSet = std::max(maxSet, set);
+		}
 	}
 
-	for (const auto& reflection : shaderReflections)
+	for (uint32_t set = 1; set <= maxSet; ++set)
 	{
-		for (uint32_t i = 0; i < reflection->GetPushConstantBlockCount(); ++i)
+		auto layoutKey = VulkanDescriptorSetLayoutCache::BuildLayoutKey(shaderReflections, set);
+
+		pipelineKey.descriptorSets.push_back(layoutKey);
+
+		const VkDescriptorSetLayout layout = m_descriptorSetLayoutCache.GetOrCreateDescriptorSetLayout(layoutKey);
+
+		setLayouts.push_back(layout);
+	}
+
+	struct RawPushConstantRange
+	{
+		uint32_t offset;
+		uint32_t size;
+		VkShaderStageFlags stageFlags;
+	};
+
+	std::vector<RawPushConstantRange> rawPushConstants;
+
+	for (const VulkanShaderReflection* reflection : shaderReflections)
+	{
+		const VkShaderStageFlags stageFlags = GetVkShaderStageFlags(reflection->GetShaderType());
+
+		const uint32_t pushConstantCount = reflection->GetPushConstantBlockCount();
+
+		for (uint32_t i = 0; i < pushConstantCount; ++i)
 		{
-			const auto& block = reflection->GetPushConstantBlock(i);
+			const SpvReflectBlockVariable& block = reflection->GetPushConstantBlock(i);
 
-			auto it = std::ranges::find_if(pipelineKey.pushConstants, [&](const PushConstantKey& key)
-			                               { return key.offset == block.offset && key.size == block.size; });
+			if (block.size == 0)
+			{
+				continue;
+			}
 
-			if (it == pipelineKey.pushConstants.end())
+			rawPushConstants.push_back({
+			    .offset = block.offset,
+			    .size = block.size,
+			    .stageFlags = stageFlags,
+			});
+		}
+	}
+
+	if (!rawPushConstants.empty())
+	{
+
+		std::vector<uint32_t> boundaries;
+		boundaries.reserve(rawPushConstants.size() * 2);
+
+		for (const auto& range : rawPushConstants)
+		{
+			boundaries.push_back(range.offset);
+			boundaries.push_back(range.offset + range.size);
+		}
+
+		std::ranges::sort(boundaries);
+
+		boundaries.erase(std::ranges::unique(boundaries).begin(), boundaries.end());
+
+		for (size_t i = 0; i + 1 < boundaries.size(); ++i)
+		{
+			const uint32_t begin = boundaries[i];
+			const uint32_t end = boundaries[i + 1];
+
+			if (begin == end)
 			{
-				pipelineKey.pushConstants.push_back({
-				    .offset = block.offset,
-				    .size = block.size,
-				    .stageFlags = GetVkShaderStageFlags(reflection->GetShaderType()),
-				});
+				continue;
 			}
-			else
+
+			VkShaderStageFlags stageFlags = 0;
+
+			for (const auto& range : rawPushConstants)
 			{
-				it->stageFlags |= GetVkShaderStageFlags(reflection->GetShaderType());
+				const uint32_t rangeBegin = range.offset;
+				const uint32_t rangeEnd = range.offset + range.size;
+
+				if (begin >= rangeBegin && end <= rangeEnd)
+				{
+					stageFlags |= range.stageFlags;
+				}
 			}
+
+			if (stageFlags == 0)
+			{
+				continue;
+			}
+
+			pipelineKey.pushConstants.push_back({
+			    .offset = begin,
+			    .size = end - begin,
+			    .stageFlags = stageFlags,
+			});
 		}
 	}
 
@@ -76,34 +153,33 @@ VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePi
 		return it->second;
 	}
 
+
 	std::vector<VkPushConstantRange> pushConstantRanges;
 
 	pushConstantRanges.reserve(pipelineKey.pushConstants.size());
 
-	for (const auto& [offset, size, stageFlags] : pipelineKey.pushConstants)
+	for (const PushConstantKey& key : pipelineKey.pushConstants)
 	{
 		pushConstantRanges.push_back({
-		    .stageFlags = stageFlags,
-		    .offset = offset,
-		    .size = size,
+		    .stageFlags = key.stageFlags,
+		    .offset = key.offset,
+		    .size = key.size,
 		});
 	}
 
-	const VkPipelineLayoutCreateInfo createInfo{
+	VkPipelineLayoutCreateInfo createInfo{
 	    .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+	    .pNext = nullptr,
+	    .flags = 0,
 	    .setLayoutCount = static_cast<uint32_t>(setLayouts.size()),
 	    .pSetLayouts = setLayouts.data(),
 	    .pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
 	    .pPushConstantRanges = pushConstantRanges.data(),
 	};
 
-	VkPipelineLayout pipelineLayout;
+	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
 
-	const auto device = VulkanRenderDevice::Get().GetDevice();
-
-	const VkResult result = vkCreatePipelineLayout(device, &createInfo, nullptr, &pipelineLayout);
-
-	PE_ASSERT(result == VK_SUCCESS);
+	PE_ASSERT(vkCreatePipelineLayout(VulkanRenderDevice::Get().GetDevice(), &createInfo, nullptr, &pipelineLayout) == VK_SUCCESS);
 
 	m_cache.emplace(std::move(pipelineKey), pipelineLayout);
 

@@ -81,7 +81,7 @@ Prism::Render::Vulkan::VulkanTextureView::~VulkanTextureView()
 {
 	if (m_bindlessIndex != UINT32_MAX)
 	{
-		VulkanRenderDevice::Get().GetBindlessManager().FreeSlot(BindlessBinding::Texture2D, m_bindlessIndex);
+		VulkanRenderDevice::Get().GetBindlessManager().FreeResource(m_bindlessIndex);
 	}
 
 	if (m_vkImageView != VK_NULL_HANDLE)
@@ -100,8 +100,8 @@ uint32_t Prism::Render::Vulkan::VulkanTextureView::GetBindlessIndex()
 	auto& device = VulkanRenderDevice::Get();
 	auto& bindless = device.GetBindlessManager();
 
-	m_bindlessIndex = bindless.AllocateSlot(BindlessBinding::Texture2D);
-	bindless.WriteTexture(device.GetDevice(), m_bindlessIndex, m_vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	m_bindlessIndex = bindless.AllocateResource();
+	bindless.WriteSampledImage(device.GetDevice(), m_bindlessIndex, m_vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 	return m_bindlessIndex;
 }

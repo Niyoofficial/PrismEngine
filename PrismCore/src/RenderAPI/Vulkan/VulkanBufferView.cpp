@@ -29,6 +29,14 @@ Prism::Render::Vulkan::VulkanBufferView::VulkanBufferView(const BufferViewDesc& 
 	}
 }
 
+Prism::Render::Vulkan::VulkanBufferView::~VulkanBufferView()
+{
+	if (m_bindlessIndex != UINT32_MAX)
+	{
+		VulkanRenderDevice::Get().GetBindlessManager().FreeResource(m_bindlessIndex);
+	}
+}
+
 uint32_t Prism::Render::Vulkan::VulkanBufferView::GetBindlessIndex()
 {
 	if (m_bindlessIndex != UINT32_MAX)
@@ -39,8 +47,8 @@ uint32_t Prism::Render::Vulkan::VulkanBufferView::GetBindlessIndex()
 	auto& device = VulkanRenderDevice::Get();
 	auto& bindless = device.GetBindlessManager();
 
-	m_bindlessIndex = bindless.AllocateSlot(BindlessBinding::RawBuffer);
-	bindless.WriteRawBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer, m_descriptorBufferInfo.offset,
+	m_bindlessIndex = bindless.AllocateResource();
+	bindless.WriteStorageBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer, m_descriptorBufferInfo.offset,
 	                            m_descriptorBufferInfo.range);
 
 	return m_bindlessIndex;

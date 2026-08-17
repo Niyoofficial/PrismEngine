@@ -9,6 +9,7 @@ class VulkanBufferView : public BufferView
 {
 public:
 	VulkanBufferView(const BufferViewDesc& desc, Buffer* buffer);
+	~VulkanBufferView() override;
 
 	[[nodiscard]] BufferViewDesc GetViewDesc() const override { return m_viewDesc; }
 

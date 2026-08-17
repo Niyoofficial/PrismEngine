@@ -2,7 +2,7 @@
 #define BINDLESS_HLSLI
 
 #ifdef VULKAN
-    [[vk::binding(2, 0)]]
+    [[vk::binding(9, 0)]]
     ByteAddressBuffer g_bindlessBuffers[] : register(t0, space100);
 
     #define GET_BINDLESS_CBUFFER(StructType, index) g_bindlessBuffers[index].Load<StructType>(0)

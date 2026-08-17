@@ -11,10 +11,10 @@ struct VulkanShaderReflection;
 
 struct DescriptorBindingKey
 {
-	uint32_t binding;
-	VkDescriptorType type;
-	uint32_t count;
-	VkShaderStageFlags stageFlags;
+	uint32_t binding = 0;
+	VkDescriptorType type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
+	uint32_t count = 0;
+	VkShaderStageFlags stageFlags = 0;
 
 	auto operator<=>(const DescriptorBindingKey&) const = default;
 };
@@ -29,7 +29,14 @@ struct DescriptorSetLayoutKey
 class VulkanDescriptorSetLayoutCache
 {
 public:
+	VulkanDescriptorSetLayoutCache() = default;
 	~VulkanDescriptorSetLayoutCache();
+
+	VulkanDescriptorSetLayoutCache(const VulkanDescriptorSetLayoutCache&) = delete;
+	VulkanDescriptorSetLayoutCache& operator=(const VulkanDescriptorSetLayoutCache&) = delete;
+
+	VulkanDescriptorSetLayoutCache(VulkanDescriptorSetLayoutCache&&) = delete;
+	VulkanDescriptorSetLayoutCache& operator=(VulkanDescriptorSetLayoutCache&&) = delete;
 
 	[[nodiscard]] VkDescriptorSetLayout
 	GetOrCreateDescriptorSetLayout(std::span<const VulkanShaderReflection* const> shaderReflections, uint32_t set);
