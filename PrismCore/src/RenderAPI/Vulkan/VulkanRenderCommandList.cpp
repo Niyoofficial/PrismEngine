@@ -113,7 +113,14 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Dispatch(const glm::int3 th
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::SetPSO(const GraphicsPipelineStateDesc& desc)
 {
+	PE_RENDER_LOG(Info, "Vulkan SetPSO graphics: desc={}, vs={}, ps={}", static_cast<const void*>(&desc),
+	              static_cast<const void*>(&desc.vs), static_cast<const void*>(&desc.ps));
+
 	m_currentGraphicsPSO = desc;
+
+
+	PE_RENDER_LOG(Info, "Vulkan SetPSO AFTER COPY: current={}, vs={}, ps={}", static_cast<const void*>(&m_currentGraphicsPSO),
+	              static_cast<const void*>(&m_currentGraphicsPSO.vs), static_cast<const void*>(&m_currentGraphicsPSO.ps));
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::SetPSO(const ComputePipelineStateDesc& desc) { m_currentComputePSO = desc; }
@@ -712,6 +719,9 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(Pipeline
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
 {
+	PE_ASSERT(type == PipelineStateType::Graphics && m_currentGraphicsPSO.IsValid() ||
+	          type == PipelineStateType::Compute && m_currentComputePSO.IsValid());
+
 	if (type == PipelineStateType::Graphics)
 	{
 		BeginDynamicRendering();

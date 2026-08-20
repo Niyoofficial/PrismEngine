@@ -41,17 +41,30 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
                                                                            const std::vector<Ref<TextureView>>& rtvs,
                                                                            TextureView* dsv)
 {
-	uint64_t hash = HashPipelineStateDesc(desc, rtvs, dsv);
+	// TODO
+	// remove this copy
+	GraphicsPipelineStateDesc localDesc = desc;
+
+	PE_RENDER_LOG(Info, "PIPELINE VS: file='{}' entry='{}' type={}", WStringToString(localDesc.vs.filepath),
+	              WStringToString(localDesc.vs.entryName), static_cast<int>(localDesc.vs.shaderType));
+
+	PE_RENDER_LOG(Info, "PIPELINE PS: file='{}' entry='{}' type={}", WStringToString(localDesc.ps.filepath),
+	              WStringToString(localDesc.ps.entryName), static_cast<int>(localDesc.ps.shaderType));
+
+	auto* compiler = VulkanRenderDevice::Get().GetVulkanShaderCompiler();
+
+	compiler->GetOrCreateShader(localDesc.ps);
+	compiler->GetOrCreateShader(localDesc.vs);
+
+	uint64_t hash = HashPipelineStateDesc(localDesc, rtvs, dsv);
 
 	if (m_graphicsPipelines.contains(hash))
 	{
 		return m_graphicsPipelines.at(hash).pipeline;
 	}
 
-	auto* compiler = VulkanRenderDevice::Get().GetVulkanShaderCompiler();
-
-	const auto& vs = compiler->GetOrCreateShader(desc.vs);
-	const auto& ps = compiler->GetOrCreateShader(desc.ps);
+	const auto& vs = compiler->GetOrCreateShader(localDesc.vs);
+	const auto& ps = compiler->GetOrCreateShader(localDesc.ps);
 
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
@@ -75,7 +88,7 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 
 	PE_ASSERT(vkCreateShaderModule(device, &fragmentModuleCreateInfo, nullptr, &fragmentShaderModule) == VK_SUCCESS);
 
-	const auto vsEntryName = WStringToString(desc.vs.entryName);
+	const auto vsEntryName = WStringToString(localDesc.vs.entryName);
 
 	VkPipelineShaderStageCreateInfo vertexStageInfo{
 	    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -84,7 +97,7 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 	    .pName = vsEntryName.c_str(),
 	};
 
-	const auto psEntryName = WStringToString(desc.ps.entryName);
+	const auto psEntryName = WStringToString(localDesc.ps.entryName);
 
 	VkPipelineShaderStageCreateInfo fragmentStageInfo{
 	    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
@@ -109,12 +122,12 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 	};
 
 	auto vertexInputState = BuildVertexInputState(layout);
-	auto inputAssemblyState = BuildInputAssemblyState(desc);
+	auto inputAssemblyState = BuildInputAssemblyState(localDesc);
 	auto viewportState = BuildViewportState();
-	auto rasterizerState = BuildPipelineRasterizationState(desc);
-	auto multisampleState = BuildMultisampleState(desc);
-	auto depthState = BuildDepthStencilState(desc);
-	auto blendState = BuildColorBlendState(desc, static_cast<uint32_t>(rtvs.size()));
+	auto rasterizerState = BuildPipelineRasterizationState(localDesc);
+	auto multisampleState = BuildMultisampleState(localDesc);
+	auto depthState = BuildDepthStencilState(localDesc);
+	auto blendState = BuildColorBlendState(localDesc, static_cast<uint32_t>(rtvs.size()));
 	auto dynamicState = BuildDynamicState();
 	auto renderingInfo = BuildRenderingInfo(rtvs, dsv);
 
@@ -216,8 +229,13 @@ uint64_t Prism::Render::Vulkan::VulkanPipelineCache::HashPipelineStateDesc(const
 	hash ^= compiler->GetShaderCodeHash(desc.vs);
 	hash ^= compiler->GetShaderCodeHash(desc.ps);
 
-	for (const auto& rtv : rtvs)
+	for (size_t i = 0; i < rtvs.size(); ++i)
 	{
+		const auto& rtv = rtvs[i];
+
+		PE_RENDER_LOG(Error, "RTV[{}]: RefAddress={}, Object={}", i, static_cast<const void*>(&rtv),
+		              static_cast<const void*>(rtv.Raw()));
+
 		if (!rtv)
 		{
 			continue;

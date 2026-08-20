@@ -105,6 +105,12 @@ Prism::Render::Vulkan::VulkanShaderCompiler::GetOrCreateShader(const ShaderDesc&
 {
 	if (!m_shaderCache.contains(desc))
 	{
+		PE_RENDER_LOG(Info, "BEFORE COMPILESHADER PIPELINE VS: file='{}' entry='{}' type={}", WStringToString(desc.filepath),
+		              WStringToString(desc.entryName), static_cast<int>(desc.shaderType));
+
+		PE_RENDER_LOG(Info, "BEFORE COMPILESHADER PIPELINE PS: file='{}' entry='{}' type={}", WStringToString(desc.filepath),
+		              WStringToString(desc.entryName), static_cast<int>(desc.shaderType));
+
 		CompileShader(desc);
 	}
 
@@ -273,6 +279,12 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 		}
 
 		{
+			PE_RENDER_LOG(Info, "INSIDE SCOPE PIPELINE VS: file='{}' entry='{}' type={}", WStringToString(desc.filepath),
+			              WStringToString(desc.entryName), static_cast<int>(desc.shaderType));
+
+			PE_RENDER_LOG(Info, "INSIDE SCOPE  PIPELINE PS: file='{}' entry='{}' type={}", WStringToString(desc.filepath),
+			              WStringToString(desc.entryName), static_cast<int>(desc.shaderType));
+
 			auto outputFile = outputFilepathNoExt;
 			outputFile.replace_extension(".meta");
 
