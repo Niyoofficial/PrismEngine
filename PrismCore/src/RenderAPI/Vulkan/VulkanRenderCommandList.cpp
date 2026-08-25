@@ -755,7 +755,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 
 	for (const auto& rtv : m_renderTargetViews)
 	{
-		auto* view = dynamic_cast<VulkanTextureView*>(rtv.Raw());
+		const auto* view = dynamic_cast<VulkanTextureView*>(rtv.Raw());
 
 		VkRenderingAttachmentInfo attachment{
 		    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -773,10 +773,26 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 
 	VkRenderingAttachmentInfo stencilAttachment{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
 
-	VkRenderingInfo renderingInfo{.sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
-	                              .layerCount = 1,
-	                              .colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size()),
-	                              .pColorAttachments = colorAttachments.data()};
+	const auto* firstRTV = dynamic_cast<VulkanTextureView*>(m_renderTargetViews[0].Raw());
+
+	const TextureDesc& textureDesc = dynamic_cast<VulkanTexture*>(firstRTV->GetTexture())->GetTextureDesc();
+
+
+	VkRenderingInfo renderingInfo{
+	    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
+	    .renderArea =
+	        {
+	            .offset = {0, 0},
+	            .extent =
+	                {
+	                    static_cast<uint32_t>(textureDesc.GetWidth()),
+	                    static_cast<uint32_t>(textureDesc.GetHeight()),
+	                },
+	        },
+	    .layerCount = 1,
+	    .colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size()),
+	    .pColorAttachments = colorAttachments.data(),
+	};
 
 	if (m_depthStencilView)
 	{
