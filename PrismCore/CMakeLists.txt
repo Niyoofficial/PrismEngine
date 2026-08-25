@@ -11,6 +11,7 @@ list(FILTER SOURCES EXCLUDE REGEX "src/RenderAPI/Vulkan/.*")
 
 option(PE_D3D12_BACKEND "Enable DirectX 12 render backend" OFF)
 option(PE_VULKAN_BACKEND "Enable Vulkan render backend" ON)
+option(ENABLE_ASAN "Enable AddressSanitizer" ON)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 add_library(${CMAKE_PROJECT_NAME}::Core ALIAS ${PROJECT_NAME})
@@ -141,4 +142,16 @@ if (ENABLE_SUPERLUMINAL_API)
     find_package(SuperluminalAPI REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE SuperluminalAPI)
     target_compile_definitions(${PROJECT_NAME} PUBLIC "ENABLE_SUPERLUMINAL_API=1")
+endif ()
+
+if (ENABLE_ASAN)
+    if (MSVC)
+        target_compile_options(${PROJECT_NAME} PUBLIC /fsanitize=address /Zi)
+
+        target_compile_definitions(${PROJECT_NAME} PUBLIC _DISABLE_STRING_ANNOTATION _DISABLE_VECTOR_ANNOTATION)
+    else ()
+        target_compile_options(${PROJECT_NAME} PUBLIC -fsanitize=address -fno-omit-frame-pointer -g -O1)
+
+        target_link_options(${PROJECT_NAME} PUBLIC -fsanitize=address)
+    endif ()
 endif ()
