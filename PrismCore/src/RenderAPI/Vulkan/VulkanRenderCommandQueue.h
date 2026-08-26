@@ -23,13 +23,13 @@ public:
 
 	void WaitForFenceToComplete(uint64_t fenceValue) override;
 
-	void Execute(RenderCommandList* cmdList) override;
-
 	void SetSubmitSynchronization(VkSemaphore waitSemaphore, VkPipelineStageFlags waitStage, VkSemaphore signalSemaphore);
 
 	[[nodiscard]] VkQueue GetQueue() const { return m_queue; }
 
 private:
+	void Execute(RenderCommandList* cmdList) override;
+
 	VkQueue m_queue = VK_NULL_HANDLE;
 	uint32_t m_queueFamilyIndex = 0;
 

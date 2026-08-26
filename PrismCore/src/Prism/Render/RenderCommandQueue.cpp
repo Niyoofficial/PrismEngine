@@ -99,6 +99,19 @@ uint64_t RenderCommandQueue::Submit(const Ref<RenderContext>& context)
 	return m_lastSubmittedCmdListFenceValue;
 }
 
+void RenderCommandQueue::SubmitImmediate(const Ref<RenderCommandList>& renderCommandList)
+{
+	PE_ASSERT(renderCommandList);
+
+	renderCommandList->Close();
+
+	Execute(renderCommandList);
+
+	const uint64_t fenceValue = IncreaseAndSignalFence();
+
+	WaitForFenceToComplete(fenceValue);
+}
+
 void RenderCommandQueue::EnqueuePresent(const Ref<Swapchain>& swapchain)
 {
 	RenderDevice::Get().AddResourceToReleaseQueueWhenFrameEnds(swapchain);

@@ -41,10 +41,7 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		vkCmdPipelineBarrier(vkCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,
 		                     nullptr, 1, &barrier);
 
-		const auto vulkanQueue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
-		vulkanQueue->Execute(cmd);
-		const uint64_t fenceValue = vulkanQueue->IncreaseAndSignalFence();
-		vulkanQueue->WaitForFenceToComplete(fenceValue);
+		renderDevice->GetRenderCommandQueue()->SubmitImmediate(cmd);
 
 		m_texture.currentLayout = targetLayout;
 	}
@@ -366,10 +363,7 @@ void Prism::Render::Vulkan::VulkanTexture::UploadTextureData(const VulkanRenderD
 		                     nullptr, 1, &barrier);
 	}
 
-	const auto vulkanQueue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
-	vulkanQueue->Execute(cmd);
-	const uint64_t fenceValue = vulkanQueue->IncreaseAndSignalFence();
-	vulkanQueue->WaitForFenceToComplete(fenceValue);
+	renderDevice->GetRenderCommandQueue()->SubmitImmediate(cmd);
 
 	vmaDestroyBuffer(renderDevice->GetAllocator(), stagingBuffer, stagingAllocation);
 

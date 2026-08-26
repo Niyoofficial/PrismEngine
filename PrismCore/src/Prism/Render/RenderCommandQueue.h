@@ -31,6 +31,7 @@ public:
 	virtual ~RenderCommandQueue() = default;
 
 	uint64_t Submit(const Ref<RenderContext>& context);
+	void SubmitImmediate(const Ref<RenderCommandList>& renderCommandList);
 	void EnqueuePresent(const Ref<Swapchain>& swapchain);
 
 	virtual void SetMarker(glm::float3 color, std::wstring string) = 0;
