@@ -461,8 +461,14 @@ void Prism::Render::Vulkan::VulkanRenderDevice::CreateLogicalDevice()
 	    .pQueuePriorities = &queuePriority,
 	};
 
+	VkPhysicalDeviceTimelineSemaphoreFeatures timelineFeatures{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
+		.timelineSemaphore = VK_TRUE,
+	};
+
 	VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT featureMutableDescriptorType{
 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,
+		.pNext = &timelineFeatures,
 	    .mutableDescriptorType = VK_TRUE,
 	};
 
