@@ -624,6 +624,15 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::KeepAlive(const Ref<Buffer>
 	m_pendingStagingBuffers.push_back(buffer);
 }
 
+void Prism::Render::Vulkan::VulkanRenderCommandList::Close()
+{
+	RenderCommandList::Close();
+
+	EndDynamicRendering();
+
+	PE_ASSERT(vkEndCommandBuffer(m_commandBuffer) == VK_SUCCESS);
+}
+
 void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
 {
 	auto& device = VulkanRenderDevice::Get();

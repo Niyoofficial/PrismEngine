@@ -101,9 +101,9 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::Execute(RenderCommandList*
 {
 	const auto* vkCmdList = dynamic_cast<VulkanRenderCommandList*>(cmdList);
 
-	VkCommandBuffer vkCommandBuffer = vkCmdList->GetVkCommandBuffer();
+	PE_ASSERT(vkCmdList);
 
-	PE_ASSERT(vkEndCommandBuffer(vkCommandBuffer) == VK_SUCCESS);
+	VkCommandBuffer vkCommandBuffer = vkCmdList->GetVkCommandBuffer();
 
 	VkSemaphore waitSemaphores[1];
 	VkPipelineStageFlags waitStages[1];

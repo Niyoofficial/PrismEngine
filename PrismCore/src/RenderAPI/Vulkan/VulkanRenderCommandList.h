@@ -77,6 +77,9 @@ public:
 
 	void KeepAlive(const Ref<Buffer>& buffer);
 
+protected:
+	void Close() override;
+
 private:
 	void BindDescriptorSets(PipelineStateType type);
 
