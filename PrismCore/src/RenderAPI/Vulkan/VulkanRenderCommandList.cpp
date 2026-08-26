@@ -349,11 +349,14 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 	    .oldLayout = GetVkImageLayout(barrier.layoutBefore),
 	    .newLayout = GetVkImageLayout(barrier.layoutAfter),
 	    .image = texture->GetVulkanTextureResource().image,
-	    .subresourceRange = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	                         .baseMipLevel = 0,
-	                         .levelCount = VK_REMAINING_MIP_LEVELS,
-	                         .baseArrayLayer = 0,
-	                         .layerCount = VK_REMAINING_ARRAY_LAYERS},
+	    .subresourceRange =
+	        {
+	            .aspectMask = GetVkImageAspectFlags(texture->GetTextureDesc().format),
+	            .baseMipLevel = 0,
+	            .levelCount = VK_REMAINING_MIP_LEVELS,
+	            .baseArrayLayer = 0,
+	            .layerCount = VK_REMAINING_ARRAY_LAYERS,
+	        },
 	};
 
 
