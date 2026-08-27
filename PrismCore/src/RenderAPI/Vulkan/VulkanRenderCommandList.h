@@ -77,6 +77,8 @@ public:
 
 	void KeepAlive(const Ref<Buffer>& buffer);
 
+	void Finalize();
+
 protected:
 	void Close() override;
 

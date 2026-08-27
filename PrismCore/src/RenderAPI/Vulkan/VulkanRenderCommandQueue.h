@@ -23,6 +23,8 @@ public:
 
 	void WaitForFenceToComplete(uint64_t fenceValue) override;
 
+	void SubmitImmediate(const Ref<RenderCommandList>& renderCommandList);
+
 	void SetSubmitSynchronization(VkSemaphore waitSemaphore, VkPipelineStageFlags waitStage, VkSemaphore signalSemaphore);
 
 	[[nodiscard]] VkQueue GetQueue() const { return m_queue; }
@@ -40,5 +42,7 @@ private:
 	VkPipelineStageFlags m_waitStage = 0;
 
 	VkSemaphore m_signalSemaphore = VK_NULL_HANDLE;
+
+	std::mutex m_submitMutex;
 };
 } // namespace Prism::Render::Vulkan

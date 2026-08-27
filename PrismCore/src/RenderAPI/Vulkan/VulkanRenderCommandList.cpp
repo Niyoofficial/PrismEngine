@@ -627,6 +627,11 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::KeepAlive(const Ref<Buffer>
 	m_pendingStagingBuffers.push_back(buffer);
 }
 
+void Prism::Render::Vulkan::VulkanRenderCommandList::Finalize()
+{
+	Close();
+}
+
 void Prism::Render::Vulkan::VulkanRenderCommandList::Close()
 {
 	RenderCommandList::Close();
