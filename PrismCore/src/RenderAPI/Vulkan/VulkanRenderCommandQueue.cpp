@@ -11,6 +11,7 @@ Prism::Render::Vulkan::VulkanRenderCommandQueue::VulkanRenderCommandQueue(VkQueu
 	constexpr VkSemaphoreTypeCreateInfo timelineCreateInfo{
 	    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
 	    .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+		.initialValue = 0,
 	};
 
 	const VkSemaphoreCreateInfo createInfo{
