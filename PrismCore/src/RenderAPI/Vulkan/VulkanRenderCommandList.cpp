@@ -340,14 +340,18 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const BufferBarrier
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrier barrier)
 {
-	const auto* texture = dynamic_cast<VulkanTexture*>(barrier.texture);
+	auto* texture = dynamic_cast<VulkanTexture*>(barrier.texture);
+	PE_ASSERT(texture);
+
+	const VkImageLayout oldLayout = GetVkImageLayout(barrier.layoutBefore);
+	const VkImageLayout newLayout = GetVkImageLayout(barrier.layoutAfter);
 
 	const VkImageMemoryBarrier imageBarrier{
 	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 	    .srcAccessMask = static_cast<VkAccessFlags>(barrier.accessBefore.GetUnderlyingType()),
 	    .dstAccessMask = static_cast<VkAccessFlags>(barrier.accessAfter.GetUnderlyingType()),
-	    .oldLayout = GetVkImageLayout(barrier.layoutBefore),
-	    .newLayout = GetVkImageLayout(barrier.layoutAfter),
+	    .oldLayout = oldLayout,
+	    .newLayout = newLayout,
 	    .image = texture->GetVulkanTextureResource().image,
 	    .subresourceRange =
 	        {
@@ -364,6 +368,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 	const auto dstStage = static_cast<VkPipelineStageFlags>(barrier.syncAfter.GetUnderlyingType());
 
 	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier);
+
+	texture->SetCurrentLayout(newLayout);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateBuffer(const Ref<Buffer>& buffer, const RawData data)
@@ -627,10 +633,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::KeepAlive(const Ref<Buffer>
 	m_pendingStagingBuffers.push_back(buffer);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::Finalize()
-{
-	Close();
-}
+void Prism::Render::Vulkan::VulkanRenderCommandList::Finalize() { Close(); }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::Close()
 {
@@ -773,6 +776,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 	for (const auto& rtv : m_renderTargetViews)
 	{
 		const auto* view = dynamic_cast<VulkanTextureView*>(rtv.Raw());
+		auto* texture = dynamic_cast<VulkanTexture*>(view->GetTexture());
+
+		TransitionImage(texture, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+		                VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
 
 		VkRenderingAttachmentInfo attachment{
 		    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
@@ -814,6 +821,11 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 	if (m_depthStencilView)
 	{
 		auto* dsv = dynamic_cast<VulkanTextureView*>(m_depthStencilView.Raw());
+		auto* texture = dynamic_cast<VulkanTexture*>(dsv->GetTexture());
+
+		TransitionImage(texture, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+		                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
+		                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
 
 		depthAttachment.imageView = dsv->GetVkImageView();
 		depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -841,4 +853,40 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::EndDynamicRendering()
 	vkCmdEndRendering(m_commandBuffer);
 
 	m_renderingActive = false;
+}
+
+void Prism::Render::Vulkan::VulkanRenderCommandList::TransitionImage(Texture* texture, VkImageLayout newLayout,
+                                                                     VkPipelineStageFlags dstStage, VkAccessFlags dstAccess)
+{
+	auto* vulkanTexture = dynamic_cast<VulkanTexture*>(texture);
+
+	const VkImageLayout oldLayout = vulkanTexture->GetVulkanTextureResource().currentLayout;
+
+	if (oldLayout == newLayout)
+	{
+		return;
+	}
+
+	const VkImageMemoryBarrier barrier{
+	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+	    .srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
+	    .dstAccessMask = dstAccess,
+	    .oldLayout = oldLayout,
+	    .newLayout = newLayout,
+	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+	    .image = vulkanTexture->GetVulkanTextureResource().image,
+	    .subresourceRange =
+	        {
+	            .aspectMask = vulkanTexture->GetVulkanTextureResource().aspectMask,
+	            .baseMipLevel = 0,
+	            .levelCount = VK_REMAINING_MIP_LEVELS,
+	            .baseArrayLayer = 0,
+	            .layerCount = VK_REMAINING_ARRAY_LAYERS,
+	        },
+	};
+
+	vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
+
+	vulkanTexture->SetCurrentLayout(newLayout);
 }
