@@ -353,7 +353,7 @@ void Prism::Render::Vulkan::VulkanTexture::UploadTextureData(const VulkanRenderD
 
 	if (m_originalDesc.mipLevels > 1)
 	{
-		GenerateMipMaps(vkCmd);
+		GenerateMipMaps(nullptr);
 	}
 	else
 	{
@@ -368,102 +368,6 @@ void Prism::Render::Vulkan::VulkanTexture::UploadTextureData(const VulkanRenderD
 	vulkanQueue->SubmitImmediate(cmd);
 
 	vmaDestroyBuffer(renderDevice->GetAllocator(), stagingBuffer, stagingAllocation);
-
-	m_texture.currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-}
-
-void Prism::Render::Vulkan::VulkanTexture::GenerateMipMaps(VkCommandBuffer cmd)
-{
-	if (m_originalDesc.dimension == ResourceDimension::Tex3D)
-	{
-		return;
-	}
-
-	int32_t mipWidth = m_originalDesc.width;
-	int32_t mipHeight = m_originalDesc.height;
-
-	const uint32_t layerCount = static_cast<uint32_t>(m_originalDesc.GetArraySize());
-
-	for (uint32_t i = 1; i < m_originalDesc.mipLevels; i++)
-	{
-		VkImageMemoryBarrier barrier{
-		    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-		    .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-		    .dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT,
-		    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-		    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
-		    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-		    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-		    .image = m_texture.image,
-		    .subresourceRange =
-		        {
-		            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-		            .baseMipLevel = i - 1,
-		            .levelCount = 1,
-		            .baseArrayLayer = 0,
-		            .layerCount = layerCount,
-		        },
-		};
-		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-		                     &barrier);
-
-		const int32_t nextWidth = std::max(1, mipWidth / 2);
-		const int32_t nextHeight = std::max(1, mipHeight / 2);
-
-		VkImageBlit blit{
-		    .srcSubresource =
-		        {
-		            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-		            .mipLevel = (i - 1),
-		            .baseArrayLayer = 0,
-		            .layerCount = layerCount,
-		        },
-		    .srcOffsets = {{0, 0, 0}, {mipWidth, mipHeight, 1}},
-		    .dstSubresource =
-		        {
-		            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-		            .mipLevel = i,
-		            .baseArrayLayer = 0,
-		            .layerCount = layerCount,
-		        },
-		    .dstOffsets = {{0, 0, 0}, {nextWidth, nextHeight, 1}},
-		};
-		vkCmdBlitImage(cmd, m_texture.image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, m_texture.image,
-		               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit, VK_FILTER_LINEAR);
-
-		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-		barrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-		barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-
-		vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0,
-		                     nullptr, 1, &barrier);
-
-		mipWidth = nextWidth;
-		mipHeight = nextHeight;
-	}
-
-	const VkImageMemoryBarrier finalBarrier{
-	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-	    .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-	    .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-	    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	    .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	    .image = m_texture.image,
-	    .subresourceRange =
-	        {
-	            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	            .baseMipLevel = static_cast<uint32_t>(m_originalDesc.mipLevels - 1),
-	            .levelCount = 1,
-	            .baseArrayLayer = 0,
-	            .layerCount = layerCount,
-	        },
-	};
-
-	vkCmdPipelineBarrier(cmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-	                     &finalBarrier);
 
 	m_texture.currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 }

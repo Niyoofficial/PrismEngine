@@ -62,8 +62,6 @@ private:
 
 	void UploadTextureData(const VulkanRenderDevice* renderDevice, const void* pixels, VkDeviceSize imageSize);
 
-	void GenerateMipMaps(VkCommandBuffer cmd);
-
 	TextureDesc m_originalDesc;
 
 	VulkanTextureResource m_texture;

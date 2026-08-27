@@ -346,6 +346,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 	const VkImageLayout oldLayout = GetVkImageLayout(barrier.layoutBefore);
 	const VkImageLayout newLayout = GetVkImageLayout(barrier.layoutAfter);
 
+	const auto& [firstMipLevel, numMipLevels, firstArraySlice, numArraySlices] = barrier.subresourceRange;
+
 	const VkImageMemoryBarrier imageBarrier{
 	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 	    .srcAccessMask = static_cast<VkAccessFlags>(barrier.accessBefore.GetUnderlyingType()),
@@ -356,10 +358,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 	    .subresourceRange =
 	        {
 	            .aspectMask = GetVkImageAspectFlags(texture->GetTextureDesc().format),
-	            .baseMipLevel = 0,
-	            .levelCount = VK_REMAINING_MIP_LEVELS,
-	            .baseArrayLayer = 0,
-	            .layerCount = VK_REMAINING_ARRAY_LAYERS,
+	            .baseMipLevel = static_cast<uint32_t>(firstMipLevel),
+	            .levelCount = static_cast<uint32_t>(numMipLevels),
+	            .baseArrayLayer = static_cast<uint32_t>(firstArraySlice),
+	            .layerCount = static_cast<uint32_t>(numArraySlices),
 	        },
 	};
 
