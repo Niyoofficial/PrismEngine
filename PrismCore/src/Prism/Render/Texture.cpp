@@ -414,7 +414,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 		.layoutAfter = BarrierLayout::CopySource,
 		});
 
-	context->BeginEvent(L"MipMapCopy", {});
+	renderContext->BeginEvent(L"MipMapCopy", {});
 	for (int32_t i = 0; i < GetTextureDesc().GetDepthOrArraySize(); ++i)
 	{
 		for (int32_t j = 0; j < numMipMaps; ++j)
@@ -424,7 +424,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 				tempTexture, GetSubresourceIndex(j, tempTexture->GetTextureDesc().GetMipLevels(), i, tempTexture->GetTextureDesc().GetDepthOrArraySize()));
 		}
 	}
-	context->EndEvent();
+	renderContext->EndEvent();
 	
 	// If the renderContext was passed from the outside, we don't want to submit and flush it but give the control back to the caller
 	if (!context)
