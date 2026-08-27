@@ -11,7 +11,7 @@ Prism::Render::Vulkan::VulkanRenderCommandQueue::VulkanRenderCommandQueue(VkQueu
 	constexpr VkSemaphoreTypeCreateInfo timelineCreateInfo{
 	    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
 	    .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
-		.initialValue = 0,
+	    .initialValue = 0,
 	};
 
 	const VkSemaphoreCreateInfo createInfo{
@@ -96,6 +96,47 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::WaitForFenceToComplete(uin
 	}
 
 	ExecuteGPUCompletionEvents();
+}
+
+void Prism::Render::Vulkan::VulkanRenderCommandQueue::SubmitImmediate(const Ref<RenderCommandList>& renderCommandList)
+{
+	auto* cmd = dynamic_cast<VulkanRenderCommandList*>(renderCommandList.Raw());
+	PE_ASSERT(cmd);
+
+	cmd->Finalize();
+
+	const auto& device = VulkanRenderDevice::Get();
+
+	const VkCommandBuffer vkCmd = cmd->GetVkCommandBuffer();
+
+	const VkCommandBufferSubmitInfo commandBufferInfo{
+	    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+	    .commandBuffer = vkCmd,
+	};
+
+	const VkSubmitInfo2 submitInfo{
+	    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+	    .commandBufferInfoCount = 1,
+	    .pCommandBufferInfos = &commandBufferInfo,
+	};
+
+	constexpr VkFenceCreateInfo fenceInfo{
+	    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+	};
+
+	VkFence fence = VK_NULL_HANDLE;
+
+	PE_ASSERT(vkCreateFence(device.GetDevice(), &fenceInfo, nullptr, &fence) == VK_SUCCESS);
+
+	{
+		std::scoped_lock lock(m_submitMutex);
+
+		PE_ASSERT(vkQueueSubmit2(m_queue, 1, &submitInfo, fence) == VK_SUCCESS);
+	}
+
+	PE_ASSERT(vkWaitForFences(device.GetDevice(), 1, &fence, VK_TRUE, UINT64_MAX) == VK_SUCCESS);
+
+	vkDestroyFence(device.GetDevice(), fence, nullptr);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandQueue::Execute(RenderCommandList* cmdList)
