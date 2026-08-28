@@ -856,3 +856,255 @@ VkDescriptorType Prism::Render::Vulkan::GetVkDescriptorType(const SpvReflectDesc
 		return VK_DESCRIPTOR_TYPE_MAX_ENUM;
 	}
 }
+
+VkAccessFlags Prism::Render::Vulkan::GetVkAccessFlags(const Flags<BarrierAccess> access)
+{
+	VkAccessFlags flags = 0;
+
+	if (access.HasAnyFlags(BarrierAccess::VertexBuffer))
+	{
+		flags |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::ConstantBuffer))
+	{
+		flags |= VK_ACCESS_UNIFORM_READ_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::IndexBuffer))
+	{
+		flags |= VK_ACCESS_INDEX_READ_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::RenderTarget))
+	{
+		flags |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+		flags |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::UnorderedAccess))
+	{
+		flags |= VK_ACCESS_SHADER_READ_BIT;
+		flags |= VK_ACCESS_SHADER_WRITE_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::DepthStencilWrite))
+	{
+		flags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::DepthStencilRead))
+	{
+		flags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::ShaderResource))
+	{
+		flags |= VK_ACCESS_SHADER_READ_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::StreamOutput))
+	{
+		flags |= VK_ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::IndirectArgument))
+	{
+		flags |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::CopyDest))
+	{
+		flags |= VK_ACCESS_TRANSFER_WRITE_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::CopySource))
+	{
+		flags |= VK_ACCESS_TRANSFER_READ_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::ResolveDest))
+	{
+		flags |= VK_ACCESS_TRANSFER_WRITE_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::ResolveSource))
+	{
+		flags |= VK_ACCESS_TRANSFER_READ_BIT;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::RaytracingAccelerationStructureRead))
+	{
+		flags |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::RaytracingAccelerationStructureWrite))
+	{
+		flags |= VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::ShadingRateSource))
+	{
+		flags |= VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::VideoDecodeRead))
+	{
+		// not supported
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::VideoDecodeWrite))
+	{
+		// not supported
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::VideoProcessRead))
+	{
+		// not supported
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::VideoProcessWrite))
+	{
+		// not supported
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::VideoEncodeRead))
+	{
+		// not supported
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::VideoEncodeWrite))
+	{
+		// not supported
+	}
+
+	return flags;
+}
+
+VkPipelineStageFlags Prism::Render::Vulkan::GetVkPipelineStageFlags(const Flags<BarrierSync> sync)
+{
+	VkPipelineStageFlags stages = VK_PIPELINE_STAGE_NONE;
+
+	if (sync.HasAnyFlags(BarrierSync::All))
+	{
+		stages |= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::Draw))
+	{
+		stages |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::IndexInput))
+	{
+		stages |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::VertexShading))
+	{
+		stages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::PixelShading))
+	{
+		stages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::DepthStencil))
+	{
+		stages |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+		stages |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::RenderTarget))
+	{
+		stages |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::ComputeShading))
+	{
+		stages |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::Raytracing))
+	{
+		stages |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::Copy))
+	{
+		stages |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::Resolve))
+	{
+		stages |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::ExecuteIndirect))
+	{
+		stages |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::Predication))
+	{
+		stages |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::AllShading))
+	{
+		stages |= VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
+		stages |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::NonPixelShading))
+	{
+		stages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::EmitRaytracingAccelerationStructurePostbuildInfo))
+	{
+		stages |= VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::ClearUnorderedAccessView))
+	{
+		stages |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::VideoDecode))
+	{
+		stages |= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::VideoProcess))
+	{
+		stages |= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::VideoEncode))
+	{
+		stages |= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::BuildRaytracingAccelerationStructure))
+	{
+		stages |= VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::CopyRaytracingAccelerationStructure))
+	{
+		stages |= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+	}
+
+	if (sync.HasAnyFlags(BarrierSync::Split))
+	{
+		// not supported
+	}
+
+	return stages;
+}

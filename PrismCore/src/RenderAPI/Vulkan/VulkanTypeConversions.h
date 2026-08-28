@@ -61,4 +61,8 @@ VkLogicOp GetVkLogicOp(LogicOperation);
 uint32_t GetBytesPerPixel(TextureFormat format);
 
 VkDescriptorType GetVkDescriptorType(SpvReflectDescriptorType type);
+
+VkAccessFlags GetVkAccessFlags(Flags<BarrierAccess> access);
+
+VkPipelineStageFlags GetVkPipelineStageFlags(Flags<BarrierSync> sync);
 } // namespace Prism::Render::Vulkan

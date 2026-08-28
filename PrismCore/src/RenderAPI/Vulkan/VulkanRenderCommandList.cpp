@@ -325,15 +325,15 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const BufferBarrier
 
 	const VkBufferMemoryBarrier bufferBarrier{
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-	    .srcAccessMask = static_cast<VkAccessFlags>(barrier.accessBefore.GetUnderlyingType()),
-	    .dstAccessMask = static_cast<VkAccessFlags>(barrier.accessAfter.GetUnderlyingType()),
+	    .srcAccessMask = GetVkAccessFlags(barrier.accessBefore),
+	    .dstAccessMask = GetVkAccessFlags(barrier.accessAfter),
 	    .buffer = buffer->GetVkBuffer(),
 	    .offset = static_cast<VkDeviceSize>(barrier.offset),
 	    .size = barrier.size == -1 ? VK_WHOLE_SIZE : static_cast<VkDeviceSize>(barrier.size),
 	};
 
-	const auto srcStage = static_cast<VkPipelineStageFlags>(barrier.syncBefore.GetUnderlyingType());
-	const auto dstStage = static_cast<VkPipelineStageFlags>(barrier.syncAfter.GetUnderlyingType());
+	const auto srcStage = GetVkPipelineStageFlags(barrier.syncBefore);
+	const auto dstStage = GetVkPipelineStageFlags(barrier.syncAfter);
 
 	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 1, &bufferBarrier, 0, nullptr);
 }
@@ -350,8 +350,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 
 	const VkImageMemoryBarrier imageBarrier{
 	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-	    .srcAccessMask = static_cast<VkAccessFlags>(barrier.accessBefore.GetUnderlyingType()),
-	    .dstAccessMask = static_cast<VkAccessFlags>(barrier.accessAfter.GetUnderlyingType()),
+	    .srcAccessMask = GetVkAccessFlags(barrier.accessBefore),
+	    .dstAccessMask = GetVkAccessFlags(barrier.accessAfter),
 	    .oldLayout = oldLayout,
 	    .newLayout = newLayout,
 	    .image = texture->GetVulkanTextureResource().image,
@@ -365,9 +365,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 	        },
 	};
 
-
-	const auto srcStage = static_cast<VkPipelineStageFlags>(barrier.syncBefore.GetUnderlyingType());
-	const auto dstStage = static_cast<VkPipelineStageFlags>(barrier.syncAfter.GetUnderlyingType());
+	const auto srcStage = GetVkPipelineStageFlags(barrier.syncBefore);
+	const auto dstStage = GetVkPipelineStageFlags(barrier.syncAfter);
 
 	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier);
 
