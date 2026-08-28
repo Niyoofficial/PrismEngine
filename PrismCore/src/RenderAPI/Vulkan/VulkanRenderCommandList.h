@@ -91,8 +91,6 @@ private:
 
 	void EndDynamicRendering();
 
-	void TransitionImage(Texture* texture, VkImageLayout newLayout, VkPipelineStageFlags dstStage, VkAccessFlags dstAccess);
-
 	VkCommandPool m_commandPool = VK_NULL_HANDLE;
 	VkCommandBuffer m_commandBuffer = VK_NULL_HANDLE;
 

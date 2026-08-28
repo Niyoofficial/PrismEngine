@@ -9,42 +9,41 @@
 #include "stb_image.h"
 
 Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, const TextureDesc& desc,
-                                                    BarrierLayout initLayout) : Texture(renderDevice), m_originalDesc(desc)
+                                                    const BarrierLayout initLayout) : Texture(renderDevice), m_originalDesc(desc)
 {
-	m_texture.currentLayout = GetVkImageLayout(initLayout);
-
 	CreateImage(renderDevice, desc);
 	CreateSampler(renderDevice, desc);
 
-	if (const VkImageLayout targetLayout = GetVkImageLayout(initLayout); targetLayout != VK_IMAGE_LAYOUT_UNDEFINED)
+	if (initLayout != BarrierLayout::Undefined)
 	{
-		auto cmd = RenderCommandList::Create();
-		const auto* vulkanCmd = dynamic_cast<VulkanRenderCommandList*>(cmd.Raw());
-		VkCommandBuffer vkCmd = vulkanCmd->GetVkCommandBuffer();
+		const auto cmd = RenderCommandList::Create();
 
-		VkImageMemoryBarrier barrier{
-		    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-		    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-		    .newLayout = targetLayout,
-		    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-		    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-		    .image = m_texture.image,
-		    .subresourceRange{
-		        .aspectMask = m_texture.aspectMask,
-		        .baseMipLevel = 0,
-		        .levelCount = static_cast<uint32_t>(m_originalDesc.mipLevels),
-		        .baseArrayLayer = 0,
-		        .layerCount = m_texture.arrayLayers,
-		    },
+		auto* vulkanCmd = dynamic_cast<VulkanRenderCommandList*>(cmd.Raw());
+		PE_ASSERT(vulkanCmd);
+
+		TextureBarrier barrier{
+		    .texture = this,
+		    .syncBefore = BarrierSync::None,
+		    .syncAfter = BarrierSync::All,
+		    .accessBefore = BarrierAccess::NoAccess,
+		    .accessAfter = BarrierAccess::Common,
+		    .layoutBefore = BarrierLayout::Undefined,
+		    .layoutAfter = initLayout,
+		    .subresourceRange =
+		        {
+		            .firstMipLevel = 0,
+		            .numMipLevels = m_originalDesc.mipLevels,
+		            .firstArraySlice = 0,
+		            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
+		        },
 		};
 
-		vkCmdPipelineBarrier(vkCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, 0, 0, nullptr, 0,
-		                     nullptr, 1, &barrier);
+		vulkanCmd->Barrier(barrier);
 
-		const auto vulkanQueue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
-		vulkanQueue->SubmitImmediate(cmd);
+		auto* queue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
+		PE_ASSERT(queue);
 
-		m_texture.currentLayout = targetLayout;
+		queue->SubmitImmediate(cmd);
 	}
 }
 
@@ -165,7 +164,6 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 	m_texture.mipLevels = desc.mipLevels;
 	m_texture.arrayLayers = desc.GetArraySize();
 	m_texture.aspectMask = GetVkImageAspectFlags(desc.format);
-	m_texture.currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 	m_texture.allocation = nullptr;
 }
 
@@ -308,66 +306,61 @@ void Prism::Render::Vulkan::VulkanTexture::UploadTextureData(const VulkanRenderD
 	vmaUnmapMemory(renderDevice->GetAllocator(), stagingAllocation);
 
 	auto cmd = RenderCommandList::Create();
-	const auto* vulkanCmd = dynamic_cast<VulkanRenderCommandList*>(cmd.Raw());
+	auto* vulkanCmd = dynamic_cast<VulkanRenderCommandList*>(cmd.Raw());
 
-	VkCommandBuffer vkCmd = vulkanCmd->GetVkCommandBuffer();
+	vulkanCmd->Barrier(TextureBarrier{
+	    .texture = this,
+	    .syncBefore = BarrierSync::None,
+	    .syncAfter = BarrierSync::Copy,
+	    .accessBefore = BarrierAccess::NoAccess,
+	    .accessAfter = BarrierAccess::CopyDest,
+	    .layoutBefore = BarrierLayout::Undefined,
+	    .layoutAfter = BarrierLayout::CopyDest,
+	    .subresourceRange =
+	        {
+	            .firstMipLevel = 0,
+	            .numMipLevels = m_originalDesc.mipLevels,
+	            .firstArraySlice = 0,
+	            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
+	        },
+	});
 
-	VkImageMemoryBarrier barrier{
-	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-	    .oldLayout = VK_IMAGE_LAYOUT_UNDEFINED,
-	    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	    .image = m_texture.image,
-	    .subresourceRange{
-	        .aspectMask = GetVkImageAspectFlags(m_originalDesc.format),
-	        .baseMipLevel = 0,
-	        .levelCount = static_cast<uint32_t>(m_originalDesc.mipLevels),
-	        .baseArrayLayer = 0,
-	        .layerCount = m_originalDesc.Is3D() ? 1 : static_cast<uint32_t>(m_originalDesc.GetArraySize()),
+	const auto stagingRef = Buffer::Create(
+	    BufferDesc{
+	        .size = static_cast<int64_t>(imageSize),
+	        .bindFlags = BindFlags::None,
+	        .usage = ResourceUsage::Staging,
+	        .cpuAccess = CPUAccess::Write,
 	    },
-	};
+	    RawData{
+	        .data = pixels,
+	        .sizeInBytes = static_cast<int64_t>(imageSize),
+	    });
 
-	vkCmdPipelineBarrier(vkCmd, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1,
-	                     &barrier);
-
-	m_texture.currentLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-
-	const VkBufferImageCopy region{
-	    .imageSubresource =
-	        {
-	            .aspectMask = GetVkImageAspectFlags(m_originalDesc.format),
-	            .mipLevel = 0,
-	            .baseArrayLayer = 0,
-	            .layerCount = m_originalDesc.Is3D() ? 1 : static_cast<uint32_t>(m_originalDesc.GetArraySize()),
-	        },
-	    .imageExtent =
-	        {
-	            .width = static_cast<uint32_t>(m_originalDesc.width),
-	            .height = static_cast<uint32_t>(m_originalDesc.height),
-	            .depth = m_originalDesc.Is3D() ? static_cast<uint32_t>(m_originalDesc.GetDepth()) : 1,
-	        },
-	};
-
-	vkCmdCopyBufferToImage(vkCmd, stagingBuffer, m_texture.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+	vulkanCmd->CopyBufferRegion(Ref<Texture>(this), {0, 0, 0}, 0, stagingRef, 0);
 
 	if (m_originalDesc.mipLevels > 1)
 	{
+		// TOFIX
+		// call it in proper CommandList and Context to Generate MipMaps after uploading the texture data
 		GenerateMipMaps(nullptr);
 	}
 	else
 	{
-		barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-		barrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-
-		vkCmdPipelineBarrier(vkCmd, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0,
-		                     nullptr, 1, &barrier);
+		vulkanCmd->Barrier(TextureBarrier{
+		    .texture = this,
+		    .syncBefore = BarrierSync::Copy,
+		    .syncAfter = Flags<BarrierSync>(BarrierSync::PixelShading, BarrierSync::ComputeShading),
+		    .accessBefore = BarrierAccess::CopyDest,
+		    .accessAfter = BarrierAccess::ShaderResource,
+		    .layoutBefore = BarrierLayout::CopyDest,
+		    .layoutAfter = BarrierLayout::ShaderResource,
+		});
 	}
 
-	const auto vulkanQueue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
-	vulkanQueue->SubmitImmediate(cmd);
+	vulkanCmd->KeepAlive(stagingRef);
 
-	vmaDestroyBuffer(renderDevice->GetAllocator(), stagingBuffer, stagingAllocation);
+	auto* queue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
 
-	m_texture.currentLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	queue->SubmitImmediate(cmd);
 }

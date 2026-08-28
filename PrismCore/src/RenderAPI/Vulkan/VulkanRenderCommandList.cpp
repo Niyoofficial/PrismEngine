@@ -340,11 +340,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const BufferBarrier
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrier barrier)
 {
-	auto* texture = dynamic_cast<VulkanTexture*>(barrier.texture);
+	const auto* texture = dynamic_cast<VulkanTexture*>(barrier.texture);
 	PE_ASSERT(texture);
-
-	const VkImageLayout oldLayout = GetVkImageLayout(barrier.layoutBefore);
-	const VkImageLayout newLayout = GetVkImageLayout(barrier.layoutAfter);
 
 	const auto& [firstMipLevel, numMipLevels, firstArraySlice, numArraySlices] = barrier.subresourceRange;
 
@@ -352,8 +349,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 	    .srcAccessMask = GetVkAccessFlags(barrier.accessBefore),
 	    .dstAccessMask = GetVkAccessFlags(barrier.accessAfter),
-	    .oldLayout = oldLayout,
-	    .newLayout = newLayout,
+	    .oldLayout = GetVkImageLayout(barrier.layoutBefore),
+	    .newLayout = GetVkImageLayout(barrier.layoutAfter),
 	    .image = texture->GetVulkanTextureResource().image,
 	    .subresourceRange =
 	        {
@@ -369,8 +366,6 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 	const auto dstStage = GetVkPipelineStageFlags(barrier.syncAfter);
 
 	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier);
-
-	texture->SetCurrentLayout(newLayout);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateBuffer(const Ref<Buffer>& buffer, const RawData data)
@@ -393,41 +388,15 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateTexture(const Ref<Tex
 	const auto stagingBuffer = VulkanRenderDevice::Get().CreateBuffer(bufferDesc);
 
 	void* mapped = stagingBuffer->Map(CPUAccess::Write);
-	PE_ASSERT(mapped != nullptr);
-
+	PE_ASSERT(mapped);
 	memcpy(mapped, data.data, data.sizeInBytes);
-
 	stagingBuffer->Unmap();
 
 	const auto* vulkanBuffer = dynamic_cast<VulkanBuffer*>(stagingBuffer.Raw());
-
-	auto* vulkanTexture = dynamic_cast<VulkanTexture*>(texture.Raw());
+	const auto* vulkanTexture = dynamic_cast<VulkanTexture*>(texture.Raw());
 
 	const VkImage image = vulkanTexture->GetVulkanTextureResource().image;
 	const TextureDesc& desc = vulkanTexture->GetTextureDesc();
-
-	VkImageLayout currentLayout = vulkanTexture->GetVulkanTextureResource().currentLayout;
-
-	VkImageMemoryBarrier barrierToTransfer{
-	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-	    .srcAccessMask = 0,
-	    .dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-	    .oldLayout = currentLayout,
-	    .newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	    .image = image,
-	    .subresourceRange{
-	        .aspectMask = GetVkImageAspectFlags(desc.format),
-	        .baseMipLevel = static_cast<uint32_t>(subresourceIndex),
-	        .levelCount = 1,
-	        .baseArrayLayer = 0,
-	        .layerCount = desc.Is3D() ? 1u : static_cast<uint32_t>(desc.GetArraySize()),
-	    },
-	};
-
-	vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0,
-	                     nullptr, 1, &barrierToTransfer);
 
 	const VkBufferImageCopy region{
 	    .bufferOffset = 0,
@@ -436,7 +405,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateTexture(const Ref<Tex
 	            .aspectMask = GetVkImageAspectFlags(desc.format),
 	            .mipLevel = static_cast<uint32_t>(subresourceIndex),
 	            .baseArrayLayer = 0,
-	            .layerCount = 1,
+	            .layerCount = desc.Is3D() ? 1u : static_cast<uint32_t>(desc.GetArraySize()),
 	        },
 	    .imageOffset = {0, 0, 0},
 	    .imageExtent =
@@ -448,26 +417,6 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateTexture(const Ref<Tex
 	};
 
 	vkCmdCopyBufferToImage(m_commandBuffer, vulkanBuffer->GetVkBuffer(), image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
-
-	const VkImageMemoryBarrier barrierToShader{
-	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-	    .srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT,
-	    .dstAccessMask = VK_ACCESS_SHADER_READ_BIT,
-	    .oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-	    .newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	    .image = image,
-	    .subresourceRange = barrierToTransfer.subresourceRange,
-	};
-
-	vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_TRANSFER_BIT,
-	                     VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0, 0, nullptr, 0, nullptr,
-	                     1, &barrierToShader);
-
-	vulkanTexture->SetCurrentLayout(VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
-
-	KeepAlive(stagingBuffer);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::CopyBufferRegion(const Ref<Buffer>& dest, const int64_t destOffset,
@@ -520,10 +469,13 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::CopyTextureRegion(const Ref
 
 	const VkBufferImageCopy region{
 	    .bufferOffset = static_cast<VkDeviceSize>(destOffset),
-	    .imageSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	                         .mipLevel = static_cast<uint32_t>(srcSubresourceIndex),
-	                         .baseArrayLayer = 0,
-	                         .layerCount = 1},
+	    .imageSubresource =
+	        {
+	            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+	            .mipLevel = static_cast<uint32_t>(srcSubresourceIndex),
+	            .baseArrayLayer = 0,
+	            .layerCount = 1,
+	        },
 	    .imageOffset = {boxMin.x, boxMin.y, boxMin.z},
 	    .imageExtent = {static_cast<uint32_t>(boxMax.x - boxMin.x), static_cast<uint32_t>(boxMax.y - boxMin.y),
 	                    static_cast<uint32_t>(boxMax.z - boxMin.z)},
@@ -545,15 +497,21 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::CopyTextureRegion(const Ref
 	const glm::int3 boxMax = srcBox.location + srcBox.size;
 
 	const VkImageCopy region{
-	    .srcSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	                       .mipLevel = static_cast<uint32_t>(srcSubresourceIndex),
-	                       .baseArrayLayer = 0,
-	                       .layerCount = 1},
+	    .srcSubresource =
+	        {
+	            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+	            .mipLevel = static_cast<uint32_t>(srcSubresourceIndex),
+	            .baseArrayLayer = 0,
+	            .layerCount = 1,
+	        },
 	    .srcOffset = {boxMin.x, boxMin.y, boxMin.z},
-	    .dstSubresource = {.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	                       .mipLevel = static_cast<uint32_t>(destSubresourceIndex),
-	                       .baseArrayLayer = 0,
-	                       .layerCount = 1},
+	    .dstSubresource =
+	        {
+	            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+	            .mipLevel = static_cast<uint32_t>(destSubresourceIndex),
+	            .baseArrayLayer = 0,
+	            .layerCount = 1,
+	        },
 	    .dstOffset = {destLoc.x, destLoc.y, destLoc.z},
 	    .extent = {static_cast<uint32_t>(boxMax.x - boxMin.x), static_cast<uint32_t>(boxMax.y - boxMin.y),
 	               static_cast<uint32_t>(boxMax.z - boxMin.z)},
@@ -777,12 +735,9 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 	for (const auto& rtv : m_renderTargetViews)
 	{
 		const auto* view = dynamic_cast<VulkanTextureView*>(rtv.Raw());
-		auto* texture = dynamic_cast<VulkanTexture*>(view->GetTexture());
+		PE_ASSERT(view);
 
-		TransitionImage(texture, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-		                VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT);
-
-		VkRenderingAttachmentInfo attachment{
+		const VkRenderingAttachmentInfo attachment{
 		    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 		    .imageView = view->GetVkImageView(),
 		    .imageLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
@@ -798,6 +753,9 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 
 	VkRenderingAttachmentInfo stencilAttachment{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
 
+	// TODO
+	// what to do if we have no render targets? We need to support this for compute shaders that write to UAVs
+	PE_ASSERT(!m_renderTargetViews.empty(), "BeginDynamicRendering requires at least one render target");
 	const auto* firstRTV = dynamic_cast<VulkanTextureView*>(m_renderTargetViews[0].Raw());
 
 	const TextureDesc& textureDesc = dynamic_cast<VulkanTexture*>(firstRTV->GetTexture())->GetTextureDesc();
@@ -821,12 +779,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 
 	if (m_depthStencilView)
 	{
-		auto* dsv = dynamic_cast<VulkanTextureView*>(m_depthStencilView.Raw());
-		auto* texture = dynamic_cast<VulkanTexture*>(dsv->GetTexture());
-
-		TransitionImage(texture, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
-		                VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT | VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT,
-		                VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT);
+		const auto* dsv = dynamic_cast<VulkanTextureView*>(m_depthStencilView.Raw());
+		PE_ASSERT(dsv);
 
 		depthAttachment.imageView = dsv->GetVkImageView();
 		depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
@@ -854,40 +808,4 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::EndDynamicRendering()
 	vkCmdEndRendering(m_commandBuffer);
 
 	m_renderingActive = false;
-}
-
-void Prism::Render::Vulkan::VulkanRenderCommandList::TransitionImage(Texture* texture, VkImageLayout newLayout,
-                                                                     VkPipelineStageFlags dstStage, VkAccessFlags dstAccess)
-{
-	auto* vulkanTexture = dynamic_cast<VulkanTexture*>(texture);
-
-	const VkImageLayout oldLayout = vulkanTexture->GetVulkanTextureResource().currentLayout;
-
-	if (oldLayout == newLayout)
-	{
-		return;
-	}
-
-	const VkImageMemoryBarrier barrier{
-	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-	    .srcAccessMask = VK_ACCESS_MEMORY_READ_BIT | VK_ACCESS_MEMORY_WRITE_BIT,
-	    .dstAccessMask = dstAccess,
-	    .oldLayout = oldLayout,
-	    .newLayout = newLayout,
-	    .srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	    .dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
-	    .image = vulkanTexture->GetVulkanTextureResource().image,
-	    .subresourceRange =
-	        {
-	            .aspectMask = vulkanTexture->GetVulkanTextureResource().aspectMask,
-	            .baseMipLevel = 0,
-	            .levelCount = VK_REMAINING_MIP_LEVELS,
-	            .baseArrayLayer = 0,
-	            .layerCount = VK_REMAINING_ARRAY_LAYERS,
-	        },
-	};
-
-	vkCmdPipelineBarrier(m_commandBuffer, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier);
-
-	vulkanTexture->SetCurrentLayout(newLayout);
 }

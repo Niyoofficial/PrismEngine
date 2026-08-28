@@ -25,8 +25,6 @@ struct VulkanTextureResource
 	uint32_t arrayLayers = 1;
 
 	VkImageAspectFlags aspectMask = 0;
-
-	VkImageLayout currentLayout = VK_IMAGE_LAYOUT_UNDEFINED;
 };
 
 class VulkanTexture : public Texture
@@ -50,10 +48,6 @@ public:
 	[[nodiscard]] TextureDesc GetTextureDesc() const override { return m_originalDesc; }
 
 	[[nodiscard]] VulkanTextureResource GetVulkanTextureResource() const { return m_texture; }
-
-	[[nodiscard]] VkImageLayout GetCurrentLayout() const { return m_texture.currentLayout; }
-
-	void SetCurrentLayout(const VkImageLayout layout) { m_texture.currentLayout = layout; }
 
 private:
 	void CreateImage(const VulkanRenderDevice* renderDevice, const TextureDesc& desc);
