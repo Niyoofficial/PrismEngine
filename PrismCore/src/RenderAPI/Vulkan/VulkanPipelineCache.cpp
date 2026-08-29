@@ -233,9 +233,6 @@ uint64_t Prism::Render::Vulkan::VulkanPipelineCache::HashPipelineStateDesc(const
 	{
 		const auto& rtv = rtvs[i];
 
-		PE_RENDER_LOG(Error, "RTV[{}]: RefAddress={}, Object={}", i, static_cast<const void*>(&rtv),
-		              static_cast<const void*>(rtv.Raw()));
-
 		if (!rtv)
 		{
 			continue;
