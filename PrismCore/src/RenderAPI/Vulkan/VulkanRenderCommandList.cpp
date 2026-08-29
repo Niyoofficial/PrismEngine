@@ -378,6 +378,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateBuffer(const Ref<Buff
 void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateTexture(const Ref<Texture>& texture, RawData data,
                                                                    const int32_t subresourceIndex)
 {
+	PE_ASSERT(texture);
+	PE_ASSERT(data.data);
+	PE_ASSERT(data.sizeInBytes > 0);
+
 	const BufferDesc bufferDesc{
 	    .size = data.sizeInBytes,
 	    .bindFlags = BindFlags::None,
@@ -417,6 +421,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateTexture(const Ref<Tex
 	};
 
 	vkCmdCopyBufferToImage(m_commandBuffer, vulkanBuffer->GetVkBuffer(), image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+	KeepAlive(stagingBuffer);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::CopyBufferRegion(const Ref<Buffer>& dest, const int64_t destOffset,

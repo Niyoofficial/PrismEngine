@@ -54,8 +54,6 @@ private:
 
 	void CreateSampler(VulkanRenderDevice* renderDevice, const TextureDesc& desc);
 
-	void UploadTextureData(const VulkanRenderDevice* renderDevice, const void* pixels, VkDeviceSize imageSize);
-
 	TextureDesc m_originalDesc;
 
 	VulkanTextureResource m_texture;

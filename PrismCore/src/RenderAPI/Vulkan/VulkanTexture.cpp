@@ -21,7 +21,7 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		auto* vulkanCmd = dynamic_cast<VulkanRenderCommandList*>(cmd.Raw());
 		PE_ASSERT(vulkanCmd);
 
-		TextureBarrier barrier{
+		vulkanCmd->Barrier(TextureBarrier{
 		    .texture = this,
 		    .syncBefore = BarrierSync::None,
 		    .syncAfter = BarrierSync::All,
@@ -36,9 +36,7 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		            .firstArraySlice = 0,
 		            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
 		        },
-		};
-
-		vulkanCmd->Barrier(barrier);
+		});
 
 		auto* queue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
 		PE_ASSERT(queue);
@@ -80,18 +78,66 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 			return;
 		}
 
-		const auto mipLevels = static_cast<int32_t>(std::floor(std::log2(std::max(width, height))) + 1);
+		// TODO
+		// add MipMap support
+		// const auto mipLevels = static_cast<int32_t>(std::floor(std::log2(std::max(width, height))) + 1);
+		constexpr int32_t mipLevels = 1;
 
 		m_originalDesc = TextureDesc::CreateTex2D(filepath, width, height, TextureFormat::RGBA8_UNorm, BindFlags::ShaderResource,
 		                                          ResourceUsage::Default, mipLevels);
 
-		// should it be part of texture desc?
 		const VkDeviceSize imageSize = width * height * STBI_rgb_alpha * bytesPerChannel;
 
 		CreateImage(renderDevice, m_originalDesc);
 		CreateSampler(renderDevice, m_originalDesc);
 
-		UploadTextureData(renderDevice, pixels, imageSize);
+		const auto cmd = RenderCommandList::Create();
+		auto* vulkanCmd = dynamic_cast<VulkanRenderCommandList*>(cmd.Raw());
+
+		vulkanCmd->Barrier(TextureBarrier{
+		    .texture = this,
+		    .syncBefore = BarrierSync::None,
+		    .syncAfter = BarrierSync::Copy,
+		    .accessBefore = BarrierAccess::NoAccess,
+		    .accessAfter = BarrierAccess::CopyDest,
+		    .layoutBefore = BarrierLayout::Undefined,
+		    .layoutAfter = BarrierLayout::CopyDest,
+		    .subresourceRange =
+		        {
+		            .firstMipLevel = 0,
+		            .numMipLevels = 1,
+		            .firstArraySlice = 0,
+		            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
+		        },
+		});
+
+		vulkanCmd->UpdateTexture(Ref<Texture>(this),
+		                         RawData{
+		                             .data = pixels,
+		                             .sizeInBytes = static_cast<int64_t>(imageSize),
+		                         },
+		                         0);
+
+		vulkanCmd->Barrier(TextureBarrier{
+		    .texture = this,
+		    .syncBefore = BarrierSync::Copy,
+		    .syncAfter = Flags<BarrierSync>(BarrierSync::PixelShading, BarrierSync::ComputeShading),
+		    .accessBefore = BarrierAccess::CopyDest,
+		    .accessAfter = BarrierAccess::ShaderResource,
+		    .layoutBefore = BarrierLayout::CopyDest,
+		    .layoutAfter = BarrierLayout::ShaderResource,
+		    .subresourceRange =
+		        {
+		            .firstMipLevel = 0,
+		            .numMipLevels = 1,
+		            .firstArraySlice = 0,
+		            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
+		        },
+		});
+
+		auto* queue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
+		PE_ASSERT(queue);
+		queue->SubmitImmediate(cmd);
 
 		stbi_image_free(pixels);
 	};
@@ -128,7 +174,10 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 			return;
 		}
 
-		const auto mipLevels = static_cast<int32_t>(std::floor(std::log2(std::max(width, height))) + 1);
+		// TODO
+		// add MipMap support
+		// const auto mipLevels = static_cast<int32_t>(std::floor(std::log2(std::max(width, height))) + 1);
+		constexpr int32_t mipLevels = 1;
 
 		m_originalDesc = TextureDesc::CreateTex2D(name, width, height, TextureFormat::RGBA8_UNorm, BindFlags::ShaderResource,
 		                                          ResourceUsage::Default, mipLevels);
@@ -138,7 +187,53 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		CreateImage(renderDevice, m_originalDesc);
 		CreateSampler(renderDevice, m_originalDesc);
 
-		UploadTextureData(renderDevice, pixels, imageSize);
+		const auto cmd = RenderCommandList::Create();
+		auto* vulkanCmd = dynamic_cast<VulkanRenderCommandList*>(cmd.Raw());
+		PE_ASSERT(vulkanCmd);
+		vulkanCmd->Barrier(TextureBarrier{
+		    .texture = this,
+		    .syncBefore = BarrierSync::None,
+		    .syncAfter = BarrierSync::Copy,
+		    .accessBefore = BarrierAccess::NoAccess,
+		    .accessAfter = BarrierAccess::CopyDest,
+		    .layoutBefore = BarrierLayout::Undefined,
+		    .layoutAfter = BarrierLayout::CopyDest,
+		    .subresourceRange =
+		        {
+		            .firstMipLevel = 0,
+		            .numMipLevels = 1,
+		            .firstArraySlice = 0,
+		            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
+		        },
+		});
+
+		vulkanCmd->UpdateTexture(Ref<Texture>(this),
+		                         RawData{
+		                             .data = pixels,
+		                             .sizeInBytes = static_cast<int64_t>(imageSize),
+		                         },
+		                         0);
+
+		vulkanCmd->Barrier(TextureBarrier{
+		    .texture = this,
+		    .syncBefore = BarrierSync::Copy,
+		    .syncAfter = Flags<BarrierSync>(BarrierSync::PixelShading, BarrierSync::ComputeShading),
+		    .accessBefore = BarrierAccess::CopyDest,
+		    .accessAfter = BarrierAccess::ShaderResource,
+		    .layoutBefore = BarrierLayout::CopyDest,
+		    .layoutAfter = BarrierLayout::ShaderResource,
+		    .subresourceRange =
+		        {
+		            .firstMipLevel = 0,
+		            .numMipLevels = 1,
+		            .firstArraySlice = 0,
+		            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
+		        },
+		});
+
+		auto* queue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
+		PE_ASSERT(queue);
+		queue->SubmitImmediate(cmd);
 
 		stbi_image_free(pixels);
 	};
@@ -278,89 +373,4 @@ void Prism::Render::Vulkan::VulkanTexture::CreateSampler(VulkanRenderDevice* ren
 	};
 
 	PE_ASSERT(vkCreateSampler(renderDevice->GetDevice(), &info, nullptr, &m_texture.sampler) == VK_SUCCESS);
-}
-
-void Prism::Render::Vulkan::VulkanTexture::UploadTextureData(const VulkanRenderDevice* renderDevice, const void* pixels,
-                                                             const VkDeviceSize imageSize)
-{
-	VkBuffer stagingBuffer{};
-	VmaAllocation stagingAllocation{};
-
-	const VkBufferCreateInfo stagingBufferInfo{
-	    .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-	    .size = imageSize,
-	    .usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT,
-	};
-
-	constexpr VmaAllocationCreateInfo stagingAllocInfo{
-	    .flags = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT,
-	    .usage = VMA_MEMORY_USAGE_AUTO,
-	};
-
-	PE_ASSERT(vmaCreateBuffer(renderDevice->GetAllocator(), &stagingBufferInfo, &stagingAllocInfo, &stagingBuffer,
-	                          &stagingAllocation, nullptr) == VK_SUCCESS);
-
-	void* mappedData{};
-	vmaMapMemory(renderDevice->GetAllocator(), stagingAllocation, &mappedData);
-	memcpy(mappedData, pixels, imageSize);
-	vmaUnmapMemory(renderDevice->GetAllocator(), stagingAllocation);
-
-	auto cmd = RenderCommandList::Create();
-	auto* vulkanCmd = dynamic_cast<VulkanRenderCommandList*>(cmd.Raw());
-
-	vulkanCmd->Barrier(TextureBarrier{
-	    .texture = this,
-	    .syncBefore = BarrierSync::None,
-	    .syncAfter = BarrierSync::Copy,
-	    .accessBefore = BarrierAccess::NoAccess,
-	    .accessAfter = BarrierAccess::CopyDest,
-	    .layoutBefore = BarrierLayout::Undefined,
-	    .layoutAfter = BarrierLayout::CopyDest,
-	    .subresourceRange =
-	        {
-	            .firstMipLevel = 0,
-	            .numMipLevels = m_originalDesc.mipLevels,
-	            .firstArraySlice = 0,
-	            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
-	        },
-	});
-
-	const auto stagingRef = Buffer::Create(
-	    BufferDesc{
-	        .size = static_cast<int64_t>(imageSize),
-	        .bindFlags = BindFlags::None,
-	        .usage = ResourceUsage::Staging,
-	        .cpuAccess = CPUAccess::Write,
-	    },
-	    RawData{
-	        .data = pixels,
-	        .sizeInBytes = static_cast<int64_t>(imageSize),
-	    });
-
-	vulkanCmd->CopyBufferRegion(Ref<Texture>(this), {0, 0, 0}, 0, stagingRef, 0);
-
-	if (m_originalDesc.mipLevels > 1)
-	{
-		// TOFIX
-		// call it in proper CommandList and Context to Generate MipMaps after uploading the texture data
-		GenerateMipMaps(nullptr);
-	}
-	else
-	{
-		vulkanCmd->Barrier(TextureBarrier{
-		    .texture = this,
-		    .syncBefore = BarrierSync::Copy,
-		    .syncAfter = Flags<BarrierSync>(BarrierSync::PixelShading, BarrierSync::ComputeShading),
-		    .accessBefore = BarrierAccess::CopyDest,
-		    .accessAfter = BarrierAccess::ShaderResource,
-		    .layoutBefore = BarrierLayout::CopyDest,
-		    .layoutAfter = BarrierLayout::ShaderResource,
-		});
-	}
-
-	vulkanCmd->KeepAlive(stagingRef);
-
-	auto* queue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
-
-	queue->SubmitImmediate(cmd);
 }
