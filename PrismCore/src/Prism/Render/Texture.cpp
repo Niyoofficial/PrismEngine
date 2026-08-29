@@ -410,7 +410,7 @@ void Texture::GenerateMipMaps(RenderContext* context)
 		.syncAfter = BarrierSync::Copy,
 		.accessBefore = BarrierAccess::ShaderResource,
 		.accessAfter = BarrierAccess::CopySource,
-		.layoutBefore = BarrierLayout::ShaderResource,
+		.layoutBefore = BarrierLayout::UnorderedAccess,
 		.layoutAfter = BarrierLayout::CopySource,
 		});
 
