@@ -499,28 +499,82 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::CopyTextureRegion(const Ref
 	const auto* destTexture = dynamic_cast<VulkanTexture*>(dest.Raw());
 	const auto* srcTexture = dynamic_cast<VulkanTexture*>(src.Raw());
 
-	const glm::int3 boxMin = srcBox.location;
-	const glm::int3 boxMax = srcBox.location + srcBox.size;
+	const auto& destDesc = dest->GetTextureDesc();
+	const auto& srcDesc = src->GetTextureDesc();
+
+	const auto srcMipLevels = static_cast<uint32_t>(srcDesc.GetMipLevels());
+	const auto destMipLevels = static_cast<uint32_t>(destDesc.GetMipLevels());
+
+	const auto srcSubresource = static_cast<uint32_t>(srcSubresourceIndex);
+	const auto destSubresource = static_cast<uint32_t>(destSubresourceIndex);
+
+	const uint32_t srcMipLevel = srcSubresource % srcMipLevels;
+	const uint32_t srcArrayLayer = srcSubresource / srcMipLevels;
+
+	const uint32_t destMipLevel = destSubresource % destMipLevels;
+	const uint32_t destArrayLayer = destSubresource / destMipLevels;
+
+	PE_ASSERT(srcArrayLayer < static_cast<uint32_t>(srcDesc.GetArraySize()));
+	PE_ASSERT(destArrayLayer < static_cast<uint32_t>(destDesc.GetArraySize()));
+
+	const uint32_t srcMipWidth = std::max(1u, static_cast<uint32_t>(srcDesc.GetWidth()) >> srcMipLevel);
+	const uint32_t srcMipHeight = std::max(1u, static_cast<uint32_t>(srcDesc.GetHeight()) >> srcMipLevel);
+	const uint32_t srcMipDepth = srcDesc.Is3D() ? std::max(1u, static_cast<uint32_t>(srcDesc.GetDepth()) >> srcMipLevel) : 1u;
+
+	const bool copyWholeSubresource = srcBox.size.x <= 0 || srcBox.size.y <= 0 || srcBox.size.z <= 0;
+
+	VkOffset3D srcOffset{};
+	VkExtent3D extent{};
+
+	if (copyWholeSubresource)
+	{
+		srcOffset = {0, 0, 0};
+
+		extent = {srcMipWidth, srcMipHeight, srcMipDepth};
+	}
+	else
+	{
+		srcOffset = {srcBox.location.x, srcBox.location.y, srcBox.location.z};
+		extent = {static_cast<uint32_t>(srcBox.size.x), static_cast<uint32_t>(srcBox.size.y),
+		          static_cast<uint32_t>(srcBox.size.z)};
+
+		// For 1D/2D Vulkan images depth must be 1
+		if (!srcDesc.Is3D())
+		{
+			extent.depth = 1;
+			srcOffset.z = 0;
+		}
+	}
+
+	const VkOffset3D dstOffset{destLoc.x, destLoc.y, destDesc.Is3D() ? destLoc.z : 0};
+
+	if (!srcDesc.Is3D() && !destDesc.Is3D())
+	{
+		extent.depth = 1;
+	}
+
+	PE_ASSERT(extent.width > 0);
+	PE_ASSERT(extent.height > 0);
+	PE_ASSERT(extent.depth > 0);
 
 	const VkImageCopy region{
 	    .srcSubresource =
 	        {
 	            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	            .mipLevel = static_cast<uint32_t>(srcSubresourceIndex),
-	            .baseArrayLayer = 0,
+	            .mipLevel = srcMipLevel,
+	            .baseArrayLayer = srcArrayLayer,
 	            .layerCount = 1,
 	        },
-	    .srcOffset = {boxMin.x, boxMin.y, boxMin.z},
+	    .srcOffset = srcOffset,
 	    .dstSubresource =
 	        {
 	            .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	            .mipLevel = static_cast<uint32_t>(destSubresourceIndex),
-	            .baseArrayLayer = 0,
+	            .mipLevel = destMipLevel,
+	            .baseArrayLayer = destArrayLayer,
 	            .layerCount = 1,
 	        },
-	    .dstOffset = {destLoc.x, destLoc.y, destLoc.z},
-	    .extent = {static_cast<uint32_t>(boxMax.x - boxMin.x), static_cast<uint32_t>(boxMax.y - boxMin.y),
-	               static_cast<uint32_t>(boxMax.z - boxMin.z)},
+	    .dstOffset = dstOffset,
+	    .extent = extent,
 	};
 
 	vkCmdCopyImage(m_commandBuffer, srcTexture->GetVulkanTextureResource().image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
