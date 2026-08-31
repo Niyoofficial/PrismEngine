@@ -345,6 +345,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 
 	const auto& [firstMipLevel, numMipLevels, firstArraySlice, numArraySlices] = barrier.subresourceRange;
 
+	// TODO
+	// RHI defines default struct as all subresources
+	const bool allSubresources = barrier.subresourceRange == SubresourceRange{};
+
 	const VkImageMemoryBarrier imageBarrier{
 	    .sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
 	    .srcAccessMask = GetVkAccessFlags(barrier.accessBefore),
@@ -355,10 +359,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 	    .subresourceRange =
 	        {
 	            .aspectMask = GetVkImageAspectFlags(texture->GetTextureDesc().format),
-	            .baseMipLevel = static_cast<uint32_t>(firstMipLevel),
-	            .levelCount = static_cast<uint32_t>(numMipLevels),
-	            .baseArrayLayer = static_cast<uint32_t>(firstArraySlice),
-	            .layerCount = static_cast<uint32_t>(numArraySlices),
+	            .baseMipLevel = allSubresources ? 0 : static_cast<uint32_t>(firstMipLevel),
+	            .levelCount = allSubresources ? VK_REMAINING_MIP_LEVELS : static_cast<uint32_t>(numMipLevels),
+	            .baseArrayLayer = allSubresources ? 0 : static_cast<uint32_t>(firstArraySlice),
+	            .layerCount = allSubresources ? VK_REMAINING_ARRAY_LAYERS : static_cast<uint32_t>(numArraySlices),
 	        },
 	};
 

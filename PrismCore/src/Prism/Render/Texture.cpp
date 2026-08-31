@@ -403,12 +403,6 @@ void Texture::GenerateMipMaps(RenderContext* context)
 		.accessAfter = BarrierAccess::CopyDest,
 		.layoutBefore = BarrierLayout::Common,
 		.layoutAfter = BarrierLayout::CopyDest,
-		.subresourceRange = {
-			   .firstMipLevel = 0,
-			   .numMipLevels = GetTextureDesc().GetMipLevels(),
-			   .firstArraySlice = 0,
-			   .numArraySlices = GetTextureDesc().GetArraySize(),
-		   },
 	});
 	renderContext->Barrier(TextureBarrier{
 		.texture = tempTexture,
@@ -418,12 +412,6 @@ void Texture::GenerateMipMaps(RenderContext* context)
 		.accessAfter = BarrierAccess::CopySource,
 		.layoutBefore = BarrierLayout::UnorderedAccess,
 		.layoutAfter = BarrierLayout::CopySource,
-		.subresourceRange = {
-				.firstMipLevel = 0,
-				.numMipLevels = tempTexture->GetTextureDesc().GetMipLevels(),
-				.firstArraySlice = 0,
-				.numArraySlices = tempTexture->GetTextureDesc().GetArraySize(),
-			},
 	});
 
 	renderContext->BeginEvent(L"MipMapCopy", {});
