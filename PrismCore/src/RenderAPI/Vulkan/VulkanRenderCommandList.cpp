@@ -345,7 +345,6 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 
 	const auto& [firstMipLevel, numMipLevels, firstArraySlice, numArraySlices] = barrier.subresourceRange;
 
-	// TODO
 	// RHI defines default struct as all subresources
 	const bool allSubresources = barrier.subresourceRange == SubresourceRange{};
 

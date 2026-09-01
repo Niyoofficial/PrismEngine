@@ -507,6 +507,16 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 		.layoutAfter = BarrierLayout::CopySource
 	});
 
+	renderContext->Barrier(TextureBarrier{
+		.texture = m_prefilteredSkybox,
+		.syncBefore = BarrierSync::None,
+		.syncAfter = BarrierSync::Copy,
+		.accessBefore = BarrierAccess::Common,
+		.accessAfter = BarrierAccess::CopyDest,
+		.layoutBefore = BarrierLayout::Common,
+		.layoutAfter = BarrierLayout::CopyDest
+	});
+
 	for (int32_t i = 0; i < 6; ++i)
 		renderContext->CopyTextureRegion(m_prefilteredSkybox, {},
 										 GetSubresourceIndex(0, m_prefilteredSkybox->GetTextureDesc().GetMipLevels(), i, 6),
@@ -526,9 +536,9 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 		.texture = m_prefilteredSkybox,
 		.syncBefore = BarrierSync::Copy,
 		.syncAfter = BarrierSync::ComputeShading,
-		.accessBefore = BarrierAccess::Common,
+		.accessBefore = BarrierAccess::CopyDest,
 		.accessAfter = BarrierAccess::UnorderedAccess,
-		.layoutBefore = BarrierLayout::Common,
+		.layoutBefore = BarrierLayout::CopyDest,
 		.layoutAfter = BarrierLayout::UnorderedAccess
 	});
 
