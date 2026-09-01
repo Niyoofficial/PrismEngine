@@ -42,28 +42,38 @@ Prism::Render::Vulkan::VulkanSwapchain::VulkanSwapchain(Core::Window* window, Sw
 	CreateSwapchain();
 	CreateBackbuffers();
 
-	VkSemaphoreCreateInfo semaphoreInfo{
+	constexpr VkSemaphoreCreateInfo semaphoreInfo{
 	    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
 	};
 
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
-	PE_ASSERT(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &m_imageAvailableSemaphore) == VK_SUCCESS);
-	PE_ASSERT(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &m_renderFinishedSemaphore) == VK_SUCCESS);
+	for (auto& semaphore : m_imageAvailableSemaphores)
+	{
+		PE_ASSERT(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore) == VK_SUCCESS);
+	}
+
+	m_renderFinishedSemaphores.resize(m_images.size());
+
+	for (auto& semaphore : m_renderFinishedSemaphores)
+	{
+		PE_ASSERT(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore) == VK_SUCCESS);
+	}
 }
 
 Prism::Render::Vulkan::VulkanSwapchain::~VulkanSwapchain()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
-	if (m_imageAvailableSemaphore)
+	for (const auto& semaphore : m_imageAvailableSemaphores)
 	{
-		vkDestroySemaphore(device, m_imageAvailableSemaphore, nullptr);
+		vkDestroySemaphore(device, semaphore, nullptr);
 	}
 
-	if (m_renderFinishedSemaphore)
+	for (const auto& semaphore : m_renderFinishedSemaphores)
+
 	{
-		vkDestroySemaphore(device, m_renderFinishedSemaphore, nullptr);
+		vkDestroySemaphore(device, semaphore, nullptr);
 	}
 
 	DestroyBackbuffers();
@@ -75,22 +85,30 @@ Prism::Render::Vulkan::VulkanSwapchain::~VulkanSwapchain()
 	}
 }
 
+void Prism::Render::Vulkan::VulkanSwapchain::PreparePresent()
+{
+	VulkanRenderDevice::Get().GetVulkanRenderCommandQueue()->SetSubmitSynchronization(
+	    VK_NULL_HANDLE, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, GetRenderFinishedSemaphore());
+}
+
 void Prism::Render::Vulkan::VulkanSwapchain::Present()
 {
-	const auto* queue = VulkanRenderDevice::Get().GetVulkanRenderCommandQueue();
+	const VkSemaphore renderFinishedSemaphore = GetRenderFinishedSemaphore();
 
 	const VkPresentInfoKHR presentInfo{
 	    .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 	    .waitSemaphoreCount = 1,
-	    .pWaitSemaphores = &m_renderFinishedSemaphore,
+	    .pWaitSemaphores = &renderFinishedSemaphore,
 	    .swapchainCount = 1,
 	    .pSwapchains = &m_swapchain,
 	    .pImageIndices = &m_currentBackBufferIndex,
 	};
 
-	const VkResult result = vkQueuePresentKHR(queue->GetQueue(), &presentInfo);
+	const VkResult result = vkQueuePresentKHR(VulkanRenderDevice::Get().GetVulkanRenderCommandQueue()->GetQueue(), &presentInfo);
 
 	PE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
+
+	AdvanceFrame();
 }
 
 void Prism::Render::Vulkan::VulkanSwapchain::Resize()
@@ -117,12 +135,10 @@ Prism::Render::TextureView* Prism::Render::Vulkan::VulkanSwapchain::GetCurrentBa
 	return m_backbufferRTVs[m_currentBackBufferIndex];
 }
 
-uint32_t Prism::Render::Vulkan::VulkanSwapchain::AcquireNextImage()
+VkResult Prism::Render::Vulkan::VulkanSwapchain::AcquireNextImage()
 {
-	PE_ASSERT(vkAcquireNextImageKHR(VulkanRenderDevice::Get().GetDevice(), m_swapchain, UINT64_MAX, m_imageAvailableSemaphore,
-	                                VK_NULL_HANDLE, &m_currentBackBufferIndex) == VK_SUCCESS);
-
-	return m_currentBackBufferIndex;
+	return vkAcquireNextImageKHR(VulkanRenderDevice::Get().GetDevice(), m_swapchain, UINT64_MAX, GetImageAvailableSemaphore(),
+	                             VK_NULL_HANDLE, &m_currentBackBufferIndex);
 }
 
 void Prism::Render::Vulkan::VulkanSwapchain::CreateSwapchain(VkSwapchainKHR oldSwapchain)

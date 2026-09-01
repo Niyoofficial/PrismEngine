@@ -45,8 +45,6 @@ public:
 
 	void ShutdownImGui() override;
 
-	void ImGuiNewFrame() override;
-
 	[[nodiscard]] VkDevice GetDevice() const { return m_device; }
 
 	[[nodiscard]] VkPhysicalDevice GetPhysicalDevice() const { return m_physicalDevice; }
@@ -71,6 +69,11 @@ public:
 	[[nodiscard]] VulkanRenderCommandQueue* GetVulkanRenderCommandQueue() const { return m_commandQueue.get(); }
 
 	[[nodiscard]] VulkanBindlessManager& GetBindlessManager() { return m_bindlessManager; }
+
+protected:
+	void BeginRenderFrame() override;
+
+	void ImGuiNewFrame() override;
 
 private:
 	Ref<BufferView> CreateBufferView_Impl(const BufferViewDesc& desc, Buffer* buffer) override;

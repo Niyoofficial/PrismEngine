@@ -3,10 +3,12 @@
 #include <SDL3/SDL_vulkan.h>
 #include <imgui_impl_sdl3.h>
 #include <iostream>
+#include "Prism/Base/Application.h"
 #include "VulkanBuffer.h"
 #include "VulkanBufferView.h"
 #include "VulkanPipelineLayoutCache.h"
 #include "VulkanRenderCommandQueue.h"
+#include "VulkanSwapchain.h"
 #include "VulkanTexture.h"
 #include "VulkanTextureView.h"
 #include "VulkanTypeConversions.h"
@@ -254,6 +256,29 @@ void Prism::Render::Vulkan::VulkanRenderDevice::ShutdownImGui()
 	m_initializedImGui = false;
 }
 
+void Prism::Render::Vulkan::VulkanRenderDevice::BeginRenderFrame()
+{
+	RenderDevice::BeginRenderFrame();
+
+	for (auto window : Core::Application::Get().GetWindows())
+	{
+		auto* swapchain = dynamic_cast<VulkanSwapchain*>(window->GetSwapchain());
+
+		PE_ASSERT(swapchain);
+
+		// TODO
+		// implement proper swapchain image acquisition and synchronization
+		GetVulkanRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
+
+		const VkResult result = swapchain->AcquireNextImage();
+
+		PE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
+
+		GetVulkanRenderCommandQueue()->SetSubmitSynchronization(swapchain->GetImageAvailableSemaphore(),
+		                                                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_NULL_HANDLE);
+	}
+}
+
 void Prism::Render::Vulkan::VulkanRenderDevice::ImGuiNewFrame()
 {
 	if (!m_initializedImGui)
@@ -462,13 +487,13 @@ void Prism::Render::Vulkan::VulkanRenderDevice::CreateLogicalDevice()
 	};
 
 	VkPhysicalDeviceTimelineSemaphoreFeatures timelineFeatures{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
-		.timelineSemaphore = VK_TRUE,
+	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
+	    .timelineSemaphore = VK_TRUE,
 	};
 
 	VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT featureMutableDescriptorType{
 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,
-		.pNext = &timelineFeatures,
+	    .pNext = &timelineFeatures,
 	    .mutableDescriptorType = VK_TRUE,
 	};
 

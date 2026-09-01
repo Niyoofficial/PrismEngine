@@ -103,7 +103,10 @@ void RenderCommandQueue::EnqueuePresent(const Ref<Swapchain>& swapchain)
 {
 	RenderDevice::Get().AddResourceToReleaseQueueWhenFrameEnds(swapchain);
 
+	// Vulkan acquires image from vkAcquireNextImageKHR
+#ifdef PE_D3D12_BACKEND
 	swapchain->AdvanceBackBufferIndex();
+#endif
 
 	{
 		std::unique_lock lock(m_recordingMutex);
