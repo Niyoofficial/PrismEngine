@@ -11,7 +11,7 @@ list(FILTER SOURCES EXCLUDE REGEX "src/RenderAPI/Vulkan/.*")
 
 option(PE_D3D12_BACKEND "Enable DirectX 12 render backend" OFF)
 option(PE_VULKAN_BACKEND "Enable Vulkan render backend" ON)
-option(ENABLE_ASAN "Enable AddressSanitizer" ON)
+option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 add_library(${CMAKE_PROJECT_NAME}::Core ALIAS ${PROJECT_NAME})
