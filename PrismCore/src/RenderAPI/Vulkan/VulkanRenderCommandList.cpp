@@ -219,72 +219,55 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetBuffers(const std::vecto
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::ClearRenderTargetView(const Ref<TextureView>& rtv, glm::float4* clearColor)
 {
-	auto* view = dynamic_cast<VulkanTextureView*>(rtv.Raw());
+	PE_ASSERT(!m_renderingActive, "ClearRenderTargetView must be called before rendering begins");
 
 	glm::float4 rtClearColor{0.f, 0.f, 0.f, 0.f};
 	if (clearColor)
 	{
-		rtClearColor.x = clearColor->x;
-		rtClearColor.y = clearColor->y;
-		rtClearColor.z = clearColor->z;
-		rtClearColor.w = clearColor->w;
+		rtClearColor = *clearColor;
 	}
 
-	const VkClearColorValue vkClearColor{
-	    .float32 = {rtClearColor.x, rtClearColor.y, rtClearColor.z, rtClearColor.w},
-	};
-
-	constexpr VkImageSubresourceRange range{
-	    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-	    .baseMipLevel = 0,
-	    .levelCount = VK_REMAINING_MIP_LEVELS,
-	    .baseArrayLayer = 0,
-	    .layerCount = VK_REMAINING_ARRAY_LAYERS,
-	};
-
-	const auto* texture = dynamic_cast<VulkanTexture*>(view->GetTexture());
-
-	vkCmdClearColorImage(m_commandBuffer, texture->GetVulkanTextureResource().image, VK_IMAGE_LAYOUT_GENERAL, &vkClearColor, 1,
-	                     &range);
+	m_pendingColorClears.push_back(PendingColorClear{
+	    .view = rtv,
+	    .clearValue =
+	        {
+	            .color = {.float32 = {rtClearColor.x, rtClearColor.y, rtClearColor.z, rtClearColor.w}},
+	        },
+	});
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags,
                                                                            DepthStencilValue* clearValue)
 {
-	const auto* view = dynamic_cast<VulkanTextureView*>(dsv.Raw());
+	PE_ASSERT(!m_renderingActive, "ClearDepthStencilView must be called before rendering begins");
 
-	const DepthStencilValue depthStencilValue = clearValue ? *clearValue : DepthStencilValue{.depth = 1.0f, .stencil = 0};
-
-	VkImageAspectFlags aspectMask = 0;
-	if (flags & ClearFlags::ClearDepth)
+	if (!(flags & ClearFlags::ClearDepth) && !(flags & ClearFlags::ClearStencil))
 	{
-		aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
-	}
-	if (flags & ClearFlags::ClearStencil)
-	{
-		aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+		return;
 	}
 
-	const VkClearDepthStencilValue clearDepthStencil{
-	    .depth = depthStencilValue.depth,
-	    .stencil = depthStencilValue.stencil,
+	const auto [depth, stencil] = clearValue ? *clearValue
+	                                         : DepthStencilValue{
+	                                               .depth = 1.0f,
+	                                               .stencil = 0,
+	                                           };
+
+	m_pendingDepthClear = PendingDepthClear{
+	    .view = dsv,
+	    .clearValue =
+	        {
+	            .depthStencil =
+	                {
+	                    .depth = depth,
+	                    .stencil = stencil,
+	                },
+	        },
+	    .flags = flags,
 	};
-
-	const VkImageSubresourceRange range{
-	    .aspectMask = aspectMask,
-	    .baseMipLevel = 0,
-	    .levelCount = VK_REMAINING_MIP_LEVELS,
-	    .baseArrayLayer = 0,
-	    .layerCount = VK_REMAINING_ARRAY_LAYERS,
-	};
-
-	const auto* texture = dynamic_cast<VulkanTexture*>(view->GetTexture());
-
-	vkCmdClearDepthStencilImage(m_commandBuffer, texture->GetVulkanTextureResource().image, VK_IMAGE_LAYOUT_GENERAL,
-	                            &clearDepthStencil, 1, &range);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::float4 values)
+void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav,
+                                                                              const glm::float4 values)
 {
 	const auto* view = dynamic_cast<VulkanTextureView*>(uav.Raw());
 
@@ -298,7 +281,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(co
 	                     nullptr);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav, glm::uint4 values)
+void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav,
+                                                                              const glm::uint4 values)
 {
 	const auto* view = dynamic_cast<VulkanTextureView*>(uav.Raw());
 
@@ -785,6 +769,8 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 		return;
 	}
 
+	PE_ASSERT(!m_renderTargetViews.empty(), "BeginDynamicRendering requires at least one render target");
+
 	std::vector<VkRenderingAttachmentInfo> colorAttachments;
 	colorAttachments.reserve(m_renderTargetViews.size());
 
@@ -816,17 +802,17 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 
 	const TextureDesc& textureDesc = dynamic_cast<VulkanTexture*>(firstRTV->GetTexture())->GetTextureDesc();
 
+	const VkExtent2D renderExtent{
+	    .width = static_cast<uint32_t>(textureDesc.GetWidth()),
+	    .height = static_cast<uint32_t>(textureDesc.GetHeight()),
+	};
 
 	VkRenderingInfo renderingInfo{
 	    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
 	    .renderArea =
 	        {
 	            .offset = {0, 0},
-	            .extent =
-	                {
-	                    static_cast<uint32_t>(textureDesc.GetWidth()),
-	                    static_cast<uint32_t>(textureDesc.GetHeight()),
-	                },
+	            .extent = renderExtent,
 	        },
 	    .layerCount = 1,
 	    .colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size()),
@@ -850,6 +836,78 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 	}
 
 	vkCmdBeginRendering(m_commandBuffer, &renderingInfo);
+
+	for (uint32_t i = 0; i < m_renderTargetViews.size(); ++i)
+	{
+		for (const auto& [view, clearValue] : m_pendingColorClears)
+		{
+			if (view->GetTexture() == m_renderTargetViews[i]->GetTexture())
+			{
+				const VkClearAttachment attachment{
+				    .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+				    .colorAttachment = i,
+				    .clearValue = clearValue,
+				};
+
+				const VkClearRect clearRect{
+				    .rect =
+				        {
+				            .offset = {0, 0},
+				            .extent = renderExtent,
+				        },
+				    .baseArrayLayer = 0,
+				    .layerCount = 1,
+				};
+
+				vkCmdClearAttachments(m_commandBuffer, 1, &attachment, 1, &clearRect);
+			}
+		}
+	}
+
+	m_pendingColorClears.clear();
+
+	if (m_depthStencilView && m_pendingDepthClear.has_value())
+	{
+		const PendingDepthClear& pendingDepthClear = *m_pendingDepthClear;
+
+		if (pendingDepthClear.view->GetTexture() == m_depthStencilView->GetTexture())
+		{
+			VkImageAspectFlags aspectMask = 0;
+
+			if (pendingDepthClear.flags & ClearFlags::ClearDepth)
+			{
+				aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
+			}
+
+			if (pendingDepthClear.flags & ClearFlags::ClearStencil)
+			{
+				aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+			}
+
+			if (aspectMask != 0)
+			{
+				const VkClearAttachment attachment{
+				    .aspectMask = aspectMask,
+				    .colorAttachment = 0,
+				    .clearValue = pendingDepthClear.clearValue,
+				};
+
+				const VkClearRect clearRect{
+				    .rect =
+				        {
+				            .offset = {0, 0},
+				            .extent = renderExtent,
+				        },
+				    .baseArrayLayer = 0,
+				    .layerCount = 1,
+				};
+
+				vkCmdClearAttachments(m_commandBuffer, 1, &attachment, 1, &clearRect);
+			}
+		}
+
+		m_pendingDepthClear.reset();
+	}
 
 	m_renderingActive = true;
 }
