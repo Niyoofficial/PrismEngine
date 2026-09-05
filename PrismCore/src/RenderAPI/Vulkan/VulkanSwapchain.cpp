@@ -42,6 +42,8 @@ Prism::Render::Vulkan::VulkanSwapchain::VulkanSwapchain(Core::Window* window, Sw
 	CreateSwapchain();
 	CreateBackbuffers();
 
+	m_backbufferNeedsInitialTransition.assign(m_backbuffers.size(), true);
+
 	constexpr VkSemaphoreCreateInfo semaphoreInfo{
 	    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
 	};
@@ -137,8 +139,32 @@ Prism::Render::TextureView* Prism::Render::Vulkan::VulkanSwapchain::GetCurrentBa
 
 VkResult Prism::Render::Vulkan::VulkanSwapchain::AcquireNextImage()
 {
-	return vkAcquireNextImageKHR(VulkanRenderDevice::Get().GetDevice(), m_swapchain, UINT64_MAX, GetImageAvailableSemaphore(),
-	                             VK_NULL_HANDLE, &m_currentBackBufferIndex);
+	const VkResult result = vkAcquireNextImageKHR(VulkanRenderDevice::Get().GetDevice(), m_swapchain, UINT64_MAX,
+	                                              GetImageAvailableSemaphore(), VK_NULL_HANDLE, &m_currentBackBufferIndex);
+
+	if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
+	{
+		if (m_backbufferNeedsInitialTransition[m_currentBackBufferIndex])
+		{
+			auto context = VulkanRenderDevice::Get().AllocateContext(L"InitializeBackbufferPresentLayout");
+
+			context->Barrier({
+			    .texture = m_backbuffers[m_currentBackBufferIndex].Raw(),
+			    .syncBefore = BarrierSync::None,
+			    .syncAfter = BarrierSync::None,
+			    .accessBefore = BarrierAccess::NoAccess,
+			    .accessAfter = BarrierAccess::NoAccess,
+			    .layoutBefore = BarrierLayout::Undefined,
+			    .layoutAfter = BarrierLayout::Present,
+			});
+
+			VulkanRenderDevice::Get().SubmitContext(context);
+
+			m_backbufferNeedsInitialTransition[m_currentBackBufferIndex] = false;
+		}
+	}
+
+	return result;
 }
 
 void Prism::Render::Vulkan::VulkanSwapchain::CreateSwapchain(VkSwapchainKHR oldSwapchain)

@@ -36,7 +36,7 @@ private:
 	void CreateBackbuffers();
 	void DestroyBackbuffers();
 
-	void AdvanceFrame() { m_frameIndex = (m_frameIndex + 1) % FramesInFlight; }
+	void AdvanceFrame() { m_frameIndex = (m_frameIndex + 1) % Constants::MAX_FRAMES_IN_FLIGHT; }
 
 	Core::Window* m_window;
 
@@ -52,9 +52,9 @@ private:
 	std::vector<Ref<VulkanTexture>> m_backbuffers;
 	std::vector<TextureView*> m_backbufferRTVs;
 
-	static constexpr uint32_t FramesInFlight = Constants::MAX_FRAMES_IN_FLIGHT;
+	std::vector<bool> m_backbufferNeedsInitialTransition;
 
-	std::array<VkSemaphore, FramesInFlight> m_imageAvailableSemaphores{};
+	std::array<VkSemaphore, Constants::MAX_FRAMES_IN_FLIGHT> m_imageAvailableSemaphores{};
 	std::vector<VkSemaphore> m_renderFinishedSemaphores;
 
 	uint32_t m_frameIndex = 0;
