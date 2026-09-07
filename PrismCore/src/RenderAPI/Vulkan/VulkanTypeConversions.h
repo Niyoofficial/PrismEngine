@@ -65,4 +65,6 @@ VkDescriptorType GetVkDescriptorType(SpvReflectDescriptorType type);
 VkAccessFlags GetVkAccessFlags(Flags<BarrierAccess> access);
 
 VkPipelineStageFlags GetVkPipelineStageFlags(Flags<BarrierSync> sync);
+
+VkFormat GetVkFormat(SpvReflectFormat format);
 } // namespace Prism::Render::Vulkan

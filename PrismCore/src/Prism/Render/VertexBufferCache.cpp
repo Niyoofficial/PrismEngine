@@ -36,28 +36,6 @@ uint32_t GetVertexAttributeSize(const VertexAttribute& attribute)
 	}
 }
 
-uint32_t GetVertexLocation(const VertexAttribute attribute)
-{
-	switch (attribute)
-	{
-	case VertexAttribute::Position:
-		return 0;
-	case VertexAttribute::Normal:
-		return 1;
-	case VertexAttribute::TexCoord:
-		return 2;
-	case VertexAttribute::Tangent:
-		return 3;
-	case VertexAttribute::Bitangent:
-		return 4;
-	case VertexAttribute::Color:
-		return 5;
-	default:
-		PE_ASSERT_NO_ENTRY("Unknown vertex attribute");
-		return 0;
-	}
-}
-
 VertexBufferCache::MeshBuffers VertexBufferCache::GetOrCreateMeshBuffers(const VertexAttributeList& attributeList,
                                                                          MeshAsset* mesh)
 {

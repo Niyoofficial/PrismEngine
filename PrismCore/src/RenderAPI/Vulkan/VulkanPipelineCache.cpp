@@ -108,6 +108,7 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 	    VertexAttribute::Tangent,  VertexAttribute::Bitangent,
 	};
 
+	// auto vertexInputState = BuildVertexInputState(layout, vs.reflection);
 	auto vertexInputState = BuildVertexInputState(layout);
 	auto inputAssemblyState = BuildInputAssemblyState(desc);
 	auto viewportState = BuildViewportState();
@@ -241,6 +242,9 @@ uint64_t Prism::Render::Vulkan::VulkanPipelineCache::HashPipelineStateDesc(const
 	return VulkanRenderDevice::Get().GetShaderCompiler()->GetShaderCodeHash(desc.cs);
 }
 
+/*Prism::Render::Vulkan::VertexInputState
+Prism::Render::Vulkan::VulkanPipelineCache::BuildVertexInputState(const VertexAttributeList& vertexAttributeList,
+                                                                  const VulkanShaderReflection& reflection)*/
 Prism::Render::Vulkan::VertexInputState
 Prism::Render::Vulkan::VulkanPipelineCache::BuildVertexInputState(const VertexAttributeList& vertexAttributeList)
 {
@@ -254,19 +258,29 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildVertexInputState(const VertexAt
 
 	uint32_t offset = 0;
 
-	for (auto vertexAttribute : vertexAttributeList)
+	/*
+	const auto& shaderInputs = reflection.GetVertexInputs();
+	for (const auto vertexAttribute : vertexAttributeList)
 	{
-		VkVertexInputAttributeDescription desc{
-		    .location = GetVertexLocation(vertexAttribute),
-		    .binding = 0,
-		    .format = GetVkFormat(vertexAttribute),
-		    .offset = offset,
-		};
+	    const auto it = std::ranges::find_if(shaderInputs, [vertexAttribute](const VulkanShaderVertexInput& input)
+	                                         { return input.attribute == vertexAttribute; });
 
-		vertexInputState.attributes.push_back(desc);
+	    if (it == shaderInputs.end())
+	    {
+	        offset += GetVertexAttributeSize(vertexAttribute);
+	        continue;
+	    }
 
-		offset += GetVertexAttributeSize(vertexAttribute);
+	    vertexInputState.attributes.push_back({
+	        .location = it->location,
+	        .binding = 0,
+	        .format = it->format,
+	        .offset = offset,
+	    });
+
+	    offset += GetVertexAttributeSize(vertexAttribute);
 	}
+	*/
 
 	vertexInputState.createInfo = {
 	    .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,

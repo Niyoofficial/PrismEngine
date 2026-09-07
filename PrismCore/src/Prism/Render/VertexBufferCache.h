@@ -20,8 +20,6 @@ int64_t GetVertexSize(const VertexAttributeList& attributeList);
 
 uint32_t GetVertexAttributeSize(const VertexAttribute& attribute);
 
-uint32_t GetVertexLocation(VertexAttribute attribute);
-
 class VertexBufferCache
 {
 public:

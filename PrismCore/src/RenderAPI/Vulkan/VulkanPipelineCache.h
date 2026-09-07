@@ -7,6 +7,8 @@
 
 namespace Prism::Render::Vulkan
 {
+struct VulkanShaderReflection;
+
 struct GraphicsPipeline
 {
 	VkPipeline pipeline = VK_NULL_HANDLE;
@@ -57,6 +59,9 @@ private:
 	[[nodiscard]] uint64_t HashPipelineStateDesc(const GraphicsPipelineStateDesc& desc, const std::vector<Ref<TextureView>>& rtvs,
 	                                             const TextureView* dsv) const;
 	[[nodiscard]] uint64_t HashPipelineStateDesc(const ComputePipelineStateDesc& desc) const;
+
+	/*[[nodiscard]] VertexInputState BuildVertexInputState(const VertexAttributeList& vertexAttributeList,
+	                                                     const VulkanShaderReflection& reflection);*/
 
 	[[nodiscard]] VertexInputState BuildVertexInputState(const VertexAttributeList& vertexAttributeList);
 

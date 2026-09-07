@@ -4,6 +4,8 @@
 
 #include "Prism/Base/Assert.h"
 #include "Prism/Render/Shader.h"
+#include "VulkanTypeConversions.h"
+#include "Prism/Render/VertexBufferCache.h"
 
 Prism::Render::Vulkan::VulkanShaderReflection::~VulkanShaderReflection() { spvReflectDestroyShaderModule(&m_module); }
 
@@ -11,6 +13,10 @@ Prism::Render::Vulkan::VulkanShaderReflection::VulkanShaderReflection(VulkanShad
 {
 	m_module = other.m_module;
 	std::memset(&other.m_module, 0, sizeof(other.m_module));
+
+	m_inputVariables = std::move(other.m_inputVariables);
+	m_outputVariables = std::move(other.m_outputVariables);
+	m_vertexInputs = std::move(other.m_vertexInputs);
 }
 
 Prism::Render::Vulkan::VulkanShaderReflection&
@@ -22,6 +28,10 @@ Prism::Render::Vulkan::VulkanShaderReflection::operator=(VulkanShaderReflection&
 
 		m_module = other.m_module;
 		std::memset(&other.m_module, 0, sizeof(other.m_module));
+
+		m_inputVariables = std::move(other.m_inputVariables);
+		m_outputVariables = std::move(other.m_outputVariables);
+		m_vertexInputs = std::move(other.m_vertexInputs);
 	}
 
 	return *this;
@@ -29,6 +39,13 @@ Prism::Render::Vulkan::VulkanShaderReflection::operator=(VulkanShaderReflection&
 
 SpvReflectResult Prism::Render::Vulkan::VulkanShaderReflection::Create(const size_t size, const void* data)
 {
+	spvReflectDestroyShaderModule(&m_module);
+	std::memset(&m_module, 0, sizeof(m_module));
+
+	m_inputVariables.clear();
+	m_outputVariables.clear();
+	m_vertexInputs.clear();
+
 	const auto result = spvReflectCreateShaderModule(size, data, &m_module);
 
 	if (result != SPV_REFLECT_RESULT_SUCCESS)
@@ -37,20 +54,55 @@ SpvReflectResult Prism::Render::Vulkan::VulkanShaderReflection::Create(const siz
 	}
 
 	uint32_t inputCount = 0;
-	spvReflectEnumerateInputVariables(&m_module, &inputCount, nullptr);
+	PE_ASSERT(spvReflectEnumerateInputVariables(&m_module, &inputCount, nullptr) == SPV_REFLECT_RESULT_SUCCESS);
 
 	m_inputVariables.resize(inputCount);
-	spvReflectEnumerateInputVariables(&m_module, &inputCount, m_inputVariables.data());
+	PE_ASSERT(spvReflectEnumerateInputVariables(&m_module, &inputCount, m_inputVariables.data()) == SPV_REFLECT_RESULT_SUCCESS);
 
 	std::ranges::sort(m_inputVariables, [](const auto* a, const auto* b) { return a->location < b->location; });
 
 	uint32_t outputCount = 0;
-	spvReflectEnumerateOutputVariables(&m_module, &outputCount, nullptr);
+	PE_ASSERT(spvReflectEnumerateOutputVariables(&m_module, &outputCount, nullptr) == SPV_REFLECT_RESULT_SUCCESS);
 
 	m_outputVariables.resize(outputCount);
-	spvReflectEnumerateOutputVariables(&m_module, &outputCount, m_outputVariables.data());
+	PE_ASSERT(spvReflectEnumerateOutputVariables(&m_module, &outputCount, m_outputVariables.data()) ==
+	          SPV_REFLECT_RESULT_SUCCESS);
 
 	std::ranges::sort(m_outputVariables, [](const auto* a, const auto* b) { return a->location < b->location; });
+
+	if (m_module.shader_stage == SPV_REFLECT_SHADER_STAGE_VERTEX_BIT)
+	{
+		m_vertexInputs.reserve(m_inputVariables.size());
+
+		for (const auto* variable : m_inputVariables)
+		{
+			if (!variable)
+			{
+				continue;
+			}
+
+			if (variable->decoration_flags & SPV_REFLECT_DECORATION_BUILT_IN)
+			{
+				continue;
+			}
+
+			if (variable->location == std::numeric_limits<uint32_t>::max())
+			{
+				continue;
+			}
+
+			const VertexAttribute attribute = GetVertexAttribute(*variable);
+
+			m_vertexInputs.push_back({
+			    .attribute = attribute,
+			    .location = variable->location,
+			    .format = GetVkFormat(variable->format),
+			});
+		}
+
+		std::ranges::sort(m_vertexInputs, [](const auto& a, const auto& b) { return a.location < b.location; });
+	}
+
 
 	return result;
 }
@@ -131,4 +183,51 @@ const SpvReflectDescriptorSet* Prism::Render::Vulkan::VulkanShaderReflection::Fi
 	}
 
 	return nullptr;
+}
+
+const std::vector<Prism::Render::Vulkan::VulkanShaderVertexInput>&
+Prism::Render::Vulkan::VulkanShaderReflection::GetVertexInputs() const
+{
+	return m_vertexInputs;
+}
+
+Prism::Render::VertexAttribute
+Prism::Render::Vulkan::VulkanShaderReflection::GetVertexAttribute(const SpvReflectInterfaceVariable& variable)
+{
+	PE_ASSERT(variable.semantic != nullptr);
+
+	const std::string_view semantic = variable.semantic;
+
+	if (semantic == "POSITION")
+	{
+		return VertexAttribute::Position;
+	}
+
+	if (semantic == "NORMAL")
+	{
+		return VertexAttribute::Normal;
+	}
+
+	if (semantic == "TEXCOORD")
+	{
+		return VertexAttribute::TexCoord;
+	}
+
+	if (semantic == "TANGENT")
+	{
+		return VertexAttribute::Tangent;
+	}
+
+	if (semantic == "BITANGENT")
+	{
+		return VertexAttribute::Bitangent;
+	}
+
+	if (semantic == "COLOR")
+	{
+		return VertexAttribute::Color;
+	}
+
+	PE_ASSERT_NO_ENTRY();
+	return VertexAttribute::Position;
 }
