@@ -19,9 +19,8 @@ struct VulkanShaderVertexInput
 	VkFormat format = VK_FORMAT_UNDEFINED;
 };
 
-class VulkanShaderReflection
+struct VulkanShaderReflection
 {
-public:
 	VulkanShaderReflection() = default;
 
 	~VulkanShaderReflection();
