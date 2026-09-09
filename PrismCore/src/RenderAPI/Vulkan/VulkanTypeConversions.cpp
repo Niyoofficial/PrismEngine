@@ -1142,3 +1142,41 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const SpvReflectFormat format)
 		return VK_FORMAT_UNDEFINED;
 	}
 }
+
+struct FormatAlias
+{
+	Prism::Render::TextureFormat imageFormat;
+	Prism::Render::TextureFormat requestedViewFormat;
+	Prism::Render::TextureFormat actualViewFormat;
+};
+
+static constexpr FormatAlias aliases[] = {
+    {
+        Prism::Render::TextureFormat::D32_Float,
+        Prism::Render::TextureFormat::R32_Float,
+        Prism::Render::TextureFormat::D32_Float,
+    },
+    {
+        Prism::Render::TextureFormat::D16_UNorm,
+        Prism::Render::TextureFormat::R16_UNorm,
+        Prism::Render::TextureFormat::D16_UNorm,
+    },
+    {
+        Prism::Render::TextureFormat::D24_UNorm_S8_UInt,
+        Prism::Render::TextureFormat::R24_UNorm_X8_Typeless,
+        Prism::Render::TextureFormat::D24_UNorm_S8_UInt,
+    },
+};
+
+Prism::Render::TextureFormat Prism::Render::Vulkan::GetVkCompatibleViewFormat(const TextureFormat imageFormat,
+                                                                              const TextureFormat viewFormat)
+{
+	for (const auto& alias : aliases)
+	{
+		if (alias.imageFormat == imageFormat && alias.requestedViewFormat == viewFormat)
+		{
+			return alias.actualViewFormat;
+		}
+	}
+	return viewFormat;
+}

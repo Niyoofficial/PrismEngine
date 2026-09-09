@@ -16,6 +16,8 @@ Prism::Render::Vulkan::VulkanTextureView::VulkanTextureView(TextureViewDesc desc
 		m_viewDesc.format = texture->GetTextureDesc().format;
 	}
 
+	m_viewDesc.format = GetVkCompatibleViewFormat(texture->GetTextureDesc().format, m_viewDesc.format);
+
 	if (m_viewDesc.type == TextureViewType::Unknown)
 	{
 		constexpr Flags<BindFlags> textureViewPossibleFlags = Flags(BindFlags::ShaderResource) |
@@ -66,7 +68,7 @@ Prism::Render::Vulkan::VulkanTextureView::VulkanTextureView(TextureViewDesc desc
 	        .a = VK_COMPONENT_SWIZZLE_IDENTITY,
 	    },
 	    .subresourceRange{
-	        .aspectMask = GetVkImageAspectFlags(m_viewDesc.format),
+	        .aspectMask = GetVkImageAspectFlags(texture->GetTextureDesc().format),
 	        .baseMipLevel = static_cast<uint32_t>(m_viewDesc.subresourceRange.firstMipLevel),
 	        .levelCount = static_cast<uint32_t>(m_viewDesc.subresourceRange.numMipLevels),
 	        .baseArrayLayer = static_cast<uint32_t>(m_viewDesc.subresourceRange.firstArraySlice),

@@ -67,4 +67,6 @@ VkAccessFlags GetVkAccessFlags(Flags<BarrierAccess> access);
 VkPipelineStageFlags GetVkPipelineStageFlags(Flags<BarrierSync> sync);
 
 VkFormat GetVkFormat(SpvReflectFormat format);
+
+TextureFormat GetVkCompatibleViewFormat(TextureFormat imageFormat, TextureFormat viewFormat);
 } // namespace Prism::Render::Vulkan
