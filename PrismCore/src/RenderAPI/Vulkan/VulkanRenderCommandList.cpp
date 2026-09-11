@@ -668,7 +668,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(Pipeline
 	const VkPipelineBindPoint bindPoint =
 	    type == PipelineStateType::Graphics ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE;
 
-	VkDescriptorSet bindlessSet = device.GetBindlessManager().GetSet();
+	const VkDescriptorSet bindlessSet = device.GetBindlessManager()->GetSet();
 	vkCmdBindDescriptorSets(m_commandBuffer, bindPoint, pipelineLayout, 0, 1, &bindlessSet, 0, nullptr);
 
 	std::array<uint8_t, 128> pushConstantData{};

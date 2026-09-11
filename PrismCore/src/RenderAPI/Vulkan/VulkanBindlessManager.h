@@ -19,8 +19,8 @@ public:
 
 	static constexpr uint32_t MaxBindlessDescriptors = 4096;
 
-	void Initialize(VkDevice device);
-	void Shutdown(VkDevice device);
+	VulkanBindlessManager();
+	~VulkanBindlessManager();
 
 	[[nodiscard]] VkDescriptorSetLayout GetLayout() const { return m_layout; }
 
@@ -45,6 +45,9 @@ public:
 	void WriteLegacyBuffer(VkDevice device, uint32_t index, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range);
 
 private:
+	void CreateSamplers(VkDevice device, VkPhysicalDevice physicalDevice);
+	void DestroySamplers(VkDevice device);
+
 	struct FreeList
 	{
 		std::vector<uint32_t> freeIndices;
@@ -55,6 +58,8 @@ private:
 	VkDescriptorSetLayout m_layout{};
 	VkDescriptorPool m_pool{};
 	VkDescriptorSet m_set{};
+
+	std::array<VkSampler, SamplerCount> m_samplers{};
 
 	FreeList m_resourceFreeList;
 };

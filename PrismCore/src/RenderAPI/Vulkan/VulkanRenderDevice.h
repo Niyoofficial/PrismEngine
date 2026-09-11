@@ -68,7 +68,7 @@ public:
 
 	[[nodiscard]] VulkanRenderCommandQueue* GetVulkanRenderCommandQueue() const { return m_commandQueue.get(); }
 
-	[[nodiscard]] VulkanBindlessManager& GetBindlessManager() { return m_bindlessManager; }
+	[[nodiscard]] VulkanBindlessManager* GetBindlessManager() const { return m_bindlessManager.get(); }
 
 protected:
 	void BeginRenderFrame() override;
@@ -105,6 +105,8 @@ private:
 
 	void CreatePipelineCache();
 
+	void CreateBindlessManager();
+
 	VkInstance m_instance = VK_NULL_HANDLE;
 	VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 	VkDevice m_device = VK_NULL_HANDLE;
@@ -116,7 +118,7 @@ private:
 	std::unique_ptr<VulkanDescriptorSetLayoutCache> m_descriptorSetLayoutCache;
 	std::unique_ptr<VulkanPipelineLayoutCache> m_pipelineLayoutCache;
 	std::unique_ptr<VulkanPipelineCache> m_pipelineCache;
-	VulkanBindlessManager m_bindlessManager;
+	std::unique_ptr<VulkanBindlessManager> m_bindlessManager;
 
 	bool m_initializedImGui = false;
 };

@@ -63,8 +63,6 @@ Prism::Render::Vulkan::VulkanRenderDevice::VulkanRenderDevice(const RenderDevice
 
 	CreateAllocator();
 
-	m_bindlessManager.Initialize(m_device);
-
 	InitDeviceSubsystems();
 
 	CreateDescriptorSetLayoutCache();
@@ -72,13 +70,13 @@ Prism::Render::Vulkan::VulkanRenderDevice::VulkanRenderDevice(const RenderDevice
 	CreatePipelineLayoutCache();
 
 	CreatePipelineCache();
+
+	CreateBindlessManager();
 }
 
 Prism::Render::Vulkan::VulkanRenderDevice::~VulkanRenderDevice()
 {
 	m_commandQueue.reset();
-
-	m_bindlessManager.Shutdown(m_device);
 
 	if (m_allocator)
 	{
@@ -623,4 +621,9 @@ void Prism::Render::Vulkan::VulkanRenderDevice::CreatePipelineLayoutCache()
 void Prism::Render::Vulkan::VulkanRenderDevice::CreatePipelineCache()
 {
 	m_pipelineCache = std::make_unique<VulkanPipelineCache>();
+}
+
+void Prism::Render::Vulkan::VulkanRenderDevice::CreateBindlessManager()
+{
+	m_bindlessManager = std::make_unique<VulkanBindlessManager>();
 }

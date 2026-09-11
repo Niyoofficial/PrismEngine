@@ -33,7 +33,7 @@ Prism::Render::Vulkan::VulkanBufferView::~VulkanBufferView()
 {
 	if (m_bindlessIndex != UINT32_MAX)
 	{
-		VulkanRenderDevice::Get().GetBindlessManager().FreeResource(m_bindlessIndex);
+		VulkanRenderDevice::Get().GetBindlessManager()->FreeResource(m_bindlessIndex);
 	}
 }
 
@@ -44,18 +44,18 @@ uint32_t Prism::Render::Vulkan::VulkanBufferView::GetBindlessIndex()
 		return m_bindlessIndex;
 	}
 
-	auto& device = VulkanRenderDevice::Get();
-	auto& bindless = device.GetBindlessManager();
+	const auto& device = VulkanRenderDevice::Get();
+	auto* bindless = device.GetBindlessManager();
 
-	m_bindlessIndex = bindless.AllocateResource();
+	m_bindlessIndex = bindless->AllocateResource();
 	switch (m_descriptorType)
 	{
 	case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-		bindless.WriteUniformBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer,
+		bindless->WriteUniformBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer,
 		                            m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
 		break;
 	case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-		bindless.WriteStorageBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer,
+		bindless->WriteStorageBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer,
 		                            m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
 		break;
 	default:

@@ -28,7 +28,7 @@ VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePi
 
 	std::vector<VkDescriptorSetLayout> setLayouts;
 
-	setLayouts.push_back(VulkanRenderDevice::Get().GetBindlessManager().GetLayout());
+	setLayouts.push_back(VulkanRenderDevice::Get().GetBindlessManager()->GetLayout());
 
 	uint32_t maxSet = 0;
 

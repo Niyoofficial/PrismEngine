@@ -1,7 +1,9 @@
 #include "VulkanBindlessManager.h"
 
 #include <array>
+
 #include "Prism/Base/Assert.h"
+#include "VulkanRenderDevice.h"
 
 namespace
 {
@@ -13,8 +15,10 @@ constexpr std::array MutableResourceTypes = {
 };
 } // namespace
 
-void Prism::Render::Vulkan::VulkanBindlessManager::Initialize(VkDevice device)
+Prism::Render::Vulkan::VulkanBindlessManager::VulkanBindlessManager()
 {
+	const auto device = VulkanRenderDevice::Get().GetDevice();
+
 	std::array<VkDescriptorSetLayoutBinding, 10> bindings{};
 
 	for (uint32_t i = 0; i < SamplerCount; ++i)
@@ -146,10 +150,207 @@ void Prism::Render::Vulkan::VulkanBindlessManager::Initialize(VkDevice device)
 	};
 
 	PE_ASSERT(vkAllocateDescriptorSets(device, &allocateInfo, &m_set) == VK_SUCCESS);
+
+	CreateSamplers(device, VulkanRenderDevice::Get().GetPhysicalDevice());
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::Shutdown(VkDevice device)
+void Prism::Render::Vulkan::VulkanBindlessManager::CreateSamplers(VkDevice device, VkPhysicalDevice physicalDevice)
 {
+	VkPhysicalDeviceProperties properties{};
+	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
+	const float maxAnisotropy = std::min(8.0f, properties.limits.maxSamplerAnisotropy);
+
+	// 0 - s_pointWrap
+	{
+		constexpr VkSamplerCreateInfo info{
+		    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		    .magFilter = VK_FILTER_NEAREST,
+		    .minFilter = VK_FILTER_NEAREST,
+		    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+		    .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		    .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		    .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		    .mipLodBias = 0.0f,
+		    .anisotropyEnable = VK_FALSE,
+		    .maxAnisotropy = 1.0f,
+		    .compareEnable = VK_FALSE,
+		    .compareOp = VK_COMPARE_OP_ALWAYS,
+		    .minLod = 0.0f,
+		    .maxLod = VK_LOD_CLAMP_NONE,
+		    .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+		    .unnormalizedCoordinates = VK_FALSE,
+		};
+
+		PE_ASSERT(vkCreateSampler(device, &info, nullptr, &m_samplers[0]) == VK_SUCCESS);
+	}
+
+	// 1 - s_pointClamp
+	{
+		constexpr VkSamplerCreateInfo info{
+		    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		    .magFilter = VK_FILTER_NEAREST,
+		    .minFilter = VK_FILTER_NEAREST,
+		    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+		    .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		    .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		    .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		    .mipLodBias = 0.0f,
+		    .anisotropyEnable = VK_FALSE,
+		    .maxAnisotropy = 1.0f,
+		    .compareEnable = VK_FALSE,
+		    .compareOp = VK_COMPARE_OP_ALWAYS,
+		    .minLod = 0.0f,
+		    .maxLod = VK_LOD_CLAMP_NONE,
+		    .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+		    .unnormalizedCoordinates = VK_FALSE,
+		};
+
+		PE_ASSERT(vkCreateSampler(device, &info, nullptr, &m_samplers[1]) == VK_SUCCESS);
+	}
+
+	// 2 - s_linearWrap
+	{
+		constexpr VkSamplerCreateInfo info{
+		    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		    .magFilter = VK_FILTER_LINEAR,
+		    .minFilter = VK_FILTER_LINEAR,
+		    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		    .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		    .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		    .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		    .mipLodBias = 0.0f,
+		    .anisotropyEnable = VK_FALSE,
+		    .maxAnisotropy = 1.0f,
+		    .compareEnable = VK_FALSE,
+		    .compareOp = VK_COMPARE_OP_ALWAYS,
+		    .minLod = 0.0f,
+		    .maxLod = VK_LOD_CLAMP_NONE,
+		    .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+		    .unnormalizedCoordinates = VK_FALSE,
+		};
+
+		PE_ASSERT(vkCreateSampler(device, &info, nullptr, &m_samplers[2]) == VK_SUCCESS);
+	}
+
+	// 3 - s_linearClamp
+	{
+		constexpr VkSamplerCreateInfo info{
+		    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		    .magFilter = VK_FILTER_LINEAR,
+		    .minFilter = VK_FILTER_LINEAR,
+		    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		    .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		    .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		    .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		    .mipLodBias = 0.0f,
+		    .anisotropyEnable = VK_FALSE,
+		    .maxAnisotropy = 1.0f,
+		    .compareEnable = VK_FALSE,
+		    .compareOp = VK_COMPARE_OP_ALWAYS,
+		    .minLod = 0.0f,
+		    .maxLod = VK_LOD_CLAMP_NONE,
+		    .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+		    .unnormalizedCoordinates = VK_FALSE,
+		};
+
+		PE_ASSERT(vkCreateSampler(device, &info, nullptr, &m_samplers[3]) == VK_SUCCESS);
+	}
+
+	// 4 - s_anisotropicWrap
+	{
+		const VkSamplerCreateInfo info{
+		    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		    .magFilter = VK_FILTER_LINEAR,
+		    .minFilter = VK_FILTER_LINEAR,
+		    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		    .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		    .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		    .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		    .mipLodBias = 0.0f,
+		    .anisotropyEnable = VK_TRUE,
+		    .maxAnisotropy = maxAnisotropy,
+		    .compareEnable = VK_FALSE,
+		    .compareOp = VK_COMPARE_OP_ALWAYS,
+		    .minLod = 0.0f,
+		    .maxLod = VK_LOD_CLAMP_NONE,
+		    .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+		    .unnormalizedCoordinates = VK_FALSE,
+		};
+
+		PE_ASSERT(vkCreateSampler(device, &info, nullptr, &m_samplers[4]) == VK_SUCCESS);
+	}
+
+	// 5 - s_anisotropicClamp
+	{
+		const VkSamplerCreateInfo info{
+		    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		    .magFilter = VK_FILTER_LINEAR,
+		    .minFilter = VK_FILTER_LINEAR,
+		    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		    .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		    .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		    .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+		    .mipLodBias = 0.0f,
+		    .anisotropyEnable = VK_TRUE,
+		    .maxAnisotropy = maxAnisotropy,
+		    .compareEnable = VK_FALSE,
+		    .compareOp = VK_COMPARE_OP_ALWAYS,
+		    .minLod = 0.0f,
+		    .maxLod = VK_LOD_CLAMP_NONE,
+		    .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+		    .unnormalizedCoordinates = VK_FALSE,
+		};
+
+		PE_ASSERT(vkCreateSampler(device, &info, nullptr, &m_samplers[5]) == VK_SUCCESS);
+	}
+
+	// 6 - s_shadow
+	{
+		constexpr VkSamplerCreateInfo info{
+		    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		    .magFilter = VK_FILTER_LINEAR,
+		    .minFilter = VK_FILTER_LINEAR,
+		    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST,
+		    .addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+		    .addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+		    .addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+		    .mipLodBias = 0.0f,
+		    .anisotropyEnable = VK_FALSE,
+		    .maxAnisotropy = 1.0f,
+		    .compareEnable = VK_TRUE,
+		    .compareOp = VK_COMPARE_OP_LESS_OR_EQUAL,
+		    .minLod = 0.0f,
+		    .maxLod = VK_LOD_CLAMP_NONE,
+		    .borderColor = VK_BORDER_COLOR_FLOAT_OPAQUE_BLACK,
+		    .unnormalizedCoordinates = VK_FALSE,
+		};
+
+		PE_ASSERT(vkCreateSampler(device, &info, nullptr, &m_samplers[6]) == VK_SUCCESS);
+	}
+
+	for (uint32_t i = 0; i < SamplerCount; ++i)
+	{
+		WriteSampler(device, i, m_samplers[i]);
+	}
+}
+
+void Prism::Render::Vulkan::VulkanBindlessManager::DestroySamplers(VkDevice device)
+{
+	for (VkSampler& sampler : m_samplers)
+	{
+		if (sampler != VK_NULL_HANDLE)
+		{
+			vkDestroySampler(device, sampler, nullptr);
+			sampler = VK_NULL_HANDLE;
+		}
+	}
+}
+
+Prism::Render::Vulkan::VulkanBindlessManager::~VulkanBindlessManager()
+{
+	const auto device = VulkanRenderDevice::Get().GetDevice();
+
 	if (m_pool)
 	{
 		vkDestroyDescriptorPool(device, m_pool, nullptr);
