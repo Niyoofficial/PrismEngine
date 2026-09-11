@@ -68,7 +68,7 @@ Prism::Render::Vulkan::VulkanTextureView::VulkanTextureView(TextureViewDesc desc
 	        .a = VK_COMPONENT_SWIZZLE_IDENTITY,
 	    },
 	    .subresourceRange{
-	        .aspectMask = GetVkImageAspectFlags(texture->GetTextureDesc().format),
+	        .aspectMask = GetVkImageAspectFlags(m_viewDesc.format),
 	        .baseMipLevel = static_cast<uint32_t>(m_viewDesc.subresourceRange.firstMipLevel),
 	        .levelCount = static_cast<uint32_t>(m_viewDesc.subresourceRange.numMipLevels),
 	        .baseArrayLayer = static_cast<uint32_t>(m_viewDesc.subresourceRange.firstArraySlice),
@@ -103,7 +103,18 @@ uint32_t Prism::Render::Vulkan::VulkanTextureView::GetBindlessIndex()
 	auto& bindless = device.GetBindlessManager();
 
 	m_bindlessIndex = bindless.AllocateResource();
-	bindless.WriteSampledImage(device.GetDevice(), m_bindlessIndex, m_vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	switch (m_viewDesc.type)
+	{
+	case TextureViewType::SRV:
+		bindless.WriteSampledImage(device.GetDevice(), m_bindlessIndex, m_vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		break;
+	case TextureViewType::UAV:
+		bindless.WriteStorageImage(device.GetDevice(), m_bindlessIndex, m_vkImageView, VK_IMAGE_LAYOUT_GENERAL);
+		break;
+	default:
+		PE_ASSERT(false, "Unsupported Vulkan texture view type");
+		break;
+	}
 
 	return m_bindlessIndex;
 }

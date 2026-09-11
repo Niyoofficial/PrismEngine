@@ -48,8 +48,20 @@ uint32_t Prism::Render::Vulkan::VulkanBufferView::GetBindlessIndex()
 	auto& bindless = device.GetBindlessManager();
 
 	m_bindlessIndex = bindless.AllocateResource();
-	bindless.WriteStorageBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer, m_descriptorBufferInfo.offset,
-	                            m_descriptorBufferInfo.range);
+	switch (m_descriptorType)
+	{
+	case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
+		bindless.WriteUniformBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer,
+		                            m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
+		break;
+	case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
+		bindless.WriteStorageBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer,
+		                            m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
+		break;
+	default:
+		PE_ASSERT(false, "Invalid Vulkan buffer descriptor type");
+		break;
+	}
 
 	return m_bindlessIndex;
 }
