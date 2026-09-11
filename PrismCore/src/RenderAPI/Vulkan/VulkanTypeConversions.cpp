@@ -305,6 +305,7 @@ VkBufferUsageFlags Prism::Render::Vulkan::GetVkBufferUsageFlags(Flags<BindFlags>
 	if (flags.HasAnyFlags(BindFlags::UniformBuffer))
 	{
 		bufferUsageFlags |= VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT;
+		bufferUsageFlags |= VK_BUFFER_USAGE_STORAGE_BUFFER_BIT;
 	}
 
 	if (flags.HasAnyFlags(BindFlags::ShaderResource))
