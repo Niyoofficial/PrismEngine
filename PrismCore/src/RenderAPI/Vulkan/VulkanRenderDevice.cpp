@@ -438,8 +438,19 @@ bool Prism::Render::Vulkan::VulkanRenderDevice::IsPhysicalDeviceSuitable(const V
 		return false;
 	}
 
+	VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableDescriptorType{
+	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,
+	    .pNext = nullptr,
+	};
+
+	VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexing{
+	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+	    .pNext = &mutableDescriptorType,
+	};
+
 	VkPhysicalDeviceVulkan13Features features13{
 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+	    .pNext = &descriptorIndexing,
 	};
 
 	VkPhysicalDeviceFeatures2 features{
@@ -449,7 +460,22 @@ bool Prism::Render::Vulkan::VulkanRenderDevice::IsPhysicalDeviceSuitable(const V
 
 	vkGetPhysicalDeviceFeatures2(physicalDevice, &features);
 
-	return features13.dynamicRendering && features13.synchronization2;
+	return features13.dynamicRendering && features13.synchronization2 && mutableDescriptorType.mutableDescriptorType &&
+	    descriptorIndexing.shaderUniformBufferArrayNonUniformIndexing &&
+	    descriptorIndexing.shaderSampledImageArrayNonUniformIndexing &&
+	    descriptorIndexing.shaderStorageBufferArrayNonUniformIndexing &&
+	    descriptorIndexing.shaderStorageImageArrayNonUniformIndexing &&
+	    descriptorIndexing.descriptorBindingUniformBufferUpdateAfterBind &&
+	    descriptorIndexing.descriptorBindingSampledImageUpdateAfterBind &&
+	    descriptorIndexing.descriptorBindingStorageImageUpdateAfterBind &&
+	    descriptorIndexing.descriptorBindingStorageBufferUpdateAfterBind && descriptorIndexing.descriptorBindingPartiallyBound &&
+	    descriptorIndexing.runtimeDescriptorArray && [&]
+	{
+		VkPhysicalDeviceFeatures coreFeatures{};
+		vkGetPhysicalDeviceFeatures(physicalDevice, &coreFeatures);
+
+		return coreFeatures.samplerAnisotropy;
+	}();
 }
 
 void Prism::Render::Vulkan::VulkanRenderDevice::PickPhysicalDevice()
@@ -523,6 +549,10 @@ void Prism::Render::Vulkan::VulkanRenderDevice::CreateLogicalDevice()
 	VkPhysicalDeviceFeatures2 features2{
 	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
 	    .pNext = &features13,
+	    .features =
+	        {
+	            .samplerAnisotropy = VK_TRUE,
+	        },
 	};
 
 	VkDeviceCreateInfo createInfo{
