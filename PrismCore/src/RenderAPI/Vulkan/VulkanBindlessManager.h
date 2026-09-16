@@ -6,7 +6,6 @@
 
 namespace Prism::Render::Vulkan
 {
-
 class VulkanBindlessManager
 {
 public:
@@ -18,6 +17,10 @@ public:
 	static constexpr uint32_t LegacyBufferHeapBinding = 9;
 
 	static constexpr uint32_t MaxBindlessDescriptors = 4096;
+
+	static constexpr VkDeviceSize ResourcesSize = 256;
+
+	static constexpr uint32_t ResourcesRingCapacity = 16384;
 
 	VulkanBindlessManager();
 	~VulkanBindlessManager();
@@ -44,9 +47,28 @@ public:
 
 	void WriteLegacyBuffer(VkDevice device, uint32_t index, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range);
 
+	struct ResourcesAllocation
+	{
+		VkDeviceSize offset = 0;
+		uint32_t* data = nullptr;
+	};
+
+	ResourcesAllocation AllocateResources();
+
+	[[nodiscard]] VkBuffer GetResourcesBuffer() const { return m_resourcesBuffer; }
+
+	void ResetResourcesAllocator();
+
 private:
 	void CreateSamplers(VkDevice device, VkPhysicalDevice physicalDevice);
+
 	void DestroySamplers(VkDevice device);
+
+	void CreateResourcesBuffer(VkDevice device, VkPhysicalDevice physicalDevice);
+
+	void DestroyResourcesBuffer(VkDevice device);
+
+	VkDeviceSize AlignResourcesOffset(VkDeviceSize offset) const;
 
 	struct FreeList
 	{
@@ -62,6 +84,16 @@ private:
 	std::array<VkSampler, SamplerCount> m_samplers{};
 
 	FreeList m_resourceFreeList;
+
+	VkBuffer m_resourcesBuffer{};
+	VkDeviceMemory m_resourcesMemory{};
+	void* m_resourcesMapped = nullptr;
+
+	VkDeviceSize m_resourcesStride = 0;
+	VkDeviceSize m_resourcesBufferSize = 0;
+	VkDeviceSize m_resourcesAlignment = 1;
+
+	std::atomic<uint32_t> m_resourcesCursor = 0;
 };
 
 } // namespace Prism::Render::Vulkan

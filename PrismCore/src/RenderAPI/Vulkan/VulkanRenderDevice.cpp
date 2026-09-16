@@ -268,6 +268,8 @@ void Prism::Render::Vulkan::VulkanRenderDevice::BeginRenderFrame()
 		// implement proper swapchain image acquisition and synchronization
 		GetVulkanRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
 
+		GetBindlessManager()->ResetResourcesAllocator();
+
 		const VkResult result = swapchain->AcquireNextImage();
 
 		PE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);

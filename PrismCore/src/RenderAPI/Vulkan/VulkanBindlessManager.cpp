@@ -7,6 +7,22 @@
 
 namespace
 {
+uint32_t FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
+{
+	VkPhysicalDeviceMemoryProperties memoryProperties{};
+	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
+
+	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
+	{
+		if (typeFilter & 1u << i && (memoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
+		{
+			return i;
+		}
+	}
+
+	return UINT32_MAX;
+}
+
 constexpr std::array MutableResourceTypes = {
     VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,
     VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,
@@ -34,11 +50,13 @@ Prism::Render::Vulkan::VulkanBindlessManager::VulkanBindlessManager()
 
 	bindings[ResourcesBinding] = {
 	    .binding = ResourcesBinding,
-	    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 	    .descriptorCount = 1,
 	    .stageFlags = VK_SHADER_STAGE_ALL,
 	    .pImmutableSamplers = nullptr,
 	};
+
+	// ResourceDescriptorHeap[]
 	bindings[ResourceHeapBinding] = {
 	    .binding = ResourceHeapBinding,
 	    .descriptorType = VK_DESCRIPTOR_TYPE_MUTABLE_EXT,
@@ -47,6 +65,7 @@ Prism::Render::Vulkan::VulkanBindlessManager::VulkanBindlessManager()
 	    .pImmutableSamplers = nullptr,
 	};
 
+	// g_bindlessBuffers[]
 	bindings[LegacyBufferHeapBinding] = {
 	    .binding = LegacyBufferHeapBinding,
 	    .descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER,
@@ -71,10 +90,8 @@ Prism::Render::Vulkan::VulkanBindlessManager::VulkanBindlessManager()
 
 	std::array<VkDescriptorBindingFlags, 10> bindingFlags{};
 
-	bindingFlags[ResourceHeapBinding] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-
-	bindingFlags[LegacyBufferHeapBinding] =
-	    VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+	bindingFlags[ResourceHeapBinding] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+	bindingFlags[LegacyBufferHeapBinding] = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
 
 	const VkDescriptorSetLayoutBindingFlagsCreateInfo bindingFlagsInfo{
 	    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO,
@@ -86,7 +103,7 @@ Prism::Render::Vulkan::VulkanBindlessManager::VulkanBindlessManager()
 	VkDescriptorSetLayoutCreateInfo layoutInfo{
 	    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
 	    .pNext = &bindingFlagsInfo,
-	    .flags = VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT,
+	    .flags = 0,
 	    .bindingCount = static_cast<uint32_t>(bindings.size()),
 	    .pBindings = bindings.data(),
 	};
@@ -99,7 +116,7 @@ Prism::Render::Vulkan::VulkanBindlessManager::VulkanBindlessManager()
 	        .descriptorCount = SamplerCount,
 	    },
 	    VkDescriptorPoolSize{
-	        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	        .type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 	        .descriptorCount = 1,
 	    },
 	    VkDescriptorPoolSize{
@@ -120,8 +137,9 @@ Prism::Render::Vulkan::VulkanBindlessManager::VulkanBindlessManager()
 	std::array<VkMutableDescriptorTypeListEXT, 4> poolMutableLists{};
 
 	// [0] = SAMPLER
-	// [1] = UBO
+	// [1] = UNIFORM_BUFFER_DYNAMIC
 	// [2] = MUTABLE
+	// [3] = STORAGE_BUFFER
 	poolMutableLists[2] = poolMutableList;
 
 	VkMutableDescriptorTypeCreateInfoEXT poolMutableInfo{
@@ -134,7 +152,7 @@ Prism::Render::Vulkan::VulkanBindlessManager::VulkanBindlessManager()
 	VkDescriptorPoolCreateInfo poolInfo{
 	    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
 	    .pNext = &poolMutableInfo,
-	    .flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT,
+	    .flags = 0,
 	    .maxSets = 1,
 	    .poolSizeCount = static_cast<uint32_t>(poolSizes.size()),
 	    .pPoolSizes = poolSizes.data(),
@@ -151,7 +169,37 @@ Prism::Render::Vulkan::VulkanBindlessManager::VulkanBindlessManager()
 
 	PE_ASSERT(vkAllocateDescriptorSets(device, &allocateInfo, &m_set) == VK_SUCCESS);
 
-	CreateSamplers(device, VulkanRenderDevice::Get().GetPhysicalDevice());
+	const auto physicalDevice = VulkanRenderDevice::Get().GetPhysicalDevice();
+
+	CreateResourcesBuffer(device, physicalDevice);
+
+	WriteResourcesBuffer(device, m_resourcesBuffer, 0, ResourcesSize);
+
+	CreateSamplers(device, physicalDevice);
+}
+
+Prism::Render::Vulkan::VulkanBindlessManager::ResourcesAllocation
+Prism::Render::Vulkan::VulkanBindlessManager::AllocateResources()
+{
+	const uint32_t index = m_resourcesCursor.fetch_add(1, std::memory_order_relaxed);
+
+	PE_ASSERT(index < ResourcesRingCapacity, "Resources buffer exhausted");
+
+	const VkDeviceSize offset = static_cast<VkDeviceSize>(index) * m_resourcesStride;
+
+	auto* data = reinterpret_cast<uint32_t*>(static_cast<uint8_t*>(m_resourcesMapped) + offset);
+
+	std::memset(data, 0, ResourcesSize);
+
+	return {
+	    .offset = offset,
+	    .data = data,
+	};
+}
+
+void Prism::Render::Vulkan::VulkanBindlessManager::ResetResourcesAllocator()
+{
+	m_resourcesCursor.store(0, std::memory_order_relaxed);
 }
 
 void Prism::Render::Vulkan::VulkanBindlessManager::CreateSamplers(VkDevice device, VkPhysicalDevice physicalDevice)
@@ -347,9 +395,95 @@ void Prism::Render::Vulkan::VulkanBindlessManager::DestroySamplers(VkDevice devi
 	}
 }
 
+void Prism::Render::Vulkan::VulkanBindlessManager::CreateResourcesBuffer(VkDevice device, VkPhysicalDevice physicalDevice)
+{
+	VkPhysicalDeviceProperties properties{};
+	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+
+	m_resourcesAlignment = std::max<VkDeviceSize>(1, properties.limits.minUniformBufferOffsetAlignment);
+
+	m_resourcesStride = AlignResourcesOffset(ResourcesSize);
+
+	m_resourcesBufferSize = m_resourcesStride * ResourcesRingCapacity;
+
+	const VkBufferCreateInfo bufferInfo{
+	    .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+	    .pNext = nullptr,
+	    .flags = 0,
+	    .size = m_resourcesBufferSize,
+	    .usage = VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+	    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+	    .queueFamilyIndexCount = 0,
+	    .pQueueFamilyIndices = nullptr,
+	};
+
+	PE_ASSERT(vkCreateBuffer(device, &bufferInfo, nullptr, &m_resourcesBuffer) == VK_SUCCESS);
+
+	VkMemoryRequirements memoryRequirements{};
+	vkGetBufferMemoryRequirements(device, m_resourcesBuffer, &memoryRequirements);
+
+	const uint32_t memoryType = FindMemoryType(physicalDevice, memoryRequirements.memoryTypeBits,
+	                                           VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+
+	PE_ASSERT(memoryType != UINT32_MAX, "Failed to find host visible memory for Resources buffer");
+
+	VkMemoryAllocateInfo allocationInfo{
+	    .sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
+	    .pNext = nullptr,
+	    .allocationSize = memoryRequirements.size,
+	    .memoryTypeIndex = memoryType,
+	};
+
+	PE_ASSERT(vkAllocateMemory(device, &allocationInfo, nullptr, &m_resourcesMemory) == VK_SUCCESS);
+
+	PE_ASSERT(vkBindBufferMemory(device, m_resourcesBuffer, m_resourcesMemory, 0) == VK_SUCCESS);
+
+	PE_ASSERT(vkMapMemory(device, m_resourcesMemory, 0, m_resourcesBufferSize, 0, &m_resourcesMapped) == VK_SUCCESS);
+
+	std::memset(m_resourcesMapped, 0, m_resourcesBufferSize);
+
+	m_resourcesCursor.store(0);
+}
+
+void Prism::Render::Vulkan::VulkanBindlessManager::DestroyResourcesBuffer(VkDevice device)
+{
+	if (m_resourcesMapped)
+	{
+		vkUnmapMemory(device, m_resourcesMemory);
+
+		m_resourcesMapped = nullptr;
+	}
+
+	if (m_resourcesBuffer)
+	{
+		vkDestroyBuffer(device, m_resourcesBuffer, nullptr);
+
+		m_resourcesBuffer = VK_NULL_HANDLE;
+	}
+
+	if (m_resourcesMemory)
+	{
+		vkFreeMemory(device, m_resourcesMemory, nullptr);
+
+		m_resourcesMemory = VK_NULL_HANDLE;
+	}
+}
+
+VkDeviceSize Prism::Render::Vulkan::VulkanBindlessManager::AlignResourcesOffset(VkDeviceSize offset) const
+{
+	const VkDeviceSize alignment = m_resourcesAlignment;
+
+	PE_ASSERT(alignment != 0);
+
+	return offset + alignment - 1 & ~(alignment - 1);
+}
+
 Prism::Render::Vulkan::VulkanBindlessManager::~VulkanBindlessManager()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
+
+	DestroySamplers(device);
+	DestroyResourcesBuffer(device);
 
 	if (m_pool)
 	{
@@ -449,23 +583,34 @@ void Prism::Render::Vulkan::VulkanBindlessManager::WriteUniformBuffer(VkDevice d
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
 
-	VkDescriptorBufferInfo bufferInfo{
+	const VkDescriptorBufferInfo bufferInfo{
 	    .buffer = buffer,
 	    .offset = offset,
 	    .range = range,
 	};
 
-	const VkWriteDescriptorSet write{
-	    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
-	    .dstSet = m_set,
-	    .dstBinding = ResourceHeapBinding,
-	    .dstArrayElement = index,
-	    .descriptorCount = 1,
-	    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
-	    .pBufferInfo = &bufferInfo,
-	};
+	// ResourceDescriptorHeap[index]
+	{
+		const VkWriteDescriptorSet write{
+		    .sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+		    .pNext = nullptr,
+		    .dstSet = m_set,
+		    .dstBinding = ResourceHeapBinding,
+		    .dstArrayElement = index,
+		    .descriptorCount = 1,
+		    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+		    .pImageInfo = nullptr,
+		    .pBufferInfo = &bufferInfo,
+		    .pTexelBufferView = nullptr,
+		};
 
-	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+	}
+
+	// GET_BINDLESS_CBUFFER(...)
+	{
+		WriteLegacyBuffer(device, index, buffer, offset, range);
+	}
 }
 
 void Prism::Render::Vulkan::VulkanBindlessManager::WriteStorageBuffer(VkDevice device, uint32_t index, VkBuffer buffer,
@@ -507,7 +652,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::WriteResourcesBuffer(VkDevice
 	    .dstBinding = ResourcesBinding,
 	    .dstArrayElement = 0,
 	    .descriptorCount = 1,
-	    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER,
+	    .descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
 	    .pBufferInfo = &bufferInfo,
 	};
 

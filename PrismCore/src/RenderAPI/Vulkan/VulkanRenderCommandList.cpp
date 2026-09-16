@@ -668,72 +668,89 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(Pipeline
 	const VkPipelineBindPoint bindPoint =
 	    type == PipelineStateType::Graphics ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE;
 
-	const VkDescriptorSet bindlessSet = device.GetBindlessManager()->GetSet();
-	vkCmdBindDescriptorSets(m_commandBuffer, bindPoint, pipelineLayout, 0, 1, &bindlessSet, 0, nullptr);
+	auto* bindlessManager = device.GetBindlessManager();
 
-	std::array<uint8_t, 128> pushConstantData{};
-	uint32_t pushConstantOffset = 0;
-	uint32_t pushConstantEnd = 0;
-	bool hasPushConstants = false;
+	const VkDescriptorSet bindlessSet = bindlessManager->GetSet();
+
+	// allocate one Resources slot for this draw/dispatch.
+	const auto resources = bindlessManager->AllocateResources();
+
+	bool foundResources = false;
 
 	for (const auto* reflection : reflections)
 	{
-		for (uint32_t i = 0; i < reflection->GetPushConstantBlockCount(); ++i)
+		for (uint32_t setIndex = 0; setIndex < reflection->GetDescriptorSetCount(); ++setIndex)
 		{
-			const auto& block = reflection->GetPushConstantBlock(i);
+			const auto& descriptorSet = reflection->GetDescriptorSet(setIndex);
 
-			hasPushConstants = true;
-			pushConstantOffset = block.offset;
-			pushConstantEnd = std::max(pushConstantEnd, block.offset + block.size);
-
-			for (uint32_t m = 0; m < block.member_count; ++m)
+			if (descriptorSet.set != 0)
 			{
-				const auto& member = block.members[m];
+				continue;
+			}
 
-				if (!member.name)
+			for (uint32_t bindingIndex = 0; bindingIndex < descriptorSet.binding_count; ++bindingIndex)
+			{
+				const auto* binding = descriptorSet.bindings[bindingIndex];
+
+				if (!binding || !binding->name)
 				{
 					continue;
 				}
 
-				const std::wstring memberName = StringToWString(member.name);
-
-				auto it = m_boundResources.find(memberName);
-				if (it == m_boundResources.end() || it->second.empty())
+				if (std::strcmp(binding->name, "Resources") != 0)
 				{
 					continue;
 				}
 
-				RenderResourceView* resourceView = it->second[0].Raw();
+				foundResources = true;
 
-				uint32_t bindlessIndex = UINT32_MAX;
+				for (uint32_t memberIndex = 0; memberIndex < binding->block.member_count; ++memberIndex)
+				{
+					const auto& member = binding->block.members[memberIndex];
 
-				if (auto* textureView = dynamic_cast<VulkanTextureView*>(resourceView))
-				{
-					bindlessIndex = textureView->GetBindlessIndex();
-				}
-				else if (auto* bufferView = dynamic_cast<VulkanBufferView*>(resourceView))
-				{
-					bindlessIndex = bufferView->GetBindlessIndex();
-				}
+					if (!member.name)
+					{
+						continue;
+					}
 
-				if (bindlessIndex != UINT32_MAX)
-				{
-					PE_ASSERT(member.offset + sizeof(uint32_t) <= pushConstantData.size(), "Resources block too large");
-					std::memcpy(pushConstantData.data() + member.offset, &bindlessIndex, sizeof(uint32_t));
+					const std::wstring memberName = StringToWString(member.name);
+
+					auto it = m_boundResources.find(memberName);
+
+					if (it == m_boundResources.end() || it->second.empty())
+					{
+						continue;
+					}
+
+					RenderResourceView* resourceView = it->second[0].Raw();
+
+					uint32_t bindlessIndex = UINT32_MAX;
+
+					if (auto* textureView = dynamic_cast<VulkanTextureView*>(resourceView))
+					{
+						bindlessIndex = textureView->GetBindlessIndex();
+					}
+					else if (auto* bufferView = dynamic_cast<VulkanBufferView*>(resourceView))
+					{
+						bindlessIndex = bufferView->GetBindlessIndex();
+					}
+
+					PE_ASSERT(bindlessIndex != UINT32_MAX, "Failed to get bindless resource index");
+
+					PE_ASSERT(member.offset + sizeof(uint32_t) <= VulkanBindlessManager::ResourcesSize,
+					          "Resources cbuffer is too large");
+
+					std::memcpy(reinterpret_cast<uint8_t*>(resources.data) + member.offset, &bindlessIndex, sizeof(uint32_t));
 				}
 			}
 		}
 	}
 
-	if (hasPushConstants)
-	{
-		const VkShaderStageFlags stageFlags = type == PipelineStateType::Graphics
-		    ? (VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT)
-		    : VK_SHADER_STAGE_COMPUTE_BIT;
+	PE_ASSERT(foundResources, "Shader does not contain Resources cbuffer");
 
-		vkCmdPushConstants(m_commandBuffer, pipelineLayout, stageFlags, pushConstantOffset, pushConstantEnd - pushConstantOffset,
-		                   pushConstantData.data());
-	}
+	const uint32_t dynamicOffset = static_cast<uint32_t>(resources.offset);
+
+	vkCmdBindDescriptorSets(m_commandBuffer, bindPoint, pipelineLayout, 0, 1, &bindlessSet, 1, &dynamicOffset);
 }
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
