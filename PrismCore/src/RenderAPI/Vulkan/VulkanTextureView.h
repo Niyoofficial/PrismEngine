@@ -20,7 +20,7 @@ public:
 
 	// TODO
 	// bad solution, just for first engine build. should be handled other way
-	VkDescriptorSet GetImGuiDescriptorSet()
+	[[nodiscard]] VkDescriptorSet GetImGuiDescriptorSet()
 	{
 		if (m_imguiDescriptorSet)
 		{
@@ -37,7 +37,9 @@ public:
 		return m_imguiDescriptorSet;
 	}
 
-	[[nodiscard]] uint32_t GetBindlessIndex();
+	[[nodiscard]] uint32_t GetBindlessIndex() const;
+
+	void RegisterBindless();
 
 private:
 	TextureViewDesc m_viewDesc;

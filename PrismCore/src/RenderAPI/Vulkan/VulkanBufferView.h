@@ -17,7 +17,9 @@ public:
 
 	[[nodiscard]] VkDescriptorType GetDescriptorType() const { return m_descriptorType; }
 
-	[[nodiscard]] uint32_t GetBindlessIndex();
+	[[nodiscard]] uint32_t GetBindlessIndex() const;
+
+	void RegisterBindless();
 
 private:
 	BufferViewDesc m_viewDesc;

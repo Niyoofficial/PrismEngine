@@ -37,11 +37,19 @@ Prism::Render::Vulkan::VulkanBufferView::~VulkanBufferView()
 	}
 }
 
-uint32_t Prism::Render::Vulkan::VulkanBufferView::GetBindlessIndex()
+uint32_t Prism::Render::Vulkan::VulkanBufferView::GetBindlessIndex() const
 {
-	if (m_bindlessIndex != UINT32_MAX)
+	PE_ASSERT(m_bindlessIndex != UINT32_MAX, "BufferView was not registered in bindless heap");
+
+	return m_bindlessIndex;
+}
+
+void Prism::Render::Vulkan::VulkanBufferView::RegisterBindless()
+{
+	if (m_viewDesc.type != BufferViewType::CBV && m_viewDesc.type != BufferViewType::SRV &&
+	    m_viewDesc.type != BufferViewType::UAV)
 	{
-		return m_bindlessIndex;
+		return;
 	}
 
 	const auto& device = VulkanRenderDevice::Get();
@@ -52,16 +60,14 @@ uint32_t Prism::Render::Vulkan::VulkanBufferView::GetBindlessIndex()
 	{
 	case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
 		bindless->WriteUniformBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer,
-		                            m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
+		                             m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
 		break;
 	case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
 		bindless->WriteStorageBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer,
-		                            m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
+		                             m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
 		break;
 	default:
-		PE_ASSERT(false, "Invalid Vulkan buffer descriptor type");
+		PE_ASSERT_NO_ENTRY("Unsupported Vulkan texture view type");
 		break;
 	}
-
-	return m_bindlessIndex;
 }

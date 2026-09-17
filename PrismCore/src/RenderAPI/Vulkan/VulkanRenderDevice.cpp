@@ -297,13 +297,21 @@ Prism::Render::RenderCommandQueue* Prism::Render::Vulkan::VulkanRenderDevice::Ge
 Prism::Ref<Prism::Render::BufferView> Prism::Render::Vulkan::VulkanRenderDevice::CreateBufferView_Impl(const BufferViewDesc& desc,
                                                                                                        Buffer* buffer)
 {
-	return Ref<VulkanBufferView>::Create(desc, buffer);
+	auto bufferView = Ref<VulkanBufferView>::Create(desc, buffer);
+
+	bufferView->RegisterBindless();
+
+	return bufferView;
 }
 
 Prism::Ref<Prism::Render::TextureView>
 Prism::Render::Vulkan::VulkanRenderDevice::CreateTextureView_Impl(const TextureViewDesc& desc, Texture* texture)
 {
-	return Ref<VulkanTextureView>::Create(desc, texture);
+	auto textureView = Ref<VulkanTextureView>::Create(desc, texture);
+
+	textureView->RegisterBindless();
+
+	return textureView;
 }
 
 void Prism::Render::Vulkan::VulkanRenderDevice::CreateVulkanInstance(const RenderDeviceParams& params)

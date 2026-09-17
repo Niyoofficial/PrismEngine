@@ -92,29 +92,36 @@ Prism::Render::Vulkan::VulkanTextureView::~VulkanTextureView()
 	}
 }
 
-uint32_t Prism::Render::Vulkan::VulkanTextureView::GetBindlessIndex()
+uint32_t Prism::Render::Vulkan::VulkanTextureView::GetBindlessIndex() const
 {
-	if (m_bindlessIndex != UINT32_MAX)
+	PE_ASSERT(m_bindlessIndex != UINT32_MAX, "TextureView was not registered in bindless heap");
+
+	return m_bindlessIndex;
+}
+
+void Prism::Render::Vulkan::VulkanTextureView::RegisterBindless()
+{
+	if (m_viewDesc.type != TextureViewType::SRV && m_viewDesc.type != TextureViewType::UAV)
 	{
-		return m_bindlessIndex;
+		return;
 	}
 
 	const auto& device = VulkanRenderDevice::Get();
-	auto* bindless = device.GetBindlessManager();
+	auto* bindlessManager = device.GetBindlessManager();
 
-	m_bindlessIndex = bindless->AllocateResource();
+	m_bindlessIndex = bindlessManager->AllocateResource();
+
 	switch (m_viewDesc.type)
 	{
 	case TextureViewType::SRV:
-		bindless->WriteSampledImage(device.GetDevice(), m_bindlessIndex, m_vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		bindlessManager->WriteSampledImage(device.GetDevice(), m_bindlessIndex, m_vkImageView,
+		                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 		break;
 	case TextureViewType::UAV:
-		bindless->WriteStorageImage(device.GetDevice(), m_bindlessIndex, m_vkImageView, VK_IMAGE_LAYOUT_GENERAL);
+		bindlessManager->WriteStorageImage(device.GetDevice(), m_bindlessIndex, m_vkImageView, VK_IMAGE_LAYOUT_GENERAL);
 		break;
 	default:
-		PE_ASSERT(false, "Unsupported Vulkan texture view type");
+		PE_ASSERT_NO_ENTRY("Unsupported Vulkan texture view type");
 		break;
 	}
-
-	return m_bindlessIndex;
 }
