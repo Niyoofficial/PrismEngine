@@ -55,6 +55,7 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		int channels = 0;
 		void* pixels{};
 		size_t bytesPerChannel = 0;
+		TextureFormat format;
 
 		const std::string path = WStringToString(filepath);
 
@@ -62,11 +63,13 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		{
 			pixels = stbi_loadf(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 			bytesPerChannel = sizeof(float);
+			format = TextureFormat::RGBA32_Float;
 		}
 		else
 		{
 			pixels = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
 			bytesPerChannel = 1;
+			format = TextureFormat::RGBA8_UNorm;
 		}
 
 		if (!pixels)
@@ -83,7 +86,7 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		// const auto mipLevels = static_cast<int32_t>(std::floor(std::log2(std::max(width, height))) + 1);
 		constexpr int32_t mipLevels = 1;
 
-		m_originalDesc = TextureDesc::CreateTex2D(filepath, width, height, TextureFormat::RGBA8_UNorm, BindFlags::ShaderResource,
+		m_originalDesc = TextureDesc::CreateTex2D(filepath, width, height, format, BindFlags::ShaderResource,
 		                                          ResourceUsage::Default, mipLevels);
 
 		const VkDeviceSize imageSize = width * height * STBI_rgb_alpha * bytesPerChannel;
