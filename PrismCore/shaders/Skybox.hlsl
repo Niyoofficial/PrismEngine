@@ -1,4 +1,5 @@
 #include "Common.hlsli"
+#include "BindlessResources.hlsli"
 
 cbuffer Resources
 {
@@ -32,7 +33,7 @@ struct PixelInputCube
 
 PixelInputCube vsmain(VertexInput vin)
 {
-	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_sceneBuffer];
+    SceneBuffer sceneBuffer = GET_BINDLESS_CBUFFER(SceneBuffer, g_sceneBuffer);
 
 	PixelInputCube vout;
 	

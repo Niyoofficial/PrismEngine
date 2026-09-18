@@ -1,4 +1,5 @@
 #include "Common.hlsli"
+#include "BindlessResources.hlsli"
 
 cbuffer Resources
 {
@@ -47,8 +48,8 @@ struct PixelInput
 
 PixelInput vsmain(VertexInput vin)
 {
-	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_sceneBuffer];
-	ConstantBuffer<PrimitiveBuffer> primitiveBuffer = ResourceDescriptorHeap[g_primitiveBuffer];
+    SceneBuffer sceneBuffer = GET_BINDLESS_CBUFFER(SceneBuffer, g_sceneBuffer);
+    PrimitiveBuffer primitiveBuffer = GET_BINDLESS_CBUFFER(PrimitiveBuffer, g_primitiveBuffer);
 
 	PixelInput vout;
 	
@@ -74,8 +75,8 @@ struct PixelOutput
 
 PixelOutput psmain(PixelInput pin)
 {
-	ConstantBuffer<PrimitiveBuffer> primitiveBuffer = ResourceDescriptorHeap[g_primitiveBuffer];
-	
+	PrimitiveBuffer primitiveBuffer = GET_BINDLESS_CBUFFER(PrimitiveBuffer, g_primitiveBuffer);
+
 	float3 normal = normalize(pin.normalWorld);
 	float3 tangent = normalize(pin.tangentWorld);
 	float3 bitangent = normalize(pin.bitangentWorld);
