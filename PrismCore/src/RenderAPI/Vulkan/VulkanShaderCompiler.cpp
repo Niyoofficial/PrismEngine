@@ -158,6 +158,7 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 	    L"-spirv",
 	    L"-fspv-target-env=vulkan1.3",
 	    L"-fvk-use-dx-layout",
+		L"-fspv-reflect",
 	    L"-Zi",
 #if PE_BUILD_DEBUG
 	    L"-Od",
