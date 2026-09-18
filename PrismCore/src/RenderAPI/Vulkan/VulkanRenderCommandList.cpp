@@ -786,8 +786,6 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 		return;
 	}
 
-	PE_ASSERT(!m_renderTargetViews.empty(), "BeginDynamicRendering requires at least one render target");
-
 	std::vector<VkRenderingAttachmentInfo> colorAttachments;
 	colorAttachments.reserve(m_renderTargetViews.size());
 
@@ -808,21 +806,41 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 		colorAttachments.push_back(attachment);
 	}
 
-	VkRenderingAttachmentInfo depthAttachment{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-
-	VkRenderingAttachmentInfo stencilAttachment{.sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO};
-
-	// TODO
-	// what to do if we have no render targets? We need to support this for compute shaders that write to UAVs
-	PE_ASSERT(!m_renderTargetViews.empty(), "BeginDynamicRendering requires at least one render target");
-	const auto* firstRTV = dynamic_cast<VulkanTextureView*>(m_renderTargetViews[0].Raw());
-
-	const TextureDesc& textureDesc = dynamic_cast<VulkanTexture*>(firstRTV->GetTexture())->GetTextureDesc();
-
-	const VkExtent2D renderExtent{
-	    .width = static_cast<uint32_t>(textureDesc.GetWidth()),
-	    .height = static_cast<uint32_t>(textureDesc.GetHeight()),
+	VkRenderingAttachmentInfo depthAttachment{
+	    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
 	};
+
+	VkRenderingAttachmentInfo stencilAttachment{
+	    .sType = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO,
+	};
+
+	const VulkanTextureView* extentView = nullptr;
+
+	if (!m_renderTargetViews.empty())
+	{
+		extentView = dynamic_cast<VulkanTextureView*>(m_renderTargetViews[0].Raw());
+		PE_ASSERT(extentView);
+	}
+	else if (m_depthStencilView)
+	{
+		extentView = dynamic_cast<VulkanTextureView*>(m_depthStencilView.Raw());
+		PE_ASSERT(extentView);
+	}
+
+	VkExtent2D renderExtent{};
+
+	if (extentView)
+	{
+		const auto* texture = dynamic_cast<VulkanTexture*>(extentView->GetTexture());
+		PE_ASSERT(texture);
+
+		const TextureDesc& textureDesc = texture->GetTextureDesc();
+
+		renderExtent = {
+		    .width = static_cast<uint32_t>(textureDesc.GetWidth()),
+		    .height = static_cast<uint32_t>(textureDesc.GetHeight()),
+		};
+	}
 
 	VkRenderingInfo renderingInfo{
 	    .sType = VK_STRUCTURE_TYPE_RENDERING_INFO,
@@ -833,7 +851,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 	        },
 	    .layerCount = 1,
 	    .colorAttachmentCount = static_cast<uint32_t>(colorAttachments.size()),
-	    .pColorAttachments = colorAttachments.data(),
+	    .pColorAttachments = colorAttachments.empty() ? nullptr : colorAttachments.data(),
 	};
 
 	if (m_depthStencilView)
