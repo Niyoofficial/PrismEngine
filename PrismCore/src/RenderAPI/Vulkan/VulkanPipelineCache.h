@@ -60,10 +60,8 @@ private:
 	                                             const TextureView* dsv) const;
 	[[nodiscard]] uint64_t HashPipelineStateDesc(const ComputePipelineStateDesc& desc) const;
 
-	/*[[nodiscard]] VertexInputState BuildVertexInputState(const VertexAttributeList& vertexAttributeList,
-	                                                     const VulkanShaderReflection& reflection);*/
-
-	[[nodiscard]] VertexInputState BuildVertexInputState(const VertexAttributeList& vertexAttributeList);
+	[[nodiscard]] VertexInputState BuildVertexInputState(const VertexAttributeList& vertexAttributeList,
+	                                                     const VulkanShaderReflection& reflection);
 
 	[[nodiscard]] VkPipelineInputAssemblyStateCreateInfo BuildInputAssemblyState(const GraphicsPipelineStateDesc& desc);
 
