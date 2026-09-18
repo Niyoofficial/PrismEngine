@@ -20,9 +20,11 @@ constexpr uint32_t applicationVulkanApiVersion = VK_API_VERSION_1_3;
 constexpr std::array<const char*, 1> applicationValidationLayers{
     "VK_LAYER_KHRONOS_validation",
 };
-constexpr std::array<const char*, 2> applicationDeviceExtensions{
+constexpr std::array<const char*, 4> applicationDeviceExtensions{
     VK_KHR_SWAPCHAIN_EXTENSION_NAME,
     VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME,
+	VK_GOOGLE_USER_TYPE_EXTENSION_NAME,
+	VK_GOOGLE_HLSL_FUNCTIONALITY_1_EXTENSION_NAME,
 };
 constexpr int64_t defaultVulkanMemoryAlignment = 256;
 constexpr uint32_t defaultImGuiDescriptorPoolSize = 1000;
