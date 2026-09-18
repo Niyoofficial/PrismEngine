@@ -219,7 +219,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetBuffers(const std::vecto
 
 void Prism::Render::Vulkan::VulkanRenderCommandList::ClearRenderTargetView(const Ref<TextureView>& rtv, glm::float4* clearColor)
 {
-	PE_ASSERT(!m_renderingActive, "ClearRenderTargetView must be called before rendering begins");
+	if (m_renderingActive)
+	{
+		EndDynamicRendering();
+	}
 
 	glm::float4 rtClearColor{0.f, 0.f, 0.f, 0.f};
 	if (clearColor)
@@ -239,7 +242,10 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearRenderTargetView(const
 void Prism::Render::Vulkan::VulkanRenderCommandList::ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags,
                                                                            DepthStencilValue* clearValue)
 {
-	PE_ASSERT(!m_renderingActive, "ClearDepthStencilView must be called before rendering begins");
+	if (m_renderingActive)
+	{
+		EndDynamicRendering();
+	}
 
 	if (!(flags & ClearFlags::ClearDepth) && !(flags & ClearFlags::ClearStencil))
 	{
