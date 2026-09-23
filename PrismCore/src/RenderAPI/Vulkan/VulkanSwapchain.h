@@ -38,7 +38,7 @@ private:
 
 	void AdvanceFrame() { m_frameIndex = (m_frameIndex + 1) % Constants::MAX_FRAMES_IN_FLIGHT; }
 
-	Core::Window* m_window;
+	WeakRef<Core::Window> m_window;
 
 	VkSurfaceKHR m_surface = VK_NULL_HANDLE;
 	VkSwapchainKHR m_swapchain = VK_NULL_HANDLE;

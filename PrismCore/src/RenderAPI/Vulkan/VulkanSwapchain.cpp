@@ -2,6 +2,7 @@
 
 #include <SDL3/SDL_vulkan.h>
 
+#include "Prism/Base/Platform.h"
 #include "Prism/Base/Window.h"
 #include "VulkanRenderCommandQueue.h"
 #include "VulkanRenderDevice.h"
@@ -61,6 +62,8 @@ Prism::Render::Vulkan::VulkanSwapchain::VulkanSwapchain(Core::Window* window, Sw
 	{
 		PE_ASSERT(vkCreateSemaphore(device, &semaphoreInfo, nullptr, &semaphore) == VK_SUCCESS);
 	}
+
+	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::WindowResized>([this](Core::AppEvent event) { Resize(); });
 }
 
 Prism::Render::Vulkan::VulkanSwapchain::~VulkanSwapchain()
@@ -108,20 +111,40 @@ void Prism::Render::Vulkan::VulkanSwapchain::Present()
 
 	const VkResult result = vkQueuePresentKHR(VulkanRenderDevice::Get().GetVulkanRenderCommandQueue()->GetQueue(), &presentInfo);
 
-	PE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
+	PE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR || result == VK_ERROR_OUT_OF_DATE_KHR);
 
 	AdvanceFrame();
 }
 
 void Prism::Render::Vulkan::VulkanSwapchain::Resize()
 {
-	const VkSwapchainKHR oldSwapchain = m_swapchain;
+	const auto& device = VulkanRenderDevice::Get();
 
-	m_swapchain = VK_NULL_HANDLE;
+	device.GetVulkanRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
+
+	DestroyBackbuffers();
+
+	PE_ASSERT(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device.GetPhysicalDevice(), m_surface, &m_surfaceCapabilities) ==
+	          VK_SUCCESS);
+
+	if (m_surfaceCapabilities.currentExtent.width == 0 || m_surfaceCapabilities.currentExtent.height == 0)
+	{
+		return;
+	}
+
+	m_extent = m_surfaceCapabilities.currentExtent;
+
+	const VkSwapchainKHR oldSwapchain = m_swapchain;
 
 	CreateSwapchain(oldSwapchain);
 
-	vkDestroySwapchainKHR(VulkanRenderDevice::Get().GetDevice(), oldSwapchain, nullptr);
+	vkDestroySwapchainKHR(device.GetDevice(), oldSwapchain, nullptr);
+
+	CreateBackbuffers();
+
+	m_backbufferNeedsInitialTransition.assign(m_backbuffers.size(), true);
+
+	m_currentBackBufferIndex = 0;
 }
 
 Prism::Render::TextureView* Prism::Render::Vulkan::VulkanSwapchain::GetBackBufferRTV(const int32_t index) const
