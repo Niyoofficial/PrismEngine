@@ -3,7 +3,12 @@
 	"version": "0.0.1",
 	"dependencies": [
 		"glm",
-		"sdl3",
+		{
+			"name": "sdl3",
+			"features": [
+				"vulkan"
+			]
+		},
 		"assimp",
 		"directx12-agility",
 		"directxtk12",
@@ -19,6 +24,7 @@
 			"features": [
 				"docking-experimental",
 				"dx12-binding",
+				"vulkan-binding",
 				"sdl3-binding",
 				"wchar32"
 			]
@@ -27,7 +33,10 @@
 		"winpixevent",
 		"xxhash",
 		"yaml-cpp",
-		"crossguid"
+		"crossguid",
+		"vulkan-memory-allocator",
+		"spirv-reflect",
+		"spirv-headers"
 	],
 	"overrides": [
 		{

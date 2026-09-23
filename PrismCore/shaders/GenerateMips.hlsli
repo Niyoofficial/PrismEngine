@@ -11,6 +11,8 @@
 // Author:  James Stanard 
 //
 
+#include "BindlessResources.hlsli"
+
 #ifndef NON_POWER_OF_TWO
 #define NON_POWER_OF_TWO 0
 #endif
@@ -84,8 +86,8 @@ float4 PackColor(float4 Linear)
 [numthreads( 8, 8, 1 )]
 void main( uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID )
 {
-    ConstantBuffer<Info> Info = ResourceDescriptorHeap[g_infoBuffer];
-    
+    Info info = GET_BINDLESS_CBUFFER(Info, g_infoBuffer);
+
     RWTexture2D<float4> outMip1 = ResourceDescriptorHeap[g_outMip1];
     RWTexture2D<float4> outMip2 = ResourceDescriptorHeap[g_outMip2];
     RWTexture2D<float4> outMip3 = ResourceDescriptorHeap[g_outMip3];
@@ -99,41 +101,41 @@ void main( uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID )
     // will force this shader to be slower and more complicated as it will
     // have to take more source texture samples.
 #if NON_POWER_OF_TWO == 0
-    float2 UV = Info.texelSize * (DTid.xy + 0.5);
-    float4 Src1 = srcMip.SampleLevel(g_samLinearClamp, UV, Info.srcMipLevel);
+    float2 UV = info.texelSize * (DTid.xy + 0.5);
+    float4 Src1 = srcMip.SampleLevel(g_samLinearClamp, UV, info.srcMipLevel);
 #elif NON_POWER_OF_TWO == 1
     // > 2:1 in X dimension
     // Use 2 bilinear samples to guarantee we don't undersample when downsizing by more than 2x
     // horizontally.
-    float2 UV1 = Info.texelSize * (DTid.xy + float2(0.25, 0.5));
-    float2 Off = Info.texelSize * float2(0.5, 0.0);
-    float4 Src1 = 0.5 * (srcMip.SampleLevel(g_samLinearClamp, UV1, Info.srcMipLevel) +
-        srcMip.SampleLevel(g_samLinearClamp, UV1 + Off, Info.srcMipLevel));
+    float2 UV1 = info.texelSize * (DTid.xy + float2(0.25, 0.5));
+    float2 Off = info.texelSize * float2(0.5, 0.0);
+    float4 Src1 = 0.5 * (srcMip.SampleLevel(g_samLinearClamp, UV1, info.srcMipLevel) +
+        srcMip.SampleLevel(g_samLinearClamp, UV1 + Off, info.srcMipLevel));
 #elif NON_POWER_OF_TWO == 2
     // > 2:1 in Y dimension
     // Use 2 bilinear samples to guarantee we don't undersample when downsizing by more than 2x
     // vertically.
-    float2 UV1 = Info.texelSize * (DTid.xy + float2(0.5, 0.25));
-    float2 Off = Info.texelSize * float2(0.0, 0.5);
-    float4 Src1 = 0.5 * (srcMip.SampleLevel(g_samLinearClamp, UV1, Info.srcMipLevel) +
-        srcMip.SampleLevel(g_samLinearClamp, UV1 + Off, Info.srcMipLevel));
+    float2 UV1 = info.texelSize * (DTid.xy + float2(0.5, 0.25));
+    float2 Off = info.texelSize * float2(0.0, 0.5);
+    float4 Src1 = 0.5 * (srcMip.SampleLevel(g_samLinearClamp, UV1, info.srcMipLevel) +
+        srcMip.SampleLevel(g_samLinearClamp, UV1 + Off, info.srcMipLevel));
 #elif NON_POWER_OF_TWO == 3
     // > 2:1 in in both dimensions
     // Use 4 bilinear samples to guarantee we don't undersample when downsizing by more than 2x
     // in both directions.
-    float2 UV1 = Info.texelSize * (DTid.xy + float2(0.25, 0.25));
-    float2 O = Info.texelSize * 0.5;
-    float4 Src1 = srcMip.SampleLevel(g_samLinearClamp, UV1, Info.srcMipLevel);
-    Src1 += srcMip.SampleLevel(g_samLinearClamp, UV1 + float2(O.x, 0.0), Info.srcMipLevel);
-    Src1 += srcMip.SampleLevel(g_samLinearClamp, UV1 + float2(0.0, O.y), Info.srcMipLevel);
-    Src1 += srcMip.SampleLevel(g_samLinearClamp, UV1 + float2(O.x, O.y), Info.srcMipLevel);
+    float2 UV1 = info.texelSize * (DTid.xy + float2(0.25, 0.25));
+    float2 O = info.texelSize * 0.5;
+    float4 Src1 = srcMip.SampleLevel(g_samLinearClamp, UV1, info.srcMipLevel);
+    Src1 += srcMip.SampleLevel(g_samLinearClamp, UV1 + float2(O.x, 0.0), info.srcMipLevel);
+    Src1 += srcMip.SampleLevel(g_samLinearClamp, UV1 + float2(0.0, O.y), info.srcMipLevel);
+    Src1 += srcMip.SampleLevel(g_samLinearClamp, UV1 + float2(O.x, O.y), info.srcMipLevel);
     Src1 *= 0.25;
 #endif
 
     outMip1[DTid.xy] = PackColor(Src1);
 
     // A scalar (constant) branch can exit all threads coherently.
-    if (Info.numMipLevels == 1)
+    if (info.numMipLevels == 1)
         return;
 
     // Without lane swizzle operations, the only way to share data with other
@@ -158,7 +160,7 @@ void main( uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID )
         StoreColor(GI, Src1);
     }
 
-    if (Info.numMipLevels == 2)
+    if (info.numMipLevels == 2)
         return;
 
     GroupMemoryBarrierWithGroupSync();
@@ -175,7 +177,7 @@ void main( uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID )
         StoreColor(GI, Src1);
     }
 
-    if (Info.numMipLevels == 3)
+    if (info.numMipLevels == 3)
         return;
 
     GroupMemoryBarrierWithGroupSync();

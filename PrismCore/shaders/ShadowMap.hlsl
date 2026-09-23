@@ -1,4 +1,5 @@
 #include "Common.hlsli"
+#include "BindlessResources.hlsli"
 
 cbuffer Resources
 {
@@ -33,13 +34,13 @@ struct PixelInput
 
 PixelInput vsmain(VertexInput vin)
 {
-	ConstantBuffer<ShadowSceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_shadowSceneBuffer];
-	ConstantBuffer<PrimitiveBuffer> primitiveBuffer = ResourceDescriptorHeap[g_primitiveBuffer];
+    ShadowSceneBuffer shadowSceneBuffer = GET_BINDLESS_CBUFFER(ShadowSceneBuffer, g_shadowSceneBuffer);
+    PrimitiveBuffer primitiveBuffer = GET_BINDLESS_CBUFFER(PrimitiveBuffer, g_primitiveBuffer);
 
 	PixelInput vout;
 	
 	float4 posWorld = mul(primitiveBuffer.world, float4(vin.positionLocal, 1.f));
-	vout.positionClip = mul(sceneBuffer.lightViewProj, posWorld);
+	vout.positionClip = mul(shadowSceneBuffer.lightViewProj, posWorld);
 	
 	return vout;
 }

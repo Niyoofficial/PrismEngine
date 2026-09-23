@@ -1,5 +1,6 @@
 #include "BRDF.hlsli"
 #include "FullscreenTriangleVertexShader.hlsli"
+#include "BindlessResources.hlsli"
 
 cbuffer Resources
 {
@@ -26,9 +27,9 @@ struct SceneIrradiance
 
 float4 psmain(FullscreenVertexOut pin) : SV_Target
 {
-	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[g_sceneBuffer];
-	ConstantBuffer<SceneIrradiance> sceneIrradiance = ResourceDescriptorHeap[g_irradiance];
-	
+	 SceneBuffer sceneBuffer = GET_BINDLESS_CBUFFER(SceneBuffer, g_sceneBuffer);
+     SceneIrradiance sceneIrradiance = GET_BINDLESS_CBUFFER(SceneIrradiance, g_irradiance);
+
 	Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
 	Texture2D roughnessMetalAOTexture = ResourceDescriptorHeap[g_roughnessMetalAOTexture];
 	Texture2D albedoTexture = ResourceDescriptorHeap[g_colorTexture];

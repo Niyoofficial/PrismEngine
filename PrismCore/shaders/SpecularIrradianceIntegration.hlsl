@@ -1,4 +1,5 @@
 #include "BRDF.hlsli"
+#include "BindlessResources.hlsli"
 
 cbuffer Resources
 {
@@ -45,7 +46,7 @@ void main(int3 groupID : SV_GroupID,
 {
 	TextureCube skybox = ResourceDescriptorHeap[g_skybox];
 	RWTexture2DArray<float4> outputTexture = ResourceDescriptorHeap[g_outputTexture];
-	ConstantBuffer<PrefilterData> prefilterData = ResourceDescriptorHeap[g_prefilterData];
+	PrefilterData prefilterData = GET_BINDLESS_CBUFFER(PrefilterData, g_prefilterData);
 	
 	float3 normal = GetSamplingVector(dispatchThreadID, prefilterData.mipResolution);
 	float3 toCamera = normal;

@@ -18,6 +18,8 @@ using VertexAttributeList = std::vector<VertexAttribute>;
 
 int64_t GetVertexSize(const VertexAttributeList& attributeList);
 
+uint32_t GetVertexAttributeSize(const VertexAttribute& attribute);
+
 class VertexBufferCache
 {
 public:
@@ -49,4 +51,4 @@ private:
 
 	std::unordered_map<Ref<MeshAsset>, std::pair<Ref<Buffer>, NodesIndexInfo>> m_ibCache;
 };
-}
+} // namespace Prism::Render
