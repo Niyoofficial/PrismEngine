@@ -1,5 +1,6 @@
 #include "MeshRendererComponent.h"
 
+#include "Prism/AssetManagement/AssetManager.h"
 #include "Prism/Render/EntityRenderProxy.h"
 
 namespace Prism
@@ -53,5 +54,20 @@ void MeshRendererComponent::DrawImGuiInspector()
 	ImGui::PushID("node_index");
 	ImGui::DragInt("", &m_meshNode, 0.25f, 0, m_meshAsset->GetTotalNodeCount() - 1, "%d", ImGuiSliderFlags_AlwaysClamp);
 	ImGui::PopID();
+}
+
+YAML::Node MeshRendererComponent::ToYAML() const
+{
+	YAML::Node node;
+    node["MeshAssetHandle"] = m_meshAsset->GetHandle();
+    node["MeshNode"] = m_meshNode;
+    return node;
+}
+
+void MeshRendererComponent::FromYAML(const YAML::Node& node)
+{
+    auto handle = node["MeshAssetHandle"].as<AssetHandle>();
+	m_meshAsset = AssetManager::Get().LoadAsset<MeshAsset>(handle);
+	m_meshNode = node["MeshNode"].as<MeshNode>();
 }
 }

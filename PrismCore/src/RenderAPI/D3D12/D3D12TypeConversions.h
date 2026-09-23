@@ -1,7 +1,5 @@
 ﻿#pragma once
-#include <d3d12shader.h>
 
-#include "dxcapi.h"
 #include "Prism/Render/Buffer.h"
 #include "Prism/Render/BufferView.h"
 #include "Prism/Render/PipelineState.h"

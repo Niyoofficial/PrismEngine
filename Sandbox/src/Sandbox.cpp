@@ -14,12 +14,12 @@
 #include <filesystem>
 
 #include "EditorTheme.h"
-#include "Prism/AssetManagement/AssetType.h"
+#include "Prism/Base/Paths.h"
 #include "Prism/Render/PipelineState.h"
 
 
 EditorLayer::EditorLayer(Core::Window* owningWindow, const Ref<Scene>& scene)
-	: m_owningWindow(owningWindow), m_scene(scene)
+	: m_owningWindow(owningWindow), m_scene(scene), m_renderPipeline(Ref<Render::PBRSceneRenderPipeline>::Create())
 {
 	using namespace Prism::Render;
 	Layer::Attach();
@@ -28,7 +28,7 @@ EditorLayer::EditorLayer(Core::Window* owningWindow, const Ref<Scene>& scene)
 		[this](Core::AppEvent event)
 		{
 			if (std::get<Core::AppEvents::KeyDown>(event).keyCode == KeyCode::Escape)
-				m_scene->SetSelectedEntity(nullptr);
+				m_scene->SetSelectedEntity({});
 		});
 
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::MouseMotion>(
@@ -95,6 +95,11 @@ EditorLayer::EditorLayer(Core::Window* owningWindow, const Ref<Scene>& scene)
 	m_camera->SetPosition({0.f, 0.f, 0.f});
 }
 
+void EditorLayer::SetScene(const Ref<Scene>& scene)
+{
+    m_scene = scene;
+}
+
 void EditorLayer::UpdateImGui(Duration delta)
 {
 	using namespace Prism::Render;
@@ -110,6 +115,35 @@ void EditorLayer::UpdateImGui(Duration delta)
 	// Menu bar
 	{
 		ImGui::BeginMainMenuBar();
+		
+		if (ImGui::BeginMenu("File"))
+		{
+			if (ImGui::MenuItem("Save Scene As..."))
+			{
+				m_savingScene = true;
+
+				Core::DialogFileFilter filter = {
+				    .name = "Scene",
+					.pattern = "pscene"
+				};
+				Core::Platform::Get().ShowFileDialog(
+					[this](std::vector<std::string> files, int32_t filter)
+					{
+						if (files.size() == 1 && !files[0].empty())
+					    {
+					        m_saveSceneFile = files[0];
+                            m_sceneFileChosen = true;
+					    }
+						else
+						{
+						    m_savingScene = false;
+						}
+					}, Core::FileDialogType::SaveFile, m_owningWindow.Raw(),
+						{filter}, Core::Paths::Get().GetProjectAssetsDir());
+			}
+
+			ImGui::EndMenu();
+		}
 
 		if (ImGui::BeginMenu("Show"))
 		{
@@ -122,10 +156,6 @@ void EditorLayer::UpdateImGui(Duration delta)
 
 			ImGui::EndMenu();
 		}
-
-		ImGui::EndMainMenuBar();
-
-		ImGui::BeginMainMenuBar();
 
 		if (ImGui::BeginMenu("Tools"))
 		{
@@ -155,6 +185,35 @@ void EditorLayer::UpdateImGui(Duration delta)
 		m_viewportHovered = ImGui::IsWindowHovered();
 		m_viewportPosition = {ImGui::GetCursorScreenPos().x, ImGui::GetCursorScreenPos().y};
 
+		static std::fs::path s_saveDest;
+		if (m_scene && ImGui::IsKeyChordPressed(ImGuiKey_S | ImGuiMod_Ctrl))
+		{
+			std::fs::path path;
+			if (AssetManager::Get().GetPathFromHandle(m_scene->GetHandle()).empty())
+			{
+				Core::DialogFileFilter filter = {.name = "Scene", .pattern = "pscene"};
+				Core::Platform::Get().ShowFileDialog(
+					[](std::vector<std::string> files, int32_t filter)
+					{
+						if (files.size() == 1 && !files[0].empty())
+						{
+							s_saveDest = files[0];
+							s_saveDest.replace_extension(".pscene");
+						}
+					},
+					Core::FileDialogType::SaveFile, m_owningWindow.Raw(), {filter}, Core::Paths::Get().GetProjectAssetsDir());
+			}
+			else
+			{
+				AssetManager::Get().SaveAsset(m_scene);
+			}
+		}
+		if (!s_saveDest.empty())
+		{
+			AssetManager::Get().SaveAsset(m_scene, s_saveDest);
+			s_saveDest = "";
+		}
+
 		auto viewportSize = ImGui::GetContentRegionAvail();
 		if (CheckForViewportResize({viewportSize.x, viewportSize.y}))
 		{
@@ -179,27 +238,30 @@ void EditorLayer::UpdateImGui(Duration delta)
 			}
 
 			// Gizmo
-			if (Entity* selectedEntity = m_scene->GetSelectedEntity())
+			if (m_scene)
 			{
-				ImGuizmo::SetDrawlist();
-				ImGuizmo::SetRect((float)m_viewportPosition.x, (float)m_viewportPosition.y, (float)m_viewportSize.x, (float)m_viewportSize.y);
-
-				auto viewMatrix = m_camera->GetViewMatrix();
-				auto projMatrix = m_camera->GetProjectionMatrix();
-				if (auto comp = selectedEntity->GetComponent<TransformComponent>())
+				if (Entity selectedEntity = m_scene->GetSelectedEntity())
 				{
-					auto transform = comp->GetTransform();
-					if (ImGuizmo::Manipulate(glm::value_ptr(viewMatrix),
-											 glm::value_ptr(projMatrix),
-											 m_gizmoOperation, m_gizmoMode,
-											 glm::value_ptr(transform)))
-					{
-						glm::float3 translation, rotation, scale;
-						ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(transform), glm::value_ptr(translation), glm::value_ptr(rotation), glm::value_ptr(scale));
+					ImGuizmo::SetDrawlist();
+					ImGuizmo::SetRect((float)m_viewportPosition.x, (float)m_viewportPosition.y, (float)m_viewportSize.x, (float)m_viewportSize.y);
 
-						comp->SetTranslation(translation);
-						comp->SetRotation(glm::radians(rotation));
-						comp->SetScale(scale);
+					auto viewMatrix = m_camera->GetViewMatrix();
+					auto projMatrix = m_camera->GetProjectionMatrix();
+					if (auto comp = selectedEntity.GetComponent<TransformComponent>())
+					{
+						auto transform = comp->GetTransform();
+						if (ImGuizmo::Manipulate(glm::value_ptr(viewMatrix),
+												 glm::value_ptr(projMatrix),
+												 m_gizmoOperation, m_gizmoMode,
+												 glm::value_ptr(transform)))
+						{
+							glm::float3 translation, rotation, scale;
+							ImGuizmo::DecomposeMatrixToComponents(glm::value_ptr(transform), glm::value_ptr(translation), glm::value_ptr(rotation), glm::value_ptr(scale));
+
+							comp->SetTranslation(translation);
+							comp->SetRotation(glm::radians(rotation));
+							comp->SetScale(scale);
+						}
 					}
 				}
 			}
@@ -306,15 +368,14 @@ void EditorLayer::UpdateImGui(Duration delta)
 
 		if (ImGui::CollapsingHeader("GBuffer"))
 		{
-			auto renderPipeline = static_cast<PBRSceneRenderPipeline*>(m_scene->GetCurrentRenderPipeline().Raw());
-			auto gbufferSize = renderPipeline->GetGBuffer().GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetSize();
+            auto gbufferSize = m_renderPipeline->GetGBuffer().GetTexture(GBuffer::Type::Color)->GetTextureDesc().GetSize();
 			float texWidth = (float)gbufferSize.x / (float)gbufferSize.y * 256.f;
 			ImGui::Text("Color");
-			ImGui::Image(renderPipeline->GetGBuffer().GetView(GBuffer::Type::Color, TextureViewType::SRV), {texWidth, 256});
+            ImGui::Image(m_renderPipeline->GetGBuffer().GetView(GBuffer::Type::Color, TextureViewType::SRV), {texWidth, 256});
 			ImGui::Text("Depth");
-			ImGui::Image(renderPipeline->GetGBuffer().GetView(GBuffer::Type::Depth, TextureViewType::SRV), {texWidth, 256});
+            ImGui::Image(m_renderPipeline->GetGBuffer().GetView(GBuffer::Type::Depth, TextureViewType::SRV), {texWidth, 256});
 			ImGui::Text("Normal");
-			ImGui::Image(renderPipeline->GetGBuffer().GetView(GBuffer::Type::Normal, TextureViewType::SRV), {texWidth, 256});
+            ImGui::Image(m_renderPipeline->GetGBuffer().GetView(GBuffer::Type::Normal, TextureViewType::SRV), {texWidth, 256});
 			ImGui::Text("R:Roughness G:Metal B:AO");
 			static bool s_roughness = true;
 			ImGui::Checkbox("Roughness", &s_roughness);
@@ -324,7 +385,7 @@ void EditorLayer::UpdateImGui(Duration delta)
 			ImGui::SameLine();
 			static bool s_ao = true;
 			ImGui::Checkbox("AO", &s_ao);
-			ImGui::Image(renderPipeline->GetGBuffer().GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::SRV), {texWidth, 256}, {0, 0}, {1, 1}, {(float)s_roughness, (float)s_metallic, (float)s_ao, 1});
+			ImGui::Image(m_renderPipeline->GetGBuffer().GetView(GBuffer::Type::Roughness_Metal_AO, TextureViewType::SRV), {texWidth, 256}, {0, 0}, {1, 1}, {(float)s_roughness, (float)s_metallic, (float)s_ao, 1});
 		}
 
 		/*if (ImGui::CollapsingHeader("Sun"))
@@ -496,48 +557,51 @@ void EditorLayer::UpdateImGui(Duration delta)
 		{
 			if (ImGui::BeginTable("SceneHierarchy_Table", 1, ImGuiTableFlags_RowBg))
 			{
-				for (auto& [id, entity] : m_scene->GetAllEntities())
+				if (m_scene)
 				{
-					if (entity->IsRootEntity())
+					for (auto entity : m_scene->GetAllEntities())
 					{
-						std::function<void(int64_t, const Ref<Entity>&)> drawEntityNode =
-							[this, &drawEntityNode](int64_t id, const Ref<Entity>& entity)
-							{
-								ImGui::TableNextRow();
-								ImGui::TableNextColumn();
-								ImGuiTreeNodeFlags treeFlags =
-									ImGuiTreeNodeFlags_OpenOnArrow |
-									ImGuiTreeNodeFlags_OpenOnDoubleClick |
-									ImGuiTreeNodeFlags_NavLeftJumpsBackHere |
-									ImGuiTreeNodeFlags_SpanFullWidth;
-
-								if (entity->GetChildren().empty())
-									treeFlags |= ImGuiTreeNodeFlags_Leaf;
-								if (entity == m_scene->GetSelectedEntity())
-									treeFlags |= ImGuiTreeNodeFlags_Selected;
-
-								ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.f, 0.f});
-
-								bool open = ImGui::TreeNodeEx(std::to_string(id).c_str(), treeFlags, "%s", entity->GetName().empty() ? "<unnamed>" : WStringToString(entity->GetName()).c_str());
-
-								if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
-									m_scene->SetSelectedEntity(entity);
-
-								if (open)
+						if (entity.IsRootEntity())
+						{
+							std::function<void(Entity)> drawEntityNode =
+								[this, &drawEntityNode](Entity entity)
 								{
-									for (auto& child : entity->GetChildren())
+									ImGui::TableNextRow();
+									ImGui::TableNextColumn();
+									ImGuiTreeNodeFlags treeFlags =
+										ImGuiTreeNodeFlags_OpenOnArrow |
+										ImGuiTreeNodeFlags_OpenOnDoubleClick |
+										ImGuiTreeNodeFlags_NavLeftJumpsBackHere |
+										ImGuiTreeNodeFlags_SpanFullWidth;
+
+									if (entity.GetChildren().empty())
+										treeFlags |= ImGuiTreeNodeFlags_Leaf;
+									if (entity == m_scene->GetSelectedEntity())
+										treeFlags |= ImGuiTreeNodeFlags_Selected;
+
+									ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, {0.f, 0.f});
+
+									bool open = ImGui::TreeNodeEx(std::to_string(entity.GetID()).c_str(), treeFlags, "%s", entity.GetName().empty() ? "<unnamed>" : entity.GetName().c_str());
+
+									if (ImGui::IsItemHovered() && ImGui::IsMouseReleased(ImGuiMouseButton_Left))
+										m_scene->SetSelectedEntity(entity);
+
+									if (open)
 									{
-										PE_ASSERT(child.IsValid());
-										drawEntityNode(m_scene->GetEntityID(child.Raw()), child.Raw());
+										for (auto& child : entity.GetChildren())
+										{
+											PE_ASSERT(child.IsValid());
+											drawEntityNode(child);
+										}
+
+										ImGui::TreePop();
 									}
 
-									ImGui::TreePop();
-								}
+									ImGui::PopStyleVar();
+								};
 
-								ImGui::PopStyleVar();
-							};
-
-						drawEntityNode(id, entity);
+							drawEntityNode(entity);
+						}
 					}
 				}
 
@@ -545,7 +609,7 @@ void EditorLayer::UpdateImGui(Duration delta)
 			}
 
 			if (ImGui::IsMouseReleased(ImGuiMouseButton_Left) && !ImGui::IsAnyItemHovered() && ImGui::IsWindowHovered())
-				m_scene->SetSelectedEntity(nullptr);
+				m_scene->SetSelectedEntity({});
 
 			if (ImGui::BeginPopupContextWindow(nullptr, ImGuiPopupFlags_MouseButtonRight | ImGuiPopupFlags_NoOpenOverItems))
 			{
@@ -553,13 +617,13 @@ void EditorLayer::UpdateImGui(Duration delta)
 				{
 					if (ImGui::MenuItem("Empty Entity"))
 					{
-						m_scene->AddEntity(L"Empty");
+						m_scene->CreateEntity("Empty");
 					}
 					else if (ImGui::MenuItem("Directional Light"))
 					{
-						auto light = m_scene->AddEntity(L"Directional Light");
-						light->AddComponent<TransformComponent>();
-						light->AddComponent<LightRendererComponent>();
+						auto light = m_scene->CreateEntity("Directional Light");
+						light.AddComponent<TransformComponent>();
+						light.AddComponent<LightRendererComponent>();
 					}
 
 					ImGui::EndMenu();
@@ -577,15 +641,15 @@ void EditorLayer::UpdateImGui(Duration delta)
 	{
 		if (ImGui::Begin("EntityInspector", &s_showInspector))
 		{
-			if (auto* selectedEntity = m_scene->GetSelectedEntity())
+			if (auto selectedEntity = m_scene->GetSelectedEntity())
 			{
 				ImGui::BeginChild("##entity_inspector");
 
-				std::string entityName = WStringToString(selectedEntity->GetName());
+				std::string entityName = selectedEntity.GetName();
 				if (ImGui::InputText("##tag", &entityName))
-					selectedEntity->SetName(StringToWString(entityName));
+					selectedEntity.SetName(entityName);
 
-				for (auto& [typeId, component] : selectedEntity->GetAllComponents())
+				for (auto& [typeId, component] : selectedEntity.GetAllComponents())
 				{
 					PE_ASSERT(component);
 
@@ -620,7 +684,15 @@ void EditorLayer::Update(Duration delta)
 	using namespace Prism::Render;
 	Layer::Update(delta);
 
-	if (m_viewportSize.x == 0 || m_viewportSize.y == 0)
+	if (m_savingScene && m_sceneFileChosen)
+	{
+        AssetManager::Get().SaveAsset(m_scene, AssetRegistry::Get().GetRelPath(m_saveSceneFile));
+		m_saveSceneFile = "";
+		m_savingScene = false;
+		m_sceneFileChosen = false;
+	}
+
+	if (m_viewportSize.x == 0 || m_viewportSize.y == 0 || !m_scene)
 		return;
 
 	if (m_viewportRelativeMouse && Core::Platform::Get().IsKeyPressed(KeyCode::RightMouseButton))
@@ -643,7 +715,7 @@ void EditorLayer::Update(Duration delta)
 
 	Ref renderContext = RenderDevice::Get().AllocateContext(L"RenderScene");
 
-	m_scene->RenderScene(renderContext, m_editorViewportRTV, m_camera);
+	m_scene->RenderScene(m_renderPipeline, renderContext, m_editorViewportRTV, m_camera);
 
 	RenderDevice::Get().SubmitContext(renderContext);
 }
@@ -714,7 +786,7 @@ void EditorLayer::SelectEntityUnderCursor()
 		.layoutBefore = BarrierLayout::ShaderResource,
 		.layoutAfter = BarrierLayout::RenderTarget,
 	});
-	auto entities = m_scene->RenderHitProxies(renderContext, m_hitProxiesTexture->CreateDefaultRTV(), m_camera);
+    auto entities = m_scene->RenderHitProxies(m_renderPipeline, renderContext, m_hitProxiesTexture->CreateDefaultRTV(), m_camera);
 	renderContext->SetPSO(ComputePipelineStateDesc{
 		.cs = {
 			.filepath = L"shaders/HitProxy.hlsl",
@@ -766,7 +838,7 @@ void EditorLayer::SelectEntityUnderCursor()
 			if (ID >= 0)
 				m_scene->SetSelectedEntity(entities.at(ID));
 			else
-				m_scene->SetSelectedEntity(nullptr);
+				m_scene->SetSelectedEntity({});
 
 			hitProxyOutput->Unmap();
 		});

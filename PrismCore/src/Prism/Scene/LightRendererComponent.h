@@ -16,6 +16,9 @@ public:
 
 	virtual void DrawImGuiInspector() override;
 
+	virtual YAML::Node ToYAML() const override;
+	virtual void FromYAML(const YAML::Node& node) override;
+
 private:
 	glm::float3 m_color = {1.f, 1.f, 1.f};
 	float m_intensity = 1.f;

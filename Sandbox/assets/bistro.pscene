@@ -1,0 +1,4267 @@
+Entities:
+  0:
+    Name: Light
+    Parent: -1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - -0.0471065529
+          - -0.0388316475
+          - -0.770185351
+          - 0.634891808
+        Scale:
+          - 1
+          - 1
+          - 1
+      13145555154171881765:
+        Color:
+          - 1
+          - 1
+          - 1
+        Intensity: 1
+  1:
+    Name: RootNode.001
+    Parent: -1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+  2:
+    Name: Bistro_Research_Exterior__lod0_Glass_3919
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 2
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 91e77348-1765-45c0-997b-46b06bdbaa7f
+        NormalTexture: dde4a989-1423-4b34-82b9-9d06b02c6898
+        Metallic: 1
+        MetallicTexture: 1157b39f-5f17-4040-94e7-40b60f1f89c2
+        Roughness: 1
+        RoughnessTexture: 1157b39f-5f17-4040-94e7-40b60f1f89c2
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  3:
+    Name: Bistro_Research_Exterior__lod0_Italian_Cypress_3921-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 4
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 5996d768-244b-450a-84ef-0ec45ab72324
+        NormalTexture: c7517550-1b7e-444f-b28d-b32df440100c
+        Metallic: 1
+        MetallicTexture: b6ad05a1-a96c-4f2e-9bf3-362aed8a2b71
+        Roughness: 1
+        RoughnessTexture: b6ad05a1-a96c-4f2e-9bf3-362aed8a2b71
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  4:
+    Name: Bistro_Research_Exterior__lod0_Italian_Cypress_3921-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 6
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: a7339e40-3fd1-4ee0-b5c3-992fa81c93e0
+        NormalTexture: 965521e8-52ae-4083-9eb6-0c0c3f86a462
+        Metallic: 1
+        MetallicTexture: 870ba21b-b607-4a7d-94b0-9ac186483337
+        Roughness: 1
+        RoughnessTexture: 870ba21b-b607-4a7d-94b0-9ac186483337
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  5:
+    Name: Bistro_Research_Exterior__lod0_Odometer_3935
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 8
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 00000000-0000-0000-0000-000000000000
+        NormalTexture: 71b15981-516d-4bdd-84a0-c0d227728256
+        Metallic: 1
+        MetallicTexture: 3c0717d6-ff0a-47e3-afb5-e6ea76fe01aa
+        Roughness: 1
+        RoughnessTexture: 3c0717d6-ff0a-47e3-afb5-e6ea76fe01aa
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  6:
+    Name: Bistro_Research_Exterior__lod0_Vespa_3937-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 10
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 18664cba-7704-4fbb-8572-81267ba8eb3d
+        NormalTexture: 7b40e92f-e421-4851-9820-54e8141cf121
+        Metallic: 1
+        MetallicTexture: 51881aeb-78de-4434-8af7-1aab3c6c6a00
+        Roughness: 1
+        RoughnessTexture: 51881aeb-78de-4434-8af7-1aab3c6c6a00
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  7:
+    Name: Bistro_Research_Exterior__lod0_Vespa_3937-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 12
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: cad37d3f-3870-47c7-8e1d-b46381054b04
+        NormalTexture: 27fe63fe-a8a6-4c2d-909c-abf470cdea92
+        Metallic: 1
+        MetallicTexture: 38ba3138-b8e9-498d-bac5-124acbae6797
+        Roughness: 1
+        RoughnessTexture: 38ba3138-b8e9-498d-bac5-124acbae6797
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  8:
+    Name: Bistro_Research_Exterior_bux_hedge_cylinder_low_4007
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 14
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 686cee2f-0b05-4beb-af96-a58c40971281
+        NormalTexture: 3e742578-0072-48af-8923-d01fe07bf176
+        Metallic: 1
+        MetallicTexture: 8f4c21c8-e0ab-4b03-be22-bed6a7c74446
+        Roughness: 1
+        RoughnessTexture: 8f4c21c8-e0ab-4b03-be22-bed6a7c74446
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  9:
+    Name: Bistro_Research_Exterior_Ivy_Ivy_4049-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 16
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: f5516a43-e76d-44f8-b660-df966b4f7da6
+        NormalTexture: 382e9beb-00f4-4d77-9615-50c94a5b6cf9
+        Metallic: 1
+        MetallicTexture: c2fd7c70-4f75-479c-a434-7c3d69abc0b8
+        Roughness: 1
+        RoughnessTexture: c2fd7c70-4f75-479c-a434-7c3d69abc0b8
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  10:
+    Name: Bistro_Research_Exterior_Ivy_Ivy_4049-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 18
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 6349875c-d662-4203-9c4a-3f92b5d5bd27
+        NormalTexture: 79076c90-7f7c-47c3-9abe-cfb82e9a1845
+        Metallic: 1
+        MetallicTexture: 37f2b3d4-9285-48cd-acfa-1b83170ee044
+        Roughness: 1
+        RoughnessTexture: 37f2b3d4-9285-48cd-acfa-1b83170ee044
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  11:
+    Name: Bistro_Research_Exterior_Linde_Tree_Large_linde_tree_large_4051-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 20
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 02aa0437-2938-400b-8095-4eb6b926f2cf
+        NormalTexture: 678c8317-108e-49ac-93d5-76958b3bf29e
+        Metallic: 1
+        MetallicTexture: 43a66c09-eaaa-44a5-8b55-44c3887543f2
+        Roughness: 1
+        RoughnessTexture: 43a66c09-eaaa-44a5-8b55-44c3887543f2
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  12:
+    Name: Bistro_Research_Exterior_Linde_Tree_Large_linde_tree_large_4051-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 22
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: a73bddc1-8c82-4363-8e72-85c89f00445c
+        NormalTexture: 46a7dbe6-ab62-4ca3-8557-769d84c0d87c
+        Metallic: 1
+        MetallicTexture: fcc321fd-79d5-42b7-9800-ff810959307e
+        Roughness: 1
+        RoughnessTexture: fcc321fd-79d5-42b7-9800-ff810959307e
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  13:
+    Name: Bistro_Research_Exterior_Linde_Tree_Large_linde_tree_large_4051-2
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 24
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 71ce5184-3ba5-4d60-9eae-d0e43cf6c7d9
+        NormalTexture: 1a774922-3990-4750-8196-d30769e3ef43
+        Metallic: 1
+        MetallicTexture: 6458c61a-b0a6-437c-8c16-c0e0a2b1b7ce
+        Roughness: 1
+        RoughnessTexture: 6458c61a-b0a6-437c-8c16-c0e0a2b1b7ce
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  14:
+    Name: Bistro_Research_Exterior_Paris_ShopSign_01C_6161-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 26
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 62e4b5ca-4b67-44d2-bf00-99b204154e06
+        NormalTexture: cbfbc71e-42ad-4a34-b9ae-d4c51be02b3e
+        Metallic: 1
+        MetallicTexture: 4b6c878d-6b66-4bc5-b613-a0a50a1d3457
+        Roughness: 1
+        RoughnessTexture: 4b6c878d-6b66-4bc5-b613-a0a50a1d3457
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  15:
+    Name: Bistro_Research_Exterior_Paris_Aerial_01C_4057-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 28
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: aa1ebcb9-d9a9-4601-bef4-23b4fd77749d
+        NormalTexture: f7e59c85-e883-4a62-94d9-b9eb9c27597c
+        Metallic: 1
+        MetallicTexture: 50df942f-edd8-42d8-876e-7049578f50ad
+        Roughness: 1
+        RoughnessTexture: 50df942f-edd8-42d8-876e-7049578f50ad
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  16:
+    Name: Bistro_Research_Exterior_Paris_Aerial_01C_4057-2
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 30
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 18462e10-bfa5-4517-ad6a-0d77424e075a
+        NormalTexture: c1472763-e1eb-4103-bd2c-3d33e06ce478
+        Metallic: 1
+        MetallicTexture: 9699d0d5-61bc-45a7-af97-2c1be457534e
+        Roughness: 1
+        RoughnessTexture: 9699d0d5-61bc-45a7-af97-2c1be457534e
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  17:
+    Name: Bistro_Research_Exterior_Paris_Ashtray_01_mesh___9__4093
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 32
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 6cece235-4604-46e9-873b-2554ba9b3657
+        NormalTexture: 1822fbfe-12ba-44da-a8f3-1b4fc30d44b5
+        Metallic: 1
+        MetallicTexture: 46e3175d-e6d5-4a21-9ec0-9689b57267a6
+        Roughness: 1
+        RoughnessTexture: 46e3175d-e6d5-4a21-9ec0-9689b57267a6
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  18:
+    Name: Bistro_Research_Exterior_Paris_BistroAwning_02B_4113
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 34
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 2c687560-501c-4137-97b8-fe21102ff5d5
+        NormalTexture: 5cbcad69-3927-41bb-92d6-85ca9df00b75
+        Metallic: 1
+        MetallicTexture: d0c73f3f-ae11-4887-86c6-7fb8d76bf86e
+        Roughness: 1
+        RoughnessTexture: d0c73f3f-ae11-4887-86c6-7fb8d76bf86e
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  19:
+    Name: Bistro_Research_Exterior_paris_Bistroawning_4105-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 36
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: d57917ad-0b8f-4bc3-9904-1954615d2ba4
+        NormalTexture: bb06d271-a50e-4f66-8018-934846f0a688
+        Metallic: 1
+        MetallicTexture: e5a70de7-1a56-4329-83a3-8d52f0277a6f
+        Roughness: 1
+        RoughnessTexture: e5a70de7-1a56-4329-83a3-8d52f0277a6f
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  20:
+    Name: Bistro_Research_Exterior_paris_Bistroawning_4105-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 38
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 588eb568-c896-43bc-b61d-0413842cdfe8
+        NormalTexture: 2d920225-4569-4a8d-bffc-0b82a0268be4
+        Metallic: 1
+        MetallicTexture: accda2e5-0845-46eb-89fa-8b2bb586917d
+        Roughness: 1
+        RoughnessTexture: accda2e5-0845-46eb-89fa-8b2bb586917d
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  21:
+    Name: Bistro_Research_Exterior_Paris_BistroFrontBanner_01_4131-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 40
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: b2e489cd-35fb-4928-82a0-145db494ec2e
+        NormalTexture: 4849c041-5c36-4ab4-8868-125d1362b869
+        Metallic: 1
+        MetallicTexture: bd5a76c8-6f08-45c0-9801-782beef925f1
+        Roughness: 1
+        RoughnessTexture: bd5a76c8-6f08-45c0-9801-782beef925f1
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  22:
+    Name: Bistro_Research_Exterior_Paris_BistroFrontBanner_01_4131-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 42
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 4f5adef5-bbcd-4289-aa0f-d8aa177e8536
+        NormalTexture: c1b0b6be-3034-4571-a23c-49700246e15d
+        Metallic: 1
+        MetallicTexture: 9d10df76-6882-4d8f-a78b-3271df2c2ad1
+        Roughness: 1
+        RoughnessTexture: 9d10df76-6882-4d8f-a78b-3271df2c2ad1
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  23:
+    Name: Bistro_Research_Exterior_Spotlights_6525-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 44
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: ad965cea-f91a-443c-89c6-711ff8af61f4
+        NormalTexture: 41f4a369-d1b5-48a1-baa6-5733abd0a75b
+        Metallic: 1
+        MetallicTexture: f15fe27e-3388-4f33-b7a4-40efebd577d3
+        Roughness: 1
+        RoughnessTexture: f15fe27e-3388-4f33-b7a4-40efebd577d3
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  24:
+    Name: Bistro_Research_Exterior_Paris_Bollard_01A_4133
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 46
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: f9b436af-ffd8-4848-9648-2d901a221de1
+        NormalTexture: b29c3ddb-391f-40c0-8b38-f69046135e2f
+        Metallic: 1
+        MetallicTexture: d0461629-8132-4010-95b2-3a0191cd3eef
+        Roughness: 1
+        RoughnessTexture: d0461629-8132-4010-95b2-3a0191cd3eef
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  25:
+    Name: Bistro_Research_Exterior_Paris_Building_08_paris_building_0.012-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 48
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: a148b3be-7985-4ec1-b50d-6fbf67c7b7d1
+        NormalTexture: d2afabfc-9fcb-4e7c-8870-e3109a1ca93a
+        Metallic: 1
+        MetallicTexture: 4003f7c4-9352-49b5-9c1f-0912164e485c
+        Roughness: 1
+        RoughnessTexture: 4003f7c4-9352-49b5-9c1f-0912164e485c
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  26:
+    Name: Bistro_Research_Exterior_paris_building_11_5905
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 50
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 2e3f96ba-b705-4e0f-a9ec-139e8d8af41d
+        NormalTexture: beba64bc-d04b-43c4-bc93-2a541cf97f6a
+        Metallic: 1
+        MetallicTexture: 37de08eb-e61e-44c6-bcf4-bd0805da2be9
+        Roughness: 1
+        RoughnessTexture: 37de08eb-e61e-44c6-bcf4-bd0805da2be9
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  27:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_0.197
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 52
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 647a6590-2ee3-45cb-8d7c-038c5b45ffd6
+        NormalTexture: f926e467-1eaa-4a19-b399-46c46ceab2ea
+        Metallic: 1
+        MetallicTexture: b9c9a65c-abdf-437f-83f2-ea0707638370
+        Roughness: 1
+        RoughnessTexture: b9c9a65c-abdf-437f-83f2-ea0707638370
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  28:
+    Name: Bistro_Research_Exterior_paris_building_10_5473
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 54
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 5b187a7d-fb1a-45da-8974-4a7108cc0c11
+        NormalTexture: b5569aa8-e8a0-4193-96d9-108015db09f8
+        Metallic: 1
+        MetallicTexture: f6330a4e-0a19-41fe-95e0-8c049278df6a
+        Roughness: 1
+        RoughnessTexture: f6330a4e-0a19-41fe-95e0-8c049278df6a
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  29:
+    Name: Bistro_Research_Exterior_paris_building_10_9__5547
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 56
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 9bdde04a-74c4-4363-9378-d75a1e32fe50
+        NormalTexture: 4e4eef05-d32a-4657-b776-aef0b2d73141
+        Metallic: 1
+        MetallicTexture: 96b68b9c-beb7-4b1d-b343-5012e9ac4fc8
+        Roughness: 1
+        RoughnessTexture: 96b68b9c-beb7-4b1d-b343-5012e9ac4fc8
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  30:
+    Name: Bistro_Research_Exterior_Paris_MainBalcony_01_6103-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 58
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 64258175-22d2-4e80-97f2-1599f41a24c0
+        NormalTexture: ecb7e47f-b381-4d4b-95f7-2bf996e45dd9
+        Metallic: 1
+        MetallicTexture: ca67897d-8c2d-4770-9abc-bcd886df7cfe
+        Roughness: 1
+        RoughnessTexture: ca67897d-8c2d-4770-9abc-bcd886df7cfe
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  31:
+    Name: Bistro_Research_Exterior_paris_building_10_5471
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 60
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 9a2822a7-0a8e-40d9-a62a-ff3d7e2aad5a
+        NormalTexture: 289e086e-2ea8-4dd6-b6d7-d41a94cee7bd
+        Metallic: 1
+        MetallicTexture: ed801ae0-3add-48f7-ba3e-37a986ece7c8
+        Roughness: 1
+        RoughnessTexture: ed801ae0-3add-48f7-ba3e-37a986ece7c8
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  32:
+    Name: Bistro_Research_Exterior_paris_building_11_5891
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 62
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 5c79c0be-2e10-4567-8691-af84dd6c8653
+        NormalTexture: 6de7f235-9cf9-490b-9ba5-3a160e7113e9
+        Metallic: 1
+        MetallicTexture: 89642efc-3fd4-49e8-af13-129c92a30010
+        Roughness: 1
+        RoughnessTexture: 89642efc-3fd4-49e8-af13-129c92a30010
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  33:
+    Name: Bistro_Research_Exterior_paris_building_10_5469
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 64
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 939455b6-8b94-42ba-bd9f-6f59e71677dd
+        NormalTexture: 79dd56ca-9dc2-4ca1-9c89-342b58be49ee
+        Metallic: 1
+        MetallicTexture: 0ee82f04-37a9-46e8-8926-75bbecfd2f21
+        Roughness: 1
+        RoughnessTexture: 0ee82f04-37a9-46e8-8926-75bbecfd2f21
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  34:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_0.109
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 66
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: a46c464d-3db4-466c-b617-f9bacf35eb86
+        NormalTexture: c3d8590e-3d29-4b2e-a68e-f5d2493133c4
+        Metallic: 1
+        MetallicTexture: 1956389e-f037-4151-be9b-6bb4317db4a9
+        Roughness: 1
+        RoughnessTexture: 1956389e-f037-4151-be9b-6bb4317db4a9
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  35:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_0.014
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 68
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: ace0648b-ec2c-46ae-a8eb-4f2ca07d9a8b
+        NormalTexture: 2bdd2b37-3d34-4a14-8b9e-26a61ac29935
+        Metallic: 1
+        MetallicTexture: 8cff22e0-b6b8-4fdc-a2d7-028525d4f4dd
+        Roughness: 1
+        RoughnessTexture: 8cff22e0-b6b8-4fdc-a2d7-028525d4f4dd
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  36:
+    Name: Bistro_Research_Exterior_paris_building_10_8__5545
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 70
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: e5a0e679-b730-4b9d-8e27-52f02625798b
+        NormalTexture: ae43031f-36a8-4992-89a7-96165685141b
+        Metallic: 1
+        MetallicTexture: 1a3ef2c0-72c6-4b7d-97e0-9be0153eb4f4
+        Roughness: 1
+        RoughnessTexture: 1a3ef2c0-72c6-4b7d-97e0-9be0153eb4f4
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  37:
+    Name: Bistro_Research_Exterior_paris_building_11_5901
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 72
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 34275de7-197d-4201-8da9-cea74be3730e
+        NormalTexture: 97ebb175-43de-43b9-9f74-62ac79ee5ecf
+        Metallic: 1
+        MetallicTexture: c659e7ec-b330-4c02-92bc-0f8c25dae633
+        Roughness: 1
+        RoughnessTexture: c659e7ec-b330-4c02-92bc-0f8c25dae633
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  38:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_0.232
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 74
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 9d83883a-9b56-4c86-963d-1b122de48e0b
+        NormalTexture: 08c0aaff-506a-4922-b399-f8126e3090d6
+        Metallic: 1
+        MetallicTexture: 0d766655-5c3f-4ee6-a1bc-90bfd2f440c3
+        Roughness: 1
+        RoughnessTexture: 0d766655-5c3f-4ee6-a1bc-90bfd2f440c3
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  39:
+    Name: Bistro_Research_Exterior_paris_building_09_5437
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 76
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: a8e59c71-736b-49de-a87b-ebfb7f5f7df0
+        NormalTexture: 98eed9dd-279d-458e-9169-d165561a01ce
+        Metallic: 1
+        MetallicTexture: 194c008d-ed99-4605-a7d4-1d105a5c0a30
+        Roughness: 1
+        RoughnessTexture: 194c008d-ed99-4605-a7d4-1d105a5c0a30
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  40:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_01_45
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 78
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 9d0517fa-9a3f-46fc-8f6d-5fa74d4b979e
+        NormalTexture: f8e9050c-e2be-41c7-988c-09a958ea1240
+        Metallic: 1
+        MetallicTexture: 68fe7dc0-a496-485b-88cb-df91bb8594a6
+        Roughness: 1
+        RoughnessTexture: 68fe7dc0-a496-485b-88cb-df91bb8594a6
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  41:
+    Name: Bistro_Research_Exterior_paris_building_10_5507-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 80
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 74220a2d-79fa-471f-b257-d7759f928559
+        NormalTexture: baa43064-e6fb-4920-a9d0-f075b2ca2b58
+        Metallic: 1
+        MetallicTexture: 98ad3f3b-0109-4e8f-a834-df2ed4cf5274
+        Roughness: 1
+        RoughnessTexture: 98ad3f3b-0109-4e8f-a834-df2ed4cf5274
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  42:
+    Name: Bistro_Research_Exterior_Paris_ShopSign_01B2_6159-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 82
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 704b422c-52d8-48fc-93c8-47df2dd01d66
+        NormalTexture: e870e817-ad8e-4e64-910f-c10612038f39
+        Metallic: 1
+        MetallicTexture: a93d651b-1643-4c64-83f5-98b748b0d116
+        Roughness: 1
+        RoughnessTexture: a93d651b-1643-4c64-83f5-98b748b0d116
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  43:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_0.360
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 84
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: adecc02a-4f5f-4f4a-847b-ab0270135b19
+        NormalTexture: ab04c7d1-34ae-43b7-9bc7-b4019058bf4d
+        Metallic: 1
+        MetallicTexture: f4a536ac-64b5-4d69-95ff-7a42e3f7c68e
+        Roughness: 1
+        RoughnessTexture: f4a536ac-64b5-4d69-95ff-7a42e3f7c68e
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  44:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_01_bo
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 86
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 03697ca3-907a-400d-acf6-e86a4b9cc2e2
+        NormalTexture: 6ba830b2-018b-410a-9eed-94b1faa08fb7
+        Metallic: 1
+        MetallicTexture: 65bdc2fe-6397-4c8d-b612-8e5157b18713
+        Roughness: 1
+        RoughnessTexture: 65bdc2fe-6397-4c8d-b612-8e5157b18713
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  45:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_0.240
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 88
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 2425cf30-edb4-4622-add8-f39d24931c26
+        NormalTexture: 4e81acbb-e1af-4c76-b27f-ecbadc7f868c
+        Metallic: 1
+        MetallicTexture: d20f910c-79df-4746-867d-8e26cf58894d
+        Roughness: 1
+        RoughnessTexture: d20f910c-79df-4746-867d-8e26cf58894d
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  46:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_0.338
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 90
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 137761ee-caac-40ca-b865-a18b90c95db9
+        NormalTexture: 4cf081f7-6a45-4337-800b-bd605b5b0a3c
+        Metallic: 1
+        MetallicTexture: ad41c97d-7221-4b34-b9f5-470d21162068
+        Roughness: 1
+        RoughnessTexture: ad41c97d-7221-4b34-b9f5-470d21162068
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  47:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_0.350
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 92
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 64d76eb0-d75c-4e72-a93d-9150f30602ae
+        NormalTexture: 621d3a3d-5547-4a90-aaa1-db5184daa34d
+        Metallic: 1
+        MetallicTexture: a52543b3-8273-4406-8b9b-efb159560aa6
+        Roughness: 1
+        RoughnessTexture: a52543b3-8273-4406-8b9b-efb159560aa6
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  48:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_0.359
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 94
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 88301129-eb41-4f5e-be57-8d42019fcee8
+        NormalTexture: 98fbc678-07b5-4fde-a3c1-7a6337375c04
+        Metallic: 1
+        MetallicTexture: 6f5bcfd5-dd26-4d0b-a4b1-738037c38d27
+        Roughness: 1
+        RoughnessTexture: 6f5bcfd5-dd26-4d0b-a4b1-738037c38d27
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  49:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_0.358
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 96
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 88301129-eb41-4f5e-be57-8d42019fcee8
+        NormalTexture: 98fbc678-07b5-4fde-a3c1-7a6337375c04
+        Metallic: 1
+        MetallicTexture: 6f5bcfd5-dd26-4d0b-a4b1-738037c38d27
+        Roughness: 1
+        RoughnessTexture: 6f5bcfd5-dd26-4d0b-a4b1-738037c38d27
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  50:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_0.321
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 98
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: b536dfd1-c53b-4bd6-a300-4970227053d0
+        NormalTexture: 3d207995-4b13-4b73-80f5-52fba82801e4
+        Metallic: 1
+        MetallicTexture: 1e35e4cb-ffcc-466f-a392-bdab57e7e936
+        Roughness: 1
+        RoughnessTexture: 1e35e4cb-ffcc-466f-a392-bdab57e7e936
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  51:
+    Name: Bistro_Research_Exterior_Paris_Building_01_paris_building_0.337
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 100
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: b363eee5-75ae-4b97-a870-23975f60532f
+        NormalTexture: 51561ab2-1ac2-404a-b47b-552912f38f72
+        Metallic: 1
+        MetallicTexture: c63dbbac-d2e6-4f87-b200-0c2ff0b4b041
+        Roughness: 1
+        RoughnessTexture: c63dbbac-d2e6-4f87-b200-0c2ff0b4b041
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  52:
+    Name: Bistro_Research_Exterior_paris_building_11_5551
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 102
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: faf5c178-bb39-4145-8659-577ef91baa01
+        NormalTexture: 119a456b-6b70-4e2c-93f1-3750d7d2011a
+        Metallic: 1
+        MetallicTexture: d5addd78-ad14-48fa-beb3-5fca03ddb089
+        Roughness: 1
+        RoughnessTexture: d5addd78-ad14-48fa-beb3-5fca03ddb089
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  53:
+    Name: Bistro_Research_Exterior_paris_building_11_5571
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 104
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: f4e7f6ef-c2d6-4500-93b7-47a6401d4752
+        NormalTexture: bba7671e-bbd6-40ae-8892-fa96799fe58c
+        Metallic: 1
+        MetallicTexture: b5602fb3-4ddc-4a3d-8ff1-0f6d04d7f8eb
+        Roughness: 1
+        RoughnessTexture: b5602fb3-4ddc-4a3d-8ff1-0f6d04d7f8eb
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  54:
+    Name: Bistro_Research_Exterior_paris_building_10_7__5543
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 106
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: be94fe06-de79-4cd0-a3d2-1fab38950471
+        NormalTexture: a89cb491-976d-4da5-81b9-c129a4774f5f
+        Metallic: 1
+        MetallicTexture: 668a415d-ce34-46a2-b04a-54751f2eaa81
+        Roughness: 1
+        RoughnessTexture: 668a415d-ce34-46a2-b04a-54751f2eaa81
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  55:
+    Name: Bistro_Research_Exterior_Paris_Street_6253
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 108
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 714f2e43-ee61-4a9c-9759-6fe765d5e079
+        NormalTexture: fc129f1c-eb8f-44d6-aaeb-ec9387eed84e
+        Metallic: 1
+        MetallicTexture: 3a546cf5-6da8-46be-a09d-c3b9d617499a
+        Roughness: 1
+        RoughnessTexture: 3a546cf5-6da8-46be-a09d-c3b9d617499a
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  56:
+    Name: Bistro_Research_Exterior_paris_building_11_5889
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 110
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 22750995-0927-4ce6-8e8e-170707cb4411
+        NormalTexture: 603be909-c18b-4081-b31c-4cd0730318ed
+        Metallic: 1
+        MetallicTexture: ab09e4b2-4cc3-4e21-bce5-7b6d69ab5934
+        Roughness: 1
+        RoughnessTexture: ab09e4b2-4cc3-4e21-bce5-7b6d69ab5934
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  57:
+    Name: Bistro_Research_Exterior_paris_building_11_5897
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 112
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 496c5f29-3578-49c2-9b52-1bbba058c5bd
+        NormalTexture: d70f3dd8-afd5-402c-95ff-c6d2172f2336
+        Metallic: 1
+        MetallicTexture: 73afa683-4f3f-4737-87c1-a530016dc0f1
+        Roughness: 1
+        RoughnessTexture: 73afa683-4f3f-4737-87c1-a530016dc0f1
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  58:
+    Name: Bistro_Research_Exterior_Paris_Chimney_02C_5975-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 114
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 7c7b1f33-684d-4116-8908-9c5b0b3886b7
+        NormalTexture: e6c548c9-75b1-4208-ba53-7800801fd1e1
+        Metallic: 1
+        MetallicTexture: 37046a57-9df9-4add-8e59-47cf0e67db43
+        Roughness: 1
+        RoughnessTexture: 37046a57-9df9-4add-8e59-47cf0e67db43
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  59:
+    Name: Bistro_Research_Exterior_paris_building_03_mirrored_4965
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 116
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 408e61e4-74b6-44bf-8edc-e66fe3d371e4
+        NormalTexture: 84ea785c-ab02-4467-add8-56eb577b2080
+        Metallic: 1
+        MetallicTexture: d38d3f42-c7fc-48ae-b6b2-7cc289ed48d9
+        Roughness: 1
+        RoughnessTexture: d38d3f42-c7fc-48ae-b6b2-7cc289ed48d9
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  60:
+    Name: Bistro_Research_Exterior_paris_building_09_5459
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 118
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: de4f1400-e7fe-4028-bb37-abfb6ec21be6
+        NormalTexture: e066e28a-94df-4782-aefa-726c360d5403
+        Metallic: 1
+        MetallicTexture: f72734db-397a-49de-84c7-0ba463704702
+        Roughness: 1
+        RoughnessTexture: f72734db-397a-49de-84c7-0ba463704702
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  61:
+    Name: Bistro_Research_Exterior_paris_building_09_5455
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 120
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: b6a7de3e-d013-48f7-bef8-acc5adb99e52
+        NormalTexture: f4a83296-87a7-4b67-92bb-1af6537b83e6
+        Metallic: 1
+        MetallicTexture: 6c064a3b-be7f-4d3a-a50a-8f459a7fbd35
+        Roughness: 1
+        RoughnessTexture: 6c064a3b-be7f-4d3a-a50a-8f459a7fbd35
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  62:
+    Name: Bistro_Research_Exterior_paris_building_04_4993
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 122
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 12c256fd-fa78-4f4c-933a-a70164323c7d
+        NormalTexture: b682db70-a71d-43bd-9fe6-f8f2a9d17380
+        Metallic: 1
+        MetallicTexture: eb3a12d0-6ad1-441b-b78e-7b34807063a9
+        Roughness: 1
+        RoughnessTexture: eb3a12d0-6ad1-441b-b78e-7b34807063a9
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  63:
+    Name: Bistro_Research_Exterior_paris_building_10_5493
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 124
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 59d187b6-33a1-4d05-b616-5dd5cb83fbe6
+        NormalTexture: 23515f35-27f8-4e23-b8a5-449d55506d26
+        Metallic: 1
+        MetallicTexture: e4dc8f73-6507-4262-9a8b-059f6468d530
+        Roughness: 1
+        RoughnessTexture: e4dc8f73-6507-4262-9a8b-059f6468d530
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  64:
+    Name: Bistro_Research_Exterior_paris_building_11_5835
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 126
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: b92c1fd8-06e7-4cc6-92fe-256475a3cb5d
+        NormalTexture: 18b2caf9-167a-407d-ba46-f9a61085eab4
+        Metallic: 1
+        MetallicTexture: 0fa2d3f6-c969-425f-b370-20d0dc4c42b3
+        Roughness: 1
+        RoughnessTexture: 0fa2d3f6-c969-425f-b370-20d0dc4c42b3
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  65:
+    Name: Bistro_Research_Exterior_paris_building_10_5495
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 128
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: cd925755-4f9f-4653-9d6f-70a186b1d34c
+        NormalTexture: b07b334f-529c-495a-95a6-568e45b265db
+        Metallic: 1
+        MetallicTexture: 7adb697e-1ee9-4062-9c10-3b125323fa8e
+        Roughness: 1
+        RoughnessTexture: 7adb697e-1ee9-4062-9c10-3b125323fa8e
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  66:
+    Name: Bistro_Research_Exterior_paris_building_10_5499
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 130
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 3651ed9c-6ef3-4656-a818-1ddab687051a
+        NormalTexture: 39f1a380-6920-42d1-8b77-a94328bf83d2
+        Metallic: 1
+        MetallicTexture: a4034b9e-497f-4600-ac38-a34f9d80e1ef
+        Roughness: 1
+        RoughnessTexture: a4034b9e-497f-4600-ac38-a34f9d80e1ef
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  67:
+    Name: Bistro_Research_Exterior_paris_building_10_5503
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 132
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 5e3c5113-3c97-417b-825b-ccbc7a38547b
+        NormalTexture: 0d7b8124-7c18-4539-bd67-56bc61ae4550
+        Metallic: 1
+        MetallicTexture: 6cb097fb-feb2-436b-a55f-f0f5893e9f25
+        Roughness: 1
+        RoughnessTexture: 6cb097fb-feb2-436b-a55f-f0f5893e9f25
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  68:
+    Name: Bistro_Research_Exterior_Paris_Building_08_paris_building_08_9_
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 134
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 8e4d58a4-0c08-497b-a7d2-6f0b0c51134b
+        NormalTexture: 73083020-3520-4951-862c-62269a37f6e9
+        Metallic: 1
+        MetallicTexture: be8978b6-b95d-40a4-bb01-c8d56d6f4d40
+        Roughness: 1
+        RoughnessTexture: be8978b6-b95d-40a4-bb01-c8d56d6f4d40
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  69:
+    Name: Bistro_Research_Exterior_paris_building_05_5125-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 136
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 392752b1-e83c-4257-b0d5-b63dd5ee3ea2
+        NormalTexture: c5e1d317-6abf-4d94-bfb3-6c3a7be3db7f
+        Metallic: 1
+        MetallicTexture: 2747202c-dbfb-4d04-83c1-5a2446f9f600
+        Roughness: 1
+        RoughnessTexture: 2747202c-dbfb-4d04-83c1-5a2446f9f600
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  70:
+    Name: Bistro_Research_Exterior_paris_building_07_5323
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 138
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: cc584663-20a3-4a7f-adf6-3674c8d9c6da
+        NormalTexture: 14b44ef8-ac24-43b3-819c-0b69a7a77dc6
+        Metallic: 1
+        MetallicTexture: 2b20f260-8ca3-4f44-a1a3-5ea536a6a125
+        Roughness: 1
+        RoughnessTexture: 2b20f260-8ca3-4f44-a1a3-5ea536a6a125
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  71:
+    Name: Bistro_Research_Exterior_paris_building_10_5501
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 140
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 2429f12d-d854-45fc-be06-4629ff983c9f
+        NormalTexture: 012350c4-3969-48e4-8dbd-724ebd9a4ac3
+        Metallic: 1
+        MetallicTexture: 4a7c4a6a-0b53-40af-9c3d-7d2bf6685625
+        Roughness: 1
+        RoughnessTexture: 4a7c4a6a-0b53-40af-9c3d-7d2bf6685625
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  72:
+    Name: Bistro_Research_Exterior_paris_building_05_65__5291
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 142
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: c0ef1f28-e1ff-44fc-8a02-55ea30c33baa
+        NormalTexture: 71aded77-5665-400c-9f72-a35324df1889
+        Metallic: 1
+        MetallicTexture: 5577bb03-bc96-463d-8028-1ebdc3d395f3
+        Roughness: 1
+        RoughnessTexture: 5577bb03-bc96-463d-8028-1ebdc3d395f3
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  73:
+    Name: Bistro_Research_Exterior_paris_building_07_5341
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 144
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: cd947217-a265-422b-b74b-8f2dbe62f0ea
+        NormalTexture: fd5768ff-403b-481b-ad73-970c7dc3daf2
+        Metallic: 1
+        MetallicTexture: 45b6ab20-e582-48a5-80b6-bd16fba1d51f
+        Roughness: 1
+        RoughnessTexture: 45b6ab20-e582-48a5-80b6-bd16fba1d51f
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  74:
+    Name: Bistro_Research_Exterior_paris_building_07_5321
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 146
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: e636d62b-110f-4743-a8b5-2f163d994aef
+        NormalTexture: 4b3a9c84-c601-4dd6-b838-40145eea57da
+        Metallic: 1
+        MetallicTexture: 16273ca1-6902-4886-ace1-2e3c43a7b9a2
+        Roughness: 1
+        RoughnessTexture: 16273ca1-6902-4886-ace1-2e3c43a7b9a2
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  75:
+    Name: Bistro_Research_Exterior_paris_building_09_5463
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 148
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 856fe3b3-465e-4bc6-8dc0-3a479ed140ff
+        NormalTexture: f56b94fa-050f-4c96-8e86-33e5a06c10b8
+        Metallic: 1
+        MetallicTexture: 4aacb176-f0f8-4c6c-a78c-7f2f25a4469d
+        Roughness: 1
+        RoughnessTexture: 4aacb176-f0f8-4c6c-a78c-7f2f25a4469d
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  76:
+    Name: Bistro_Research_Exterior_paris_building_09_5465
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 150
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: f559b6bc-64da-4489-872e-225e29ca9620
+        NormalTexture: 6f462170-7989-4d28-a037-7bfa50ad80fd
+        Metallic: 1
+        MetallicTexture: 8338906c-6ee4-4851-ab39-9e0bdc1122ae
+        Roughness: 1
+        RoughnessTexture: 8338906c-6ee4-4851-ab39-9e0bdc1122ae
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  77:
+    Name: Bistro_Research_Exterior_Paris_Chair_01_Mesh_02___9__5949
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 152
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 6632579b-771a-4d54-a5e3-d83cadda9d88
+        NormalTexture: 35663406-76bb-4bf2-bbae-f600d644b637
+        Metallic: 1
+        MetallicTexture: 7932d402-d3a3-4482-9278-06c03d3e7223
+        Roughness: 1
+        RoughnessTexture: 7932d402-d3a3-4482-9278-06c03d3e7223
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  78:
+    Name: Bistro_Research_Exterior_Paris_Chimney_02C_5975-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 154
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 8da0c9d5-d79c-4b21-a00d-65d1963dfe7b
+        NormalTexture: d2fe3f71-f67e-46f5-bf5c-47e393e92e0d
+        Metallic: 1
+        MetallicTexture: d852d620-b012-4787-8922-41ac15d8288e
+        Roughness: 1
+        RoughnessTexture: d852d620-b012-4787-8922-41ac15d8288e
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  79:
+    Name: Bistro_Research_Exterior_Paris_Chimney_01B_5955-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 156
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 26936ee8-2a80-48dd-a172-76177a7f7627
+        NormalTexture: d7800335-7cac-400f-8b7d-56083d921be5
+        Metallic: 1
+        MetallicTexture: 049697a0-2d8e-4801-aa97-648f34085d55
+        Roughness: 1
+        RoughnessTexture: 049697a0-2d8e-4801-aa97-648f34085d55
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  80:
+    Name: Bistro_Research_Exterior_Paris_Chimney_02C_5975-2
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 158
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 561a39fb-d011-4ac1-b9af-3a15f3560552
+        NormalTexture: 8e60228a-9195-4b52-92d5-7f437ddd29b8
+        Metallic: 1
+        MetallicTexture: 44446698-5590-44b4-95ac-1dabb464f305
+        Roughness: 1
+        RoughnessTexture: 44446698-5590-44b4-95ac-1dabb464f305
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  81:
+    Name: Bistro_Research_Exterior_Paris_Chimney_02B_5973-2
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 160
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 1d704710-d96b-4d97-9ecf-3e2ebefdbe9b
+        NormalTexture: 064057b6-6709-4ee6-89bb-efa2fed61261
+        Metallic: 1
+        MetallicTexture: 2de6596d-b02a-4f67-8242-fe8f0bdef09d
+        Roughness: 1
+        RoughnessTexture: 2de6596d-b02a-4f67-8242-fe8f0bdef09d
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  82:
+    Name: Bistro_Research_Exterior_Paris_Chimney_02C_5975-3
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 162
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: d5a4760c-9201-4f69-8357-9f5b0d674b25
+        NormalTexture: 00e5c5d0-5cb9-4128-a54d-19e160cbb94b
+        Metallic: 1
+        MetallicTexture: c36eb3d6-c1e4-4780-8c64-0b42e2df44b2
+        Roughness: 1
+        RoughnessTexture: c36eb3d6-c1e4-4780-8c64-0b42e2df44b2
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  83:
+    Name: Bistro_Research_Exterior_Paris_ElectricBox_5991
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 164
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: a5f62264-f490-4b73-a0b2-529eb3d7b477
+        NormalTexture: ee90046b-4a5c-46f8-884b-9f79f441800a
+        Metallic: 1
+        MetallicTexture: c4968f3c-6835-47ec-8a92-aa7f4ad3cd21
+        Roughness: 1
+        RoughnessTexture: c4968f3c-6835-47ec-8a92-aa7f4ad3cd21
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  84:
+    Name: Bistro_Research_Exterior_Paris_flowers_01e_6051
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 166
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: aec2ea0f-9de1-4f5e-b805-6b53e9364b87
+        NormalTexture: 0572adb6-b7cc-477a-bb73-f2f8bd719a20
+        Metallic: 1
+        MetallicTexture: 2ba26360-e3d2-455a-8ca8-0fe98c846628
+        Roughness: 1
+        RoughnessTexture: 2ba26360-e3d2-455a-8ca8-0fe98c846628
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  85:
+    Name: Bistro_Research_Exterior_Paris_flowers_01d_6047-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 168
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: f94b03b5-e85a-422a-81c7-80907e57a322
+        NormalTexture: 85569a5f-dbe2-4c46-add1-6959f64b89ca
+        Metallic: 1
+        MetallicTexture: fa78c056-be73-4005-8c81-b650c107d22a
+        Roughness: 1
+        RoughnessTexture: fa78c056-be73-4005-8c81-b650c107d22a
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  86:
+    Name: Bistro_Research_Exterior_Paris_Lantern_01A_6071
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 170
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 80921888-bd87-47e6-b53a-8e80d1bdc5a7
+        NormalTexture: dc39e1ab-c252-4b27-b36b-98e336d608bf
+        Metallic: 1
+        MetallicTexture: 2f58a920-5fba-4233-a6dd-d093c39242af
+        Roughness: 1
+        RoughnessTexture: 2f58a920-5fba-4233-a6dd-d093c39242af
+        EmissiveTexture: 80921888-bd87-47e6-b53a-8e80d1bdc5a7
+  87:
+    Name: Bistro_Research_Exterior_Paris_LiquorBottle_01A___9__6101-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 172
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 8856c4ff-52ce-4235-ac96-16ab9052e51b
+        NormalTexture: 69a03621-5b3b-475a-a3e0-5a396018d0f5
+        Metallic: 1
+        MetallicTexture: 00000000-0000-0000-0000-000000000000
+        Roughness: 1
+        RoughnessTexture: 00000000-0000-0000-0000-000000000000
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  88:
+    Name: Bistro_Research_Exterior_Paris_LiquorBottle_01A___9__6101-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 174
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 97642efa-1c72-4bb0-813d-8e07334452b0
+        NormalTexture: 4272b26d-19ee-4fb7-87a2-5904dec84f5b
+        Metallic: 1
+        MetallicTexture: ebadffb2-0cd2-45bd-9d6f-8a7e62e4bc16
+        Roughness: 1
+        RoughnessTexture: ebadffb2-0cd2-45bd-9d6f-8a7e62e4bc16
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  89:
+    Name: Bistro_Research_Exterior_Paris_LiquorBottle_01A___9__6101-2
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 176
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 2faf1bee-4209-4ff8-8bfb-5d9a9392dc89
+        NormalTexture: 7bcc6a10-c63e-43e1-9b79-402bec18b13a
+        Metallic: 1
+        MetallicTexture: 00000000-0000-0000-0000-000000000000
+        Roughness: 1
+        RoughnessTexture: 00000000-0000-0000-0000-000000000000
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  90:
+    Name: Bistro_Research_Exterior_Paris_MainBalcony_01_6103-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 178
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: a1ce5424-609c-40cb-abec-65938e88fac9
+        NormalTexture: d51355b7-8fbc-4c11-a9d4-2ca472bc84ad
+        Metallic: 1
+        MetallicTexture: 2b0e5306-4c8c-46ec-8ab5-6c1ebffdd1fa
+        Roughness: 1
+        RoughnessTexture: 2b0e5306-4c8c-46ec-8ab5-6c1ebffdd1fa
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  91:
+    Name: Bistro_Research_Exterior_Paris_MainBalcony_01_6103-2
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 180
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: b0140c3c-1521-4e9a-bdfd-46bdffcd2e41
+        NormalTexture: 2fd9b5c4-3fe7-4c9d-8f1f-53a58eb586f4
+        Metallic: 1
+        MetallicTexture: 7db4c956-c410-4fa8-be3d-81ea82886954
+        Roughness: 1
+        RoughnessTexture: 7db4c956-c410-4fa8-be3d-81ea82886954
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  92:
+    Name: Bistro_Research_Exterior_Paris_MainBalcony_01_6103-3
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 182
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 65f175ae-b4c3-45c2-b1c3-3217c5c39575
+        NormalTexture: fa14fafc-c448-4b02-baef-1cacb2d93942
+        Metallic: 1
+        MetallicTexture: 2305ee0e-19a4-4bfd-99b4-04c534bb33f1
+        Roughness: 1
+        RoughnessTexture: 2305ee0e-19a4-4bfd-99b4-04c534bb33f1
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  93:
+    Name: Bistro_Research_Exterior_Paris_MainBalcony_01_6103-4
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 184
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: f0039cdd-f921-4038-a1dd-ff6db7fbc316
+        NormalTexture: bbf9b2a3-7fa7-4ecf-9907-23758d2fc45a
+        Metallic: 1
+        MetallicTexture: 66ed47b3-8f5a-4aee-824c-7d0f82a3e766
+        Roughness: 1
+        RoughnessTexture: 66ed47b3-8f5a-4aee-824c-7d0f82a3e766
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  94:
+    Name: Bistro_Research_Exterior_Paris_MenuSign_01a_6105
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 186
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 908b60f7-801b-4b1e-a0b7-27a8d62970b8
+        NormalTexture: cc1fd0a7-d02e-4402-b158-5cee0c26c05d
+        Metallic: 1
+        MetallicTexture: 528371ed-3f5c-4d75-9fe0-ed2be0775003
+        Roughness: 1
+        RoughnessTexture: 528371ed-3f5c-4d75-9fe0-ed2be0775003
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  95:
+    Name: Bistro_Research_Exterior_Paris_MenuSign_01b2_6111-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 188
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 23978b9f-12fa-4b13-8907-a0a487a605dc
+        NormalTexture: b217c091-6fe4-4a4e-9650-db6b4b19672a
+        Metallic: 1
+        MetallicTexture: 1c7f988f-1a24-4b66-a8d6-3d0d21e5fa54
+        Roughness: 1
+        RoughnessTexture: 1c7f988f-1a24-4b66-a8d6-3d0d21e5fa54
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  96:
+    Name: Bistro_Research_Exterior_Paris_MenuSign_01b2_6111-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 190
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: f47ebdf8-82e9-4198-b19c-a8d5fc22bbbc
+        NormalTexture: 6aa284c9-4972-45a3-be4f-d247d16132c7
+        Metallic: 1
+        MetallicTexture: 037b40b0-3070-49c7-8f43-ad1e63f17cdb
+        Roughness: 1
+        RoughnessTexture: 037b40b0-3070-49c7-8f43-ad1e63f17cdb
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  97:
+    Name: Bistro_Research_Exterior_Paris_NapkinHolder_01A___9__6133
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 192
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: c6c1c956-86dc-4ffd-a649-c9a24021ada5
+        NormalTexture: 77fe134f-b173-49d8-962e-c664578b7afb
+        Metallic: 1
+        MetallicTexture: 9efdf441-ebb3-4219-991c-008845aaa811
+        Roughness: 1
+        RoughnessTexture: 9efdf441-ebb3-4219-991c-008845aaa811
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  98:
+    Name: Bistro_Research_Exterior_Paris_PlantPot_01A_6135
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 194
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 9a38b83f-b4f9-4950-a479-55078cd476f2
+        NormalTexture: 39ef6736-3566-4801-b57d-db7e513e8072
+        Metallic: 1
+        MetallicTexture: f401664e-c7b3-4b54-b329-07105a571753
+        Roughness: 1
+        RoughnessTexture: f401664e-c7b3-4b54-b329-07105a571753
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  99:
+    Name: Bistro_Research_Exterior_Paris_ShopSign_01C_6161-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 196
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 8c167841-bcd6-40e6-aac4-1fec2e7a74a1
+        NormalTexture: 83d9ec3a-955a-4922-9683-a4fd0b9e9932
+        Metallic: 1
+        MetallicTexture: a98a73a8-ca47-4914-bb63-7c7b0a4e7bbb
+        Roughness: 1
+        RoughnessTexture: a98a73a8-ca47-4914-bb63-7c7b0a4e7bbb
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  100:
+    Name: Bistro_Research_Exterior_Paris_ShopSign_01B2_6159-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 198
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 5148bdbe-eda3-437b-8531-09cb4a078583
+        NormalTexture: 2d85f3fc-d31e-4c91-9ab4-74216c380267
+        Metallic: 1
+        MetallicTexture: aa4de4eb-af26-463c-86dd-e25056f9ad9b
+        Roughness: 1
+        RoughnessTexture: aa4de4eb-af26-463c-86dd-e25056f9ad9b
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  101:
+    Name: Bistro_Research_Exterior_Paris_ShopSign_01D_6165-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 200
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 1b547e32-b756-41fd-9483-71ad8ba940fc
+        NormalTexture: 5aa11229-74f0-40a1-9ddc-fc14c1732626
+        Metallic: 1
+        MetallicTexture: 0811b023-a9c4-48e1-a9b2-52e470d85f78
+        Roughness: 1
+        RoughnessTexture: 0811b023-a9c4-48e1-a9b2-52e470d85f78
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  102:
+    Name: Bistro_Research_Exterior_Paris_ShopSign_01E_6167-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 202
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 00000000-0000-0000-0000-000000000000
+        NormalTexture: 5196a8f5-06d4-421c-add3-cc90b4fe7f94
+        Metallic: 1
+        MetallicTexture: 9124d821-f0a5-41ad-8504-abb362e21d23
+        Roughness: 1
+        RoughnessTexture: 9124d821-f0a5-41ad-8504-abb362e21d23
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  103:
+    Name: Bistro_Research_Exterior_Paris_SidewalkBarrier_01A_6169
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 204
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: c55743a5-4bc0-43b2-ae81-becbe7149c9e
+        NormalTexture: 8a235e56-e067-495d-96b3-5adc73aef649
+        Metallic: 1
+        MetallicTexture: c1dea7a9-a56b-428c-95e1-8b153530c6ad
+        Roughness: 1
+        RoughnessTexture: c1dea7a9-a56b-428c-95e1-8b153530c6ad
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  104:
+    Name: Bistro_Research_Exterior_Paris_Street_6251
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 206
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: fb0ca7c7-e4a0-45e6-942d-ce59e79b912b
+        NormalTexture: d635e4fd-4bf1-4feb-bf3a-cc3df2af76a6
+        Metallic: 1
+        MetallicTexture: 4fa67026-dba0-4e32-a13d-ace11291eb15
+        Roughness: 1
+        RoughnessTexture: 4fa67026-dba0-4e32-a13d-ace11291eb15
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  105:
+    Name: Bistro_Research_Exterior_Paris_Street_6185-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 208
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: bd4e2b5a-d685-46c8-b9c3-14c1d6130cae
+        NormalTexture: ff2cdb75-c451-4938-bf06-f9fecd1b3758
+        Metallic: 1
+        MetallicTexture: f32b6e49-9108-4d20-837d-91e0fdbff45e
+        Roughness: 1
+        RoughnessTexture: f32b6e49-9108-4d20-837d-91e0fdbff45e
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  106:
+    Name: Bistro_Research_Exterior_Paris_Street_6185-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 210
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: c855d619-25e5-4480-9ce4-da987ee92d2f
+        NormalTexture: 21430093-c57b-4b44-9021-4fec4af29710
+        Metallic: 1
+        MetallicTexture: c913b77c-26eb-4301-a043-03b760a7b33c
+        Roughness: 1
+        RoughnessTexture: c913b77c-26eb-4301-a043-03b760a7b33c
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  107:
+    Name: Bistro_Research_Exterior_Paris_Street_6185-2
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 212
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 947aa7c3-1ae8-4bcb-a4b1-2018fb94e6e2
+        NormalTexture: 4df84ce2-3cce-46e3-a7c6-cc5c996fcc1a
+        Metallic: 1
+        MetallicTexture: 975c3789-33c4-4a9b-b8d2-21e4a795f4f0
+        Roughness: 1
+        RoughnessTexture: 975c3789-33c4-4a9b-b8d2-21e4a795f4f0
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  108:
+    Name: Bistro_Research_Exterior_Paris_Street_6185-3
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 214
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: a6188c9e-ae6a-4f7e-9d40-171ab7b9c542
+        NormalTexture: a6bb4a13-4178-486a-a050-cafc8eb989e1
+        Metallic: 1
+        MetallicTexture: 11de1846-cfd7-4a94-812e-f3cada7a000d
+        Roughness: 1
+        RoughnessTexture: 11de1846-cfd7-4a94-812e-f3cada7a000d
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  109:
+    Name: Bistro_Research_Exterior_Paris_Street_6245-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 216
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 6012a6f8-d43c-4799-be62-469cc3d61c85
+        NormalTexture: 06ec0dbc-d161-4662-96a5-388b753c58b3
+        Metallic: 1
+        MetallicTexture: b880f24d-c4ba-4c51-8afc-8194655f7221
+        Roughness: 1
+        RoughnessTexture: b880f24d-c4ba-4c51-8afc-8194655f7221
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  110:
+    Name: Bistro_Research_Exterior_Paris_Street_6239-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 218
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: a790af9b-11b1-42ca-b17d-8668655e2ca4
+        NormalTexture: 36fd2eda-074e-4a29-aadc-470e55a8eddc
+        Metallic: 1
+        MetallicTexture: 530f7515-963e-4abb-9382-6dd30af99a79
+        Roughness: 1
+        RoughnessTexture: 530f7515-963e-4abb-9382-6dd30af99a79
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  111:
+    Name: Bistro_Research_Exterior_Paris_Street_6239-2
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 220
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 6aa17bcd-3337-406a-9f51-4302e05c1492
+        NormalTexture: 0abcf3d8-c308-485f-bdbe-acb9b860090e
+        Metallic: 1
+        MetallicTexture: 2fe84f9b-7450-4b87-a5ab-75d39a363e86
+        Roughness: 1
+        RoughnessTexture: 2fe84f9b-7450-4b87-a5ab-75d39a363e86
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  112:
+    Name: Bistro_Research_Exterior_Paris_Street_6225-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 222
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 813b206b-02d9-4536-8039-4ffdb0e2b319
+        NormalTexture: 3e275b0d-809f-4959-b7c2-57af7f6fc994
+        Metallic: 1
+        MetallicTexture: 1d593f22-3737-49e6-952b-24ef1afe3882
+        Roughness: 1
+        RoughnessTexture: 1d593f22-3737-49e6-952b-24ef1afe3882
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  113:
+    Name: Bistro_Research_Exterior_Paris_Street_6231-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 224
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 190e6555-0886-4a67-9218-eb533762abc9
+        NormalTexture: 736f32ad-b930-46e4-a55b-f84b5ee253be
+        Metallic: 1
+        MetallicTexture: c587b686-396c-4cde-b831-28163c81adf8
+        Roughness: 1
+        RoughnessTexture: c587b686-396c-4cde-b831-28163c81adf8
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  114:
+    Name: Bistro_Research_Exterior_Paris_Street_6231-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 226
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 36aeedfc-97f4-4104-9fc1-7f4359bcb4a0
+        NormalTexture: 815e6d6b-be58-4e51-9bfe-62bc7308fc0f
+        Metallic: 1
+        MetallicTexture: d214f3c2-57ea-4b8b-ace9-6fdc168b9f78
+        Roughness: 1
+        RoughnessTexture: d214f3c2-57ea-4b8b-ace9-6fdc168b9f78
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  115:
+    Name: Bistro_Research_Exterior_Paris_Street_6255
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 228
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 1b6d94cf-6216-4ec2-bff9-b6a3b8a89bd3
+        NormalTexture: f7b9f4f7-431a-4ffc-ba4e-2cac00a99fc0
+        Metallic: 1
+        MetallicTexture: 1faa5cb3-9d49-4288-8238-d88fa7bfb1dc
+        Roughness: 1
+        RoughnessTexture: 1faa5cb3-9d49-4288-8238-d88fa7bfb1dc
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  116:
+    Name: Bistro_Research_Exterior_Paris_StreetLight_01B___9__6311-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 230
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: c649d444-4065-4c6a-a9f3-76ae46f28c73
+        NormalTexture: 45e714fb-c740-4014-bdda-a0bfc1c8504c
+        Metallic: 1
+        MetallicTexture: 20351aeb-eb8f-4cec-8d52-4b11f0b4ab10
+        Roughness: 1
+        RoughnessTexture: 20351aeb-eb8f-4cec-8d52-4b11f0b4ab10
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  117:
+    Name: Bistro_Research_Exterior_Paris_StreetLight_01a___9__6279-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 232
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 5b01b783-7a0f-4015-a412-c805f394ca2e
+        NormalTexture: a7231a97-4b0f-48ac-a873-6b3f2fde1a4e
+        Metallic: 1
+        MetallicTexture: ada300f4-ae9b-40ba-b42a-e1c96ec85155
+        Roughness: 1
+        RoughnessTexture: ada300f4-ae9b-40ba-b42a-e1c96ec85155
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  118:
+    Name: Bistro_Research_Exterior_Paris_StringLights_01a8_6487-0
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 234
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 00000000-0000-0000-0000-000000000000
+        NormalTexture: 00341375-2517-49d8-b3b6-12655ba31ab4
+        Metallic: 1
+        MetallicTexture: db30b8ba-e3ae-4c1a-961d-409d5b54ff16
+        Roughness: 1
+        RoughnessTexture: db30b8ba-e3ae-4c1a-961d-409d5b54ff16
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  119:
+    Name: Bistro_Research_Exterior_Paris_StreetLight_01B___9__6311-2
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 236
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: d9f7b1b8-52d1-4f4f-9e73-922d30f1e373
+        NormalTexture: 4db5cfc8-aa24-4b20-ac44-d63c5b0437ed
+        Metallic: 1
+        MetallicTexture: 6cad9386-7460-4197-a14e-f001be99473f
+        Roughness: 1
+        RoughnessTexture: 6cad9386-7460-4197-a14e-f001be99473f
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  120:
+    Name: Bistro_Research_Exterior_Paris_StreetPivot_09_6467
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 238
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: c10efa70-715c-454e-8762-f23ed2c29b4f
+        NormalTexture: 4be5ff63-4df6-48bb-959a-3169d218535d
+        Metallic: 1
+        MetallicTexture: a40afa74-0e79-4e0f-9ce0-f685fa84e039
+        Roughness: 1
+        RoughnessTexture: a40afa74-0e79-4e0f-9ce0-f685fa84e039
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  121:
+    Name: Bistro_Research_Exterior_Paris_StreetSign_01A_6469
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 240
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: ddce539c-c9a1-45fb-a08e-fb6ad952f3b1
+        NormalTexture: e8887225-3ba7-4474-a092-edc0529b6ca7
+        Metallic: 1
+        MetallicTexture: 7c265dfd-7d03-477f-8167-bb8dcb609837
+        Roughness: 1
+        RoughnessTexture: 7c265dfd-7d03-477f-8167-bb8dcb609837
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  122:
+    Name: Bistro_Research_Exterior_Paris_StringLights_01a8_6487-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 242
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 3b90ed7c-8dff-4b9e-a5ec-ee634ca2123d
+        NormalTexture: 5be30a0e-4f59-48d9-a640-31b5a80e4bf8
+        Metallic: 1
+        MetallicTexture: aedf3b39-9c60-4033-b1be-185982ae443f
+        Roughness: 1
+        RoughnessTexture: aedf3b39-9c60-4033-b1be-185982ae443f
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  123:
+    Name: Bistro_Research_Exterior_Paris_StringLights_01a8_6487-2
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 244
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 00000000-0000-0000-0000-000000000000
+        NormalTexture: 9013ac78-de42-4cb3-b206-c6854d1e9284
+        Metallic: 1
+        MetallicTexture: eb3ae106-dc30-425c-895d-791c43b8bc1c
+        Roughness: 1
+        RoughnessTexture: eb3ae106-dc30-425c-895d-791c43b8bc1c
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  124:
+    Name: Bistro_Research_Exterior_Paris_StringLights_01a8_6487-3
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 246
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 00000000-0000-0000-0000-000000000000
+        NormalTexture: a33b0783-aa48-435f-83be-7f1fa030a316
+        Metallic: 1
+        MetallicTexture: 6927190c-1ce0-4723-acff-11bf0abfe96d
+        Roughness: 1
+        RoughnessTexture: 6927190c-1ce0-4723-acff-11bf0abfe96d
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  125:
+    Name: Bistro_Research_Exterior_Paris_StringLights_01a8_6487-4
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 248
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 00000000-0000-0000-0000-000000000000
+        NormalTexture: 72c5d282-a7a3-4c82-a44a-164d2f096ca2
+        Metallic: 1
+        MetallicTexture: 372ab765-dd38-420a-b36e-f950465d6309
+        Roughness: 1
+        RoughnessTexture: 372ab765-dd38-420a-b36e-f950465d6309
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  126:
+    Name: Bistro_Research_Exterior_Paris_StringLights_01a8_6487-5
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 250
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 00000000-0000-0000-0000-000000000000
+        NormalTexture: fa51b33b-090a-40a9-95a6-93e89b4c8346
+        Metallic: 1
+        MetallicTexture: 84cb9a22-0dc2-43e6-b098-70f506d8338a
+        Roughness: 1
+        RoughnessTexture: 84cb9a22-0dc2-43e6-b098-70f506d8338a
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  127:
+    Name: Bistro_Research_Exterior_Paris_StringLights_01a8_6487-6
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 252
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 00000000-0000-0000-0000-000000000000
+        NormalTexture: 398adf55-5933-4c25-84df-e74dd9beeae6
+        Metallic: 1
+        MetallicTexture: 3fba14a4-0424-4b6f-b77c-3e09cf42bff0
+        Roughness: 1
+        RoughnessTexture: 3fba14a4-0424-4b6f-b77c-3e09cf42bff0
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  128:
+    Name: Bistro_Research_Exterior_Paris_Table_01___9__6509
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 254
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 6e5f2d4a-619e-482e-b8d0-12da37bdd4a4
+        NormalTexture: 5851f44b-8f5c-4cc1-a078-14fef899ba6c
+        Metallic: 1
+        MetallicTexture: b0e8f1e7-d6de-4695-8825-bd325a7410f7
+        Roughness: 1
+        RoughnessTexture: b0e8f1e7-d6de-4695-8825-bd325a7410f7
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  129:
+    Name: Bistro_Research_Exterior_Paris_TrafficSign_01A_6511
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 256
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: a0bb0723-a570-4893-8c30-12a1ae0c730e
+        NormalTexture: 5a4fd5be-540f-4005-ae5c-4afdcd65476d
+        Metallic: 1
+        MetallicTexture: 3625865f-a7d4-43b2-ab6a-6d1bbf95bc0f
+        Roughness: 1
+        RoughnessTexture: 3625865f-a7d4-43b2-ab6a-6d1bbf95bc0f
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  130:
+    Name: Bistro_Research_Exterior_TrashCanOpen_01A_6527
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 258
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 2593b997-a99c-4e53-9385-d40131bf4ea4
+        NormalTexture: b365989d-a5de-4779-84f9-c51a374b1ad9
+        Metallic: 1
+        MetallicTexture: c93a4462-31a0-4026-95ee-bc16faf48a64
+        Roughness: 1
+        RoughnessTexture: c93a4462-31a0-4026-95ee-bc16faf48a64
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  131:
+    Name: Bistro_Research_Exterior_Spotlights_6525-1
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 260
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 5d0f238d-9ced-4c21-a7d5-b7f65bd75f17
+        NormalTexture: 4432c50e-a90f-444b-8867-b2c0b0ddb326
+        Metallic: 1
+        MetallicTexture: 11226066-9954-46a3-a614-0f8cc3b19d6d
+        Roughness: 1
+        RoughnessTexture: 11226066-9954-46a3-a614-0f8cc3b19d6d
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  132:
+    Name: Bistro_Research_Exterior_Spotlights_6525-2
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 262
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 00000000-0000-0000-0000-000000000000
+        NormalTexture: 77d876cd-7ee3-4094-919f-84c4cb3fe955
+        Metallic: 1
+        MetallicTexture: 27ffdccd-f3e4-4bed-abac-4592d101345f
+        Roughness: 1
+        RoughnessTexture: 27ffdccd-f3e4-4bed-abac-4592d101345f
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000
+  133:
+    Name: Bistro_Research_Exterior_Spotlights_6525-3
+    Parent: 1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: c3af516e-391e-4fc8-9c32-7308cef47d75
+        MeshNode: 264
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 00000000-0000-0000-0000-000000000000
+        NormalTexture: 7c0cf68d-42aa-4782-8407-0ee200e25c9c
+        Metallic: 1
+        MetallicTexture: afcbd948-6540-4350-b895-b6162fb00d5d
+        Roughness: 1
+        RoughnessTexture: afcbd948-6540-4350-b895-b6162fb00d5d
+        EmissiveTexture: 00000000-0000-0000-0000-000000000000

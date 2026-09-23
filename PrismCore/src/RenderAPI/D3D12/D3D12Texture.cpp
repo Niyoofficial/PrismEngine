@@ -8,6 +8,7 @@
 #include "WICTextureLoader.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "Prism/AssetManagement/AssetRegistry.h"
 #include "Prism/Render/RenderCommandQueue.h"
 
 #if USE_PIX
@@ -37,21 +38,22 @@ D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, const TextureDesc& d
 	PE_ASSERT_HR(m_resource->SetName(m_originalDesc.textureName.c_str()));
 }
 
-D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish)
+D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, std::fs::path filepath, bool loadAsCubemap, bool waitForLoadFinish)
 	: Texture(renderDevice)
 {
-	std::wstring ext = filepath.substr(filepath.find_last_of('.', std::wstring::npos) + 1);
-	if (ext == L"hdr")
+	auto ext = filepath.extension();
+	auto absPath = AssetRegistry::Get().GetAbsPath(filepath);
+	if (ext == ".hdr")
 	{
 		int32_t width = -1;
 		int32_t height = -1;
 		int32_t channels = -1;
 
-		float* loadedData = stbi_loadf(WStringToString(filepath).c_str(), &width, &height, &channels, 4);
+		float* loadedData = stbi_loadf(absPath.string().c_str(), &width, &height, &channels, 4);
 
 		if (!loadedData)
 		{
-			PE_RENDER_LOG(Error, "Could not load texture from filepath {}", WStringToString(filepath));
+			PE_RENDER_LOG(Error, "Could not load texture from filepath {}", filepath.string());
 			return;
 		}
 
@@ -60,7 +62,7 @@ D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, std::wstring filepat
 			.width = width,
 			.height = height,
 			.depthOrArraySize = 1,
-			.mipLevels = (int32_t)std::log2f(max(width, height)) + 1,
+			.mipLevels = (int32_t)std::log2f(std::max(width, height)) + 1,
 			.dimension = ResourceDimension::Tex2D,
 			.format = TextureFormat::RGBA32_Float,
 			.bindFlags = BindFlags::ShaderResource,
@@ -79,9 +81,9 @@ D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, std::wstring filepat
 
 		PE_ASSERT(m_resource);
 
-		PE_ASSERT_HR(m_resource->SetName(filepath.c_str()));
+		PE_ASSERT_HR(m_resource->SetName(filepath.wstring().c_str()));
 
-		auto context = m_renderDevice->AllocateContext(std::format(L"LoadHDRImage_{}", filepath));
+		auto context = m_renderDevice->AllocateContext(std::format(L"LoadHDRImage_{}", filepath.wstring()));
 		context->UpdateTexture(this, {.data = loadedData, .sizeInBytes = (int64_t)(width * height * 4 * 4)}, 0);
 
 		GenerateMipMaps(context);
@@ -96,7 +98,7 @@ D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, std::wstring filepat
 		auto loadedResDesc = m_resource->GetDesc();
 		PE_ASSERT(!loadAsCubemap || resDesc.DepthOrArraySize == 6, "Cubemaps must have an array size of 6");
 
-		m_originalDesc = D3D12::GetTextureDesc(loadedResDesc, filepath, ResourceUsage::Default, {}, loadAsCubemap);
+		m_originalDesc = D3D12::GetTextureDesc(loadedResDesc, filepath.wstring(), ResourceUsage::Default, {}, loadAsCubemap);
 	}
 	else
 	{
@@ -110,18 +112,18 @@ D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, std::wstring filepat
 		auto* d3d12Device = static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12Device();
 
 		auto func =
-			[loadAsCubemap, d3d12Device, filepath, this]()
+			[loadAsCubemap, d3d12Device, filepath, absPath, this]()
 			{
 #if USE_PIX
 				// This will show up in the PIX event viewer incorrectly because its called asynchronously,
 				// it'd work correctly if the event was called on the cmd list, but we cannot access is from ResourceUploadBatch
 				// and I want to keep this function async since CreateWICTextureFromFileEx can take a while
-				PIXBeginEvent(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12CommandQueue(), PIX_COLOR(0, 0, 0), std::format(L"LoadWICImageFromFile_{}", filepath).c_str());
+				PIXBeginEvent(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12CommandQueue(), PIX_COLOR(0, 0, 0), std::format(L"LoadWICImageFromFile_{}", filepath.wstring()).c_str());
 #endif
 
 				DX::ResourceUploadBatch batch(d3d12Device);
 				batch.Begin();
-				auto hr = DX::CreateWICTextureFromFileEx(d3d12Device, batch, filepath.c_str(), 0,
+				auto hr = DX::CreateWICTextureFromFileEx(d3d12Device, batch, absPath.wstring().c_str(), 0,
 					D3D12_RESOURCE_FLAG_NONE, DX::WIC_LOADER_FORCE_RGBA32 | DX::WIC_LOADER_MIP_AUTOGEN, &m_resource);
 				batch.End(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12CommandQueue()).wait();
 
@@ -136,11 +138,11 @@ D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, std::wstring filepat
 					auto resDesc = m_resource->GetDesc();
 					PE_ASSERT(!loadAsCubemap || resDesc.DepthOrArraySize == 6, "Cubemaps must have an array size of 6");
 
-					m_originalDesc = D3D12::GetTextureDesc(resDesc, filepath, ResourceUsage::Default, {}, loadAsCubemap);
+					m_originalDesc = D3D12::GetTextureDesc(resDesc, filepath.wstring(), ResourceUsage::Default, {}, loadAsCubemap);
 				}
 				else
 				{
-					PE_RENDER_LOG(Error, "Could not load texture from filepath {} Error: {} {}", WStringToString(filepath), hr, WStringToString(GetHResultMessage(hr)));
+					PE_RENDER_LOG(Error, "Could not load texture from filepath {} Error: {} {}", filepath.string(), hr, WStringToString(GetHResultMessage(hr)));
 					return;
 				}
 			};

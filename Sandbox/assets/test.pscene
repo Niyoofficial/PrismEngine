@@ -1,0 +1,57 @@
+Entities:
+  0:
+    Name: Light
+    Parent: -1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - -0.0471065529
+          - -0.0388316475
+          - -0.770185351
+          - 0.634891808
+        Scale:
+          - 1
+          - 1
+          - 1
+      13145555154171881765:
+        Color:
+          - 1
+          - 1
+          - 1
+        Intensity: 1
+  1:
+    Name: node_damagedHelmet_-6514
+    Parent: -1
+    Components:
+      10946969342728988009:
+        Translation:
+          - 0
+          - 0
+          - 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 0
+        Scale:
+          - 1
+          - 1
+          - 1
+      12682028741605527959:
+        MeshAssetHandle: 9fbe3dc2-21af-4863-a9e9-30b436707af3
+        MeshNode: 1
+        Albedo:
+          - 1
+          - 1
+          - 1
+        AlbedoTexture: 33db5e9b-76ba-44c6-b940-9ca6eba29e61
+        NormalTexture: 500b29a4-da80-4065-ae9d-91f18dea9016
+        Metallic: 1
+        MetallicTexture: 9a9bbfc2-ba09-4758-aa9d-bad8941ba722
+        Roughness: 1
+        RoughnessTexture: 9a9bbfc2-ba09-4758-aa9d-bad8941ba722
+        EmissiveTexture: e1362f2b-f5fb-4eac-ac38-111b5170ab74

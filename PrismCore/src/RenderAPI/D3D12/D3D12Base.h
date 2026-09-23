@@ -3,6 +3,7 @@
 #include "D3D12Utils.h"
 
 #define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <Windows.h>
 #include <wrl/client.h>
 #include <corecrt_math_defines.h>

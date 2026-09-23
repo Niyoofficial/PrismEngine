@@ -18,7 +18,7 @@ protected:
 
 private:
 	Ref<Core::Window> m_window;
-	Ref<EditorLayer> m_sandboxLayer;
+	Ref<EditorLayer> m_editorLayer;
 
 	Ref<Scene> m_scene;
 };

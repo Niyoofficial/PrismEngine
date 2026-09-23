@@ -180,9 +180,10 @@ static std::unordered_map<TextureType, Ref<TextureAsset>> LoadTexturesForMesh(co
 	return textures;
 }
 
-MeshAsset::MeshAsset(AssetManager* assetManager, const std::fs::path& path)
-	: Asset(assetManager, path)
+MeshAsset::MeshAsset(AssetManager* assetManager, AssetHandle handle)
+	: Asset(assetManager, handle)
 {
+	auto path = assetManager->GetPathFromHandle(handle);
 	const aiScene* scene = m_importer.ReadFile(AssetRegistry::Get().GetAbsPath(path).string().c_str(),
 											   aiProcess_Triangulate |
 											   aiProcess_ConvertToLeftHanded |
@@ -232,6 +233,11 @@ MeshAsset::MeshAsset(AssetManager* assetManager, const std::fs::path& path)
 		PE_ASSERT(texture);
 		texture->WaitForLoadFinish();
 	}
+}
+
+AssetType* MeshAsset::GetAssetType() const
+{
+    return MeshAssetType::Get();
 }
 
 std::wstring MeshAsset::GetLoadedFilepath() const
@@ -301,12 +307,12 @@ int64_t MeshAsset::GetNodeVertexCount(MeshNode node) const
 	return 0;
 }
 
-std::wstring MeshAsset::GetNodeName(MeshNode node) const
+std::string MeshAsset::GetNodeName(MeshNode node) const
 {
 	if (std::holds_alternative<aiNode*>(m_nodes[node].assimpNode))
-		return StringToWString(std::get<aiNode*>(m_nodes[node].assimpNode)->mName.C_Str());
+		return std::get<aiNode*>(m_nodes[node].assimpNode)->mName.C_Str();
 	else if (std::holds_alternative<aiMesh*>(m_nodes[node].assimpNode))
-		return StringToWString(std::get<aiMesh*>(m_nodes[node].assimpNode)->mName.C_Str());
+		return std::get<aiMesh*>(m_nodes[node].assimpNode)->mName.C_Str();
 	return {};
 }
 

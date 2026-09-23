@@ -42,7 +42,9 @@ struct MeshNodeIterator
 class MeshAsset : public Asset
 {
 public:
-	MeshAsset(AssetManager* assetManager, const std::fs::path& path);
+	MeshAsset(AssetManager* assetManager, AssetHandle handle);
+
+    AssetType* GetAssetType() const override;
 
 	std::wstring GetLoadedFilepath() const;
 
@@ -54,7 +56,7 @@ public:
 	MeshNode GetNodeParent(MeshNode node) const;
 	bool DoesNodeContainVertices(MeshNode node) const;
 	int64_t GetNodeVertexCount(MeshNode node) const;
-	std::wstring GetNodeName(MeshNode node) const;
+	std::string GetNodeName(MeshNode node) const;
 
 	Ref<TextureAsset> GetNodeTexture(MeshNode node, TextureType type);
 
@@ -73,8 +75,12 @@ public:
 	MeshNodeIterator begin() const;
 	MeshNodeIterator end() const;
 
+    
 private:
-	std::wstring m_filePath;
+    void SaveAsset(const std::fs::path& path, YAML::Emitter& emitter) override { PE_ASSERT_NO_ENTRY(); }
+
+private:
+    std::wstring m_filePath;
 
 	Assimp::Importer m_importer;
 

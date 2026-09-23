@@ -2,7 +2,6 @@
 
 #include "Prism/AssetManagement/AssetManager.h"
 #include "Prism/AssetManagement/AssetRegistry.h"
-#include "Prism/AssetManagement/AssetType.h"
 #include "Prism/Render/PBR/PBREntityRenderProxy.h"
 
 namespace Prism
@@ -73,8 +72,9 @@ void PBRMeshRendererComponent::DrawImGuiInspector()
 
 			ImGui::SameLine();
 
+			;
 			// Dropdown
-			auto selectedFilename = texture ? texture->GetAssetPath().filename() : "";
+            auto selectedFilename = texture ? AssetManager::Get().GetPathFromHandle(texture->GetHandle()) : "";
 			ImGui::PushID((name + "_combo").c_str());
 			ImGui::SetNextItemWidth(ImGui::GetContentRegionAvail().x);
 			if (ImGui::BeginCombo("", selectedFilename.string().c_str()))
@@ -166,5 +166,35 @@ Ref<Render::EntityRenderProxy> PBRMeshRendererComponent::CreateRenderProxy(glm::
 	}
 
 	return nullptr;
+}
+
+YAML::Node PBRMeshRendererComponent::ToYAML() const
+{
+    auto node = MeshRendererComponent::ToYAML();
+
+	node["Albedo"] = m_albedo;
+    node["AlbedoTexture"] = m_albedoTexture ? m_albedoTexture->GetHandle() : AssetHandle();
+    node["NormalTexture"] = m_normalTexture ? m_normalTexture->GetHandle() : AssetHandle();
+	node["Metallic"] = m_metallic;
+    node["MetallicTexture"] = m_metallicTexture ? m_metallicTexture->GetHandle() : AssetHandle();
+	node["Roughness"] = m_roughness;
+    node["RoughnessTexture"] = m_roughnessTexture ? m_roughnessTexture->GetHandle() : AssetHandle();
+	node["EmissiveTexture"] = m_emissiveTexture ? m_emissiveTexture->GetHandle() : AssetHandle();
+
+	return node;
+}
+
+void PBRMeshRendererComponent::FromYAML(const YAML::Node& node)
+{
+    MeshRendererComponent::FromYAML(node);
+
+	m_albedo = node["Albedo"].as<glm::float3>();
+    m_albedoTexture = AssetManager::Get().LoadAsset<TextureAsset>(node["AlbedoTexture"].as<AssetHandle>());
+    m_normalTexture = AssetManager::Get().LoadAsset<TextureAsset>(node["NormalTexture"].as<AssetHandle>());
+	m_metallic = node["Metallic"].as<float>();
+    m_metallicTexture = AssetManager::Get().LoadAsset<TextureAsset>(node["MetallicTexture"].as<AssetHandle>());
+	m_roughness = node["Roughness"].as<float>();
+    m_roughnessTexture = AssetManager::Get().LoadAsset<TextureAsset>(node["RoughnessTexture"].as<AssetHandle>());
+    m_emissiveTexture = AssetManager::Get().LoadAsset<TextureAsset>(node["EmissiveTexture"].as<AssetHandle>());
 }
 }

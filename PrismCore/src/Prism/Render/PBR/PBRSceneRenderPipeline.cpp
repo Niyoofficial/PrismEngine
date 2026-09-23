@@ -377,7 +377,7 @@ void PBRSceneRenderPipeline::ConvertSkyboxToCubemap(RenderContext* renderContext
 	}, BarrierLayout::UnorderedAccess);
 
 	// TODO: Remove hardcoded skybox texture
-	m_environmentTexture = Texture::CreateFromFile(L"assets/tief_etz_4k.hdr");
+	m_environmentTexture = Texture::CreateFromFile(L"tief_etz_4k.hdr");
 
 	renderContext->SetPSO({
 		.cs = {

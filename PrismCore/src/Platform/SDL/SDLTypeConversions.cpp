@@ -1,5 +1,6 @@
 ﻿#include "pcpch.h"
 #include "SDLTypeConversions.h"
+#include "SDLPlatform.h"
 
 #include "SDL3/SDL_mouse.h"
 
@@ -42,5 +43,21 @@ SDL_Keycode GetSDLKeyCode(KeyCode keyCode)
 SDL_Scancode GetSDLScanCode(ScanCode scanCode)
 {
 	return static_cast<SDL_Scancode>(scanCode);
+}
+
+SDL_FileDialogType GetSDLFileDialogType(Core::FileDialogType type)
+{
+    switch (type)
+    {
+    case Core::FileDialogType::OpenFile:
+        return SDL_FILEDIALOG_OPENFILE;
+    case Core::FileDialogType::SaveFile:
+        return SDL_FILEDIALOG_SAVEFILE;
+    case Core::FileDialogType::OpenFolder:
+        return SDL_FILEDIALOG_OPENFOLDER;
+	default:
+		PE_ASSERT_NO_ENTRY();
+		return {};
+    }
 }
 }

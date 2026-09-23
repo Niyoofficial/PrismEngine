@@ -9,9 +9,16 @@ namespace Prism::Render
 DeferredCommandRecorder::DeferredCommandRecorder()
 	: m_commandLink(&m_root)
 {
-	m_commands.reserve(1024 * 100);
+	m_commandPages.push_back(new uint8_t[CMD_PAGE_SIZE]);
+
 	if (RenderDevice::Get().GetBypassCommandRecording())
 		m_commandListForBypass = RenderCommandList::Create();
+}
+
+DeferredCommandRecorder::~DeferredCommandRecorder()
+{
+	for (auto* page : m_commandPages)
+		delete[] page;
 }
 
 void DeferredCommandRecorder::Close()

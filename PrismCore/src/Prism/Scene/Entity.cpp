@@ -1,97 +1,88 @@
 #include "Entity.h"
 
+#include "Prism/Scene/Scene.h"
+
 namespace Prism
 {
-Entity::Entity(const std::wstring& name)
-	: m_name(name)
+bool Entity::IsValid() const
 {
+	return m_scene.IsValid() && m_scene->IsEntityValid(*this);
 }
 
-void Entity::SetParent(Entity* parent)
+void Entity::SetName(std::string name)
 {
-	if (m_parent.IsValid())
-		std::erase(m_parent->m_children, WeakRef(this));
-
-	m_parent = parent;
-
-	if (parent)
-		parent->m_children.emplace_back(this);
+	PE_ASSERT(IsValid());
+	m_scene->SetEntityName(*this, name);
 }
 
-Entity* Entity::GetParent() const
+std::string Entity::GetName() const
 {
-	if (m_parent.IsValid())
-		return m_parent.Raw();
-	return nullptr;
+	PE_ASSERT(IsValid());
+	return m_scene->GetEntityName(*this);
 }
 
-const std::vector<WeakRef<Entity>>& Entity::GetChildren() const
+void Entity::SetParent(Entity parent)
 {
-	return m_children;
+	PE_ASSERT(IsValid());
+	m_scene->SetEntityParent(*this, parent);
+}
+
+Entity Entity::GetParent() const
+{
+	PE_ASSERT(IsValid());
+	return m_scene->GetEntityParent(*this);
+}
+
+std::vector<Entity> Entity::GetChildren() const
+{
+	PE_ASSERT(IsValid());
+	return m_scene->GetEntityChildren(*this);
 }
 
 bool Entity::IsRootEntity() const
 {
-	return GetParent() == nullptr;
+	PE_ASSERT(IsValid());
+	return m_scene->IsRootEntity(*this);
 }
 
 void Entity::AddComponent(Component* component)
 {
-	PE_ASSERT(component);
-	PE_ASSERT(component->GetParent() == nullptr, "Component already has a parent!");
-
-	component->InitializeOwnership(this);
-	m_components[typeid(*component).hash_code()] = component;
+	PE_ASSERT(IsValid());
+	return m_scene->AddComponentToEntity(*this, component);
 }
 
 int64_t Entity::GetComponentCount() const
 {
-	return (int64_t)m_components.size();
+	PE_ASSERT(IsValid());
+	return m_scene->GetEntityComponentCount(*this);
 }
 
 bool Entity::HasComponent(const std::type_info& type) const
 {
-	if (m_components.contains(type.hash_code()))
-	{
-		return true;
-	}
-	else
-	{
-		for (const auto* derived : ComponentRegistry::Get().GetDirectlyDerived(type))
-		{
-			if (HasComponent(*derived))
-				return true;
-		}
-	}
-	return false;
+	PE_ASSERT(IsValid());
+	return m_scene->EntityHasComponent(*this, type);
 }
 
 Component* Entity::GetComponent(const std::type_info& type) const
 {
-	if (m_components.contains(type.hash_code()))
-	{
-		return m_components.at(type.hash_code()).Raw();
-	}
-	else
-	{
-		for (const auto* derived : ComponentRegistry::Get().GetDirectlyDerived(type))
-		{
-			if (auto* comp = GetComponent(*derived))
-				return comp;
-		}
-	}
-	return nullptr;
+	PE_ASSERT(IsValid());
+	return m_scene->EntityGetComponent(*this, type);
 }
 
 Component* Entity::GetComponentChecked(std::type_info* type) const
 {
-	auto* comp = GetComponent(*type);
-	PE_ASSERT(comp);
-	return comp;
+	PE_ASSERT(IsValid());
+	return m_scene->EntityGetComponentChecked(*this, type);
 }
 
-void Entity::InitializeOwnership(Scene* scene)
+const std::unordered_map<size_t, Ref<Component>>& Entity::GetAllComponents() const
 {
-	m_scene = scene;
+	PE_ASSERT(IsValid());
+	return m_scene->EntityGetAllComponents(*this);
+}
+
+Entity::Entity(int64_t id, Scene* scene)
+	: m_ID(id), m_scene(scene)
+{
 }
 }

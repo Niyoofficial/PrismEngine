@@ -97,7 +97,7 @@ std::fs::path AssetRegistry::GetAbsPath(const std::fs::path& path) const
 	auto pathString = normPath.string();
 	bool startsWithSlash = pathString[0] == (char)std::fs::path::preferred_separator;
 	if (pathString.compare(startsWithSlash ? 1 : 0, 6, "engine") == 0)
-		return Core::Paths::Get().GetEngineAssetsDir() / pathString.substr(startsWithSlash ? 7 : 6);
+		return Core::Paths::Get().GetEngineAssetsDir() / pathString.substr(startsWithSlash ? 8 : 7);
 	else
 		return Core::Paths::Get().GetProjectAssetsDir() / normPath;
 }
@@ -105,13 +105,14 @@ std::fs::path AssetRegistry::GetAbsPath(const std::fs::path& path) const
 std::fs::path AssetRegistry::GetRelPath(const std::fs::path& path) const
 {
 	std::string normPath = path.lexically_normal().string();
-	if (auto projPath = Core::Paths::Get().GetProjectAssetsDir().string(); normPath.starts_with(projPath))
+	if (path.is_relative())
+		return path;
+	else if (auto projPath = Core::Paths::Get().GetProjectAssetsDir().string(); normPath.starts_with(projPath))
 		return normPath.substr(projPath.size() + 1);
 	else if (auto enginePath = Core::Paths::Get().GetEngineAssetsDir().string(); normPath.starts_with(enginePath))
 		return std::fs::path("engine") / normPath.substr(enginePath.size());
-	else
-		PE_ASSERT_NO_ENTRY();
 
+	PE_ASSERT_NO_ENTRY();
 	return {};
 }
 

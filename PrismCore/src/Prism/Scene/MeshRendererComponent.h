@@ -24,6 +24,9 @@ public:
 
 	virtual void DrawImGuiInspector() override;
 
+	virtual YAML::Node ToYAML() const override;
+	virtual void FromYAML(const YAML::Node& node) override;
+
 protected:
 	Ref<MeshAsset> m_meshAsset;
 	MeshNode m_meshNode = -1;

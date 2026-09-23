@@ -23,6 +23,8 @@ BraceWrapping:
   SplitEmptyFunction: false
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
+  AfterObjCDeclaration: false
+  IndentBraces: false
 BreakBeforeBraces: Custom
 BreakConstructorInitializers: AfterColon
 BreakConstructorInitializersBeforeComma: false
@@ -40,6 +42,17 @@ IndentCaseBlocks: true
 InsertNewlineAtEOF: true
 MacroBlockBegin: ''
 MacroBlockEnd: ''
+IncludeCategories: 
+  - Regex: ^<.*
+    Priority: 1
+  - Regex: ^".*
+    Priority: 2
+  - Regex: .*
+    Priority: 3
+IncludeIsMainRegex: ([-_](test|unittest))?$
+IndentCaseBlocks: true
+IndentWidth: 4
+InsertNewlineAtEOF: true
 MaxEmptyLinesToKeep: 2
 PointerAlignment: Left
 SpaceAfterTemplateKeyword: false
@@ -53,3 +66,5 @@ IndentWidth: 4
 TabWidth: 4
 SeparateDefinitionBlocks: Always
 InsertBraces: true
+TabWidth: 4
+UseTab: Always

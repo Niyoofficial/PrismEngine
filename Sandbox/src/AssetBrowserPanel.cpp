@@ -455,6 +455,11 @@ void AssetBrowserPanel::RenderBody()
 					{
 						if (std::fs::is_directory(currPath))
 							m_sidePanel.SetActiveDir(currPath);
+                        else
+                        {
+                            auto* assetType = AssetTypeRegistry::Get().GetAssetTypeForExtension(currPath.extension());
+                            assetType->OpenAsset(AssetRegistry::Get().GetRelPath(currPath));
+                        }
 					}
 
 					glm::float2 rectMin = ImGui::GetItemRectMin();

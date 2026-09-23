@@ -1,6 +1,8 @@
 ﻿#include "pcpch.h"
 #include "D3D12Utils.h"
 
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
 #include <Windows.h>
 
 #include "Prism/Render/RenderTypes.h"
