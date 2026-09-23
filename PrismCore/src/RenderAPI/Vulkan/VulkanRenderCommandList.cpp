@@ -138,9 +138,9 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetViewports(std::vector<Vi
 	{
 		VkViewport vkViewport{
 		    .x = topLeft.x,
-		    .y = topLeft.y,
+		    .y = size.y,
 		    .width = size.x,
-		    .height = size.y,
+		    .height = -size.y,
 		    .minDepth = depthRange.x,
 		    .maxDepth = depthRange.y,
 		};

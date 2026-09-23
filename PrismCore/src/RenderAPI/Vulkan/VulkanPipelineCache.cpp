@@ -316,9 +316,7 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildPipelineRasterizationState(cons
 	    .rasterizerDiscardEnable = VK_FALSE,
 	    .polygonMode = GetVkPolygonMode(desc.rasterizerState.fillMode),
 	    .cullMode = GetVkCullModeFlags(desc.rasterizerState.cullMode),
-	    // TODO
-	    // do we need to support VK_FRONT_FACE_CLOCKWISE?
-	    .frontFace = VK_FRONT_FACE_COUNTER_CLOCKWISE,
+	    .frontFace = desc.rasterizerState.frontCounterClockwise ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE,
 	    .depthBiasEnable = desc.rasterizerState.depthBias != 0,
 	    .depthBiasConstantFactor = static_cast<float>(desc.rasterizerState.depthBias),
 	    .depthBiasClamp = 0.0f,
