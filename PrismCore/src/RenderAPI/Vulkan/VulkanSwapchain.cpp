@@ -100,13 +100,15 @@ void Prism::Render::Vulkan::VulkanSwapchain::Present()
 {
 	const VkSemaphore renderFinishedSemaphore = GetRenderFinishedSemaphore();
 
+	const auto imageIndex = static_cast<uint32_t>(m_currentBackBufferIndex);
+
 	const VkPresentInfoKHR presentInfo{
 	    .sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR,
 	    .waitSemaphoreCount = 1,
 	    .pWaitSemaphores = &renderFinishedSemaphore,
 	    .swapchainCount = 1,
 	    .pSwapchains = &m_swapchain,
-	    .pImageIndices = &m_currentBackBufferIndex,
+	    .pImageIndices = &imageIndex,
 	};
 
 	const VkResult result = vkQueuePresentKHR(VulkanRenderDevice::Get().GetVulkanRenderCommandQueue()->GetQueue(), &presentInfo);
@@ -162,8 +164,12 @@ Prism::Render::TextureView* Prism::Render::Vulkan::VulkanSwapchain::GetCurrentBa
 
 VkResult Prism::Render::Vulkan::VulkanSwapchain::AcquireNextImage()
 {
+	uint32_t imageIndex = 0;
+
 	const VkResult result = vkAcquireNextImageKHR(VulkanRenderDevice::Get().GetDevice(), m_swapchain, UINT64_MAX,
-	                                              GetImageAvailableSemaphore(), VK_NULL_HANDLE, &m_currentBackBufferIndex);
+	                                              GetImageAvailableSemaphore(), VK_NULL_HANDLE, &imageIndex);
+
+	m_currentBackBufferIndex = static_cast<int32_t>(imageIndex);
 
 	if (result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR)
 	{
