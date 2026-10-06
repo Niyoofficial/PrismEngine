@@ -410,7 +410,13 @@ void Texture::GenerateMipMaps(RenderContext* context)
 		.syncAfter = BarrierSync::Copy,
 		.accessBefore = BarrierAccess::ShaderResource,
 		.accessAfter = BarrierAccess::CopySource,
+// TODO for @Niyoofficial
+// fix barriers incompatibility between Vulkan and D3D12
+#ifdef PE_SUPPORT_VULKAN
 		.layoutBefore = BarrierLayout::UnorderedAccess,
+#elifdef PE_SUPPORT_D3D12
+		.layoutBefore = BarrierLayout::ShaderResource,
+#endif
 		.layoutAfter = BarrierLayout::CopySource,
 	});
 

@@ -501,6 +501,9 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 		.layoutAfter = BarrierLayout::CopySource
 	});
 
+// TODO for @Niyoofficial
+// why this barrier is needed for Vulkan, and not needed for D3D12?
+#ifdef PE_SUPPORT_VULKAN
 	renderContext->Barrier(TextureBarrier{
 		.texture = m_prefilteredSkybox,
 		.syncBefore = BarrierSync::None,
@@ -510,6 +513,7 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 		.layoutBefore = BarrierLayout::Common,
 		.layoutAfter = BarrierLayout::CopyDest
 	});
+#endif
 
 	for (int32_t i = 0; i < 6; ++i)
 		renderContext->CopyTextureRegion(m_prefilteredSkybox, {},
