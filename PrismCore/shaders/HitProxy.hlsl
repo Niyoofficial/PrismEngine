@@ -44,8 +44,8 @@ struct PixelInput
 
 PixelInput vsmain(VertexInput vin)
 {
-	SceneBuffer sceneBuffer = GET_BINDLESS_CBUFFER(SceneBuffer, g_sceneBuffer);
-	PrimitiveBuffer primitiveBuffer = GET_BINDLESS_CBUFFER(PrimitiveBuffer, g_primitiveBuffer);
+	SceneBuffer sceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(SceneBuffer, g_sceneBuffer);
+	PrimitiveBuffer primitiveBuffer = GET_BINDLESS_UNIFORM_BUFFER(PrimitiveBuffer, g_primitiveBuffer);
 
 	PixelInput vout;
 	
@@ -66,7 +66,7 @@ void CsReadPixel()
 {
 	Texture2D<int> hitProxiesTexture = ResourceDescriptorHeap[g_hitProxiesTexture];
 	RWStructuredBuffer<int> hitProxyOutput = ResourceDescriptorHeap[g_hitProxyOutputBuffer];
-	ReadSettingsBuffer readSettings = GET_BINDLESS_CBUFFER(ReadSettingsBuffer, g_hitProxyReadSettingsBuffer);
+	ReadSettingsBuffer readSettings = GET_BINDLESS_UNIFORM_BUFFER(ReadSettingsBuffer, g_hitProxyReadSettingsBuffer);
 
 	int ID = hitProxiesTexture.Load(int3(readSettings.relMousePos, 0));
 	hitProxyOutput[0] = ID;

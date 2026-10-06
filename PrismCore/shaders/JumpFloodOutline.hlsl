@@ -44,8 +44,8 @@ struct PixelInput
 
 PixelInput vsmain(VertexInput vin)
 {
-    SceneBuffer sceneBuffer = GET_BINDLESS_CBUFFER(SceneBuffer, g_sceneBuffer);
-    PrimitiveBuffer primitiveBuffer = GET_BINDLESS_CBUFFER(PrimitiveBuffer, g_primitiveBuffer);
+    SceneBuffer sceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(SceneBuffer, g_sceneBuffer);
+    PrimitiveBuffer primitiveBuffer = GET_BINDLESS_UNIFORM_BUFFER(PrimitiveBuffer, g_primitiveBuffer);
 
 	PixelInput vout;
 	
@@ -106,7 +106,7 @@ void CsJumpFlood(int3 dispatchThreadID : SV_DispatchThreadID)
 {
 	Texture2D<float2> inputMask = ResourceDescriptorHeap[g_inputMask];
 	RWTexture2D<float2> outputMask = ResourceDescriptorHeap[g_outputMask];
-    JumpFloodSettings jumpFloodSettings = GET_BINDLESS_CBUFFER(JumpFloodSettings, g_jumpFloodSettings);
+    JumpFloodSettings jumpFloodSettings = GET_BINDLESS_UNIFORM_BUFFER(JumpFloodSettings, g_jumpFloodSettings);
 
 	uint2 texSize;
 	inputMask.GetDimensions(texSize.x, texSize.y);

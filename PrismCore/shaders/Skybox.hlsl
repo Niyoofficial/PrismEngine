@@ -33,7 +33,7 @@ struct PixelInputCube
 
 PixelInputCube vsmain(VertexInput vin)
 {
-    SceneBuffer sceneBuffer = GET_BINDLESS_CBUFFER(SceneBuffer, g_sceneBuffer);
+    SceneBuffer sceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(SceneBuffer, g_sceneBuffer);
 
 	PixelInputCube vout;
 	

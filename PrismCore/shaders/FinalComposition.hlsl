@@ -68,7 +68,7 @@ float4 psmain(FullscreenVertexOut pin) : SV_Target
 	if (g_outlineTexture != -1 && g_outlineSettings != -1)
 	{
 		Texture2D<float2> outlineTexture = ResourceDescriptorHeap[g_outlineTexture];
-		OutlineSettings outlineSettings = GET_BINDLESS_CBUFFER(OutlineSettings, g_outlineSettings);
+		OutlineSettings outlineSettings = GET_BINDLESS_UNIFORM_BUFFER(OutlineSettings, g_outlineSettings);
 
 		uint2 texSize;
 		outlineTexture.GetDimensions(texSize.x, texSize.y);

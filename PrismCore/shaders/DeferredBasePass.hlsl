@@ -48,8 +48,8 @@ struct PixelInput
 
 PixelInput vsmain(VertexInput vin)
 {
-    SceneBuffer sceneBuffer = GET_BINDLESS_CBUFFER(SceneBuffer, g_sceneBuffer);
-    PrimitiveBuffer primitiveBuffer = GET_BINDLESS_CBUFFER(PrimitiveBuffer, g_primitiveBuffer);
+    SceneBuffer sceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(SceneBuffer, g_sceneBuffer);
+    PrimitiveBuffer primitiveBuffer = GET_BINDLESS_UNIFORM_BUFFER(PrimitiveBuffer, g_primitiveBuffer);
 
 	PixelInput vout;
 	
@@ -75,7 +75,7 @@ struct PixelOutput
 
 PixelOutput psmain(PixelInput pin)
 {
-	PrimitiveBuffer primitiveBuffer = GET_BINDLESS_CBUFFER(PrimitiveBuffer, g_primitiveBuffer);
+	PrimitiveBuffer primitiveBuffer = GET_BINDLESS_UNIFORM_BUFFER(PrimitiveBuffer, g_primitiveBuffer);
 
 	float3 normal = normalize(pin.normalWorld);
 	float3 tangent = normalize(pin.tangentWorld);

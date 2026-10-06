@@ -607,7 +607,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::WriteUniformBuffer(VkDevice d
 		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 	}
 
-	// GET_BINDLESS_CBUFFER(...)
+	// GET_BINDLESS_UNIFORM_BUFFER(...)
 	{
 		WriteLegacyBuffer(device, index, buffer, offset, range);
 	}

@@ -27,8 +27,8 @@ struct SceneIrradiance
 
 float4 psmain(FullscreenVertexOut pin) : SV_Target
 {
-	 SceneBuffer sceneBuffer = GET_BINDLESS_CBUFFER(SceneBuffer, g_sceneBuffer);
-     SceneIrradiance sceneIrradiance = GET_BINDLESS_CBUFFER(SceneIrradiance, g_irradiance);
+	 SceneBuffer sceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(SceneBuffer, g_sceneBuffer);
+     SceneIrradiance sceneIrradiance = GET_BINDLESS_UNIFORM_BUFFER(SceneIrradiance, g_irradiance);
 
 	Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
 	Texture2D roughnessMetalAOTexture = ResourceDescriptorHeap[g_roughnessMetalAOTexture];

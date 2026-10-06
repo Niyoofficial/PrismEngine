@@ -86,7 +86,7 @@ float4 PackColor(float4 Linear)
 [numthreads( 8, 8, 1 )]
 void main( uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID )
 {
-    Info info = GET_BINDLESS_CBUFFER(Info, g_infoBuffer);
+    Info info = GET_BINDLESS_UNIFORM_BUFFER(Info, g_infoBuffer);
 
     RWTexture2D<float4> outMip1 = ResourceDescriptorHeap[g_outMip1];
     RWTexture2D<float4> outMip2 = ResourceDescriptorHeap[g_outMip2];

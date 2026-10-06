@@ -34,8 +34,8 @@ struct PixelInput
 
 PixelInput vsmain(VertexInput vin)
 {
-    ShadowSceneBuffer shadowSceneBuffer = GET_BINDLESS_CBUFFER(ShadowSceneBuffer, g_shadowSceneBuffer);
-    PrimitiveBuffer primitiveBuffer = GET_BINDLESS_CBUFFER(PrimitiveBuffer, g_primitiveBuffer);
+    ShadowSceneBuffer shadowSceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(ShadowSceneBuffer, g_shadowSceneBuffer);
+    PrimitiveBuffer primitiveBuffer = GET_BINDLESS_UNIFORM_BUFFER(PrimitiveBuffer, g_primitiveBuffer);
 
 	PixelInput vout;
 	
