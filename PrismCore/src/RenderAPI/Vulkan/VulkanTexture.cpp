@@ -7,6 +7,7 @@
 #include "VulkanTypeConversions.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#include "Prism/AssetManagement/AssetRegistry.h"
 
 Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, const TextureDesc& desc,
                                                     const BarrierLayout initLayout) : Texture(renderDevice), m_originalDesc(desc)
@@ -57,24 +58,24 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		size_t bytesPerChannel = 0;
 		TextureFormat format;
 
-		const std::string path = WStringToString(filepath);
+		auto absPath = AssetRegistry::Get().GetAbsPath(filepath);
 
-		if (stbi_is_hdr(path.c_str()))
+		if (stbi_is_hdr(absPath.string().c_str()))
 		{
-			pixels = stbi_loadf(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+			pixels = stbi_loadf(absPath.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
 			bytesPerChannel = sizeof(float);
 			format = TextureFormat::RGBA32_Float;
 		}
 		else
 		{
-			pixels = stbi_load(path.c_str(), &width, &height, &channels, STBI_rgb_alpha);
+			pixels = stbi_load(absPath.string().c_str(), &width, &height, &channels, STBI_rgb_alpha);
 			bytesPerChannel = 1;
 			format = TextureFormat::RGBA8_UNorm;
 		}
 
 		if (!pixels)
 		{
-			PE_RENDER_LOG(Error, "Failed loading texture {}", path);
+			PE_RENDER_LOG(Error, "Failed loading texture {}", absPath.string());
 
 			stbi_image_free(pixels);
 
