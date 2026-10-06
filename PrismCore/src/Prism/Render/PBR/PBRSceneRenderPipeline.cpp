@@ -484,12 +484,6 @@ void PBRSceneRenderPipeline::GenerateEnvDiffuseIrradiance(RenderContext* renderC
 		.accessAfter = BarrierAccess::CopySource
 	});
 
-	// TODO
-	// fix sizes for buffers. D3D12 implementation works because of UNIFORM_BUFFER_ALIGNMENT (256), but vulkan expects match between buffers sizes
-#ifdef PE_SUPPORT_VULKAN
-	return;
-#endif
-
 	renderContext->CopyBufferRegion(m_irradianceSHBuffer, 0, coeffGenerationBuffer, 0, coeffGenerationBuffer->GetBufferDesc().size);
 }
 

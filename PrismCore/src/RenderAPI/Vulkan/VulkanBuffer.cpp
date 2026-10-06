@@ -2,18 +2,24 @@
 
 #include "VulkanRenderDevice.h"
 #include "VulkanTypeConversions.h"
+#include "Prism/Render/RenderConstants.h"
 
 Prism::Render::Vulkan::VulkanBuffer::VulkanBuffer(VulkanRenderDevice* renderDevice, const BufferDesc& desc) :
     Buffer(renderDevice), m_originalDesc(desc)
 {
+	if (m_originalDesc.bindFlags.HasAllFlags(BindFlags::UniformBuffer))
+	{
+		m_originalDesc.size = Align(m_originalDesc.size, Constants::UNIFORM_BUFFER_ALIGNMENT);
+	}
+
 	const VkBufferCreateInfo bufferCreateInfo{
 	    .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-	    .size = static_cast<VkDeviceSize>(desc.size),
-	    .usage = GetVkBufferUsageFlags(desc.bindFlags),
+	    .size = static_cast<VkDeviceSize>(m_originalDesc.size),
+	    .usage = GetVkBufferUsageFlags(m_originalDesc.bindFlags),
 	    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 	};
 
-	const VmaAllocationCreateInfo allocationCreateInfo = GetVmaAllocationCreateInfo(desc.usage, desc.cpuAccess);
+	const VmaAllocationCreateInfo allocationCreateInfo = GetVmaAllocationCreateInfo(m_originalDesc.usage, m_originalDesc.cpuAccess);
 
 	PE_ASSERT(vmaCreateBuffer(renderDevice->GetAllocator(), &bufferCreateInfo, &allocationCreateInfo, &m_buffer.buffer,
 	                          &m_buffer.allocation, nullptr) == VK_SUCCESS);
