@@ -104,7 +104,7 @@ void RenderCommandQueue::EnqueuePresent(const Ref<Swapchain>& swapchain)
 	RenderDevice::Get().AddResourceToReleaseQueueWhenFrameEnds(swapchain);
 
 	// Vulkan acquires image from vkAcquireNextImageKHR
-#ifdef PE_D3D12_BACKEND
+#ifdef PE_SUPPORT_D3D12
 	swapchain->AdvanceBackBufferIndex();
 #endif
 
