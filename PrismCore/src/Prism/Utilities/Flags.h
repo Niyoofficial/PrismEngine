@@ -8,6 +8,12 @@ class Flags
 public:
 	using MaskType = std::underlying_type_t<BitType>;
 
+	template<typename... Bits>
+	explicit constexpr Flags(Bits... bits)
+	    requires(std::same_as<Bits, BitType> && ...)
+	    : m_mask((static_cast<MaskType>(bits) | ...))
+	{}
+
 	// constructors
 	constexpr Flags() = default;
 
@@ -21,31 +27,16 @@ public:
 	constexpr auto operator<=>(Flags<BitType> const&) const = default;
 
 	// logical operator
-	constexpr bool operator!() const
-	{
-		return !m_mask;
-	}
+	constexpr bool operator!() const { return !m_mask; }
 
 	// bitwise operators
-	constexpr Flags<BitType> operator&(Flags<BitType> const& rhs) const
-	{
-		return Flags<BitType>(m_mask & rhs.m_mask);
-	}
+	constexpr Flags<BitType> operator&(Flags<BitType> const& rhs) const { return Flags<BitType>(m_mask & rhs.m_mask); }
 
-	constexpr Flags<BitType> operator|(Flags<BitType> const& rhs) const
-	{
-		return Flags<BitType>(m_mask | rhs.m_mask);
-	}
+	constexpr Flags<BitType> operator|(Flags<BitType> const& rhs) const { return Flags<BitType>(m_mask | rhs.m_mask); }
 
-	constexpr Flags<BitType> operator^(Flags<BitType> const& rhs) const
-	{
-		return Flags<BitType>(m_mask ^ rhs.m_mask);
-	}
+	constexpr Flags<BitType> operator^(Flags<BitType> const& rhs) const { return Flags<BitType>(m_mask ^ rhs.m_mask); }
 
-	constexpr Flags<BitType> operator~() const
-	{
-		return Flags<BitType>(~m_mask);
-	}
+	constexpr Flags<BitType> operator~() const { return Flags<BitType>(~m_mask); }
 
 	// assignment operators
 	constexpr Flags<BitType>& operator=(Flags<BitType> const& rhs) = default;
@@ -69,32 +60,17 @@ public:
 	}
 
 	// cast operators
-	explicit constexpr operator bool() const
-	{
-		return !!m_mask;
-	}
+	explicit constexpr operator bool() const { return !!m_mask; }
 
-	explicit constexpr operator MaskType() const
-	{
-		return m_mask;
-	}
+	explicit constexpr operator MaskType() const { return m_mask; }
 
-	constexpr bool HasAnyFlags(Flags<BitType> flags) const
-	{
-		return (m_mask & flags.m_mask) != 0;
-	}
+	constexpr bool HasAnyFlags(Flags<BitType> flags) const { return (m_mask & flags.m_mask) != 0; }
 
-	constexpr bool HasAllFlags(Flags<BitType> flags) const
-	{
-		return (m_mask & flags.m_mask) == flags.m_mask;
-	}
+	constexpr bool HasAllFlags(Flags<BitType> flags) const { return (m_mask & flags.m_mask) == flags.m_mask; }
 
-	constexpr MaskType GetUnderlyingType() const
-	{
-		return m_mask;
-	}
+	constexpr MaskType GetUnderlyingType() const { return m_mask; }
 
 private:
 	MaskType m_mask = {};
 };
-}
+} // namespace Prism
