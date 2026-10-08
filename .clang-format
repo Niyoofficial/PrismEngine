@@ -30,16 +30,6 @@ BreakConstructorInitializers: AfterColon
 BreakConstructorInitializersBeforeComma: false
 ColumnLimit: 130
 ConstructorInitializerAllOnOneLineOrOnePerLine: false
-IncludeCategories:
-  - Regex: '^<.*'
-    Priority: 1
-  - Regex: '^".*'
-    Priority: 2
-  - Regex: '.*'
-    Priority: 3
-IncludeIsMainRegex: '([-_](test|unittest))?$'
-IndentCaseBlocks: true
-InsertNewlineAtEOF: true
 MacroBlockBegin: ''
 MacroBlockEnd: ''
 IncludeCategories: 
@@ -61,9 +51,6 @@ SpacesInAngles: false
 SpacesInConditionalStatement: false
 SpacesInCStyleCastParentheses: false
 SpacesInParentheses: false
-UseTab: ForIndentation
-IndentWidth: 4
-TabWidth: 4
 SeparateDefinitionBlocks: Always
 InsertBraces: true
 TabWidth: 4
