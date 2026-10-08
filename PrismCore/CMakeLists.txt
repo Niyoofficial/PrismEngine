@@ -75,6 +75,9 @@ target_link_libraries(${PROJECT_NAME} PRIVATE yaml-cpp::yaml-cpp)
 find_package(crossguid CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE crossguid)
 
+find_package(directx-dxc CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectXShaderCompiler)
+
 if (PE_D3D12_BACKEND)
     target_compile_definitions(${PROJECT_NAME} PUBLIC "PE_SUPPORT_D3D12=1")
     target_compile_definitions(${PROJECT_NAME} PUBLIC "USE_PIX=1")
@@ -106,9 +109,6 @@ if (PE_D3D12_BACKEND)
         )
     endif ()
 
-    find_package(directx-dxc CONFIG REQUIRED)
-    target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectXShaderCompiler)
-
     target_link_libraries(${PROJECT_NAME} PRIVATE dxgi.lib)
     target_link_libraries(${PROJECT_NAME} PRIVATE dxguid.lib)
 endif ()
@@ -121,12 +121,6 @@ if (PE_VULKAN_BACKEND)
 
     find_package(Vulkan REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE Vulkan::Vulkan)
-
-    if (WIN32)
-        target_include_directories(${PROJECT_NAME} PRIVATE "$ENV{VULKAN_SDK}/Include")
-
-        target_link_libraries(${PROJECT_NAME} PRIVATE "$ENV{VULKAN_SDK}/Lib/dxcompiler.lib")
-    endif ()
 
     find_package(VulkanMemoryAllocator CONFIG REQUIRED)
     target_link_libraries(${PROJECT_NAME} PRIVATE GPUOpen::VulkanMemoryAllocator)
