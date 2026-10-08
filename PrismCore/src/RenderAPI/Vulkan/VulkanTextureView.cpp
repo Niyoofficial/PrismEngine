@@ -114,8 +114,7 @@ void Prism::Render::Vulkan::VulkanTextureView::RegisterBindless()
 	switch (m_viewDesc.type)
 	{
 	case TextureViewType::SRV:
-		bindlessManager->WriteSampledImage(device.GetDevice(), m_bindlessIndex, m_vkImageView,
-		                                   VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+		bindlessManager->WriteSampledImage(device.GetDevice(), m_bindlessIndex, m_vkImageView, VK_IMAGE_LAYOUT_GENERAL);
 		break;
 	case TextureViewType::UAV:
 		bindlessManager->WriteStorageImage(device.GetDevice(), m_bindlessIndex, m_vkImageView, VK_IMAGE_LAYOUT_GENERAL);
