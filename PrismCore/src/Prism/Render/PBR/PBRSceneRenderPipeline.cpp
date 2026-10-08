@@ -534,9 +534,19 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 		.texture = m_prefilteredSkybox,
 		.syncBefore = BarrierSync::Copy,
 		.syncAfter = BarrierSync::ComputeShading,
+// TODO for @Niyoofficial
+// fix barriers incompatibility between Vulkan and D3D12
+#ifdef PE_SUPPORT_VULKAN
 		.accessBefore = BarrierAccess::CopyDest,
+#elifdef PE_SUPPORT_D3D12
+		.accessBefore = BarrierAccess::Common,
+#endif
 		.accessAfter = BarrierAccess::UnorderedAccess,
+#ifdef PE_SUPPORT_VULKAN
 		.layoutBefore = BarrierLayout::CopyDest,
+#elifdef PE_SUPPORT_D3D12
+		.layoutBefore = BarrierLayout::Common,
+#endif
 		.layoutAfter = BarrierLayout::UnorderedAccess
 	});
 
