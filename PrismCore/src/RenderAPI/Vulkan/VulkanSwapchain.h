@@ -36,6 +36,11 @@ private:
 	void CreateBackbuffers();
 	void DestroyBackbuffers();
 
+	void CreateImageAvailableSemaphores();
+	void DestroyImageAvailableSemaphores();
+	void CreateRenderFinishedSemaphores();
+	void DestroyRenderFinishedSemaphores();
+
 	void AdvanceFrame() { m_frameIndex = (m_frameIndex + 1) % Constants::MAX_FRAMES_IN_FLIGHT; }
 
 	WeakRef<Core::Window> m_window;
