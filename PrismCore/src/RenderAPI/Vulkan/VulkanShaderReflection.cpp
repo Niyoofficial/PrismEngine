@@ -191,6 +191,19 @@ Prism::Render::Vulkan::VulkanShaderReflection::GetVertexInputs() const
 	return m_vertexInputs;
 }
 
+std::vector<Prism::Render::VertexAttribute> Prism::Render::Vulkan::VulkanShaderReflection::GetVertexAttributeLayout() const
+{
+	std::vector<VertexAttribute> layout;
+	layout.reserve(m_vertexInputs.size());
+
+	for (const auto& input : m_vertexInputs)
+	{
+		layout.push_back(input.attribute);
+	}
+
+	return layout;
+}
+
 Prism::Render::VertexAttribute
 Prism::Render::Vulkan::VulkanShaderReflection::GetVertexAttribute(const SpvReflectInterfaceVariable& variable)
 {

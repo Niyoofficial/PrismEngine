@@ -101,12 +101,7 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 
 	PE_ASSERT(pipelineLayout != VK_NULL_HANDLE);
 
-	// TODO
-	// probably should be moved to GraphicsPipelineStateDesc?
-	const VertexAttributeList layout = {
-		VertexAttribute::Position, VertexAttribute::Normal,	   VertexAttribute::TexCoord,
-		VertexAttribute::Tangent,  VertexAttribute::Bitangent,
-	};
+	const VertexAttributeList layout = vs.reflection.GetVertexAttributeLayout();
 
 	auto vertexInputState = BuildVertexInputState(layout, vs.reflection);
 	auto inputAssemblyState = BuildInputAssemblyState(desc);
@@ -167,8 +162,8 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 
 	const VkShaderModuleCreateInfo shaderModuleInfo{
 		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-		.codeSize = s.size() * sizeof(uint32_t),
-		.pCode = s.data(),
+		.codeSize = cs.spirv.size() * sizeof(uint32_t),
+		.pCode = cs.spirv.data(),
 	};
 
 	VkShaderModule shaderModule;
