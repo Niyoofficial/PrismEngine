@@ -3,7 +3,9 @@
 #include "VulkanRenderDevice.h"
 #include "VulkanTypeConversions.h"
 
-Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::~VulkanDescriptorSetLayoutCache()
+namespace Prism::Render::Vulkan
+{
+VulkanDescriptorSetLayoutCache::~VulkanDescriptorSetLayoutCache()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
@@ -13,14 +15,14 @@ Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::~VulkanDescriptorSetLayou
 	}
 }
 
-VkDescriptorSetLayout Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::GetOrCreateDescriptorSetLayout(
-    const std::span<const VulkanShaderReflection* const> shaderReflections, const uint32_t set)
+VkDescriptorSetLayout VulkanDescriptorSetLayoutCache::GetOrCreateDescriptorSetLayout(
+	const std::span<const VulkanShaderReflection* const> shaderReflections, const uint32_t set)
 {
 	return GetOrCreateDescriptorSetLayout(BuildLayoutKey(shaderReflections, set));
 }
 
 VkDescriptorSetLayout
-Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::GetOrCreateDescriptorSetLayout(const DescriptorSetLayoutKey& layoutKey)
+VulkanDescriptorSetLayoutCache::GetOrCreateDescriptorSetLayout(const DescriptorSetLayoutKey& layoutKey)
 {
 	if (const auto it = m_cache.find(layoutKey); it != m_cache.end())
 	{
@@ -37,18 +39,18 @@ Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::GetOrCreateDescriptorSetL
 		PE_ASSERT(stageFlags != 0);
 
 		bindings.push_back({
-		    .binding = binding,
-		    .descriptorType = type,
-		    .descriptorCount = count,
-		    .stageFlags = stageFlags,
-		    .pImmutableSamplers = nullptr,
+			.binding = binding,
+			.descriptorType = type,
+			.descriptorCount = count,
+			.stageFlags = stageFlags,
+			.pImmutableSamplers = nullptr,
 		});
 	}
 
 	const VkDescriptorSetLayoutCreateInfo createInfo{
-	    .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-	    .bindingCount = static_cast<uint32_t>(bindings.size()),
-	    .pBindings = bindings.data(),
+		.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+		.bindingCount = static_cast<uint32_t>(bindings.size()),
+		.pBindings = bindings.data(),
 	};
 
 	VkDescriptorSetLayout layout;
@@ -64,8 +66,8 @@ Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::GetOrCreateDescriptorSetL
 	return layout;
 }
 
-Prism::Render::Vulkan::DescriptorSetLayoutKey Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::BuildLayoutKey(
-    const std::span<const VulkanShaderReflection* const> shaderReflections, const uint32_t set)
+DescriptorSetLayoutKey VulkanDescriptorSetLayoutCache::BuildLayoutKey(
+	const std::span<const VulkanShaderReflection* const> shaderReflections, const uint32_t set)
 {
 	DescriptorSetLayoutKey layoutKey;
 
@@ -96,15 +98,15 @@ Prism::Render::Vulkan::DescriptorSetLayoutKey Prism::Render::Vulkan::VulkanDescr
 			PE_ASSERT(descriptorCount > 0);
 
 			auto it = std::ranges::find_if(layoutKey.bindings,
-			                               [&](const DescriptorBindingKey& key) { return key.binding == binding.binding; });
+										   [&](const DescriptorBindingKey& key) { return key.binding == binding.binding; });
 
 			if (it == layoutKey.bindings.end())
 			{
 				layoutKey.bindings.push_back({
-				    .binding = binding.binding,
-				    .type = descriptorType,
-				    .count = descriptorCount,
-				    .stageFlags = stageFlags,
+					.binding = binding.binding,
+					.type = descriptorType,
+					.count = descriptorCount,
+					.stageFlags = stageFlags,
 				});
 
 				continue;
@@ -123,7 +125,7 @@ Prism::Render::Vulkan::DescriptorSetLayoutKey Prism::Render::Vulkan::VulkanDescr
 	return layoutKey;
 }
 
-uint32_t Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::GetDescriptorCount(const SpvReflectDescriptorBinding& binding)
+uint32_t VulkanDescriptorSetLayoutCache::GetDescriptorCount(const SpvReflectDescriptorBinding& binding)
 {
 	uint32_t count = 1;
 
@@ -134,3 +136,4 @@ uint32_t Prism::Render::Vulkan::VulkanDescriptorSetLayoutCache::GetDescriptorCou
 
 	return count;
 }
+} // namespace Prism::Render::Vulkan

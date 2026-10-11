@@ -8,7 +8,9 @@
 #include "VulkanRenderDevice.h"
 #include "VulkanTypeConversions.h"
 
-Prism::Render::Vulkan::VulkanSwapchain::VulkanSwapchain(Core::Window* window, SwapchainDesc desc) :
+namespace Prism::Render::Vulkan
+{
+VulkanSwapchain::VulkanSwapchain(Core::Window* window, SwapchainDesc desc) :
 	Swapchain(desc), m_window(window), m_desc(desc)
 {
 	const auto sdlWindow = std::any_cast<SDL_Window*>(window->GetNativeWindow());
@@ -51,7 +53,7 @@ Prism::Render::Vulkan::VulkanSwapchain::VulkanSwapchain(Core::Window* window, Sw
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::WindowResized>([this](Core::AppEvent event) { Resize(); });
 }
 
-Prism::Render::Vulkan::VulkanSwapchain::~VulkanSwapchain()
+VulkanSwapchain::~VulkanSwapchain()
 {
 	DestroyImageAvailableSemaphores();
 	DestroyRenderFinishedSemaphores();
@@ -64,13 +66,13 @@ Prism::Render::Vulkan::VulkanSwapchain::~VulkanSwapchain()
 	}
 }
 
-void Prism::Render::Vulkan::VulkanSwapchain::PreparePresent()
+void VulkanSwapchain::PreparePresent()
 {
 	VulkanRenderDevice::Get().GetVulkanRenderCommandQueue()->SetSubmitSynchronization(
 		VK_NULL_HANDLE, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, GetRenderFinishedSemaphore());
 }
 
-void Prism::Render::Vulkan::VulkanSwapchain::Present()
+void VulkanSwapchain::Present()
 {
 	const VkSemaphore renderFinishedSemaphore = GetRenderFinishedSemaphore();
 
@@ -98,7 +100,7 @@ void Prism::Render::Vulkan::VulkanSwapchain::Present()
 	AdvanceFrame();
 }
 
-void Prism::Render::Vulkan::VulkanSwapchain::Resize()
+void VulkanSwapchain::Resize()
 {
 	const auto& device = VulkanRenderDevice::Get();
 
@@ -132,7 +134,7 @@ void Prism::Render::Vulkan::VulkanSwapchain::Resize()
 	m_currentBackBufferIndex = 0;
 }
 
-Prism::Render::TextureView* Prism::Render::Vulkan::VulkanSwapchain::GetBackBufferRTV(const int32_t index) const
+TextureView* VulkanSwapchain::GetBackBufferRTV(const int32_t index) const
 {
 	PE_ASSERT(index >= 0);
 	PE_ASSERT(index < static_cast<int32_t>(m_backbufferRTVs.size()));
@@ -140,12 +142,12 @@ Prism::Render::TextureView* Prism::Render::Vulkan::VulkanSwapchain::GetBackBuffe
 	return m_backbufferRTVs[index];
 }
 
-Prism::Render::TextureView* Prism::Render::Vulkan::VulkanSwapchain::GetCurrentBackBufferRTV() const
+TextureView* VulkanSwapchain::GetCurrentBackBufferRTV() const
 {
 	return m_backbufferRTVs[m_currentBackBufferIndex];
 }
 
-VkResult Prism::Render::Vulkan::VulkanSwapchain::AcquireNextImage()
+VkResult VulkanSwapchain::AcquireNextImage()
 {
 	uint32_t imageIndex = 0;
 
@@ -185,7 +187,7 @@ VkResult Prism::Render::Vulkan::VulkanSwapchain::AcquireNextImage()
 	return result;
 }
 
-void Prism::Render::Vulkan::VulkanSwapchain::CreateSwapchain(VkSwapchainKHR oldSwapchain)
+void VulkanSwapchain::CreateSwapchain(VkSwapchainKHR oldSwapchain)
 {
 	uint32_t presentModeCount = 0;
 	vkGetPhysicalDeviceSurfacePresentModesKHR(VulkanRenderDevice::Get().GetPhysicalDevice(), m_surface, &presentModeCount,
@@ -235,7 +237,7 @@ void Prism::Render::Vulkan::VulkanSwapchain::CreateSwapchain(VkSwapchainKHR oldS
 	PE_ASSERT(vkCreateSwapchainKHR(VulkanRenderDevice::Get().GetDevice(), &createInfo, nullptr, &m_swapchain) == VK_SUCCESS);
 }
 
-void Prism::Render::Vulkan::VulkanSwapchain::DestroySwapchain()
+void VulkanSwapchain::DestroySwapchain()
 {
 	if (m_swapchain != VK_NULL_HANDLE)
 	{
@@ -245,7 +247,7 @@ void Prism::Render::Vulkan::VulkanSwapchain::DestroySwapchain()
 	}
 }
 
-void Prism::Render::Vulkan::VulkanSwapchain::CreateBackbuffers()
+void VulkanSwapchain::CreateBackbuffers()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
@@ -279,14 +281,14 @@ void Prism::Render::Vulkan::VulkanSwapchain::CreateBackbuffers()
 	}
 }
 
-void Prism::Render::Vulkan::VulkanSwapchain::DestroyBackbuffers()
+void VulkanSwapchain::DestroyBackbuffers()
 {
 	m_backbufferRTVs.clear();
 	m_backbuffers.clear();
 	m_images.clear();
 }
 
-void Prism::Render::Vulkan::VulkanSwapchain::CreateImageAvailableSemaphores()
+void VulkanSwapchain::CreateImageAvailableSemaphores()
 {
 	constexpr VkSemaphoreCreateInfo semaphoreInfo{
 		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
@@ -300,7 +302,7 @@ void Prism::Render::Vulkan::VulkanSwapchain::CreateImageAvailableSemaphores()
 	}
 }
 
-void Prism::Render::Vulkan::VulkanSwapchain::DestroyImageAvailableSemaphores()
+void VulkanSwapchain::DestroyImageAvailableSemaphores()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
@@ -310,7 +312,7 @@ void Prism::Render::Vulkan::VulkanSwapchain::DestroyImageAvailableSemaphores()
 	}
 }
 
-void Prism::Render::Vulkan::VulkanSwapchain::VulkanSwapchain::CreateRenderFinishedSemaphores()
+void VulkanSwapchain::CreateRenderFinishedSemaphores()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
@@ -326,7 +328,7 @@ void Prism::Render::Vulkan::VulkanSwapchain::VulkanSwapchain::CreateRenderFinish
 	}
 }
 
-void Prism::Render::Vulkan::VulkanSwapchain::VulkanSwapchain::DestroyRenderFinishedSemaphores()
+void VulkanSwapchain::DestroyRenderFinishedSemaphores()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
@@ -337,3 +339,4 @@ void Prism::Render::Vulkan::VulkanSwapchain::VulkanSwapchain::DestroyRenderFinis
 
 	m_renderFinishedSemaphores.clear();
 }
+} // namespace Prism::Render::Vulkan

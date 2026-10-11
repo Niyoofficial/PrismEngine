@@ -5,7 +5,9 @@
 #include "VulkanTexture.h"
 #include "VulkanTypeConversions.h"
 
-Prism::Render::Vulkan::VulkanTextureView::VulkanTextureView(TextureViewDesc desc, Texture* texture) : m_viewDesc(desc)
+namespace Prism::Render::Vulkan
+{
+VulkanTextureView::VulkanTextureView(TextureViewDesc desc, Texture* texture) : m_viewDesc(desc)
 {
 	PE_ASSERT(texture, "Invalid texture!");
 
@@ -21,13 +23,13 @@ Prism::Render::Vulkan::VulkanTextureView::VulkanTextureView(TextureViewDesc desc
 	if (m_viewDesc.type == TextureViewType::Unknown)
 	{
 		constexpr Flags<BindFlags> textureViewPossibleFlags = Flags(BindFlags::ShaderResource) |
-		    Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::RenderTarget) | Flags(BindFlags::DepthStencil);
+			Flags(BindFlags::UnorderedAccess) | Flags(BindFlags::RenderTarget) | Flags(BindFlags::DepthStencil);
 
 		const Flags<BindFlags> flags = texture->GetTextureDesc().bindFlags & textureViewPossibleFlags;
 
 		PE_ASSERT(glm::bitCount(flags.GetUnderlyingType()) == 1,
-		          "Can't determine view type, to automatically determine view type the owning texture must have exactly one of "
-		          "the view-compatible bind flags");
+				  "Can't determine view type, to automatically determine view type the owning texture must have exactly one of "
+				  "the view-compatible bind flags");
 
 		if (flags.HasAllFlags(BindFlags::ShaderResource))
 		{
@@ -57,29 +59,29 @@ Prism::Render::Vulkan::VulkanTextureView::VulkanTextureView(TextureViewDesc desc
 	const VkImage image = vkTexture->GetVulkanTextureResource().image;
 
 	VkImageViewCreateInfo createInfo{
-	    .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-	    .image = image,
-	    .viewType = GetVkImageViewType(m_viewDesc.dimension, texture->GetTextureDesc().GetArraySize()),
-	    .format = GetVkFormat(m_viewDesc.format),
-	    .components{
-	        .r = VK_COMPONENT_SWIZZLE_IDENTITY,
-	        .g = VK_COMPONENT_SWIZZLE_IDENTITY,
-	        .b = VK_COMPONENT_SWIZZLE_IDENTITY,
-	        .a = VK_COMPONENT_SWIZZLE_IDENTITY,
-	    },
-	    .subresourceRange{
-	        .aspectMask = GetVkImageAspectFlags(m_viewDesc.format),
-	        .baseMipLevel = static_cast<uint32_t>(m_viewDesc.subresourceRange.firstMipLevel),
-	        .levelCount = static_cast<uint32_t>(m_viewDesc.subresourceRange.numMipLevels),
-	        .baseArrayLayer = static_cast<uint32_t>(m_viewDesc.subresourceRange.firstArraySlice),
-	        .layerCount = static_cast<uint32_t>(m_viewDesc.subresourceRange.numArraySlices),
-	    },
+		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+		.image = image,
+		.viewType = GetVkImageViewType(m_viewDesc.dimension, texture->GetTextureDesc().GetArraySize()),
+		.format = GetVkFormat(m_viewDesc.format),
+		.components{
+			.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+			.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+			.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+			.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+		},
+		.subresourceRange{
+			.aspectMask = GetVkImageAspectFlags(m_viewDesc.format),
+			.baseMipLevel = static_cast<uint32_t>(m_viewDesc.subresourceRange.firstMipLevel),
+			.levelCount = static_cast<uint32_t>(m_viewDesc.subresourceRange.numMipLevels),
+			.baseArrayLayer = static_cast<uint32_t>(m_viewDesc.subresourceRange.firstArraySlice),
+			.layerCount = static_cast<uint32_t>(m_viewDesc.subresourceRange.numArraySlices),
+		},
 	};
 
 	PE_ASSERT(vkCreateImageView(VulkanRenderDevice::Get().GetDevice(), &createInfo, nullptr, &m_vkImageView) == VK_SUCCESS);
 }
 
-Prism::Render::Vulkan::VulkanTextureView::~VulkanTextureView()
+VulkanTextureView::~VulkanTextureView()
 {
 	if (m_bindlessIndex != UINT32_MAX)
 	{
@@ -92,14 +94,14 @@ Prism::Render::Vulkan::VulkanTextureView::~VulkanTextureView()
 	}
 }
 
-uint32_t Prism::Render::Vulkan::VulkanTextureView::GetBindlessIndex() const
+uint32_t VulkanTextureView::GetBindlessIndex() const
 {
 	PE_ASSERT(m_bindlessIndex != UINT32_MAX, "TextureView was not registered in bindless heap");
 
 	return m_bindlessIndex;
 }
 
-void Prism::Render::Vulkan::VulkanTextureView::RegisterBindless()
+void VulkanTextureView::RegisterBindless()
 {
 	if (m_viewDesc.type != TextureViewType::SRV && m_viewDesc.type != TextureViewType::UAV)
 	{
@@ -124,3 +126,4 @@ void Prism::Render::Vulkan::VulkanTextureView::RegisterBindless()
 		break;
 	}
 }
+} // namespace Prism::Render::Vulkan

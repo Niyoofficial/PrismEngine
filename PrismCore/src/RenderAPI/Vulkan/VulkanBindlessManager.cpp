@@ -63,7 +63,9 @@ constexpr std::array MutableResourceTypes = {
 };
 } // namespace
 
-Prism::Render::Vulkan::VulkanBindlessManager::VulkanBindlessManager()
+namespace Prism::Render::Vulkan
+{
+VulkanBindlessManager::VulkanBindlessManager()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
@@ -212,8 +214,8 @@ Prism::Render::Vulkan::VulkanBindlessManager::VulkanBindlessManager()
 	CreateSamplers(device, physicalDevice);
 }
 
-Prism::Render::Vulkan::VulkanBindlessManager::ResourcesAllocation
-Prism::Render::Vulkan::VulkanBindlessManager::AllocateResources(uint32_t frameIndex)
+VulkanBindlessManager::ResourcesAllocation
+VulkanBindlessManager::AllocateResources(uint32_t frameIndex)
 {
 	PE_ASSERT(frameIndex < Constants::MAX_FRAMES_IN_FLIGHT);
 
@@ -235,14 +237,14 @@ Prism::Render::Vulkan::VulkanBindlessManager::AllocateResources(uint32_t frameIn
 	};
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::ResetResourcesAllocator(uint32_t frameIndex)
+void VulkanBindlessManager::ResetResourcesAllocator(uint32_t frameIndex)
 {
 	PE_ASSERT(frameIndex < Constants::MAX_FRAMES_IN_FLIGHT);
 
 	m_resourcesCursors[frameIndex].store(0, std::memory_order_relaxed);
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::CreateSamplers(VkDevice device, VkPhysicalDevice physicalDevice)
+void VulkanBindlessManager::CreateSamplers(VkDevice device, VkPhysicalDevice physicalDevice)
 {
 	VkPhysicalDeviceProperties properties{};
 	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
@@ -423,7 +425,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::CreateSamplers(VkDevice devic
 	}
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::DestroySamplers(VkDevice device)
+void VulkanBindlessManager::DestroySamplers(VkDevice device)
 {
 	for (VkSampler& sampler : m_samplers)
 	{
@@ -435,7 +437,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::DestroySamplers(VkDevice devi
 	}
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::CreateResourcesBuffer(VkDevice device, VkPhysicalDevice physicalDevice)
+void VulkanBindlessManager::CreateResourcesBuffer(VkDevice device, VkPhysicalDevice physicalDevice)
 {
 	VkPhysicalDeviceProperties properties{};
 	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
@@ -488,7 +490,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::CreateResourcesBuffer(VkDevic
 	}
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::DestroyResourcesBuffer(VkDevice device)
+void VulkanBindlessManager::DestroyResourcesBuffer(VkDevice device)
 {
 	if (m_resourcesMapped)
 	{
@@ -512,7 +514,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::DestroyResourcesBuffer(VkDevi
 	}
 }
 
-VkDeviceSize Prism::Render::Vulkan::VulkanBindlessManager::AlignResourcesOffset(VkDeviceSize offset) const
+VkDeviceSize VulkanBindlessManager::AlignResourcesOffset(VkDeviceSize offset) const
 {
 	const VkDeviceSize alignment = m_resourcesAlignment;
 
@@ -521,7 +523,7 @@ VkDeviceSize Prism::Render::Vulkan::VulkanBindlessManager::AlignResourcesOffset(
 	return offset + alignment - 1 & ~(alignment - 1);
 }
 
-Prism::Render::Vulkan::VulkanBindlessManager::~VulkanBindlessManager()
+VulkanBindlessManager::~VulkanBindlessManager()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
@@ -542,7 +544,7 @@ Prism::Render::Vulkan::VulkanBindlessManager::~VulkanBindlessManager()
 	}
 }
 
-uint32_t Prism::Render::Vulkan::VulkanBindlessManager::AllocateResource()
+uint32_t VulkanBindlessManager::AllocateResource()
 {
 	auto& list = m_resourceFreeList;
 
@@ -562,7 +564,7 @@ uint32_t Prism::Render::Vulkan::VulkanBindlessManager::AllocateResource()
 	return list.nextIndex++;
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::FreeResource(uint32_t index)
+void VulkanBindlessManager::FreeResource(uint32_t index)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
 
@@ -573,7 +575,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::FreeResource(uint32_t index)
 	list.freeIndices.push_back(index);
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::WriteSampledImage(VkDevice device, uint32_t index, VkImageView view,
+void VulkanBindlessManager::WriteSampledImage(VkDevice device, uint32_t index, VkImageView view,
 																	 VkImageLayout layout)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
@@ -597,7 +599,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::WriteSampledImage(VkDevice de
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::WriteStorageImage(VkDevice device, uint32_t index, VkImageView view,
+void VulkanBindlessManager::WriteStorageImage(VkDevice device, uint32_t index, VkImageView view,
 																	 VkImageLayout layout)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
@@ -621,7 +623,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::WriteStorageImage(VkDevice de
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::WriteUniformBuffer(VkDevice device, uint32_t index, VkBuffer buffer,
+void VulkanBindlessManager::WriteUniformBuffer(VkDevice device, uint32_t index, VkBuffer buffer,
 																	  VkDeviceSize offset, VkDeviceSize range)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
@@ -656,7 +658,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::WriteUniformBuffer(VkDevice d
 	}
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::WriteStorageBuffer(VkDevice device, uint32_t index, VkBuffer buffer,
+void VulkanBindlessManager::WriteStorageBuffer(VkDevice device, uint32_t index, VkBuffer buffer,
 																	  VkDeviceSize offset, VkDeviceSize range)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
@@ -680,7 +682,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::WriteStorageBuffer(VkDevice d
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::WriteResourcesBuffer(VkDevice device, VkBuffer buffer, VkDeviceSize offset,
+void VulkanBindlessManager::WriteResourcesBuffer(VkDevice device, VkBuffer buffer, VkDeviceSize offset,
 																		VkDeviceSize range)
 {
 	VkDescriptorBufferInfo bufferInfo{
@@ -702,7 +704,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::WriteResourcesBuffer(VkDevice
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::WriteSampler(VkDevice device, uint32_t samplerIndex, VkSampler sampler)
+void VulkanBindlessManager::WriteSampler(VkDevice device, uint32_t samplerIndex, VkSampler sampler)
 {
 	PE_ASSERT(samplerIndex < SamplerCount);
 
@@ -725,7 +727,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::WriteSampler(VkDevice device,
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::WriteLegacyBuffer(VkDevice device, uint32_t index, VkBuffer buffer,
+void VulkanBindlessManager::WriteLegacyBuffer(VkDevice device, uint32_t index, VkBuffer buffer,
 																	 VkDeviceSize offset, VkDeviceSize range)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
@@ -748,3 +750,4 @@ void Prism::Render::Vulkan::VulkanBindlessManager::WriteLegacyBuffer(VkDevice de
 
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
+} // namespace Prism::Render::Vulkan

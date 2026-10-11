@@ -3,22 +3,24 @@
 #include "Prism/Render/RenderTypes.h"
 #include "xxhash.h"
 
-Prism::Render::Vulkan::VulkanShaderCompiler::VulkanShaderCompiler()
+namespace Prism::Render::Vulkan
+{
+VulkanShaderCompiler::VulkanShaderCompiler()
 {
 	HRESULT dxcUtilsResult = DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&m_dxcUtils));
 	PE_ASSERT(SUCCEEDED(dxcUtilsResult), "DxcCreateInstance(DxcUtils) failed: HRESULT = 0x{:08X}",
-	          static_cast<uint32_t>(dxcUtilsResult));
+			  static_cast<uint32_t>(dxcUtilsResult));
 
 	HRESULT dxcCompilerResult = DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&m_dxcCompiler));
 	PE_ASSERT(SUCCEEDED(dxcCompilerResult), "DxcCreateInstance(CLSID_DxcCompiler) failed: HRESULT = 0x{:08X}",
-	          static_cast<uint32_t>(dxcCompilerResult));
+			  static_cast<uint32_t>(dxcCompilerResult));
 
 	HRESULT includeHeaderResult = m_dxcUtils->CreateDefaultIncludeHandler(&m_dxcIncludeHandler);
 	PE_ASSERT(SUCCEEDED(includeHeaderResult), "CreateDefaultIncludeHandler failed: HRESULT = 0x{:08X}",
-	          static_cast<uint32_t>(includeHeaderResult));
+			  static_cast<uint32_t>(includeHeaderResult));
 
 	for (std::error_code error;
-	     const auto& file : std::filesystem::directory_iterator(Core::Paths::Get().GetIntermediateDir(), error))
+		 const auto& file : std::filesystem::directory_iterator(Core::Paths::Get().GetIntermediateDir(), error))
 	{
 		if (!file.is_regular_file())
 		{
@@ -47,7 +49,7 @@ Prism::Render::Vulkan::VulkanShaderCompiler::VulkanShaderCompiler()
 		catch (const std::invalid_argument& ex)
 		{
 			PE_RENDER_LOG(Warn, "Could not read the hash value from the name of the shader binary file {}",
-			              file.path().filename().generic_string());
+						  file.path().filename().generic_string());
 			continue;
 		}
 
@@ -68,7 +70,7 @@ Prism::Render::Vulkan::VulkanShaderCompiler::VulkanShaderCompiler()
 		shaderFile.read(reinterpret_cast<char*>(output.spirv.data()), size);
 
 		if (SpvReflectResult result = output.reflection.Create(output.spirv.size() * sizeof(uint32_t), output.spirv.data());
-		    result != SPV_REFLECT_RESULT_SUCCESS)
+			result != SPV_REFLECT_RESULT_SUCCESS)
 		{
 			PE_RENDER_LOG(Error, "Failed to reflect shader {}", file.path().string());
 
@@ -78,9 +80,9 @@ Prism::Render::Vulkan::VulkanShaderCompiler::VulkanShaderCompiler()
 		YAML::Node metadata = YAML::LoadFile(metaFile.generic_string());
 
 		ShaderDesc desc = {
-		    .filepath = StringToWString(metadata["ShaderDesc"]["filepath"].as<std::string>()),
-		    .entryName = StringToWString(metadata["ShaderDesc"]["entryName"].as<std::string>()),
-		    .shaderType = static_cast<ShaderType>(metadata["ShaderDesc"]["shaderType"].as<int32_t>()),
+			.filepath = StringToWString(metadata["ShaderDesc"]["filepath"].as<std::string>()),
+			.entryName = StringToWString(metadata["ShaderDesc"]["entryName"].as<std::string>()),
+			.shaderType = static_cast<ShaderType>(metadata["ShaderDesc"]["shaderType"].as<int32_t>()),
 		};
 
 		std::filesystem::path enginePath = Core::Paths::Get().GetEngineDir() / desc.filepath;
@@ -100,8 +102,8 @@ Prism::Render::Vulkan::VulkanShaderCompiler::VulkanShaderCompiler()
 	}
 }
 
-const Prism::Render::Vulkan::VulkanShaderCompilerOutput&
-Prism::Render::Vulkan::VulkanShaderCompiler::GetOrCreateShader(const ShaderDesc& desc)
+const VulkanShaderCompilerOutput&
+VulkanShaderCompiler::GetOrCreateShader(const ShaderDesc& desc)
 {
 	if (!m_shaderCache.contains(desc))
 	{
@@ -109,12 +111,12 @@ Prism::Render::Vulkan::VulkanShaderCompiler::GetOrCreateShader(const ShaderDesc&
 	}
 
 	PE_ASSERT(m_shaderCache.contains(desc), "Shader \"{}\" Entryname {} not found in cache", WStringToString(desc.filepath),
-	          WStringToString(desc.entryName));
+			  WStringToString(desc.entryName));
 
 	return m_shaderCache.at(desc).output;
 }
 
-void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc& desc)
+void VulkanShaderCompiler::CompileShader(const ShaderDesc& desc)
 {
 	const std::filesystem::path engineInputPath = Core::Paths::Get().GetEngineDir() / desc.filepath;
 
@@ -130,50 +132,50 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 	PE_ASSERT(SUCCEEDED(result) && source, "Shader file not found: {}", WStringToString(desc.filepath));
 
 	DxcBuffer sourceBuffer{
-	    .Ptr = source->GetBufferPointer(),
-	    .Size = source->GetBufferSize(),
-	    .Encoding = DXC_CP_ACP,
+		.Ptr = source->GetBufferPointer(),
+		.Size = source->GetBufferSize(),
+		.Encoding = DXC_CP_ACP,
 	};
 
 	std::wstring inputPathNoFile =
-	    desc.filepath.lexically_normal().wstring().substr(0, desc.filepath.lexically_normal().wstring().find_last_of(L"/\\") + 1);
+		desc.filepath.lexically_normal().wstring().substr(0, desc.filepath.lexically_normal().wstring().find_last_of(L"/\\") + 1);
 
 	std::wstring engineInputPathNoFile = engineInputPath.lexically_normal().wstring().substr(
-	    0, engineInputPath.lexically_normal().wstring().find_last_of(L"/\\") + 1);
+		0, engineInputPath.lexically_normal().wstring().find_last_of(L"/\\") + 1);
 
 	std::wstring inputFilename = desc.filepath.filename().wstring();
 
 	std::wstring target = GetTargetStringForShader(desc.shaderType, 6, 8);
 
 	const wchar_t* preprocessArguments[] = {
-	    inputFilename.c_str(), L"-P", L"-I", inputPathNoFile.c_str(), L"-I", engineInputPathNoFile.c_str(), L"-D", L"VULKAN=1",
+		inputFilename.c_str(), L"-P", L"-I", inputPathNoFile.c_str(), L"-I", engineInputPathNoFile.c_str(), L"-D", L"VULKAN=1",
 	};
 
 	const wchar_t* compileArguments[] = {
-	    inputFilename.c_str(),
-	    L"-E",
-	    desc.entryName.c_str(),
-	    L"-T",
-	    target.c_str(),
-	    L"-spirv",
-	    L"-fspv-target-env=vulkan1.3",
-	    L"-fvk-use-dx-layout",
+		inputFilename.c_str(),
+		L"-E",
+		desc.entryName.c_str(),
+		L"-T",
+		target.c_str(),
+		L"-spirv",
+		L"-fspv-target-env=vulkan1.3",
+		L"-fvk-use-dx-layout",
 		L"-fspv-reflect",
-	    L"-Zi",
+		L"-Zi",
 #if PE_BUILD_DEBUG
-	    L"-Od",
+		L"-Od",
 #else
-	    L"-O3",
+		L"-O3",
 #endif
-	    L"-Qembed_debug",
-	    L"-Qsource_in_debug_module",
-	    L"-I",
-	    inputPathNoFile.c_str(),
-	    L"-I",
-	    engineInputPathNoFile.c_str(),
-	    L"-enable-16bit-types",
-	    L"-D",
-	    L"VULKAN=1",
+		L"-Qembed_debug",
+		L"-Qsource_in_debug_module",
+		L"-I",
+		inputPathNoFile.c_str(),
+		L"-I",
+		engineInputPathNoFile.c_str(),
+		L"-enable-16bit-types",
+		L"-D",
+		L"VULKAN=1",
 	};
 
 	static_assert(std::is_same_v<uint64_t, XXH64_hash_t>);
@@ -183,7 +185,7 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 	{
 		ComPtr<IDxcResult> results;
 		PE_ASSERT(SUCCEEDED(m_dxcCompiler->Compile(&sourceBuffer, preprocessArguments, _countof(preprocessArguments),
-		                                           m_dxcIncludeHandler.Get(), IID_PPV_ARGS(&results))));
+												   m_dxcIncludeHandler.Get(), IID_PPV_ARGS(&results))));
 
 		{
 			ComPtr<IDxcBlobUtf8> errors;
@@ -191,7 +193,7 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 			PE_ASSERT(SUCCEEDED(results->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr)));
 
 			PE_ASSERT(!errors || errors->GetStringLength() == 0, "Shader preprocessing failed!\nFile: {}\nEntry: {}\n{}",
-			          WStringToString(desc.filepath), WStringToString(desc.entryName), errors ? errors->GetStringPointer() : "");
+					  WStringToString(desc.filepath), WStringToString(desc.entryName), errors ? errors->GetStringPointer() : "");
 		}
 
 		{
@@ -232,12 +234,12 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 
 	{
 		PE_RENDER_LOG(Info, "Compiling {}, Entry: {}, Shader hash: {}", WStringToString(desc.filepath),
-		              WStringToString(desc.entryName), shaderHash);
+					  WStringToString(desc.entryName), shaderHash);
 
 		ComPtr<IDxcResult> results;
 
 		PE_ASSERT(SUCCEEDED(m_dxcCompiler->Compile(&sourceBuffer, compileArguments, _countof(compileArguments),
-		                                           m_dxcIncludeHandler.Get(), IID_PPV_ARGS(&results))));
+												   m_dxcIncludeHandler.Get(), IID_PPV_ARGS(&results))));
 
 		{
 			ComPtr<IDxcBlobUtf8> errors;
@@ -247,7 +249,7 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 			if (errors && errors->GetStringLength() != 0)
 			{
 				PE_RENDER_LOG(Error, "Shader compilation failed!\nFile: {}\nEntry: {}\n{}", WStringToString(desc.filepath),
-				              WStringToString(desc.entryName), errors->GetStringPointer());
+							  WStringToString(desc.entryName), errors->GetStringPointer());
 
 				return;
 			}
@@ -270,7 +272,7 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 			std::ofstream file(outputFile, std::ios::binary);
 
 			file.write(reinterpret_cast<char*>(output.spirv.data()),
-			           static_cast<std::streamsize>(output.spirv.size() * sizeof(uint32_t)));
+					   static_cast<std::streamsize>(output.spirv.size() * sizeof(uint32_t)));
 		}
 
 		{
@@ -305,10 +307,10 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 
 		{
 			SpvReflectResult reflectResult =
-			    output.reflection.Create(output.spirv.size() * sizeof(uint32_t), output.spirv.data());
+				output.reflection.Create(output.spirv.size() * sizeof(uint32_t), output.spirv.data());
 
 			PE_ASSERT(reflectResult == SPV_REFLECT_RESULT_SUCCESS, "Failed to create SPIR-V reflection for {}",
-			          WStringToString(desc.filepath));
+					  WStringToString(desc.filepath));
 
 			for (uint32_t i = 0; i < output.reflection.GetDescriptorSetCount(); i++)
 			{
@@ -321,7 +323,7 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 					const auto& binding = *set.bindings[b];
 
 					PE_RENDER_LOG(Warn, "set={} binding={} name={} type={} count={}", set.set, binding.binding, binding.name,
-					              static_cast<uint32_t>(binding.descriptor_type), binding.count);
+								  static_cast<uint32_t>(binding.descriptor_type), binding.count);
 				}
 			}
 		}
@@ -330,7 +332,7 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::CompileShader(const ShaderDesc
 	}
 }
 
-uint64_t Prism::Render::Vulkan::VulkanShaderCompiler::GetShaderCodeHash(const ShaderDesc& desc)
+uint64_t VulkanShaderCompiler::GetShaderCodeHash(const ShaderDesc& desc)
 {
 	if (m_shaderCache.contains(desc))
 	{
@@ -340,7 +342,7 @@ uint64_t Prism::Render::Vulkan::VulkanShaderCompiler::GetShaderCodeHash(const Sh
 	return 0;
 }
 
-void Prism::Render::Vulkan::VulkanShaderCompiler::RecompileCachedShaders()
+void VulkanShaderCompiler::RecompileCachedShaders()
 {
 	for (const auto& desc : m_shaderCache | std::views::keys)
 	{
@@ -348,7 +350,7 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::RecompileCachedShaders()
 	}
 }
 
-std::wstring Prism::Render::Vulkan::VulkanShaderCompiler::GetStringForShader(const ShaderType shaderType) const
+std::wstring VulkanShaderCompiler::GetStringForShader(const ShaderType shaderType) const
 {
 	switch (shaderType)
 	{
@@ -370,13 +372,13 @@ std::wstring Prism::Render::Vulkan::VulkanShaderCompiler::GetStringForShader(con
 	}
 }
 
-std::wstring Prism::Render::Vulkan::VulkanShaderCompiler::GetTargetStringForShader(const ShaderType shaderType, int32_t major,
-                                                                                   int32_t minor) const
+std::wstring VulkanShaderCompiler::GetTargetStringForShader(const ShaderType shaderType, int32_t major,
+																				   int32_t minor) const
 {
 	return std::format(L"{}_{}_{}", GetStringForShader(shaderType), major, minor);
 }
 
-void Prism::Render::Vulkan::VulkanShaderCompiler::RemoveShaderCache(const uint64_t shaderHash)
+void VulkanShaderCompiler::RemoveShaderCache(const uint64_t shaderHash)
 {
 	std::filesystem::path cache = Core::Paths::Get().GetIntermediateDir() / std::to_string(shaderHash);
 
@@ -384,3 +386,4 @@ void Prism::Render::Vulkan::VulkanShaderCompiler::RemoveShaderCache(const uint64
 	std::filesystem::remove(cache.replace_extension(".pdb"));
 	std::filesystem::remove(cache.replace_extension(".meta"));
 }
+} // namespace Prism::Render::Vulkan

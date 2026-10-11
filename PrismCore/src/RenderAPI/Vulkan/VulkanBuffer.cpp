@@ -1,11 +1,13 @@
 #include "VulkanBuffer.h"
 
+#include "Prism/Render/RenderConstants.h"
 #include "VulkanRenderDevice.h"
 #include "VulkanTypeConversions.h"
-#include "Prism/Render/RenderConstants.h"
 
-Prism::Render::Vulkan::VulkanBuffer::VulkanBuffer(VulkanRenderDevice* renderDevice, const BufferDesc& desc) :
-    Buffer(renderDevice), m_originalDesc(desc)
+namespace Prism::Render::Vulkan
+{
+VulkanBuffer::VulkanBuffer(VulkanRenderDevice* renderDevice, const BufferDesc& desc) :
+	Buffer(renderDevice), m_originalDesc(desc)
 {
 	if (m_originalDesc.bindFlags.HasAllFlags(BindFlags::UniformBuffer))
 	{
@@ -13,19 +15,20 @@ Prism::Render::Vulkan::VulkanBuffer::VulkanBuffer(VulkanRenderDevice* renderDevi
 	}
 
 	const VkBufferCreateInfo bufferCreateInfo{
-	    .sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-	    .size = static_cast<VkDeviceSize>(m_originalDesc.size),
-	    .usage = GetVkBufferUsageFlags(m_originalDesc.bindFlags),
-	    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		.size = static_cast<VkDeviceSize>(m_originalDesc.size),
+		.usage = GetVkBufferUsageFlags(m_originalDesc.bindFlags),
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 	};
 
-	const VmaAllocationCreateInfo allocationCreateInfo = GetVmaAllocationCreateInfo(m_originalDesc.usage, m_originalDesc.cpuAccess);
+	const VmaAllocationCreateInfo allocationCreateInfo =
+		GetVmaAllocationCreateInfo(m_originalDesc.usage, m_originalDesc.cpuAccess);
 
 	PE_ASSERT(vmaCreateBuffer(renderDevice->GetAllocator(), &bufferCreateInfo, &allocationCreateInfo, &m_buffer.buffer,
-	                          &m_buffer.allocation, nullptr) == VK_SUCCESS);
+							  &m_buffer.allocation, nullptr) == VK_SUCCESS);
 }
 
-Prism::Render::Vulkan::VulkanBuffer::~VulkanBuffer()
+VulkanBuffer::~VulkanBuffer()
 {
 	if (m_buffer.buffer != VK_NULL_HANDLE)
 	{
@@ -33,7 +36,7 @@ Prism::Render::Vulkan::VulkanBuffer::~VulkanBuffer()
 	}
 }
 
-void* Prism::Render::Vulkan::VulkanBuffer::Map(Flags<CPUAccess> access)
+void* VulkanBuffer::Map(Flags<CPUAccess> access)
 {
 	PE_ASSERT(m_originalDesc.usage != ResourceUsage::Default);
 
@@ -44,16 +47,17 @@ void* Prism::Render::Vulkan::VulkanBuffer::Map(Flags<CPUAccess> access)
 	return mappedData;
 }
 
-void Prism::Render::Vulkan::VulkanBuffer::Unmap()
+void VulkanBuffer::Unmap()
 {
 	PE_ASSERT(m_originalDesc.usage != ResourceUsage::Default);
 
 	vmaUnmapMemory(VulkanRenderDevice::Get().GetAllocator(), m_buffer.allocation);
 }
 
-std::any Prism::Render::Vulkan::VulkanBuffer::GetDynamicAllocation() const
+std::any VulkanBuffer::GetDynamicAllocation() const
 {
 	// TODO
 	// implement proper ring buffer allocation for dynamic buffers
 	return {};
 }
+} // namespace Prism::Render::Vulkan

@@ -5,7 +5,9 @@
 #include "VulkanShaderCompiler.h"
 #include "VulkanTypeConversions.h"
 
-Prism::Render::Vulkan::VulkanPipelineCache::VulkanPipelineCache()
+namespace Prism::Render::Vulkan
+{
+VulkanPipelineCache::VulkanPipelineCache()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
@@ -20,7 +22,7 @@ Prism::Render::Vulkan::VulkanPipelineCache::VulkanPipelineCache()
 	PE_ASSERT(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &m_pipelineCache) == VK_SUCCESS);
 }
 
-Prism::Render::Vulkan::VulkanPipelineCache::~VulkanPipelineCache()
+VulkanPipelineCache::~VulkanPipelineCache()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
@@ -37,7 +39,7 @@ Prism::Render::Vulkan::VulkanPipelineCache::~VulkanPipelineCache()
 	vkDestroyPipelineCache(device, m_pipelineCache, nullptr);
 }
 
-VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateDesc& desc,
+VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateDesc& desc,
 																		   const std::vector<Ref<TextureView>>& rtvs,
 																		   TextureView* dsv)
 {
@@ -145,7 +147,7 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 	return pipeline;
 }
 
-VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const ComputePipelineStateDesc& desc)
+VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const ComputePipelineStateDesc& desc)
 {
 	auto* compiler = VulkanRenderDevice::Get().GetVulkanShaderCompiler();
 
@@ -200,7 +202,7 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 	return pipeline;
 }
 
-uint64_t Prism::Render::Vulkan::VulkanPipelineCache::HashPipelineStateDesc(const GraphicsPipelineStateDesc& desc,
+uint64_t VulkanPipelineCache::HashPipelineStateDesc(const GraphicsPipelineStateDesc& desc,
 																		   const std::vector<Ref<TextureView>>& rtvs,
 																		   const TextureView* dsv) const
 {
@@ -231,13 +233,13 @@ uint64_t Prism::Render::Vulkan::VulkanPipelineCache::HashPipelineStateDesc(const
 	return hash;
 }
 
-uint64_t Prism::Render::Vulkan::VulkanPipelineCache::HashPipelineStateDesc(const ComputePipelineStateDesc& desc) const
+uint64_t VulkanPipelineCache::HashPipelineStateDesc(const ComputePipelineStateDesc& desc) const
 {
 	return VulkanRenderDevice::Get().GetShaderCompiler()->GetShaderCodeHash(desc.cs);
 }
 
-Prism::Render::Vulkan::VertexInputState
-Prism::Render::Vulkan::VulkanPipelineCache::BuildVertexInputState(const VertexAttributeList& vertexAttributeList,
+VertexInputState
+VulkanPipelineCache::BuildVertexInputState(const VertexAttributeList& vertexAttributeList,
 																  const VulkanShaderReflection& reflection)
 {
 	VertexInputState vertexInputState;
@@ -284,7 +286,7 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildVertexInputState(const VertexAt
 }
 
 VkPipelineInputAssemblyStateCreateInfo
-Prism::Render::Vulkan::VulkanPipelineCache::BuildInputAssemblyState(const GraphicsPipelineStateDesc& desc)
+VulkanPipelineCache::BuildInputAssemblyState(const GraphicsPipelineStateDesc& desc)
 {
 	return {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -293,7 +295,7 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildInputAssemblyState(const Graphi
 	};
 }
 
-VkPipelineViewportStateCreateInfo Prism::Render::Vulkan::VulkanPipelineCache::BuildViewportState()
+VkPipelineViewportStateCreateInfo VulkanPipelineCache::BuildViewportState()
 {
 	return {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
@@ -303,7 +305,7 @@ VkPipelineViewportStateCreateInfo Prism::Render::Vulkan::VulkanPipelineCache::Bu
 }
 
 VkPipelineRasterizationStateCreateInfo
-Prism::Render::Vulkan::VulkanPipelineCache::BuildPipelineRasterizationState(const GraphicsPipelineStateDesc& desc)
+VulkanPipelineCache::BuildPipelineRasterizationState(const GraphicsPipelineStateDesc& desc)
 {
 	return {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -321,7 +323,7 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildPipelineRasterizationState(cons
 }
 
 VkPipelineMultisampleStateCreateInfo
-Prism::Render::Vulkan::VulkanPipelineCache::BuildMultisampleState(const GraphicsPipelineStateDesc& desc)
+VulkanPipelineCache::BuildMultisampleState(const GraphicsPipelineStateDesc& desc)
 {
 	return {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
@@ -334,7 +336,7 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildMultisampleState(const Graphics
 	};
 }
 
-Prism::Render::Vulkan::DynamicState Prism::Render::Vulkan::VulkanPipelineCache::BuildDynamicState()
+DynamicState VulkanPipelineCache::BuildDynamicState()
 {
 	DynamicState state{};
 
@@ -353,7 +355,7 @@ Prism::Render::Vulkan::DynamicState Prism::Render::Vulkan::VulkanPipelineCache::
 }
 
 VkPipelineDepthStencilStateCreateInfo
-Prism::Render::Vulkan::VulkanPipelineCache::BuildDepthStencilState(const GraphicsPipelineStateDesc& desc)
+VulkanPipelineCache::BuildDepthStencilState(const GraphicsPipelineStateDesc& desc)
 {
 	const auto& depthStencilState = desc.depthStencilState;
 
@@ -375,8 +377,8 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildDepthStencilState(const Graphic
 	};
 }
 
-Prism::Render::Vulkan::ColorBlendState
-Prism::Render::Vulkan::VulkanPipelineCache::BuildColorBlendState(const GraphicsPipelineStateDesc& desc,
+ColorBlendState
+VulkanPipelineCache::BuildColorBlendState(const GraphicsPipelineStateDesc& desc,
 																 const uint32_t colorAttachmentCount)
 {
 	ColorBlendState state;
@@ -418,8 +420,8 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildColorBlendState(const GraphicsP
 	return state;
 }
 
-Prism::Render::Vulkan::RenderingInfo
-Prism::Render::Vulkan::VulkanPipelineCache::BuildRenderingInfo(const std::vector<Ref<TextureView>>& rtvs, TextureView* dsv)
+RenderingInfo
+VulkanPipelineCache::BuildRenderingInfo(const std::vector<Ref<TextureView>>& rtvs, TextureView* dsv)
 {
 	RenderingInfo info;
 
@@ -443,3 +445,4 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildRenderingInfo(const std::vector
 
 	return info;
 }
+} // namespace Prism::Render::Vulkan

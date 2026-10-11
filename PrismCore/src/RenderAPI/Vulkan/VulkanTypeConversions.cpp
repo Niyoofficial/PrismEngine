@@ -2,7 +2,9 @@
 
 #include "Prism/Render/VertexBufferCache.h"
 
-VkImageType Prism::Render::Vulkan::GetVkImageType(const ResourceDimension dimension)
+namespace Prism::Render::Vulkan
+{
+VkImageType Vulkan::GetVkImageType(const ResourceDimension dimension)
 {
 	switch (dimension)
 	{
@@ -20,7 +22,7 @@ VkImageType Prism::Render::Vulkan::GetVkImageType(const ResourceDimension dimens
 	}
 }
 
-VkImageViewType Prism::Render::Vulkan::GetVkImageViewType(const ResourceDimension dimension, const uint32_t arrayLayers)
+VkImageViewType Vulkan::GetVkImageViewType(const ResourceDimension dimension, const uint32_t arrayLayers)
 {
 	switch (dimension)
 	{
@@ -38,7 +40,7 @@ VkImageViewType Prism::Render::Vulkan::GetVkImageViewType(const ResourceDimensio
 	}
 }
 
-VkImageUsageFlags Prism::Render::Vulkan::GetVkImageUsageFlags(const Flags<BindFlags> flags)
+VkImageUsageFlags Vulkan::GetVkImageUsageFlags(const Flags<BindFlags> flags)
 {
 	VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
@@ -62,7 +64,7 @@ VkImageUsageFlags Prism::Render::Vulkan::GetVkImageUsageFlags(const Flags<BindFl
 	return usage;
 }
 
-VkImageAspectFlags Prism::Render::Vulkan::GetVkImageAspectFlags(const TextureFormat format)
+VkImageAspectFlags Vulkan::GetVkImageAspectFlags(const TextureFormat format)
 {
 	switch (format)
 	{
@@ -83,7 +85,7 @@ VkImageAspectFlags Prism::Render::Vulkan::GetVkImageAspectFlags(const TextureFor
 	}
 }
 
-VkFormat Prism::Render::Vulkan::GetVkFormat(const TextureFormat format)
+VkFormat Vulkan::GetVkFormat(const TextureFormat format)
 {
 	switch (format)
 	{
@@ -288,7 +290,7 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const TextureFormat format)
 	return VK_FORMAT_UNDEFINED;
 }
 
-VkBufferUsageFlags Prism::Render::Vulkan::GetVkBufferUsageFlags(Flags<BindFlags> flags)
+VkBufferUsageFlags Vulkan::GetVkBufferUsageFlags(Flags<BindFlags> flags)
 {
 	VkBufferUsageFlags bufferUsageFlags{};
 
@@ -330,8 +332,8 @@ VkBufferUsageFlags Prism::Render::Vulkan::GetVkBufferUsageFlags(Flags<BindFlags>
 	return bufferUsageFlags;
 }
 
-VmaAllocationCreateInfo Prism::Render::Vulkan::GetVmaAllocationCreateInfo(const ResourceUsage usage,
-                                                                          const Flags<CPUAccess> cpuAccess)
+VmaAllocationCreateInfo Vulkan::GetVmaAllocationCreateInfo(const ResourceUsage usage,
+																		  const Flags<CPUAccess> cpuAccess)
 {
 	VmaAllocationCreateInfo allocationCreateInfo{};
 
@@ -359,7 +361,7 @@ VmaAllocationCreateInfo Prism::Render::Vulkan::GetVmaAllocationCreateInfo(const 
 	return allocationCreateInfo;
 }
 
-VkImageLayout Prism::Render::Vulkan::GetVkImageLayout(const BarrierLayout layout)
+VkImageLayout Vulkan::GetVkImageLayout(const BarrierLayout layout)
 {
 	switch (layout)
 	{
@@ -391,7 +393,7 @@ VkImageLayout Prism::Render::Vulkan::GetVkImageLayout(const BarrierLayout layout
 	}
 }
 
-VkShaderStageFlags Prism::Render::Vulkan::GetVkShaderStageFlags(const ShaderType type)
+VkShaderStageFlags Vulkan::GetVkShaderStageFlags(const ShaderType type)
 {
 	switch (type)
 	{
@@ -413,7 +415,7 @@ VkShaderStageFlags Prism::Render::Vulkan::GetVkShaderStageFlags(const ShaderType
 	}
 }
 
-VkFormat Prism::Render::Vulkan::GetVkFormat(const VertexAttribute attribute)
+VkFormat Vulkan::GetVkFormat(const VertexAttribute attribute)
 {
 	switch (attribute)
 	{
@@ -432,7 +434,7 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const VertexAttribute attribute)
 	}
 }
 
-VkPrimitiveTopology Prism::Render::Vulkan::GetVkPrimitiveTopology(const TopologyType topologyType)
+VkPrimitiveTopology Vulkan::GetVkPrimitiveTopology(const TopologyType topologyType)
 {
 	switch (topologyType)
 	{
@@ -494,7 +496,7 @@ VkPrimitiveTopology Prism::Render::Vulkan::GetVkPrimitiveTopology(const Topology
 	}
 }
 
-VkPolygonMode Prism::Render::Vulkan::GetVkPolygonMode(const FillMode fillMode)
+VkPolygonMode Vulkan::GetVkPolygonMode(const FillMode fillMode)
 {
 	switch (fillMode)
 	{
@@ -508,7 +510,7 @@ VkPolygonMode Prism::Render::Vulkan::GetVkPolygonMode(const FillMode fillMode)
 	}
 }
 
-VkCullModeFlags Prism::Render::Vulkan::GetVkCullModeFlags(const CullMode cullMode)
+VkCullModeFlags Vulkan::GetVkCullModeFlags(const CullMode cullMode)
 {
 	switch (cullMode)
 	{
@@ -524,7 +526,7 @@ VkCullModeFlags Prism::Render::Vulkan::GetVkCullModeFlags(const CullMode cullMod
 	}
 }
 
-VkSampleCountFlagBits Prism::Render::Vulkan::GetVkSampleCountFlagBits(const uint32_t sampleCount)
+VkSampleCountFlagBits Vulkan::GetVkSampleCountFlagBits(const uint32_t sampleCount)
 {
 	switch (sampleCount)
 	{
@@ -548,7 +550,7 @@ VkSampleCountFlagBits Prism::Render::Vulkan::GetVkSampleCountFlagBits(const uint
 	}
 }
 
-VkCompareOp Prism::Render::Vulkan::GetVkCompareOp(const ComparisionFunction function)
+VkCompareOp Vulkan::GetVkCompareOp(const ComparisionFunction function)
 {
 	switch (function)
 	{
@@ -574,7 +576,7 @@ VkCompareOp Prism::Render::Vulkan::GetVkCompareOp(const ComparisionFunction func
 	}
 }
 
-VkStencilOp Prism::Render::Vulkan::GetVkStencilOp(const StencilOperation operation)
+VkStencilOp Vulkan::GetVkStencilOp(const StencilOperation operation)
 {
 	switch (operation)
 	{
@@ -602,21 +604,21 @@ VkStencilOp Prism::Render::Vulkan::GetVkStencilOp(const StencilOperation operati
 	}
 }
 
-VkStencilOpState Prism::Render::Vulkan::GetVkStencilOpState(const DepthStencilOperationDesc& desc, const uint8_t readMask,
-                                                            const uint8_t writeMask, const uint32_t reference)
+VkStencilOpState Vulkan::GetVkStencilOpState(const DepthStencilOperationDesc& desc, const uint8_t readMask,
+															const uint8_t writeMask, const uint32_t reference)
 {
 	return VkStencilOpState{
-	    .failOp = GetVkStencilOp(desc.stencilFail),
-	    .passOp = GetVkStencilOp(desc.stencilPass),
-	    .depthFailOp = GetVkStencilOp(desc.stencilDepthFail),
-	    .compareOp = GetVkCompareOp(desc.stencilFunction),
-	    .compareMask = readMask,
-	    .writeMask = writeMask,
-	    .reference = reference,
+		.failOp = GetVkStencilOp(desc.stencilFail),
+		.passOp = GetVkStencilOp(desc.stencilPass),
+		.depthFailOp = GetVkStencilOp(desc.stencilDepthFail),
+		.compareOp = GetVkCompareOp(desc.stencilFunction),
+		.compareMask = readMask,
+		.writeMask = writeMask,
+		.reference = reference,
 	};
 }
 
-VkBlendFactor Prism::Render::Vulkan::GetVkBlendFactor(const BlendFactor factor)
+VkBlendFactor Vulkan::GetVkBlendFactor(const BlendFactor factor)
 {
 	switch (factor)
 	{
@@ -660,7 +662,7 @@ VkBlendFactor Prism::Render::Vulkan::GetVkBlendFactor(const BlendFactor factor)
 	}
 }
 
-VkBlendOp Prism::Render::Vulkan::GetVkBlendOp(const BlendOperation operation)
+VkBlendOp Vulkan::GetVkBlendOp(const BlendOperation operation)
 {
 	switch (operation)
 	{
@@ -680,7 +682,7 @@ VkBlendOp Prism::Render::Vulkan::GetVkBlendOp(const BlendOperation operation)
 	}
 }
 
-VkColorComponentFlags Prism::Render::Vulkan::GetVkColorComponentFlags(ColorMask mask)
+VkColorComponentFlags Vulkan::GetVkColorComponentFlags(ColorMask mask)
 {
 	VkColorComponentFlags flags = 0;
 
@@ -707,7 +709,7 @@ VkColorComponentFlags Prism::Render::Vulkan::GetVkColorComponentFlags(ColorMask 
 	return flags;
 }
 
-uint32_t Prism::Render::Vulkan::GetBytesPerPixel(const TextureFormat format)
+uint32_t Vulkan::GetBytesPerPixel(const TextureFormat format)
 {
 	switch (format)
 	{
@@ -824,7 +826,7 @@ uint32_t Prism::Render::Vulkan::GetBytesPerPixel(const TextureFormat format)
 	}
 }
 
-VkDescriptorType Prism::Render::Vulkan::GetVkDescriptorType(const SpvReflectDescriptorType type)
+VkDescriptorType Vulkan::GetVkDescriptorType(const SpvReflectDescriptorType type)
 {
 	switch (type)
 	{
@@ -858,7 +860,7 @@ VkDescriptorType Prism::Render::Vulkan::GetVkDescriptorType(const SpvReflectDesc
 	}
 }
 
-VkAccessFlags Prism::Render::Vulkan::GetVkAccessFlags(const Flags<BarrierAccess> access)
+VkAccessFlags Vulkan::GetVkAccessFlags(const Flags<BarrierAccess> access)
 {
 	VkAccessFlags flags = 0;
 
@@ -982,7 +984,7 @@ VkAccessFlags Prism::Render::Vulkan::GetVkAccessFlags(const Flags<BarrierAccess>
 	return flags;
 }
 
-VkPipelineStageFlags Prism::Render::Vulkan::GetVkPipelineStageFlags(const Flags<BarrierSync> sync)
+VkPipelineStageFlags Vulkan::GetVkPipelineStageFlags(const Flags<BarrierSync> sync)
 {
 	VkPipelineStageFlags stages = VK_PIPELINE_STAGE_NONE;
 
@@ -1110,7 +1112,7 @@ VkPipelineStageFlags Prism::Render::Vulkan::GetVkPipelineStageFlags(const Flags<
 	return stages;
 }
 
-VkFormat Prism::Render::Vulkan::GetVkFormat(const SpvReflectFormat format)
+VkFormat Vulkan::GetVkFormat(const SpvReflectFormat format)
 {
 	switch (format)
 	{
@@ -1146,31 +1148,31 @@ VkFormat Prism::Render::Vulkan::GetVkFormat(const SpvReflectFormat format)
 
 struct FormatAlias
 {
-	Prism::Render::TextureFormat imageFormat;
-	Prism::Render::TextureFormat requestedViewFormat;
-	Prism::Render::TextureFormat actualViewFormat;
+	TextureFormat imageFormat;
+	TextureFormat requestedViewFormat;
+	TextureFormat actualViewFormat;
 };
 
 static constexpr FormatAlias aliases[] = {
-    {
-        Prism::Render::TextureFormat::D32_Float,
-        Prism::Render::TextureFormat::R32_Float,
-        Prism::Render::TextureFormat::D32_Float,
-    },
-    {
-        Prism::Render::TextureFormat::D16_UNorm,
-        Prism::Render::TextureFormat::R16_UNorm,
-        Prism::Render::TextureFormat::D16_UNorm,
-    },
-    {
-        Prism::Render::TextureFormat::D24_UNorm_S8_UInt,
-        Prism::Render::TextureFormat::R24_UNorm_X8_Typeless,
-        Prism::Render::TextureFormat::D24_UNorm_S8_UInt,
-    },
+	{
+		TextureFormat::D32_Float,
+		TextureFormat::R32_Float,
+		TextureFormat::D32_Float,
+	},
+	{
+		TextureFormat::D16_UNorm,
+		TextureFormat::R16_UNorm,
+		TextureFormat::D16_UNorm,
+	},
+	{
+		TextureFormat::D24_UNorm_S8_UInt,
+		TextureFormat::R24_UNorm_X8_Typeless,
+		TextureFormat::D24_UNorm_S8_UInt,
+	},
 };
 
-Prism::Render::TextureFormat Prism::Render::Vulkan::GetVkCompatibleViewFormat(const TextureFormat imageFormat,
-                                                                              const TextureFormat viewFormat)
+TextureFormat Vulkan::GetVkCompatibleViewFormat(const TextureFormat imageFormat,
+																			  const TextureFormat viewFormat)
 {
 	for (const auto& alias : aliases)
 	{
@@ -1181,3 +1183,4 @@ Prism::Render::TextureFormat Prism::Render::Vulkan::GetVkCompatibleViewFormat(co
 	}
 	return viewFormat;
 }
+} // namespace Prism::Render::Vulkan

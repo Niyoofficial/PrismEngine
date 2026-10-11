@@ -3,7 +3,9 @@
 #include "VulkanRenderCommandList.h"
 #include "VulkanRenderDevice.h"
 
-Prism::Render::Vulkan::VulkanRenderCommandQueue::VulkanRenderCommandQueue(VkQueue queue, const uint32_t queueFamilyIndex) :
+namespace Prism::Render::Vulkan
+{
+VulkanRenderCommandQueue::VulkanRenderCommandQueue(VkQueue queue, const uint32_t queueFamilyIndex) :
 	m_queue(queue), m_queueFamilyIndex(queueFamilyIndex)
 {
 	const auto& device = VulkanRenderDevice::Get();
@@ -23,7 +25,7 @@ Prism::Render::Vulkan::VulkanRenderCommandQueue::VulkanRenderCommandQueue(VkQueu
 	PE_ASSERT(vkCreateSemaphore(device.GetDevice(), &createInfo, nullptr, &m_timelineSemaphore) == VK_SUCCESS);
 }
 
-Prism::Render::Vulkan::VulkanRenderCommandQueue::~VulkanRenderCommandQueue()
+VulkanRenderCommandQueue::~VulkanRenderCommandQueue()
 {
 	const VkDevice logicalDevice = VulkanRenderDevice::Get().GetDevice();
 	if (m_timelineSemaphore != VK_NULL_HANDLE)
@@ -32,17 +34,17 @@ Prism::Render::Vulkan::VulkanRenderCommandQueue::~VulkanRenderCommandQueue()
 	}
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::SetMarker(glm::float3 color, std::wstring string) {}
+void VulkanRenderCommandQueue::SetMarker(glm::float3 color, std::wstring string) {}
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::BeginEvent(glm::float3 color, std::wstring string) {}
+void VulkanRenderCommandQueue::BeginEvent(glm::float3 color, std::wstring string) {}
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::EndEvent() {}
+void VulkanRenderCommandQueue::EndEvent() {}
 
-uint64_t Prism::Render::Vulkan::VulkanRenderCommandQueue::GetFenceValue() { return m_fenceValue; }
+uint64_t VulkanRenderCommandQueue::GetFenceValue() { return m_fenceValue; }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::IncreaseFenceValue() { ++m_fenceValue; }
+void VulkanRenderCommandQueue::IncreaseFenceValue() { ++m_fenceValue; }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::SignalFence(uint64_t fenceValue)
+void VulkanRenderCommandQueue::SignalFence(uint64_t fenceValue)
 {
 	const VkTimelineSemaphoreSubmitInfo timelineSemaphoreSubmitInfo{
 		.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
@@ -65,7 +67,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::SignalFence(uint64_t fence
 	}
 }
 
-uint64_t Prism::Render::Vulkan::VulkanRenderCommandQueue::IncreaseAndSignalFence()
+uint64_t VulkanRenderCommandQueue::IncreaseAndSignalFence()
 {
 	IncreaseFenceValue();
 	SignalFence(m_fenceValue);
@@ -73,7 +75,7 @@ uint64_t Prism::Render::Vulkan::VulkanRenderCommandQueue::IncreaseAndSignalFence
 	return GetFenceValue();
 }
 
-uint64_t Prism::Render::Vulkan::VulkanRenderCommandQueue::GetCompletedFenceValue() const
+uint64_t VulkanRenderCommandQueue::GetCompletedFenceValue() const
 {
 	uint64_t completedValue = 0;
 	VkDevice logicalDevice = VulkanRenderDevice::Get().GetDevice();
@@ -83,7 +85,7 @@ uint64_t Prism::Render::Vulkan::VulkanRenderCommandQueue::GetCompletedFenceValue
 	return completedValue;
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::WaitForFenceToComplete(uint64_t fenceValue)
+void VulkanRenderCommandQueue::WaitForFenceToComplete(uint64_t fenceValue)
 {
 	if (GetCompletedFenceValue() < fenceValue)
 	{
@@ -102,7 +104,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::WaitForFenceToComplete(uin
 	ExecuteGPUCompletionEvents();
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::SubmitImmediate(const Ref<RenderCommandList>& renderCommandList)
+void VulkanRenderCommandQueue::SubmitImmediate(const Ref<RenderCommandList>& renderCommandList)
 {
 	auto* cmd = dynamic_cast<VulkanRenderCommandList*>(renderCommandList.Raw());
 	PE_ASSERT(cmd);
@@ -143,7 +145,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::SubmitImmediate(const Ref<
 	vkDestroyFence(device.GetDevice(), fence, nullptr);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::Execute(RenderCommandList* cmdList)
+void VulkanRenderCommandQueue::Execute(RenderCommandList* cmdList)
 {
 	const auto* vkCmdList = dynamic_cast<VulkanRenderCommandList*>(cmdList);
 
@@ -192,7 +194,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::Execute(RenderCommandList*
 	m_signalSemaphore = VK_NULL_HANDLE;
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::SetSubmitSynchronization(VkSemaphore waitSemaphore,
+void VulkanRenderCommandQueue::SetSubmitSynchronization(VkSemaphore waitSemaphore,
 																			   VkPipelineStageFlags waitStage,
 																			   VkSemaphore signalSemaphore)
 {
@@ -200,3 +202,4 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::SetSubmitSynchronization(V
 	m_waitStage = waitStage;
 	m_signalSemaphore = signalSemaphore;
 }
+} // namespace Prism::Render::Vulkan

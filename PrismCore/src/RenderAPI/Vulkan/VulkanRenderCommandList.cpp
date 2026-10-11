@@ -17,7 +17,9 @@ PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXTFunction = nullptr;
 PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabelEXTFunction = nullptr;
 } // namespace
 
-Prism::Render::Vulkan::VulkanRenderCommandList::VulkanRenderCommandList()
+namespace Prism::Render::Vulkan
+{
+VulkanRenderCommandList::VulkanRenderCommandList()
 {
 	const auto& device = VulkanRenderDevice::Get();
 
@@ -73,7 +75,7 @@ Prism::Render::Vulkan::VulkanRenderCommandList::VulkanRenderCommandList()
 	PE_ASSERT(vkBeginCommandBuffer(m_commandBuffer, &beginInfo) == VK_SUCCESS);
 }
 
-Prism::Render::Vulkan::VulkanRenderCommandList::~VulkanRenderCommandList()
+VulkanRenderCommandList::~VulkanRenderCommandList()
 {
 	const auto& device = VulkanRenderDevice::Get();
 
@@ -88,7 +90,7 @@ Prism::Render::Vulkan::VulkanRenderCommandList::~VulkanRenderCommandList()
 	}
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::Draw(const DrawCommandDesc desc)
+void VulkanRenderCommandList::Draw(const DrawCommandDesc desc)
 {
 	SetupDrawOrDispatch(PipelineStateType::Graphics);
 
@@ -96,7 +98,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Draw(const DrawCommandDesc 
 			  static_cast<uint32_t>(desc.startVertexLocation), 0);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::DrawIndexed(const DrawIndexedCommandDesc desc)
+void VulkanRenderCommandList::DrawIndexed(const DrawIndexedCommandDesc desc)
 {
 	SetupDrawOrDispatch(PipelineStateType::Graphics);
 
@@ -104,33 +106,33 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::DrawIndexed(const DrawIndex
 					 static_cast<uint32_t>(desc.startIndexLocation), static_cast<int32_t>(desc.baseVertexLocation), 0);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::Dispatch(const glm::int3 threadGroupCount)
+void VulkanRenderCommandList::Dispatch(const glm::int3 threadGroupCount)
 {
 	SetupDrawOrDispatch(PipelineStateType::Compute);
 
 	vkCmdDispatch(m_commandBuffer, threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::SetPSO(const GraphicsPipelineStateDesc& desc)
+void VulkanRenderCommandList::SetPSO(const GraphicsPipelineStateDesc& desc)
 {
 	m_currentGraphicsPSO = desc;
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::SetPSO(const ComputePipelineStateDesc& desc) { m_currentComputePSO = desc; }
+void VulkanRenderCommandList::SetPSO(const ComputePipelineStateDesc& desc) { m_currentComputePSO = desc; }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::SetStencilRef(const uint32_t ref)
+void VulkanRenderCommandList::SetStencilRef(const uint32_t ref)
 {
 	vkCmdSetStencilReference(m_commandBuffer, VK_STENCIL_FACE_FRONT_AND_BACK, ref);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::SetRenderTargets(std::vector<Ref<TextureView>> rtvs,
+void VulkanRenderCommandList::SetRenderTargets(std::vector<Ref<TextureView>> rtvs,
 																	  const Ref<TextureView>& dsv)
 {
 	m_renderTargetViews = std::move(rtvs);
 	m_depthStencilView = dsv;
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::SetViewports(std::vector<Viewport> viewports)
+void VulkanRenderCommandList::SetViewports(std::vector<Viewport> viewports)
 {
 	std::vector<VkViewport> vkViewports;
 
@@ -150,7 +152,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetViewports(std::vector<Vi
 	vkCmdSetViewport(m_commandBuffer, 0, static_cast<uint32_t>(vkViewports.size()), vkViewports.data());
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::SetScissors(std::vector<Scissor> scissors)
+void VulkanRenderCommandList::SetScissors(std::vector<Scissor> scissors)
 {
 	std::vector<VkRect2D> vkScissors;
 
@@ -166,7 +168,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetScissors(std::vector<Sci
 	vkCmdSetScissor(m_commandBuffer, 0, static_cast<uint32_t>(vkScissors.size()), vkScissors.data());
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::SetVertexBuffer(const Ref<Buffer>& buffer, int64_t vertexSizeInBytes)
+void VulkanRenderCommandList::SetVertexBuffer(const Ref<Buffer>& buffer, int64_t vertexSizeInBytes)
 {
 	const auto* vulkanBuffer = dynamic_cast<VulkanBuffer*>(buffer.Raw());
 
@@ -177,7 +179,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetVertexBuffer(const Ref<B
 	vkCmdBindVertexBuffers(m_commandBuffer, 0, 1, &vkBuffer, &offset);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::SetIndexBuffer(const Ref<Buffer>& buffer, IndexBufferFormat format)
+void VulkanRenderCommandList::SetIndexBuffer(const Ref<Buffer>& buffer, IndexBufferFormat format)
 {
 	const auto* vulkanBuffer = dynamic_cast<VulkanBuffer*>(buffer.Raw());
 
@@ -186,7 +188,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetIndexBuffer(const Ref<Bu
 	vkCmdBindIndexBuffer(m_commandBuffer, vulkanBuffer->GetVkBuffer(), 0, indexType);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::SetTextures(const std::vector<Ref<TextureView>>& textureViews,
+void VulkanRenderCommandList::SetTextures(const std::vector<Ref<TextureView>>& textureViews,
 																 const std::wstring& paramName)
 {
 	std::vector<Ref<RenderResourceView>> resources;
@@ -201,7 +203,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetTextures(const std::vect
 	m_boundResources[paramName] = std::move(resources);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& bufferViews,
+void VulkanRenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& bufferViews,
 																const std::vector<std::any> dynamicAllocations,
 																const std::wstring& paramName)
 {
@@ -217,7 +219,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetBuffers(const std::vecto
 	m_boundResources[paramName] = std::move(resources);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::ClearRenderTargetView(const Ref<TextureView>& rtv, glm::float4* clearColor)
+void VulkanRenderCommandList::ClearRenderTargetView(const Ref<TextureView>& rtv, glm::float4* clearColor)
 {
 	if (m_renderingActive)
 	{
@@ -239,7 +241,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearRenderTargetView(const
 	});
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags,
+void VulkanRenderCommandList::ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags,
 																		   DepthStencilValue* clearValue)
 {
 	if (m_renderingActive)
@@ -272,7 +274,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearDepthStencilView(const
 	};
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav,
+void VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav,
 																			  const glm::float4 values)
 {
 	const auto* view = dynamic_cast<VulkanTextureView*>(uav.Raw());
@@ -287,7 +289,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(co
 						 nullptr);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav,
+void VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav,
 																			  const glm::uint4 values)
 {
 	const auto* view = dynamic_cast<VulkanTextureView*>(uav.Raw());
@@ -302,7 +304,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::ClearUnorderedAccessView(co
 						 nullptr);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const BufferBarrier barrier)
+void VulkanRenderCommandList::Barrier(const BufferBarrier barrier)
 {
 	const auto* buffer = dynamic_cast<VulkanBuffer*>(barrier.buffer);
 
@@ -321,7 +323,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const BufferBarrier
 	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 1, &bufferBarrier, 0, nullptr);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrier barrier)
+void VulkanRenderCommandList::Barrier(const TextureBarrier barrier)
 {
 	const auto* texture = dynamic_cast<VulkanTexture*>(barrier.texture);
 	PE_ASSERT(texture);
@@ -354,7 +356,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Barrier(const TextureBarrie
 	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateBuffer(const Ref<Buffer>& buffer, const RawData data)
+void VulkanRenderCommandList::UpdateBuffer(const Ref<Buffer>& buffer, const RawData data)
 {
 	PE_ASSERT(buffer);
 	PE_ASSERT(data.data);
@@ -404,7 +406,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateBuffer(const Ref<Buff
 	KeepAlive(stagingBuffer);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateTexture(const Ref<Texture>& texture, RawData data,
+void VulkanRenderCommandList::UpdateTexture(const Ref<Texture>& texture, RawData data,
 																   const int32_t subresourceIndex)
 {
 	PE_ASSERT(texture);
@@ -454,7 +456,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::UpdateTexture(const Ref<Tex
 	KeepAlive(stagingBuffer);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::CopyBufferRegion(const Ref<Buffer>& dest, const int64_t destOffset,
+void VulkanRenderCommandList::CopyBufferRegion(const Ref<Buffer>& dest, const int64_t destOffset,
 																	  const Ref<Buffer>& src, const int64_t srcOffset,
 																	  const int64_t numBytes)
 {
@@ -470,7 +472,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::CopyBufferRegion(const Ref<
 	vkCmdCopyBuffer(m_commandBuffer, srcBuffer->GetVkBuffer(), destBuffer->GetVkBuffer(), 1, &region);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::CopyBufferRegion(const Ref<Texture>& dest, const glm::int3 destLoc,
+void VulkanRenderCommandList::CopyBufferRegion(const Ref<Texture>& dest, const glm::int3 destLoc,
 																	  const int32_t destSubresourceIndex, const Ref<Buffer>& src,
 																	  const int64_t srcOffset)
 {
@@ -492,7 +494,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::CopyBufferRegion(const Ref<
 						   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::CopyTextureRegion(const Ref<Buffer>& dest, const int64_t destOffset,
+void VulkanRenderCommandList::CopyTextureRegion(const Ref<Buffer>& dest, const int64_t destOffset,
 																	   const Ref<Texture>& src, const int32_t srcSubresourceIndex,
 																	   Box3I srcBox)
 {
@@ -520,7 +522,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::CopyTextureRegion(const Ref
 						   destBuffer->GetVkBuffer(), 1, &region);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::CopyTextureRegion(const Ref<Texture>& dest, const glm::int3 destLoc,
+void VulkanRenderCommandList::CopyTextureRegion(const Ref<Texture>& dest, const glm::int3 destLoc,
 																	   const int32_t destSubresourceIndex,
 																	   const Ref<Texture>& src, const int32_t srcSubresourceIndex,
 																	   Box3I srcBox)
@@ -610,7 +612,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::CopyTextureRegion(const Ref
 				   destTexture->GetVulkanTextureResource().image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::RenderImGui(Swapchain* swapchain, int32_t backbufferIndex,
+void VulkanRenderCommandList::RenderImGui(Swapchain* swapchain, int32_t backbufferIndex,
 																 ImDrawData* drawData)
 {
 	if (!drawData)
@@ -636,7 +638,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::RenderImGui(Swapchain* swap
 	EndDynamicRendering();
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::SetMarker(glm::float3 color, std::wstring string)
+void VulkanRenderCommandList::SetMarker(glm::float3 color, std::wstring string)
 {
 	const std::string utf8LabelName = WStringToString(string);
 
@@ -652,7 +654,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetMarker(glm::float3 color
 	}
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::BeginEvent(glm::float3 color, std::wstring string)
+void VulkanRenderCommandList::BeginEvent(glm::float3 color, std::wstring string)
 {
 	const std::string utf8LabelName = WStringToString(string);
 
@@ -668,7 +670,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginEvent(glm::float3 colo
 	}
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::EndEvent()
+void VulkanRenderCommandList::EndEvent()
 {
 	if (vkCmdEndDebugUtilsLabelEXTFunction)
 	{
@@ -676,14 +678,14 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::EndEvent()
 	}
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::KeepAlive(const Ref<Buffer>& buffer)
+void VulkanRenderCommandList::KeepAlive(const Ref<Buffer>& buffer)
 {
 	m_pendingStagingBuffers.push_back(buffer);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::Finalize() { Close(); }
+void VulkanRenderCommandList::Finalize() { Close(); }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::Close()
+void VulkanRenderCommandList::Close()
 {
 	RenderCommandList::Close();
 
@@ -692,7 +694,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::Close()
 	PE_ASSERT(vkEndCommandBuffer(m_commandBuffer) == VK_SUCCESS);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
+void VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
 {
 	auto& device = VulkanRenderDevice::Get();
 
@@ -802,7 +804,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(Pipeline
 	vkCmdBindDescriptorSets(m_commandBuffer, bindPoint, pipelineLayout, 0, 1, &bindlessSet, 1, &dynamicOffset);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
+void VulkanRenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
 {
 	PE_ASSERT(type == PipelineStateType::Graphics && m_currentGraphicsPSO.IsValid() ||
 			  type == PipelineStateType::Compute && m_currentComputePSO.IsValid());
@@ -828,7 +830,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::SetupDrawOrDispatch(Pipelin
 	BindDescriptorSets(type);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
+void VulkanRenderCommandList::BeginDynamicRendering()
 {
 	if (m_renderingActive)
 	{
@@ -996,7 +998,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BeginDynamicRendering()
 	m_renderingActive = true;
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandList::EndDynamicRendering()
+void VulkanRenderCommandList::EndDynamicRendering()
 {
 	if (!m_renderingActive)
 	{
@@ -1007,3 +1009,4 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::EndDynamicRendering()
 
 	m_renderingActive = false;
 }
+} // namespace Prism::Render::Vulkan

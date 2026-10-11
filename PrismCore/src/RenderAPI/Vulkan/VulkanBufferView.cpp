@@ -2,7 +2,9 @@
 #include "VulkanBuffer.h"
 #include "VulkanRenderDevice.h"
 
-Prism::Render::Vulkan::VulkanBufferView::VulkanBufferView(const BufferViewDesc& desc, Buffer* buffer) : m_viewDesc(desc)
+namespace Prism::Render::Vulkan
+{
+VulkanBufferView::VulkanBufferView(const BufferViewDesc& desc, Buffer* buffer) : m_viewDesc(desc)
 {
 	PE_ASSERT(buffer, "Passed buffer is invalid");
 
@@ -29,7 +31,7 @@ Prism::Render::Vulkan::VulkanBufferView::VulkanBufferView(const BufferViewDesc& 
 	}
 }
 
-Prism::Render::Vulkan::VulkanBufferView::~VulkanBufferView()
+VulkanBufferView::~VulkanBufferView()
 {
 	if (m_bindlessIndex != UINT32_MAX)
 	{
@@ -37,17 +39,17 @@ Prism::Render::Vulkan::VulkanBufferView::~VulkanBufferView()
 	}
 }
 
-uint32_t Prism::Render::Vulkan::VulkanBufferView::GetBindlessIndex() const
+uint32_t VulkanBufferView::GetBindlessIndex() const
 {
 	PE_ASSERT(m_bindlessIndex != UINT32_MAX, "BufferView was not registered in bindless heap");
 
 	return m_bindlessIndex;
 }
 
-void Prism::Render::Vulkan::VulkanBufferView::RegisterBindless()
+void VulkanBufferView::RegisterBindless()
 {
 	if (m_viewDesc.type != BufferViewType::CBV && m_viewDesc.type != BufferViewType::SRV &&
-	    m_viewDesc.type != BufferViewType::UAV)
+		m_viewDesc.type != BufferViewType::UAV)
 	{
 		return;
 	}
@@ -60,14 +62,15 @@ void Prism::Render::Vulkan::VulkanBufferView::RegisterBindless()
 	{
 	case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
 		bindless->WriteUniformBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer,
-		                             m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
+									 m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
 		break;
 	case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
 		bindless->WriteStorageBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer,
-		                             m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
+									 m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
 		break;
 	default:
 		PE_ASSERT_NO_ENTRY("Unsupported Vulkan texture view type");
 		break;
 	}
 }
+} // namespace Prism::Render::Vulkan

@@ -6,11 +6,13 @@
 #include "VulkanRenderDevice.h"
 #include "VulkanTypeConversions.h"
 #define STB_IMAGE_IMPLEMENTATION
-#include "stb_image.h"
 #include "Prism/AssetManagement/AssetRegistry.h"
+#include "stb_image.h"
 
-Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, const TextureDesc& desc,
-                                                    const BarrierLayout initLayout) : Texture(renderDevice), m_originalDesc(desc)
+namespace Prism::Render::Vulkan
+{
+VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, const TextureDesc& desc,
+													const BarrierLayout initLayout) : Texture(renderDevice), m_originalDesc(desc)
 {
 	CreateImage(renderDevice, desc);
 	CreateSampler(renderDevice, desc);
@@ -23,20 +25,20 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		PE_ASSERT(vulkanCmd);
 
 		vulkanCmd->Barrier(TextureBarrier{
-		    .texture = this,
-		    .syncBefore = BarrierSync::None,
-		    .syncAfter = BarrierSync::All,
-		    .accessBefore = BarrierAccess::NoAccess,
-		    .accessAfter = BarrierAccess::Common,
-		    .layoutBefore = BarrierLayout::Undefined,
-		    .layoutAfter = initLayout,
-		    .subresourceRange =
-		        {
-		            .firstMipLevel = 0,
-		            .numMipLevels = m_originalDesc.mipLevels,
-		            .firstArraySlice = 0,
-		            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
-		        },
+			.texture = this,
+			.syncBefore = BarrierSync::None,
+			.syncAfter = BarrierSync::All,
+			.accessBefore = BarrierAccess::NoAccess,
+			.accessAfter = BarrierAccess::Common,
+			.layoutBefore = BarrierLayout::Undefined,
+			.layoutAfter = initLayout,
+			.subresourceRange =
+				{
+					.firstMipLevel = 0,
+					.numMipLevels = m_originalDesc.mipLevels,
+					.firstArraySlice = 0,
+					.numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
+				},
 		});
 
 		auto* queue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
@@ -46,8 +48,8 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 	}
 }
 
-Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, std::wstring filepath, bool loadAsCubemap,
-                                                    const bool waitForLoadFinish) : Texture(renderDevice)
+VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, std::wstring filepath, bool loadAsCubemap,
+													const bool waitForLoadFinish) : Texture(renderDevice)
 {
 	auto loadFunction = [this, renderDevice, filepath]
 	{
@@ -88,7 +90,7 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		constexpr int32_t mipLevels = 1;
 
 		m_originalDesc = TextureDesc::CreateTex2D(filepath, width, height, format, BindFlags::ShaderResource,
-		                                          ResourceUsage::Default, mipLevels);
+												  ResourceUsage::Default, mipLevels);
 
 		const VkDeviceSize imageSize = width * height * STBI_rgb_alpha * bytesPerChannel;
 
@@ -99,44 +101,44 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		auto* vulkanCmd = dynamic_cast<VulkanRenderCommandList*>(cmd.Raw());
 
 		vulkanCmd->Barrier(TextureBarrier{
-		    .texture = this,
-		    .syncBefore = BarrierSync::None,
-		    .syncAfter = BarrierSync::Copy,
-		    .accessBefore = BarrierAccess::NoAccess,
-		    .accessAfter = BarrierAccess::CopyDest,
-		    .layoutBefore = BarrierLayout::Undefined,
-		    .layoutAfter = BarrierLayout::CopyDest,
-		    .subresourceRange =
-		        {
-		            .firstMipLevel = 0,
-		            .numMipLevels = 1,
-		            .firstArraySlice = 0,
-		            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
-		        },
+			.texture = this,
+			.syncBefore = BarrierSync::None,
+			.syncAfter = BarrierSync::Copy,
+			.accessBefore = BarrierAccess::NoAccess,
+			.accessAfter = BarrierAccess::CopyDest,
+			.layoutBefore = BarrierLayout::Undefined,
+			.layoutAfter = BarrierLayout::CopyDest,
+			.subresourceRange =
+				{
+					.firstMipLevel = 0,
+					.numMipLevels = 1,
+					.firstArraySlice = 0,
+					.numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
+				},
 		});
 
 		vulkanCmd->UpdateTexture(Ref<Texture>(this),
-		                         RawData{
-		                             .data = pixels,
-		                             .sizeInBytes = static_cast<int64_t>(imageSize),
-		                         },
-		                         0);
+								 RawData{
+									 .data = pixels,
+									 .sizeInBytes = static_cast<int64_t>(imageSize),
+								 },
+								 0);
 
 		vulkanCmd->Barrier(TextureBarrier{
-		    .texture = this,
-		    .syncBefore = BarrierSync::Copy,
-		    .syncAfter = Flags<BarrierSync>(BarrierSync::PixelShading, BarrierSync::ComputeShading),
-		    .accessBefore = BarrierAccess::CopyDest,
-		    .accessAfter = BarrierAccess::ShaderResource,
-		    .layoutBefore = BarrierLayout::CopyDest,
-		    .layoutAfter = BarrierLayout::ShaderResource,
-		    .subresourceRange =
-		        {
-		            .firstMipLevel = 0,
-		            .numMipLevels = 1,
-		            .firstArraySlice = 0,
-		            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
-		        },
+			.texture = this,
+			.syncBefore = BarrierSync::Copy,
+			.syncAfter = Flags<BarrierSync>(BarrierSync::PixelShading, BarrierSync::ComputeShading),
+			.accessBefore = BarrierAccess::CopyDest,
+			.accessAfter = BarrierAccess::ShaderResource,
+			.layoutBefore = BarrierLayout::CopyDest,
+			.layoutAfter = BarrierLayout::ShaderResource,
+			.subresourceRange =
+				{
+					.firstMipLevel = 0,
+					.numMipLevels = 1,
+					.firstArraySlice = 0,
+					.numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
+				},
 		});
 
 		auto* queue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
@@ -156,9 +158,9 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 	}
 }
 
-Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, std::wstring name, void* imageData,
-                                                    int64_t dataSize, const bool loadAsCubemap, const bool waitForLoadFinish) :
-    Texture(renderDevice)
+VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, std::wstring name, void* imageData,
+													int64_t dataSize, const bool loadAsCubemap, const bool waitForLoadFinish) :
+	Texture(renderDevice)
 {
 	auto loadFunction = [this, renderDevice, name, imageData, dataSize]
 	{
@@ -167,7 +169,7 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		int channels = 0;
 
 		stbi_uc* pixels = stbi_load_from_memory(static_cast<stbi_uc*>(imageData), static_cast<int>(dataSize), &width, &height,
-		                                        &channels, STBI_rgb_alpha);
+												&channels, STBI_rgb_alpha);
 
 		if (!pixels)
 		{
@@ -184,7 +186,7 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		constexpr int32_t mipLevels = 1;
 
 		m_originalDesc = TextureDesc::CreateTex2D(name, width, height, TextureFormat::RGBA8_UNorm, BindFlags::ShaderResource,
-		                                          ResourceUsage::Default, mipLevels);
+												  ResourceUsage::Default, mipLevels);
 
 		const VkDeviceSize imageSize = width * height * STBI_rgb_alpha;
 
@@ -195,44 +197,44 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 		auto* vulkanCmd = dynamic_cast<VulkanRenderCommandList*>(cmd.Raw());
 		PE_ASSERT(vulkanCmd);
 		vulkanCmd->Barrier(TextureBarrier{
-		    .texture = this,
-		    .syncBefore = BarrierSync::None,
-		    .syncAfter = BarrierSync::Copy,
-		    .accessBefore = BarrierAccess::NoAccess,
-		    .accessAfter = BarrierAccess::CopyDest,
-		    .layoutBefore = BarrierLayout::Undefined,
-		    .layoutAfter = BarrierLayout::CopyDest,
-		    .subresourceRange =
-		        {
-		            .firstMipLevel = 0,
-		            .numMipLevels = 1,
-		            .firstArraySlice = 0,
-		            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
-		        },
+			.texture = this,
+			.syncBefore = BarrierSync::None,
+			.syncAfter = BarrierSync::Copy,
+			.accessBefore = BarrierAccess::NoAccess,
+			.accessAfter = BarrierAccess::CopyDest,
+			.layoutBefore = BarrierLayout::Undefined,
+			.layoutAfter = BarrierLayout::CopyDest,
+			.subresourceRange =
+				{
+					.firstMipLevel = 0,
+					.numMipLevels = 1,
+					.firstArraySlice = 0,
+					.numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
+				},
 		});
 
 		vulkanCmd->UpdateTexture(Ref<Texture>(this),
-		                         RawData{
-		                             .data = pixels,
-		                             .sizeInBytes = static_cast<int64_t>(imageSize),
-		                         },
-		                         0);
+								 RawData{
+									 .data = pixels,
+									 .sizeInBytes = static_cast<int64_t>(imageSize),
+								 },
+								 0);
 
 		vulkanCmd->Barrier(TextureBarrier{
-		    .texture = this,
-		    .syncBefore = BarrierSync::Copy,
-		    .syncAfter = Flags<BarrierSync>(BarrierSync::PixelShading, BarrierSync::ComputeShading),
-		    .accessBefore = BarrierAccess::CopyDest,
-		    .accessAfter = BarrierAccess::ShaderResource,
-		    .layoutBefore = BarrierLayout::CopyDest,
-		    .layoutAfter = BarrierLayout::ShaderResource,
-		    .subresourceRange =
-		        {
-		            .firstMipLevel = 0,
-		            .numMipLevels = 1,
-		            .firstArraySlice = 0,
-		            .numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
-		        },
+			.texture = this,
+			.syncBefore = BarrierSync::Copy,
+			.syncAfter = Flags<BarrierSync>(BarrierSync::PixelShading, BarrierSync::ComputeShading),
+			.accessBefore = BarrierAccess::CopyDest,
+			.accessAfter = BarrierAccess::ShaderResource,
+			.layoutBefore = BarrierLayout::CopyDest,
+			.layoutAfter = BarrierLayout::ShaderResource,
+			.subresourceRange =
+				{
+					.firstMipLevel = 0,
+					.numMipLevels = 1,
+					.firstArraySlice = 0,
+					.numArraySlices = m_originalDesc.Is3D() ? 1 : m_originalDesc.GetArraySize(),
+				},
 		});
 
 		auto* queue = dynamic_cast<VulkanRenderCommandQueue*>(renderDevice->GetRenderCommandQueue());
@@ -252,8 +254,8 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 	}
 }
 
-Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, VkImage image, const TextureDesc& desc) :
-    Texture(renderDevice), m_originalDesc(desc)
+VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, VkImage image, const TextureDesc& desc) :
+	Texture(renderDevice), m_originalDesc(desc)
 {
 	m_texture.image = image;
 	m_texture.format = GetVkFormat(desc.format);
@@ -266,7 +268,7 @@ Prism::Render::Vulkan::VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDe
 	m_texture.allocation = nullptr;
 }
 
-Prism::Render::Vulkan::VulkanTexture::~VulkanTexture()
+VulkanTexture::~VulkanTexture()
 {
 	VulkanTexture::WaitForLoadFinish();
 
@@ -287,7 +289,7 @@ Prism::Render::Vulkan::VulkanTexture::~VulkanTexture()
 	}
 }
 
-void Prism::Render::Vulkan::VulkanTexture::WaitForLoadFinish()
+void VulkanTexture::WaitForLoadFinish()
 {
 	if (m_loadFuture.valid())
 	{
@@ -296,23 +298,23 @@ void Prism::Render::Vulkan::VulkanTexture::WaitForLoadFinish()
 	}
 }
 
-void Prism::Render::Vulkan::VulkanTexture::CreateImage(const VulkanRenderDevice* renderDevice, const TextureDesc& desc)
+void VulkanTexture::CreateImage(const VulkanRenderDevice* renderDevice, const TextureDesc& desc)
 {
 	VkImageCreateInfo imageCreateInfo{
-	    .sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
-	    .imageType = GetVkImageType(desc.dimension),
-	    .format = GetVkFormat(desc.format),
-	    .extent{
-	        .width = static_cast<uint32_t>(desc.width),
-	        .height = static_cast<uint32_t>(desc.height),
-	        .depth = desc.Is3D() ? static_cast<uint32_t>(desc.GetDepth()) : 1,
-	    },
-	    .mipLevels = static_cast<uint32_t>(desc.mipLevels),
-	    .arrayLayers = desc.Is3D() ? 1 : static_cast<uint32_t>(desc.GetArraySize()),
-	    .samples = static_cast<VkSampleCountFlagBits>(desc.sampleDesc.count),
-	    .tiling = VK_IMAGE_TILING_OPTIMAL,
-	    .usage = GetVkImageUsageFlags(desc.bindFlags),
-	    .sharingMode = VK_SHARING_MODE_EXCLUSIVE,
+		.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+		.imageType = GetVkImageType(desc.dimension),
+		.format = GetVkFormat(desc.format),
+		.extent{
+			.width = static_cast<uint32_t>(desc.width),
+			.height = static_cast<uint32_t>(desc.height),
+			.depth = desc.Is3D() ? static_cast<uint32_t>(desc.GetDepth()) : 1,
+		},
+		.mipLevels = static_cast<uint32_t>(desc.mipLevels),
+		.arrayLayers = desc.Is3D() ? 1 : static_cast<uint32_t>(desc.GetArraySize()),
+		.samples = static_cast<VkSampleCountFlagBits>(desc.sampleDesc.count),
+		.tiling = VK_IMAGE_TILING_OPTIMAL,
+		.usage = GetVkImageUsageFlags(desc.bindFlags),
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 	};
 
 	if (desc.IsCube())
@@ -325,11 +327,11 @@ void Prism::Render::Vulkan::VulkanTexture::CreateImage(const VulkanRenderDevice*
 	}
 
 	constexpr VmaAllocationCreateInfo imageAllocInfo{
-	    .usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+		.usage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
 	};
 
 	const VkResult result = vmaCreateImage(renderDevice->GetAllocator(), &imageCreateInfo, &imageAllocInfo, &m_texture.image,
-	                                       &m_texture.allocation, nullptr);
+										   &m_texture.allocation, nullptr);
 
 	PE_ASSERT(result == VK_SUCCESS);
 
@@ -347,13 +349,13 @@ void Prism::Render::Vulkan::VulkanTexture::CreateImage(const VulkanRenderDevice*
 		const std::string utf8Name = WStringToString(desc.textureName);
 
 		const VkDebugUtilsObjectNameInfoEXT nameInfo{
-		    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
-		    .objectType = VK_OBJECT_TYPE_IMAGE,
-		    .objectHandle = reinterpret_cast<uint64_t>(m_texture.image),
-		    .pObjectName = utf8Name.c_str(),
+			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+			.objectType = VK_OBJECT_TYPE_IMAGE,
+			.objectHandle = reinterpret_cast<uint64_t>(m_texture.image),
+			.pObjectName = utf8Name.c_str(),
 		};
 		const auto function = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
-		    vkGetDeviceProcAddr(renderDevice->GetDevice(), "vkSetDebugUtilsObjectNameEXT"));
+			vkGetDeviceProcAddr(renderDevice->GetDevice(), "vkSetDebugUtilsObjectNameEXT"));
 
 		if (function)
 		{
@@ -363,18 +365,19 @@ void Prism::Render::Vulkan::VulkanTexture::CreateImage(const VulkanRenderDevice*
 #endif
 }
 
-void Prism::Render::Vulkan::VulkanTexture::CreateSampler(VulkanRenderDevice* renderDevice, const TextureDesc& desc)
+void VulkanTexture::CreateSampler(VulkanRenderDevice* renderDevice, const TextureDesc& desc)
 {
 	constexpr VkSamplerCreateInfo info{
-	    .sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
-	    .magFilter = VK_FILTER_LINEAR,
-	    .minFilter = VK_FILTER_LINEAR,
-	    .mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
-	    .addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-	    .addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-	    .addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
-	    .maxLod = VK_LOD_CLAMP_NONE,
+		.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO,
+		.magFilter = VK_FILTER_LINEAR,
+		.minFilter = VK_FILTER_LINEAR,
+		.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR,
+		.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT,
+		.maxLod = VK_LOD_CLAMP_NONE,
 	};
 
 	PE_ASSERT(vkCreateSampler(renderDevice->GetDevice(), &info, nullptr, &m_texture.sampler) == VK_SUCCESS);
 }
+} // namespace Prism::Render::Vulkan
