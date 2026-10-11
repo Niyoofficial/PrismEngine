@@ -275,7 +275,7 @@ void Prism::Render::Vulkan::VulkanRenderDevice::BeginRenderFrame()
 		// implement proper swapchain image acquisition and synchronization
 		GetVulkanRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
 
-		GetBindlessManager()->ResetResourcesAllocator();
+		GetBindlessManager()->ResetResourcesAllocator(m_frameIndex);
 
 		const VkResult result = swapchain->AcquireNextImage();
 
@@ -284,6 +284,8 @@ void Prism::Render::Vulkan::VulkanRenderDevice::BeginRenderFrame()
 		GetVulkanRenderCommandQueue()->SetSubmitSynchronization(swapchain->GetImageAvailableSemaphore(),
 																VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_NULL_HANDLE);
 	}
+
+	m_frameIndex = (m_frameIndex + 1) % Constants::MAX_FRAMES_IN_FLIGHT;
 }
 
 void Prism::Render::Vulkan::VulkanRenderDevice::ImGuiNewFrame()

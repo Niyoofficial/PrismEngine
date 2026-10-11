@@ -722,7 +722,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandList::BindDescriptorSets(Pipeline
 	const VkDescriptorSet bindlessSet = bindlessManager->GetSet();
 
 	// allocate one Resources slot for this draw/dispatch.
-	const auto resources = bindlessManager->AllocateResources();
+	const auto resources = bindlessManager->AllocateResources(device.GetFrameIndex());
 
 	bool foundResources = false;
 

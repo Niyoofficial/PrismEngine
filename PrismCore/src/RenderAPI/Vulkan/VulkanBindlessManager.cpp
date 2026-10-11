@@ -213,13 +213,17 @@ Prism::Render::Vulkan::VulkanBindlessManager::VulkanBindlessManager()
 }
 
 Prism::Render::Vulkan::VulkanBindlessManager::ResourcesAllocation
-Prism::Render::Vulkan::VulkanBindlessManager::AllocateResources()
+Prism::Render::Vulkan::VulkanBindlessManager::AllocateResources(uint32_t frameIndex)
 {
-	const uint32_t index = m_resourcesCursor.fetch_add(1, std::memory_order_relaxed);
+	PE_ASSERT(frameIndex < Constants::MAX_FRAMES_IN_FLIGHT);
+
+	const uint32_t index = m_resourcesCursors[frameIndex].fetch_add(1, std::memory_order_relaxed);
 
 	PE_ASSERT(index < ResourcesRingCapacity, "Resources buffer exhausted");
 
-	const VkDeviceSize offset = static_cast<VkDeviceSize>(index) * m_resourcesStride;
+	const VkDeviceSize frameBase = static_cast<VkDeviceSize>(frameIndex) * ResourcesRingCapacity * m_resourcesStride;
+
+	const VkDeviceSize offset = frameBase + static_cast<VkDeviceSize>(index) * m_resourcesStride;
 
 	auto* data = reinterpret_cast<uint32_t*>(static_cast<uint8_t*>(m_resourcesMapped) + offset);
 
@@ -231,9 +235,11 @@ Prism::Render::Vulkan::VulkanBindlessManager::AllocateResources()
 	};
 }
 
-void Prism::Render::Vulkan::VulkanBindlessManager::ResetResourcesAllocator()
+void Prism::Render::Vulkan::VulkanBindlessManager::ResetResourcesAllocator(uint32_t frameIndex)
 {
-	m_resourcesCursor.store(0, std::memory_order_relaxed);
+	PE_ASSERT(frameIndex < Constants::MAX_FRAMES_IN_FLIGHT);
+
+	m_resourcesCursors[frameIndex].store(0, std::memory_order_relaxed);
 }
 
 void Prism::Render::Vulkan::VulkanBindlessManager::CreateSamplers(VkDevice device, VkPhysicalDevice physicalDevice)
@@ -438,7 +444,7 @@ void Prism::Render::Vulkan::VulkanBindlessManager::CreateResourcesBuffer(VkDevic
 
 	m_resourcesStride = AlignResourcesOffset(ResourcesSize);
 
-	m_resourcesBufferSize = m_resourcesStride * ResourcesRingCapacity;
+	m_resourcesBufferSize = m_resourcesStride * ResourcesRingCapacity * Constants::MAX_FRAMES_IN_FLIGHT;
 
 	const VkBufferCreateInfo bufferInfo{
 		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
@@ -476,7 +482,10 @@ void Prism::Render::Vulkan::VulkanBindlessManager::CreateResourcesBuffer(VkDevic
 
 	std::memset(m_resourcesMapped, 0, m_resourcesBufferSize);
 
-	m_resourcesCursor.store(0);
+	for (auto& cursor : m_resourcesCursors)
+	{
+		cursor.store(0, std::memory_order_relaxed);
+	}
 }
 
 void Prism::Render::Vulkan::VulkanBindlessManager::DestroyResourcesBuffer(VkDevice device)

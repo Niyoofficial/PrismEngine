@@ -30,12 +30,12 @@ public:
 	[[nodiscard]] Ref<Texture> CreateTexture(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish) override;
 
 	[[nodiscard]] Ref<Texture> CreateTexture(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap,
-	                                         bool waitForLoadFinish) override;
+											 bool waitForLoadFinish) override;
 
 	[[nodiscard]] int64_t GetTotalSizeInBytes(BufferDesc buffDesc) const override;
 
 	[[nodiscard]] int64_t GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource,
-	                                          int32_t numSubresources) const override;
+											  int32_t numSubresources) const override;
 
 	[[nodiscard]] SubresourceFootprint GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex) const override;
 
@@ -69,6 +69,8 @@ public:
 	[[nodiscard]] VulkanRenderCommandQueue* GetVulkanRenderCommandQueue() const { return m_commandQueue.get(); }
 
 	[[nodiscard]] VulkanBindlessManager* GetBindlessManager() const { return m_bindlessManager.get(); }
+
+	[[nodiscard]] uint32_t GetFrameIndex() const { return m_frameIndex; }
 
 protected:
 	void BeginRenderFrame() override;
@@ -121,5 +123,7 @@ private:
 	std::unique_ptr<VulkanBindlessManager> m_bindlessManager;
 
 	bool m_initializedImGui = false;
+
+	uint32_t m_frameIndex = 0;
 };
 } // namespace Prism::Render::Vulkan
