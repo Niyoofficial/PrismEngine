@@ -83,6 +83,12 @@ VulkanTextureView::VulkanTextureView(TextureViewDesc desc, Texture* texture) : m
 
 VulkanTextureView::~VulkanTextureView()
 {
+	if (m_imguiDescriptorSet != VK_NULL_HANDLE)
+	{
+		ImGui_ImplVulkan_RemoveTexture(m_imguiDescriptorSet);
+		m_imguiDescriptorSet = VK_NULL_HANDLE;
+	}
+
 	if (m_bindlessIndex != UINT32_MAX)
 	{
 		VulkanRenderDevice::Get().GetBindlessManager()->FreeResource(m_bindlessIndex);
