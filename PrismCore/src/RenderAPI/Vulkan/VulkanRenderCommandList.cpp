@@ -113,10 +113,7 @@ void VulkanRenderCommandList::Dispatch(const glm::int3 threadGroupCount)
 	vkCmdDispatch(m_commandBuffer, threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
 }
 
-void VulkanRenderCommandList::SetPSO(const GraphicsPipelineStateDesc& desc)
-{
-	m_currentGraphicsPSO = desc;
-}
+void VulkanRenderCommandList::SetPSO(const GraphicsPipelineStateDesc& desc) { m_currentGraphicsPSO = desc; }
 
 void VulkanRenderCommandList::SetPSO(const ComputePipelineStateDesc& desc) { m_currentComputePSO = desc; }
 
@@ -125,8 +122,7 @@ void VulkanRenderCommandList::SetStencilRef(const uint32_t ref)
 	vkCmdSetStencilReference(m_commandBuffer, VK_STENCIL_FACE_FRONT_AND_BACK, ref);
 }
 
-void VulkanRenderCommandList::SetRenderTargets(std::vector<Ref<TextureView>> rtvs,
-																	  const Ref<TextureView>& dsv)
+void VulkanRenderCommandList::SetRenderTargets(std::vector<Ref<TextureView>> rtvs, const Ref<TextureView>& dsv)
 {
 	m_renderTargetViews = std::move(rtvs);
 	m_depthStencilView = dsv;
@@ -188,8 +184,7 @@ void VulkanRenderCommandList::SetIndexBuffer(const Ref<Buffer>& buffer, IndexBuf
 	vkCmdBindIndexBuffer(m_commandBuffer, vulkanBuffer->GetVkBuffer(), 0, indexType);
 }
 
-void VulkanRenderCommandList::SetTextures(const std::vector<Ref<TextureView>>& textureViews,
-																 const std::wstring& paramName)
+void VulkanRenderCommandList::SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName)
 {
 	std::vector<Ref<RenderResourceView>> resources;
 
@@ -204,8 +199,7 @@ void VulkanRenderCommandList::SetTextures(const std::vector<Ref<TextureView>>& t
 }
 
 void VulkanRenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& bufferViews,
-																const std::vector<std::any> dynamicAllocations,
-																const std::wstring& paramName)
+										 const std::vector<std::any> dynamicAllocations, const std::wstring& paramName)
 {
 	std::vector<Ref<RenderResourceView>> resources;
 
@@ -242,7 +236,7 @@ void VulkanRenderCommandList::ClearRenderTargetView(const Ref<TextureView>& rtv,
 }
 
 void VulkanRenderCommandList::ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags,
-																		   DepthStencilValue* clearValue)
+													DepthStencilValue* clearValue)
 {
 	if (m_renderingActive)
 	{
@@ -274,8 +268,7 @@ void VulkanRenderCommandList::ClearDepthStencilView(const Ref<TextureView>& dsv,
 	};
 }
 
-void VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav,
-																			  const glm::float4 values)
+void VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav, const glm::float4 values)
 {
 	const auto* view = dynamic_cast<VulkanTextureView*>(uav.Raw());
 
@@ -289,8 +282,7 @@ void VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& u
 						 nullptr);
 }
 
-void VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav,
-																			  const glm::uint4 values)
+void VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& uav, const glm::uint4 values)
 {
 	const auto* view = dynamic_cast<VulkanTextureView*>(uav.Raw());
 
@@ -307,20 +299,35 @@ void VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& u
 void VulkanRenderCommandList::Barrier(const BufferBarrier barrier)
 {
 	const auto* buffer = dynamic_cast<VulkanBuffer*>(barrier.buffer);
+	PE_ASSERT(buffer);
 
-	const VkBufferMemoryBarrier bufferBarrier{
-		.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER,
-		.srcAccessMask = GetVkAccessFlags(barrier.accessBefore),
-		.dstAccessMask = GetVkAccessFlags(barrier.accessAfter),
+	const VkBufferMemoryBarrier2 bufferBarrier{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2,
+		.pNext = nullptr,
+		.srcStageMask = GetVkPipelineStageFlags2(barrier.syncBefore),
+		.srcAccessMask = GetVkAccessFlags2(barrier.accessBefore),
+		.dstStageMask = GetVkPipelineStageFlags2(barrier.syncAfter),
+		.dstAccessMask = GetVkAccessFlags2(barrier.accessAfter),
+		.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 		.buffer = buffer->GetVkBuffer(),
 		.offset = static_cast<VkDeviceSize>(barrier.offset),
 		.size = barrier.size == -1 ? VK_WHOLE_SIZE : static_cast<VkDeviceSize>(barrier.size),
 	};
 
-	const auto srcStage = GetVkPipelineStageFlags(barrier.syncBefore);
-	const auto dstStage = GetVkPipelineStageFlags(barrier.syncAfter);
+	const VkDependencyInfo dependencyInfo{
+		.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+		.pNext = nullptr,
+		.dependencyFlags = 0,
+		.memoryBarrierCount = 0,
+		.pMemoryBarriers = nullptr,
+		.bufferMemoryBarrierCount = 1,
+		.pBufferMemoryBarriers = &bufferBarrier,
+		.imageMemoryBarrierCount = 0,
+		.pImageMemoryBarriers = nullptr,
+	};
 
-	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 1, &bufferBarrier, 0, nullptr);
+	vkCmdPipelineBarrier2(m_commandBuffer, &dependencyInfo);
 }
 
 void VulkanRenderCommandList::Barrier(const TextureBarrier barrier)
@@ -328,32 +335,46 @@ void VulkanRenderCommandList::Barrier(const TextureBarrier barrier)
 	const auto* texture = dynamic_cast<VulkanTexture*>(barrier.texture);
 	PE_ASSERT(texture);
 
-	const auto& [firstMipLevel, numMipLevels, firstArraySlice, numArraySlices] = barrier.subresourceRange;
-
+	const auto& range = barrier.subresourceRange;
 	// RHI defines default struct as all subresources
-	const bool allSubresources = barrier.subresourceRange == SubresourceRange{};
 
-	const VkImageMemoryBarrier imageBarrier{
-		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-		.srcAccessMask = GetVkAccessFlags(barrier.accessBefore),
-		.dstAccessMask = GetVkAccessFlags(barrier.accessAfter),
+	const bool allSubresources = range == SubresourceRange{};
+
+	const VkImageMemoryBarrier2 imageBarrier{
+		.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2,
+		.pNext = nullptr,
+		.srcStageMask = GetVkPipelineStageFlags2(barrier.syncBefore),
+		.srcAccessMask = GetVkAccessFlags2(barrier.accessBefore),
+		.dstStageMask = GetVkPipelineStageFlags2(barrier.syncAfter),
+		.dstAccessMask = GetVkAccessFlags2(barrier.accessAfter),
 		.oldLayout = GetVkImageLayout(barrier.layoutBefore),
 		.newLayout = GetVkImageLayout(barrier.layoutAfter),
+		.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
+		.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED,
 		.image = texture->GetVulkanTextureResource().image,
 		.subresourceRange =
 			{
 				.aspectMask = GetVkImageAspectFlags(texture->GetTextureDesc().format),
-				.baseMipLevel = allSubresources ? 0 : static_cast<uint32_t>(firstMipLevel),
-				.levelCount = allSubresources ? VK_REMAINING_MIP_LEVELS : static_cast<uint32_t>(numMipLevels),
-				.baseArrayLayer = allSubresources ? 0 : static_cast<uint32_t>(firstArraySlice),
-				.layerCount = allSubresources ? VK_REMAINING_ARRAY_LAYERS : static_cast<uint32_t>(numArraySlices),
+				.baseMipLevel = allSubresources ? 0 : static_cast<uint32_t>(range.firstMipLevel),
+				.levelCount = allSubresources ? VK_REMAINING_MIP_LEVELS : range.numMipLevels,
+				.baseArrayLayer = allSubresources ? 0 : static_cast<uint32_t>(range.firstArraySlice),
+				.layerCount = allSubresources ? VK_REMAINING_ARRAY_LAYERS : range.numArraySlices,
 			},
 	};
 
-	const auto srcStage = GetVkPipelineStageFlags(barrier.syncBefore);
-	const auto dstStage = GetVkPipelineStageFlags(barrier.syncAfter);
+	const VkDependencyInfo dependencyInfo{
+		.sType = VK_STRUCTURE_TYPE_DEPENDENCY_INFO,
+		.pNext = nullptr,
+		.dependencyFlags = 0,
+		.memoryBarrierCount = 0,
+		.pMemoryBarriers = nullptr,
+		.bufferMemoryBarrierCount = 0,
+		.pBufferMemoryBarriers = nullptr,
+		.imageMemoryBarrierCount = 1,
+		.pImageMemoryBarriers = &imageBarrier,
+	};
 
-	vkCmdPipelineBarrier(m_commandBuffer, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &imageBarrier);
+	vkCmdPipelineBarrier2(m_commandBuffer, &dependencyInfo);
 }
 
 void VulkanRenderCommandList::UpdateBuffer(const Ref<Buffer>& buffer, const RawData data)
@@ -406,8 +427,7 @@ void VulkanRenderCommandList::UpdateBuffer(const Ref<Buffer>& buffer, const RawD
 	KeepAlive(stagingBuffer);
 }
 
-void VulkanRenderCommandList::UpdateTexture(const Ref<Texture>& texture, RawData data,
-																   const int32_t subresourceIndex)
+void VulkanRenderCommandList::UpdateTexture(const Ref<Texture>& texture, RawData data, const int32_t subresourceIndex)
 {
 	PE_ASSERT(texture);
 	PE_ASSERT(data.data);
@@ -456,9 +476,8 @@ void VulkanRenderCommandList::UpdateTexture(const Ref<Texture>& texture, RawData
 	KeepAlive(stagingBuffer);
 }
 
-void VulkanRenderCommandList::CopyBufferRegion(const Ref<Buffer>& dest, const int64_t destOffset,
-																	  const Ref<Buffer>& src, const int64_t srcOffset,
-																	  const int64_t numBytes)
+void VulkanRenderCommandList::CopyBufferRegion(const Ref<Buffer>& dest, const int64_t destOffset, const Ref<Buffer>& src,
+											   const int64_t srcOffset, const int64_t numBytes)
 {
 	const auto* destBuffer = dynamic_cast<VulkanBuffer*>(dest.Raw());
 	const auto* srcBuffer = dynamic_cast<VulkanBuffer*>(src.Raw());
@@ -473,8 +492,8 @@ void VulkanRenderCommandList::CopyBufferRegion(const Ref<Buffer>& dest, const in
 }
 
 void VulkanRenderCommandList::CopyBufferRegion(const Ref<Texture>& dest, const glm::int3 destLoc,
-																	  const int32_t destSubresourceIndex, const Ref<Buffer>& src,
-																	  const int64_t srcOffset)
+											   const int32_t destSubresourceIndex, const Ref<Buffer>& src,
+											   const int64_t srcOffset)
 {
 	const auto* destTexture = dynamic_cast<VulkanTexture*>(dest.Raw());
 	const auto* srcBuffer = dynamic_cast<VulkanBuffer*>(src.Raw());
@@ -494,9 +513,8 @@ void VulkanRenderCommandList::CopyBufferRegion(const Ref<Texture>& dest, const g
 						   VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
-void VulkanRenderCommandList::CopyTextureRegion(const Ref<Buffer>& dest, const int64_t destOffset,
-																	   const Ref<Texture>& src, const int32_t srcSubresourceIndex,
-																	   Box3I srcBox)
+void VulkanRenderCommandList::CopyTextureRegion(const Ref<Buffer>& dest, const int64_t destOffset, const Ref<Texture>& src,
+												const int32_t srcSubresourceIndex, Box3I srcBox)
 {
 	const auto* destBuffer = dynamic_cast<VulkanBuffer*>(dest.Raw());
 	const auto* srcTexture = dynamic_cast<VulkanTexture*>(src.Raw());
@@ -523,9 +541,8 @@ void VulkanRenderCommandList::CopyTextureRegion(const Ref<Buffer>& dest, const i
 }
 
 void VulkanRenderCommandList::CopyTextureRegion(const Ref<Texture>& dest, const glm::int3 destLoc,
-																	   const int32_t destSubresourceIndex,
-																	   const Ref<Texture>& src, const int32_t srcSubresourceIndex,
-																	   Box3I srcBox)
+												const int32_t destSubresourceIndex, const Ref<Texture>& src,
+												const int32_t srcSubresourceIndex, Box3I srcBox)
 {
 	const auto* destTexture = dynamic_cast<VulkanTexture*>(dest.Raw());
 	const auto* srcTexture = dynamic_cast<VulkanTexture*>(src.Raw());
@@ -612,8 +629,7 @@ void VulkanRenderCommandList::CopyTextureRegion(const Ref<Texture>& dest, const 
 				   destTexture->GetVulkanTextureResource().image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
 }
 
-void VulkanRenderCommandList::RenderImGui(Swapchain* swapchain, int32_t backbufferIndex,
-																 ImDrawData* drawData)
+void VulkanRenderCommandList::RenderImGui(Swapchain* swapchain, int32_t backbufferIndex, ImDrawData* drawData)
 {
 	if (!drawData)
 	{
@@ -678,10 +694,7 @@ void VulkanRenderCommandList::EndEvent()
 	}
 }
 
-void VulkanRenderCommandList::KeepAlive(const Ref<Buffer>& buffer)
-{
-	m_pendingStagingBuffers.push_back(buffer);
-}
+void VulkanRenderCommandList::KeepAlive(const Ref<Buffer>& buffer) { m_pendingStagingBuffers.push_back(buffer); }
 
 void VulkanRenderCommandList::Finalize() { Close(); }
 

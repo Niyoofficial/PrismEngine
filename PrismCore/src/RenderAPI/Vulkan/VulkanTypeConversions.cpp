@@ -4,7 +4,7 @@
 
 namespace Prism::Render::Vulkan
 {
-VkImageType Vulkan::GetVkImageType(const ResourceDimension dimension)
+VkImageType GetVkImageType(const ResourceDimension dimension)
 {
 	switch (dimension)
 	{
@@ -22,7 +22,7 @@ VkImageType Vulkan::GetVkImageType(const ResourceDimension dimension)
 	}
 }
 
-VkImageViewType Vulkan::GetVkImageViewType(const ResourceDimension dimension, const uint32_t arrayLayers)
+VkImageViewType GetVkImageViewType(const ResourceDimension dimension, const uint32_t arrayLayers)
 {
 	switch (dimension)
 	{
@@ -40,7 +40,7 @@ VkImageViewType Vulkan::GetVkImageViewType(const ResourceDimension dimension, co
 	}
 }
 
-VkImageUsageFlags Vulkan::GetVkImageUsageFlags(const Flags<BindFlags> flags)
+VkImageUsageFlags GetVkImageUsageFlags(const Flags<BindFlags> flags)
 {
 	VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
@@ -64,7 +64,7 @@ VkImageUsageFlags Vulkan::GetVkImageUsageFlags(const Flags<BindFlags> flags)
 	return usage;
 }
 
-VkImageAspectFlags Vulkan::GetVkImageAspectFlags(const TextureFormat format)
+VkImageAspectFlags GetVkImageAspectFlags(const TextureFormat format)
 {
 	switch (format)
 	{
@@ -85,7 +85,7 @@ VkImageAspectFlags Vulkan::GetVkImageAspectFlags(const TextureFormat format)
 	}
 }
 
-VkFormat Vulkan::GetVkFormat(const TextureFormat format)
+VkFormat GetVkFormat(const TextureFormat format)
 {
 	switch (format)
 	{
@@ -290,7 +290,7 @@ VkFormat Vulkan::GetVkFormat(const TextureFormat format)
 	return VK_FORMAT_UNDEFINED;
 }
 
-VkBufferUsageFlags Vulkan::GetVkBufferUsageFlags(Flags<BindFlags> flags)
+VkBufferUsageFlags GetVkBufferUsageFlags(Flags<BindFlags> flags)
 {
 	VkBufferUsageFlags bufferUsageFlags{};
 
@@ -332,8 +332,7 @@ VkBufferUsageFlags Vulkan::GetVkBufferUsageFlags(Flags<BindFlags> flags)
 	return bufferUsageFlags;
 }
 
-VmaAllocationCreateInfo Vulkan::GetVmaAllocationCreateInfo(const ResourceUsage usage,
-																		  const Flags<CPUAccess> cpuAccess)
+VmaAllocationCreateInfo GetVmaAllocationCreateInfo(const ResourceUsage usage, const Flags<CPUAccess> cpuAccess)
 {
 	VmaAllocationCreateInfo allocationCreateInfo{};
 
@@ -361,7 +360,7 @@ VmaAllocationCreateInfo Vulkan::GetVmaAllocationCreateInfo(const ResourceUsage u
 	return allocationCreateInfo;
 }
 
-VkImageLayout Vulkan::GetVkImageLayout(const BarrierLayout layout)
+VkImageLayout GetVkImageLayout(const BarrierLayout layout)
 {
 	switch (layout)
 	{
@@ -393,7 +392,7 @@ VkImageLayout Vulkan::GetVkImageLayout(const BarrierLayout layout)
 	}
 }
 
-VkShaderStageFlags Vulkan::GetVkShaderStageFlags(const ShaderType type)
+VkShaderStageFlags GetVkShaderStageFlags(const ShaderType type)
 {
 	switch (type)
 	{
@@ -415,7 +414,7 @@ VkShaderStageFlags Vulkan::GetVkShaderStageFlags(const ShaderType type)
 	}
 }
 
-VkFormat Vulkan::GetVkFormat(const VertexAttribute attribute)
+VkFormat GetVkFormat(const VertexAttribute attribute)
 {
 	switch (attribute)
 	{
@@ -434,7 +433,7 @@ VkFormat Vulkan::GetVkFormat(const VertexAttribute attribute)
 	}
 }
 
-VkPrimitiveTopology Vulkan::GetVkPrimitiveTopology(const TopologyType topologyType)
+VkPrimitiveTopology GetVkPrimitiveTopology(const TopologyType topologyType)
 {
 	switch (topologyType)
 	{
@@ -496,7 +495,7 @@ VkPrimitiveTopology Vulkan::GetVkPrimitiveTopology(const TopologyType topologyTy
 	}
 }
 
-VkPolygonMode Vulkan::GetVkPolygonMode(const FillMode fillMode)
+VkPolygonMode GetVkPolygonMode(const FillMode fillMode)
 {
 	switch (fillMode)
 	{
@@ -510,7 +509,7 @@ VkPolygonMode Vulkan::GetVkPolygonMode(const FillMode fillMode)
 	}
 }
 
-VkCullModeFlags Vulkan::GetVkCullModeFlags(const CullMode cullMode)
+VkCullModeFlags GetVkCullModeFlags(const CullMode cullMode)
 {
 	switch (cullMode)
 	{
@@ -526,7 +525,7 @@ VkCullModeFlags Vulkan::GetVkCullModeFlags(const CullMode cullMode)
 	}
 }
 
-VkSampleCountFlagBits Vulkan::GetVkSampleCountFlagBits(const uint32_t sampleCount)
+VkSampleCountFlagBits GetVkSampleCountFlagBits(const uint32_t sampleCount)
 {
 	switch (sampleCount)
 	{
@@ -550,7 +549,7 @@ VkSampleCountFlagBits Vulkan::GetVkSampleCountFlagBits(const uint32_t sampleCoun
 	}
 }
 
-VkCompareOp Vulkan::GetVkCompareOp(const ComparisionFunction function)
+VkCompareOp GetVkCompareOp(const ComparisionFunction function)
 {
 	switch (function)
 	{
@@ -576,7 +575,7 @@ VkCompareOp Vulkan::GetVkCompareOp(const ComparisionFunction function)
 	}
 }
 
-VkStencilOp Vulkan::GetVkStencilOp(const StencilOperation operation)
+VkStencilOp GetVkStencilOp(const StencilOperation operation)
 {
 	switch (operation)
 	{
@@ -604,8 +603,8 @@ VkStencilOp Vulkan::GetVkStencilOp(const StencilOperation operation)
 	}
 }
 
-VkStencilOpState Vulkan::GetVkStencilOpState(const DepthStencilOperationDesc& desc, const uint8_t readMask,
-															const uint8_t writeMask, const uint32_t reference)
+VkStencilOpState GetVkStencilOpState(const DepthStencilOperationDesc& desc, const uint8_t readMask, const uint8_t writeMask,
+									 const uint32_t reference)
 {
 	return VkStencilOpState{
 		.failOp = GetVkStencilOp(desc.stencilFail),
@@ -618,7 +617,7 @@ VkStencilOpState Vulkan::GetVkStencilOpState(const DepthStencilOperationDesc& de
 	};
 }
 
-VkBlendFactor Vulkan::GetVkBlendFactor(const BlendFactor factor)
+VkBlendFactor GetVkBlendFactor(const BlendFactor factor)
 {
 	switch (factor)
 	{
@@ -662,7 +661,7 @@ VkBlendFactor Vulkan::GetVkBlendFactor(const BlendFactor factor)
 	}
 }
 
-VkBlendOp Vulkan::GetVkBlendOp(const BlendOperation operation)
+VkBlendOp GetVkBlendOp(const BlendOperation operation)
 {
 	switch (operation)
 	{
@@ -682,7 +681,7 @@ VkBlendOp Vulkan::GetVkBlendOp(const BlendOperation operation)
 	}
 }
 
-VkColorComponentFlags Vulkan::GetVkColorComponentFlags(ColorMask mask)
+VkColorComponentFlags GetVkColorComponentFlags(ColorMask mask)
 {
 	VkColorComponentFlags flags = 0;
 
@@ -709,7 +708,7 @@ VkColorComponentFlags Vulkan::GetVkColorComponentFlags(ColorMask mask)
 	return flags;
 }
 
-uint32_t Vulkan::GetBytesPerPixel(const TextureFormat format)
+uint32_t GetBytesPerPixel(const TextureFormat format)
 {
 	switch (format)
 	{
@@ -826,7 +825,7 @@ uint32_t Vulkan::GetBytesPerPixel(const TextureFormat format)
 	}
 }
 
-VkDescriptorType Vulkan::GetVkDescriptorType(const SpvReflectDescriptorType type)
+VkDescriptorType GetVkDescriptorType(const SpvReflectDescriptorType type)
 {
 	switch (type)
 	{
@@ -860,259 +859,179 @@ VkDescriptorType Vulkan::GetVkDescriptorType(const SpvReflectDescriptorType type
 	}
 }
 
-VkAccessFlags Vulkan::GetVkAccessFlags(const Flags<BarrierAccess> access)
+VkAccessFlags2 GetVkAccessFlags2(const Flags<BarrierAccess> access)
 {
-	VkAccessFlags flags = 0;
+	VkAccessFlags2 flags = VK_ACCESS_2_NONE;
 
 	if (access.HasAnyFlags(BarrierAccess::VertexBuffer))
 	{
-		flags |= VK_ACCESS_VERTEX_ATTRIBUTE_READ_BIT;
+		flags |= VK_ACCESS_2_VERTEX_ATTRIBUTE_READ_BIT;
 	}
 
 	if (access.HasAnyFlags(BarrierAccess::ConstantBuffer))
 	{
-		flags |= VK_ACCESS_UNIFORM_READ_BIT;
+		flags |= VK_ACCESS_2_UNIFORM_READ_BIT;
 	}
 
 	if (access.HasAnyFlags(BarrierAccess::IndexBuffer))
 	{
-		flags |= VK_ACCESS_INDEX_READ_BIT;
+		flags |= VK_ACCESS_2_INDEX_READ_BIT;
 	}
 
 	if (access.HasAnyFlags(BarrierAccess::RenderTarget))
 	{
-		flags |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-		flags |= VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+		flags |= VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
+		flags |= VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
 	}
 
 	if (access.HasAnyFlags(BarrierAccess::UnorderedAccess))
 	{
-		flags |= VK_ACCESS_SHADER_READ_BIT;
-		flags |= VK_ACCESS_SHADER_WRITE_BIT;
+		flags |= VK_ACCESS_2_SHADER_READ_BIT;
+		flags |= VK_ACCESS_2_SHADER_WRITE_BIT;
 	}
 
 	if (access.HasAnyFlags(BarrierAccess::DepthStencilWrite))
 	{
-		flags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+		flags |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 	}
 
 	if (access.HasAnyFlags(BarrierAccess::DepthStencilRead))
 	{
-		flags |= VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+		flags |= VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
 	}
 
 	if (access.HasAnyFlags(BarrierAccess::ShaderResource))
 	{
-		flags |= VK_ACCESS_SHADER_READ_BIT;
-	}
-
-	if (access.HasAnyFlags(BarrierAccess::StreamOutput))
-	{
-		flags |= VK_ACCESS_TRANSFORM_FEEDBACK_WRITE_BIT_EXT;
+		flags |= VK_ACCESS_2_SHADER_READ_BIT;
 	}
 
 	if (access.HasAnyFlags(BarrierAccess::IndirectArgument))
 	{
-		flags |= VK_ACCESS_INDIRECT_COMMAND_READ_BIT;
+		flags |= VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
 	}
 
-	if (access.HasAnyFlags(BarrierAccess::CopyDest))
+	if (access.HasAnyFlags(BarrierAccess::CopyDest) || access.HasAnyFlags(BarrierAccess::ResolveDest))
 	{
-		flags |= VK_ACCESS_TRANSFER_WRITE_BIT;
+		flags |= VK_ACCESS_2_TRANSFER_WRITE_BIT;
 	}
 
-	if (access.HasAnyFlags(BarrierAccess::CopySource))
+	if (access.HasAnyFlags(BarrierAccess::CopySource) || access.HasAnyFlags(BarrierAccess::ResolveSource))
 	{
-		flags |= VK_ACCESS_TRANSFER_READ_BIT;
-	}
-
-	if (access.HasAnyFlags(BarrierAccess::ResolveDest))
-	{
-		flags |= VK_ACCESS_TRANSFER_WRITE_BIT;
-	}
-
-	if (access.HasAnyFlags(BarrierAccess::ResolveSource))
-	{
-		flags |= VK_ACCESS_TRANSFER_READ_BIT;
+		flags |= VK_ACCESS_2_TRANSFER_READ_BIT;
 	}
 
 	if (access.HasAnyFlags(BarrierAccess::RaytracingAccelerationStructureRead))
 	{
-		flags |= VK_ACCESS_ACCELERATION_STRUCTURE_READ_BIT_KHR;
+		flags |= VK_ACCESS_2_ACCELERATION_STRUCTURE_READ_BIT_KHR;
 	}
 
 	if (access.HasAnyFlags(BarrierAccess::RaytracingAccelerationStructureWrite))
 	{
-		flags |= VK_ACCESS_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+		flags |= VK_ACCESS_2_ACCELERATION_STRUCTURE_WRITE_BIT_KHR;
+	}
+
+	if (access.HasAnyFlags(BarrierAccess::StreamOutput))
+	{
+		flags |= VK_ACCESS_2_TRANSFORM_FEEDBACK_WRITE_BIT_EXT;
 	}
 
 	if (access.HasAnyFlags(BarrierAccess::ShadingRateSource))
 	{
-		flags |= VK_ACCESS_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
-	}
-
-	if (access.HasAnyFlags(BarrierAccess::VideoDecodeRead))
-	{
-		// not supported
-	}
-
-	if (access.HasAnyFlags(BarrierAccess::VideoDecodeWrite))
-	{
-		// not supported
-	}
-
-	if (access.HasAnyFlags(BarrierAccess::VideoProcessRead))
-	{
-		// not supported
-	}
-
-	if (access.HasAnyFlags(BarrierAccess::VideoProcessWrite))
-	{
-		// not supported
-	}
-
-	if (access.HasAnyFlags(BarrierAccess::VideoEncodeRead))
-	{
-		// not supported
-	}
-
-	if (access.HasAnyFlags(BarrierAccess::VideoEncodeWrite))
-	{
-		// not supported
+		flags |= VK_ACCESS_2_FRAGMENT_SHADING_RATE_ATTACHMENT_READ_BIT_KHR;
 	}
 
 	return flags;
 }
 
-VkPipelineStageFlags Vulkan::GetVkPipelineStageFlags(const Flags<BarrierSync> sync)
+VkPipelineStageFlags2 GetVkPipelineStageFlags2(const Flags<BarrierSync> sync)
 {
-	VkPipelineStageFlags stages = VK_PIPELINE_STAGE_NONE;
+	VkPipelineStageFlags2 stages = VK_PIPELINE_STAGE_2_NONE;
 
 	if (sync.HasAnyFlags(BarrierSync::All))
 	{
-		stages |= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+		stages |= VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
 	}
 
 	if (sync.HasAnyFlags(BarrierSync::Draw))
 	{
-		stages |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+		stages |= VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT;
 	}
 
 	if (sync.HasAnyFlags(BarrierSync::IndexInput))
 	{
-		stages |= VK_PIPELINE_STAGE_VERTEX_INPUT_BIT;
+		stages |= VK_PIPELINE_STAGE_2_VERTEX_INPUT_BIT;
 	}
 
 	if (sync.HasAnyFlags(BarrierSync::VertexShading))
 	{
-		stages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
 	}
 
 	if (sync.HasAnyFlags(BarrierSync::PixelShading))
 	{
-		stages |= VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_2_FRAGMENT_SHADER_BIT;
 	}
 
 	if (sync.HasAnyFlags(BarrierSync::DepthStencil))
 	{
-		stages |= VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
-		stages |= VK_PIPELINE_STAGE_LATE_FRAGMENT_TESTS_BIT;
+		stages |= VK_PIPELINE_STAGE_2_EARLY_FRAGMENT_TESTS_BIT;
+		stages |= VK_PIPELINE_STAGE_2_LATE_FRAGMENT_TESTS_BIT;
 	}
 
 	if (sync.HasAnyFlags(BarrierSync::RenderTarget))
 	{
-		stages |= VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+		stages |= VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT;
 	}
 
 	if (sync.HasAnyFlags(BarrierSync::ComputeShading))
 	{
-		stages |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
 	}
 
 	if (sync.HasAnyFlags(BarrierSync::Raytracing))
 	{
-		stages |= VK_PIPELINE_STAGE_RAY_TRACING_SHADER_BIT_KHR;
+		stages |= VK_PIPELINE_STAGE_2_RAY_TRACING_SHADER_BIT_KHR;
 	}
 
-	if (sync.HasAnyFlags(BarrierSync::Copy))
+	if (sync.HasAnyFlags(BarrierSync::Copy) || sync.HasAnyFlags(BarrierSync::Resolve))
 	{
-		stages |= VK_PIPELINE_STAGE_TRANSFER_BIT;
+		stages |= VK_PIPELINE_STAGE_2_TRANSFER_BIT;
 	}
 
-	if (sync.HasAnyFlags(BarrierSync::Resolve))
+	if (sync.HasAnyFlags(BarrierSync::ExecuteIndirect) || sync.HasAnyFlags(BarrierSync::Predication))
 	{
-		stages |= VK_PIPELINE_STAGE_TRANSFER_BIT;
-	}
-
-	if (sync.HasAnyFlags(BarrierSync::ExecuteIndirect))
-	{
-		stages |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
-	}
-
-	if (sync.HasAnyFlags(BarrierSync::Predication))
-	{
-		stages |= VK_PIPELINE_STAGE_DRAW_INDIRECT_BIT;
+		stages |= VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT;
 	}
 
 	if (sync.HasAnyFlags(BarrierSync::AllShading))
 	{
-		stages |= VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT;
-		stages |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+		stages |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
 	}
 
 	if (sync.HasAnyFlags(BarrierSync::NonPixelShading))
 	{
-		stages |= VK_PIPELINE_STAGE_VERTEX_SHADER_BIT;
-		stages |= VK_PIPELINE_STAGE_TESSELLATION_CONTROL_SHADER_BIT;
-		stages |= VK_PIPELINE_STAGE_TESSELLATION_EVALUATION_SHADER_BIT;
-		stages |= VK_PIPELINE_STAGE_GEOMETRY_SHADER_BIT;
-		stages |= VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_2_VERTEX_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_2_TESSELLATION_CONTROL_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_2_TESSELLATION_EVALUATION_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_2_GEOMETRY_SHADER_BIT;
+		stages |= VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
 	}
 
 	if (sync.HasAnyFlags(BarrierSync::EmitRaytracingAccelerationStructurePostbuildInfo))
 	{
-		stages |= VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
+		stages |= VK_PIPELINE_STAGE_2_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
 	}
 
 	if (sync.HasAnyFlags(BarrierSync::ClearUnorderedAccessView))
 	{
-		stages |= VK_PIPELINE_STAGE_TRANSFER_BIT;
-	}
-
-	if (sync.HasAnyFlags(BarrierSync::VideoDecode))
-	{
-		stages |= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-	}
-
-	if (sync.HasAnyFlags(BarrierSync::VideoProcess))
-	{
-		stages |= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-	}
-
-	if (sync.HasAnyFlags(BarrierSync::VideoEncode))
-	{
-		stages |= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-	}
-
-	if (sync.HasAnyFlags(BarrierSync::BuildRaytracingAccelerationStructure))
-	{
-		stages |= VK_PIPELINE_STAGE_ACCELERATION_STRUCTURE_BUILD_BIT_KHR;
-	}
-
-	if (sync.HasAnyFlags(BarrierSync::CopyRaytracingAccelerationStructure))
-	{
-		stages |= VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
-	}
-
-	if (sync.HasAnyFlags(BarrierSync::Split))
-	{
-		// not supported
+		stages |= VK_PIPELINE_STAGE_2_TRANSFER_BIT;
 	}
 
 	return stages;
 }
 
-VkFormat Vulkan::GetVkFormat(const SpvReflectFormat format)
+VkFormat GetVkFormat(const SpvReflectFormat format)
 {
 	switch (format)
 	{
@@ -1171,8 +1090,7 @@ static constexpr FormatAlias aliases[] = {
 	},
 };
 
-TextureFormat Vulkan::GetVkCompatibleViewFormat(const TextureFormat imageFormat,
-																			  const TextureFormat viewFormat)
+TextureFormat GetVkCompatibleViewFormat(const TextureFormat imageFormat, const TextureFormat viewFormat)
 {
 	for (const auto& alias : aliases)
 	{
