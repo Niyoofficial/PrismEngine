@@ -47,7 +47,6 @@ if (WIN32)
     target_compile_options(${PROJECT_NAME} PUBLIC "$<$<CXX_COMPILER_ID:MSVC>:/utf-8>")
     target_compile_options(${PROJECT_NAME} PUBLIC "/Zc:preprocessor")
     target_compile_definitions(${PROJECT_NAME} PUBLIC "PE_PLATFORM_WINDOWS=1")
-    target_compile_definitions(${PROJECT_NAME} PUBLIC "USE_PIX=1")
 
     add_definitions(-DUNICODE -D_UNICODE)
 
