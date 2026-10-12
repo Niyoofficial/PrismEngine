@@ -48,7 +48,7 @@ VkCompareOp GetVkCompareOp(ComparisionFunction function);
 VkStencilOp GetVkStencilOp(StencilOperation operation);
 
 VkStencilOpState GetVkStencilOpState(const DepthStencilOperationDesc& desc, uint8_t readMask = 0xFF, uint8_t writeMask = 0xFF,
-                                     uint32_t reference = 0);
+									 uint32_t reference = 0);
 
 VkBlendFactor GetVkBlendFactor(BlendFactor factor);
 
@@ -62,9 +62,9 @@ uint32_t GetBytesPerPixel(TextureFormat format);
 
 VkDescriptorType GetVkDescriptorType(SpvReflectDescriptorType type);
 
-VkAccessFlags GetVkAccessFlags(Flags<BarrierAccess> access);
+VkAccessFlags2 GetVkAccessFlags2(Flags<BarrierAccess> access);
 
-VkPipelineStageFlags GetVkPipelineStageFlags(Flags<BarrierSync> sync);
+VkPipelineStageFlags2 GetVkPipelineStageFlags2(Flags<BarrierSync> sync);
 
 VkFormat GetVkFormat(SpvReflectFormat format);
 

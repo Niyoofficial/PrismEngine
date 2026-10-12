@@ -18,11 +18,11 @@ constexpr std::string_view applicationName = "PrismEngine";
 constexpr uint32_t applicationVersion = VK_MAKE_VERSION(1, 0, 0);
 constexpr uint32_t applicationVulkanApiVersion = VK_API_VERSION_1_3;
 constexpr std::array<const char*, 1> applicationValidationLayers{
-    "VK_LAYER_KHRONOS_validation",
+	"VK_LAYER_KHRONOS_validation",
 };
 constexpr std::array<const char*, 4> applicationDeviceExtensions{
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
-    VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME,
+	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME,
 	VK_GOOGLE_USER_TYPE_EXTENSION_NAME,
 	VK_GOOGLE_HLSL_FUNCTIONALITY_1_EXTENSION_NAME,
 };
@@ -30,8 +30,8 @@ constexpr int64_t defaultVulkanMemoryAlignment = 256;
 constexpr uint32_t defaultImGuiDescriptorPoolSize = 1000;
 
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
-                                                    VkDebugUtilsMessageTypeFlagsEXT messageType,
-                                                    const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
+													VkDebugUtilsMessageTypeFlagsEXT messageType,
+													const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData)
 {
 	if (messageSeverity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT)
 	{
@@ -40,17 +40,19 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityF
 	return VK_FALSE;
 }
 
-Prism::Render::Vulkan::VulkanRenderDevice& Prism::Render::Vulkan::VulkanRenderDevice::Get()
+namespace Prism::Render::Vulkan
+{
+VulkanRenderDevice& VulkanRenderDevice::Get()
 {
 	return dynamic_cast<VulkanRenderDevice&>(RenderDevice::Get());
 }
 
-Prism::Render::Vulkan::VulkanRenderDevice* Prism::Render::Vulkan::VulkanRenderDevice::TryGet()
+VulkanRenderDevice* VulkanRenderDevice::TryGet()
 {
 	return dynamic_cast<VulkanRenderDevice*>(RenderDevice::TryGet());
 }
 
-Prism::Render::Vulkan::VulkanRenderDevice::VulkanRenderDevice(const RenderDeviceParams& params) : RenderDevice(params)
+VulkanRenderDevice::VulkanRenderDevice(const RenderDeviceParams& params) : RenderDevice(params)
 {
 	CreateVulkanInstance(params);
 
@@ -76,9 +78,14 @@ Prism::Render::Vulkan::VulkanRenderDevice::VulkanRenderDevice(const RenderDevice
 	CreateBindlessManager();
 }
 
-Prism::Render::Vulkan::VulkanRenderDevice::~VulkanRenderDevice()
+VulkanRenderDevice::~VulkanRenderDevice()
 {
 	m_commandQueue.reset();
+
+	m_bindlessManager.reset();
+	m_pipelineCache.reset();
+	m_pipelineLayoutCache.reset();
+	m_descriptorSetLayoutCache.reset();
 
 	if (m_allocator)
 	{
@@ -95,7 +102,7 @@ Prism::Render::Vulkan::VulkanRenderDevice::~VulkanRenderDevice()
 	if (m_debugMessenger)
 	{
 		const auto vkDestroyDebugUtilsMessengerEXTFunction = reinterpret_cast<PFN_vkDestroyDebugUtilsMessengerEXT>(
-		    vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
+			vkGetInstanceProcAddr(m_instance, "vkDestroyDebugUtilsMessengerEXT"));
 
 		if (vkDestroyDebugUtilsMessengerEXTFunction)
 		{
@@ -112,34 +119,34 @@ Prism::Render::Vulkan::VulkanRenderDevice::~VulkanRenderDevice()
 	}
 }
 
-Prism::Ref<Prism::Render::Buffer> Prism::Render::Vulkan::VulkanRenderDevice::CreateBuffer(const BufferDesc& desc)
+Ref<Buffer> VulkanRenderDevice::CreateBuffer(const BufferDesc& desc)
 {
 	return Ref<VulkanBuffer>::Create(this, desc);
 }
 
-Prism::Ref<Prism::Render::Texture> Prism::Render::Vulkan::VulkanRenderDevice::CreateTexture(const TextureDesc& desc,
-                                                                                            BarrierLayout initLayout)
+Ref<Texture> VulkanRenderDevice::CreateTexture(const TextureDesc& desc,
+																							BarrierLayout initLayout)
 {
 	return Ref<VulkanTexture>::Create(this, desc, initLayout);
 }
 
-Prism::Ref<Prism::Render::Texture>
-Prism::Render::Vulkan::VulkanRenderDevice::CreateTexture(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish)
+Ref<Texture>
+VulkanRenderDevice::CreateTexture(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish)
 {
 	return Ref<VulkanTexture>::Create(this, std::move(filepath), loadAsCubemap, waitForLoadFinish);
 }
 
-Prism::Ref<Prism::Render::Texture> Prism::Render::Vulkan::VulkanRenderDevice::CreateTexture(std::wstring name, void* imageData,
-                                                                                            int64_t dataSize, bool loadAsCubemap,
-                                                                                            bool waitForLoadFinish)
+Ref<Texture> VulkanRenderDevice::CreateTexture(std::wstring name, void* imageData,
+																							int64_t dataSize, bool loadAsCubemap,
+																							bool waitForLoadFinish)
 {
 	return Ref<VulkanTexture>::Create(this, std::move(name), imageData, dataSize, loadAsCubemap, waitForLoadFinish);
 }
 
-int64_t Prism::Render::Vulkan::VulkanRenderDevice::GetTotalSizeInBytes(const BufferDesc buffDesc) const { return buffDesc.size; }
+int64_t VulkanRenderDevice::GetTotalSizeInBytes(const BufferDesc buffDesc) const { return buffDesc.size; }
 
-int64_t Prism::Render::Vulkan::VulkanRenderDevice::GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource,
-                                                                       int32_t numSubresources) const
+int64_t VulkanRenderDevice::GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource,
+																	   int32_t numSubresources) const
 {
 	const uint32_t bytesPerPixel = GetBytesPerPixel(texDesc.format);
 
@@ -168,8 +175,8 @@ int64_t Prism::Render::Vulkan::VulkanRenderDevice::GetTotalSizeInBytes(TextureDe
 	return totalSize;
 }
 
-Prism::Render::SubresourceFootprint
-Prism::Render::Vulkan::VulkanRenderDevice::GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex) const
+SubresourceFootprint
+VulkanRenderDevice::GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex) const
 {
 	const uint32_t bytesPerPixel = GetBytesPerPixel(texDesc.format);
 
@@ -182,16 +189,16 @@ Prism::Render::Vulkan::VulkanRenderDevice::GetSubresourceFootprint(TextureDesc t
 	const int32_t depth = std::max(1, texDesc.GetDepth());
 
 	const SubresourceFootprint footprint{
-	    .size = {width, height, depth},
-	    .rowPitch = static_cast<int64_t>(width) * bytesPerPixel,
+		.size = {width, height, depth},
+		.rowPitch = static_cast<int64_t>(width) * bytesPerPixel,
 	};
 
 	return footprint;
 }
 
-int64_t Prism::Render::Vulkan::VulkanRenderDevice::GetTexturePitchAlignment() const { return defaultVulkanMemoryAlignment; }
+int64_t VulkanRenderDevice::GetTexturePitchAlignment() const { return defaultVulkanMemoryAlignment; }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::InitializeImGui(Core::Window* window, TextureFormat depthFormat)
+void VulkanRenderDevice::InitializeImGui(Core::Window* window, TextureFormat depthFormat)
 {
 	if (m_initializedImGui)
 	{
@@ -203,46 +210,46 @@ void Prism::Render::Vulkan::VulkanRenderDevice::InitializeImGui(Core::Window* wi
 	const VkFormat swapchainFormat = GetVkFormat(swapchainDesc.format);
 
 	ImGui_ImplVulkan_InitInfo initInfo{
-	    .ApiVersion = applicationVulkanApiVersion,
-	    .Instance = m_instance,
-	    .PhysicalDevice = m_physicalDevice,
-	    .Device = m_device,
-	    .QueueFamily = m_graphicsQueueFamilyIndex,
-	    .Queue = m_commandQueue->GetQueue(),
-	    .DescriptorPool = VK_NULL_HANDLE,
-	    .MinImageCount = 2,
-	    .ImageCount = 2,
-	    .MSAASamples = VK_SAMPLE_COUNT_1_BIT,
-	    .DescriptorPoolSize = defaultImGuiDescriptorPoolSize,
-	    .UseDynamicRendering = true,
-	    .PipelineRenderingCreateInfo =
-	        {
-	            .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
-	            .pNext = nullptr,
-	            .viewMask = 0,
-	            .colorAttachmentCount = 1,
-	            .pColorAttachmentFormats = &swapchainFormat,
-	            .depthAttachmentFormat = VK_FORMAT_UNDEFINED,
-	            .stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
-	        },
-	    .Allocator = nullptr,
-	    .CheckVkResultFn =
-	        [](const VkResult result)
-	    {
-		    if (result != VK_SUCCESS)
-		    {
-			    std::cerr << "[ImGui Vulkan] VkResult = " << result << std::endl;
+		.ApiVersion = applicationVulkanApiVersion,
+		.Instance = m_instance,
+		.PhysicalDevice = m_physicalDevice,
+		.Device = m_device,
+		.QueueFamily = m_graphicsQueueFamilyIndex,
+		.Queue = m_commandQueue->GetQueue(),
+		.DescriptorPool = VK_NULL_HANDLE,
+		.MinImageCount = 2,
+		.ImageCount = 2,
+		.MSAASamples = VK_SAMPLE_COUNT_1_BIT,
+		.DescriptorPoolSize = defaultImGuiDescriptorPoolSize,
+		.UseDynamicRendering = true,
+		.PipelineRenderingCreateInfo =
+			{
+				.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR,
+				.pNext = nullptr,
+				.viewMask = 0,
+				.colorAttachmentCount = 1,
+				.pColorAttachmentFormats = &swapchainFormat,
+				.depthAttachmentFormat = VK_FORMAT_UNDEFINED,
+				.stencilAttachmentFormat = VK_FORMAT_UNDEFINED,
+			},
+		.Allocator = nullptr,
+		.CheckVkResultFn =
+			[](const VkResult result)
+		{
+			if (result != VK_SUCCESS)
+			{
+				std::cerr << "[ImGui Vulkan] VkResult = " << result << std::endl;
 
-			    PE_ASSERT(false);
-		    }
-	    },
+				PE_ASSERT(false);
+			}
+		},
 	};
 	PE_ASSERT(ImGui_ImplVulkan_Init(&initInfo));
 
 	m_initializedImGui = true;
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::ShutdownImGui()
+void VulkanRenderDevice::ShutdownImGui()
 {
 	if (!m_initializedImGui)
 	{
@@ -256,7 +263,7 @@ void Prism::Render::Vulkan::VulkanRenderDevice::ShutdownImGui()
 	m_initializedImGui = false;
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::BeginRenderFrame()
+void VulkanRenderDevice::BeginRenderFrame()
 {
 	RenderDevice::BeginRenderFrame();
 
@@ -270,18 +277,20 @@ void Prism::Render::Vulkan::VulkanRenderDevice::BeginRenderFrame()
 		// implement proper swapchain image acquisition and synchronization
 		GetVulkanRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
 
-		GetBindlessManager()->ResetResourcesAllocator();
+		GetBindlessManager()->ResetResourcesAllocator(m_frameIndex);
 
 		const VkResult result = swapchain->AcquireNextImage();
 
 		PE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
 
 		GetVulkanRenderCommandQueue()->SetSubmitSynchronization(swapchain->GetImageAvailableSemaphore(),
-		                                                        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_NULL_HANDLE);
+																VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_NULL_HANDLE);
 	}
+
+	m_frameIndex = (m_frameIndex + 1) % Constants::MAX_FRAMES_IN_FLIGHT;
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::ImGuiNewFrame()
+void VulkanRenderDevice::ImGuiNewFrame()
 {
 	if (!m_initializedImGui)
 	{
@@ -291,13 +300,13 @@ void Prism::Render::Vulkan::VulkanRenderDevice::ImGuiNewFrame()
 	ImGui_ImplVulkan_NewFrame();
 }
 
-Prism::Render::RenderCommandQueue* Prism::Render::Vulkan::VulkanRenderDevice::GetRenderCommandQueue() const
+RenderCommandQueue* VulkanRenderDevice::GetRenderCommandQueue() const
 {
 	return m_commandQueue.get();
 }
 
-Prism::Ref<Prism::Render::BufferView> Prism::Render::Vulkan::VulkanRenderDevice::CreateBufferView_Impl(const BufferViewDesc& desc,
-                                                                                                       Buffer* buffer)
+Ref<BufferView> VulkanRenderDevice::CreateBufferView_Impl(const BufferViewDesc& desc,
+																									   Buffer* buffer)
 {
 	auto bufferView = Ref<VulkanBufferView>::Create(desc, buffer);
 
@@ -306,8 +315,8 @@ Prism::Ref<Prism::Render::BufferView> Prism::Render::Vulkan::VulkanRenderDevice:
 	return bufferView;
 }
 
-Prism::Ref<Prism::Render::TextureView>
-Prism::Render::Vulkan::VulkanRenderDevice::CreateTextureView_Impl(const TextureViewDesc& desc, Texture* texture)
+Ref<TextureView>
+VulkanRenderDevice::CreateTextureView_Impl(const TextureViewDesc& desc, Texture* texture)
 {
 	auto textureView = Ref<VulkanTextureView>::Create(desc, texture);
 
@@ -316,7 +325,7 @@ Prism::Render::Vulkan::VulkanRenderDevice::CreateTextureView_Impl(const TextureV
 	return textureView;
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::CreateVulkanInstance(const RenderDeviceParams& params)
+void VulkanRenderDevice::CreateVulkanInstance(const RenderDeviceParams& params)
 {
 	if (!SDL_Vulkan_LoadLibrary(nullptr))
 	{
@@ -324,12 +333,12 @@ void Prism::Render::Vulkan::VulkanRenderDevice::CreateVulkanInstance(const Rende
 	}
 
 	VkApplicationInfo applicationInfo{
-	    .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
-	    .pApplicationName = applicationName.data(),
-	    .applicationVersion = applicationVersion,
-	    .pEngineName = applicationName.data(),
-	    .engineVersion = applicationVersion,
-	    .apiVersion = applicationVulkanApiVersion,
+		.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+		.pApplicationName = applicationName.data(),
+		.applicationVersion = applicationVersion,
+		.pEngineName = applicationName.data(),
+		.engineVersion = applicationVersion,
+		.apiVersion = applicationVulkanApiVersion,
 	};
 
 	uint32_t extensionCount = 0;
@@ -346,37 +355,37 @@ void Prism::Render::Vulkan::VulkanRenderDevice::CreateVulkanInstance(const Rende
 	}
 
 	const VkInstanceCreateInfo createInfo{
-	    .sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
-	    .pApplicationInfo = &applicationInfo,
-	    .enabledLayerCount = params.enableDebugLayer ? static_cast<uint32_t>(applicationValidationLayers.size()) : 0u,
-	    .ppEnabledLayerNames = params.enableDebugLayer ? applicationValidationLayers.data() : nullptr,
-	    .enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
-	    .ppEnabledExtensionNames = extensions.data(),
+		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+		.pApplicationInfo = &applicationInfo,
+		.enabledLayerCount = params.enableDebugLayer ? static_cast<uint32_t>(applicationValidationLayers.size()) : 0u,
+		.ppEnabledLayerNames = params.enableDebugLayer ? applicationValidationLayers.data() : nullptr,
+		.enabledExtensionCount = static_cast<uint32_t>(extensions.size()),
+		.ppEnabledExtensionNames = extensions.data(),
 	};
 
 	PE_ASSERT(vkCreateInstance(&createInfo, nullptr, &m_instance) == VK_SUCCESS);
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::CreateDebugMessenger()
+void VulkanRenderDevice::CreateDebugMessenger()
 {
 	constexpr VkDebugUtilsMessengerCreateInfoEXT debugCreateInfo{
-	    .sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
-	    .messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
-	    .messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-	        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
-	    .pfnUserCallback = DebugCallback,
-	    .pUserData = nullptr,
+		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT,
+		.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT,
+		.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+			VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT,
+		.pfnUserCallback = DebugCallback,
+		.pUserData = nullptr,
 	};
 
 	const auto vkCreateDebugUtilsMessengerEXTFunction =
-	    reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT"));
+		reinterpret_cast<PFN_vkCreateDebugUtilsMessengerEXT>(vkGetInstanceProcAddr(m_instance, "vkCreateDebugUtilsMessengerEXT"));
 
 	PE_ASSERT(vkCreateDebugUtilsMessengerEXTFunction);
 
 	PE_ASSERT(vkCreateDebugUtilsMessengerEXTFunction(m_instance, &debugCreateInfo, nullptr, &m_debugMessenger) == VK_SUCCESS);
 }
 
-bool Prism::Render::Vulkan::VulkanRenderDevice::AreValidationLayerSupported() const
+bool VulkanRenderDevice::AreValidationLayerSupported() const
 {
 	uint32_t count = 0;
 	vkEnumerateInstanceLayerProperties(&count, nullptr);
@@ -406,7 +415,7 @@ bool Prism::Render::Vulkan::VulkanRenderDevice::AreValidationLayerSupported() co
 	return true;
 }
 
-bool Prism::Render::Vulkan::VulkanRenderDevice::AreDeviceExtensionSupported(const VkPhysicalDevice physicalDevice) const
+bool VulkanRenderDevice::AreDeviceExtensionSupported(const VkPhysicalDevice physicalDevice) const
 {
 	uint32_t count = 0;
 	vkEnumerateDeviceExtensionProperties(physicalDevice, nullptr, &count, nullptr);
@@ -436,7 +445,7 @@ bool Prism::Render::Vulkan::VulkanRenderDevice::AreDeviceExtensionSupported(cons
 	return true;
 }
 
-bool Prism::Render::Vulkan::VulkanRenderDevice::IsPhysicalDeviceSuitable(const VkPhysicalDevice physicalDevice) const
+bool VulkanRenderDevice::IsPhysicalDeviceSuitable(const VkPhysicalDevice physicalDevice) const
 {
 	if (!AreDeviceExtensionSupported(physicalDevice))
 	{
@@ -449,37 +458,37 @@ bool Prism::Render::Vulkan::VulkanRenderDevice::IsPhysicalDeviceSuitable(const V
 	}
 
 	VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableDescriptorType{
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,
-	    .pNext = nullptr,
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,
+		.pNext = nullptr,
 	};
 
 	VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexing{
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
-	    .pNext = &mutableDescriptorType,
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+		.pNext = &mutableDescriptorType,
 	};
 
 	VkPhysicalDeviceVulkan13Features features13{
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-	    .pNext = &descriptorIndexing,
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+		.pNext = &descriptorIndexing,
 	};
 
 	VkPhysicalDeviceFeatures2 features{
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-	    .pNext = &features13,
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+		.pNext = &features13,
 	};
 
 	vkGetPhysicalDeviceFeatures2(physicalDevice, &features);
 
 	return features13.dynamicRendering && features13.synchronization2 && mutableDescriptorType.mutableDescriptorType &&
-	    descriptorIndexing.shaderUniformBufferArrayNonUniformIndexing &&
-	    descriptorIndexing.shaderSampledImageArrayNonUniformIndexing &&
-	    descriptorIndexing.shaderStorageBufferArrayNonUniformIndexing &&
-	    descriptorIndexing.shaderStorageImageArrayNonUniformIndexing &&
-	    descriptorIndexing.descriptorBindingUniformBufferUpdateAfterBind &&
-	    descriptorIndexing.descriptorBindingSampledImageUpdateAfterBind &&
-	    descriptorIndexing.descriptorBindingStorageImageUpdateAfterBind &&
-	    descriptorIndexing.descriptorBindingStorageBufferUpdateAfterBind && descriptorIndexing.descriptorBindingPartiallyBound &&
-	    descriptorIndexing.runtimeDescriptorArray && [&]
+		descriptorIndexing.shaderUniformBufferArrayNonUniformIndexing &&
+		descriptorIndexing.shaderSampledImageArrayNonUniformIndexing &&
+		descriptorIndexing.shaderStorageBufferArrayNonUniformIndexing &&
+		descriptorIndexing.shaderStorageImageArrayNonUniformIndexing &&
+		descriptorIndexing.descriptorBindingUniformBufferUpdateAfterBind &&
+		descriptorIndexing.descriptorBindingSampledImageUpdateAfterBind &&
+		descriptorIndexing.descriptorBindingStorageImageUpdateAfterBind &&
+		descriptorIndexing.descriptorBindingStorageBufferUpdateAfterBind && descriptorIndexing.descriptorBindingPartiallyBound &&
+		descriptorIndexing.runtimeDescriptorArray && [&]
 	{
 		VkPhysicalDeviceFeatures coreFeatures{};
 		vkGetPhysicalDeviceFeatures(physicalDevice, &coreFeatures);
@@ -488,7 +497,7 @@ bool Prism::Render::Vulkan::VulkanRenderDevice::IsPhysicalDeviceSuitable(const V
 	}();
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::PickPhysicalDevice()
+void VulkanRenderDevice::PickPhysicalDevice()
 {
 	uint32_t count = 0;
 	vkEnumeratePhysicalDevices(m_instance, &count, nullptr);
@@ -511,67 +520,67 @@ void Prism::Render::Vulkan::VulkanRenderDevice::PickPhysicalDevice()
 	PE_ASSERT(false, "No suitable Vulkan device found");
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::CreateLogicalDevice()
+void VulkanRenderDevice::CreateLogicalDevice()
 {
 	constexpr float queuePriority = 1.f;
 
 	VkDeviceQueueCreateInfo queueCreateInfo{
-	    .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
-	    .queueFamilyIndex = m_graphicsQueueFamilyIndex,
-	    .queueCount = 1,
-	    .pQueuePriorities = &queuePriority,
+		.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO,
+		.queueFamilyIndex = m_graphicsQueueFamilyIndex,
+		.queueCount = 1,
+		.pQueuePriorities = &queuePriority,
 	};
 
 	VkPhysicalDeviceTimelineSemaphoreFeatures timelineFeatures{
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
-	    .timelineSemaphore = VK_TRUE,
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
+		.timelineSemaphore = VK_TRUE,
 	};
 
 	VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT featureMutableDescriptorType{
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,
-	    .pNext = &timelineFeatures,
-	    .mutableDescriptorType = VK_TRUE,
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,
+		.pNext = &timelineFeatures,
+		.mutableDescriptorType = VK_TRUE,
 	};
 
 	VkPhysicalDeviceDescriptorIndexingFeatures featureDescriptorIndexing{
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
-	    .pNext = &featureMutableDescriptorType,
-	    .shaderUniformBufferArrayNonUniformIndexing = VK_TRUE,
-	    .shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
-	    .shaderStorageBufferArrayNonUniformIndexing = VK_TRUE,
-	    .shaderStorageImageArrayNonUniformIndexing = VK_TRUE,
-	    .descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE,
-	    .descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
-	    .descriptorBindingStorageImageUpdateAfterBind = VK_TRUE,
-	    .descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE,
-	    .descriptorBindingPartiallyBound = VK_TRUE,
-	    .descriptorBindingVariableDescriptorCount = VK_TRUE,
-	    .runtimeDescriptorArray = VK_TRUE,
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+		.pNext = &featureMutableDescriptorType,
+		.shaderUniformBufferArrayNonUniformIndexing = VK_TRUE,
+		.shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
+		.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE,
+		.shaderStorageImageArrayNonUniformIndexing = VK_TRUE,
+		.descriptorBindingUniformBufferUpdateAfterBind = VK_TRUE,
+		.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE,
+		.descriptorBindingStorageImageUpdateAfterBind = VK_TRUE,
+		.descriptorBindingStorageBufferUpdateAfterBind = VK_TRUE,
+		.descriptorBindingPartiallyBound = VK_TRUE,
+		.descriptorBindingVariableDescriptorCount = VK_TRUE,
+		.runtimeDescriptorArray = VK_TRUE,
 	};
 
 	VkPhysicalDeviceVulkan13Features features13{
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-	    .pNext = &featureDescriptorIndexing,
-	    .synchronization2 = VK_TRUE,
-	    .dynamicRendering = VK_TRUE,
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
+		.pNext = &featureDescriptorIndexing,
+		.synchronization2 = VK_TRUE,
+		.dynamicRendering = VK_TRUE,
 	};
 
 	VkPhysicalDeviceFeatures2 features2{
-	    .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
-	    .pNext = &features13,
-	    .features =
-	        {
-	            .samplerAnisotropy = VK_TRUE,
-	        },
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2,
+		.pNext = &features13,
+		.features =
+			{
+				.samplerAnisotropy = VK_TRUE,
+			},
 	};
 
 	VkDeviceCreateInfo createInfo{
-	    .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
-	    .pNext = &features2,
-	    .queueCreateInfoCount = 1,
-	    .pQueueCreateInfos = &queueCreateInfo,
-	    .enabledExtensionCount = static_cast<uint32_t>(applicationDeviceExtensions.size()),
-	    .ppEnabledExtensionNames = applicationDeviceExtensions.data(),
+		.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+		.pNext = &features2,
+		.queueCreateInfoCount = 1,
+		.pQueueCreateInfos = &queueCreateInfo,
+		.enabledExtensionCount = static_cast<uint32_t>(applicationDeviceExtensions.size()),
+		.ppEnabledExtensionNames = applicationDeviceExtensions.data(),
 	};
 
 	PE_ASSERT(vkCreateDevice(m_physicalDevice, &createInfo, nullptr, &m_device) == VK_SUCCESS);
@@ -582,24 +591,24 @@ void Prism::Render::Vulkan::VulkanRenderDevice::CreateLogicalDevice()
 	CreateRenderCommandQueue(graphicsQueue, m_graphicsQueueFamilyIndex);
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::CreateAllocator()
+void VulkanRenderDevice::CreateAllocator()
 {
 	const VmaAllocatorCreateInfo allocatorInfo{
-	    .physicalDevice = m_physicalDevice,
-	    .device = m_device,
-	    .instance = m_instance,
-	    .vulkanApiVersion = applicationVulkanApiVersion,
+		.physicalDevice = m_physicalDevice,
+		.device = m_device,
+		.instance = m_instance,
+		.vulkanApiVersion = applicationVulkanApiVersion,
 	};
 
 	PE_ASSERT(vmaCreateAllocator(&allocatorInfo, &m_allocator) == VK_SUCCESS);
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::CreateRenderCommandQueue(VkQueue queue, uint32_t queueFamilyIndex)
+void VulkanRenderDevice::CreateRenderCommandQueue(VkQueue queue, uint32_t queueFamilyIndex)
 {
 	m_commandQueue = std::make_unique<VulkanRenderCommandQueue>(queue, queueFamilyIndex);
 }
 
-uint32_t Prism::Render::Vulkan::VulkanRenderDevice::FindGraphicsQueueFamilyIndex(const VkPhysicalDevice physicalDevice) const
+uint32_t VulkanRenderDevice::FindGraphicsQueueFamilyIndex(const VkPhysicalDevice physicalDevice) const
 {
 	uint32_t count = 0;
 	vkGetPhysicalDeviceQueueFamilyProperties(physicalDevice, &count, nullptr);
@@ -620,22 +629,23 @@ uint32_t Prism::Render::Vulkan::VulkanRenderDevice::FindGraphicsQueueFamilyIndex
 	return UINT32_MAX;
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::CreateDescriptorSetLayoutCache()
+void VulkanRenderDevice::CreateDescriptorSetLayoutCache()
 {
 	m_descriptorSetLayoutCache = std::make_unique<VulkanDescriptorSetLayoutCache>();
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::CreatePipelineLayoutCache()
+void VulkanRenderDevice::CreatePipelineLayoutCache()
 {
 	m_pipelineLayoutCache = std::make_unique<VulkanPipelineLayoutCache>(*m_descriptorSetLayoutCache);
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::CreatePipelineCache()
+void VulkanRenderDevice::CreatePipelineCache()
 {
 	m_pipelineCache = std::make_unique<VulkanPipelineCache>();
 }
 
-void Prism::Render::Vulkan::VulkanRenderDevice::CreateBindlessManager()
+void VulkanRenderDevice::CreateBindlessManager()
 {
 	m_bindlessManager = std::make_unique<VulkanBindlessManager>();
 }
+} // namespace Prism::Render::Vulkan

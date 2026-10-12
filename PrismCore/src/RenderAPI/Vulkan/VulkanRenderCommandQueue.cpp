@@ -3,27 +3,29 @@
 #include "VulkanRenderCommandList.h"
 #include "VulkanRenderDevice.h"
 
-Prism::Render::Vulkan::VulkanRenderCommandQueue::VulkanRenderCommandQueue(VkQueue queue, const uint32_t queueFamilyIndex) :
-    m_queue(queue), m_queueFamilyIndex(queueFamilyIndex)
+namespace Prism::Render::Vulkan
+{
+VulkanRenderCommandQueue::VulkanRenderCommandQueue(VkQueue queue, const uint32_t queueFamilyIndex) :
+	m_queue(queue), m_queueFamilyIndex(queueFamilyIndex)
 {
 	const auto& device = VulkanRenderDevice::Get();
 
 	constexpr VkSemaphoreTypeCreateInfo timelineCreateInfo{
-	    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
-	    .semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
-	    .initialValue = 0,
+		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO,
+		.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE,
+		.initialValue = 0,
 	};
 
 	const VkSemaphoreCreateInfo createInfo{
-	    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
-	    .pNext = &timelineCreateInfo,
-	    .flags = 0,
+		.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO,
+		.pNext = &timelineCreateInfo,
+		.flags = 0,
 	};
 
 	PE_ASSERT(vkCreateSemaphore(device.GetDevice(), &createInfo, nullptr, &m_timelineSemaphore) == VK_SUCCESS);
 }
 
-Prism::Render::Vulkan::VulkanRenderCommandQueue::~VulkanRenderCommandQueue()
+VulkanRenderCommandQueue::~VulkanRenderCommandQueue()
 {
 	const VkDevice logicalDevice = VulkanRenderDevice::Get().GetDevice();
 	if (m_timelineSemaphore != VK_NULL_HANDLE)
@@ -32,36 +34,40 @@ Prism::Render::Vulkan::VulkanRenderCommandQueue::~VulkanRenderCommandQueue()
 	}
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::SetMarker(glm::float3 color, std::wstring string) {}
+void VulkanRenderCommandQueue::SetMarker(glm::float3 color, std::wstring string) {}
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::BeginEvent(glm::float3 color, std::wstring string) {}
+void VulkanRenderCommandQueue::BeginEvent(glm::float3 color, std::wstring string) {}
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::EndEvent() {}
+void VulkanRenderCommandQueue::EndEvent() {}
 
-uint64_t Prism::Render::Vulkan::VulkanRenderCommandQueue::GetFenceValue() { return m_fenceValue; }
+uint64_t VulkanRenderCommandQueue::GetFenceValue() { return m_fenceValue; }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::IncreaseFenceValue() { ++m_fenceValue; }
+void VulkanRenderCommandQueue::IncreaseFenceValue() { ++m_fenceValue; }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::SignalFence(uint64_t fenceValue)
+void VulkanRenderCommandQueue::SignalFence(uint64_t fenceValue)
 {
 	const VkTimelineSemaphoreSubmitInfo timelineSemaphoreSubmitInfo{
-	    .sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
-	    .waitSemaphoreValueCount = 0,
-	    .signalSemaphoreValueCount = 1,
-	    .pSignalSemaphoreValues = &fenceValue,
+		.sType = VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO,
+		.waitSemaphoreValueCount = 0,
+		.signalSemaphoreValueCount = 1,
+		.pSignalSemaphoreValues = &fenceValue,
 	};
 
 	const VkSubmitInfo submitInfo{
-	    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-	    .pNext = &timelineSemaphoreSubmitInfo,
-	    .signalSemaphoreCount = 1,
-	    .pSignalSemaphores = &m_timelineSemaphore,
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.pNext = &timelineSemaphoreSubmitInfo,
+		.signalSemaphoreCount = 1,
+		.pSignalSemaphores = &m_timelineSemaphore,
 	};
 
-	PE_ASSERT(vkQueueSubmit(m_queue, 1, &submitInfo, VK_NULL_HANDLE) == VK_SUCCESS);
+	{
+		std::scoped_lock lock(m_submitMutex);
+
+		PE_ASSERT(vkQueueSubmit(m_queue, 1, &submitInfo, VK_NULL_HANDLE) == VK_SUCCESS);
+	}
 }
 
-uint64_t Prism::Render::Vulkan::VulkanRenderCommandQueue::IncreaseAndSignalFence()
+uint64_t VulkanRenderCommandQueue::IncreaseAndSignalFence()
 {
 	IncreaseFenceValue();
 	SignalFence(m_fenceValue);
@@ -69,7 +75,7 @@ uint64_t Prism::Render::Vulkan::VulkanRenderCommandQueue::IncreaseAndSignalFence
 	return GetFenceValue();
 }
 
-uint64_t Prism::Render::Vulkan::VulkanRenderCommandQueue::GetCompletedFenceValue() const
+uint64_t VulkanRenderCommandQueue::GetCompletedFenceValue() const
 {
 	uint64_t completedValue = 0;
 	VkDevice logicalDevice = VulkanRenderDevice::Get().GetDevice();
@@ -79,16 +85,16 @@ uint64_t Prism::Render::Vulkan::VulkanRenderCommandQueue::GetCompletedFenceValue
 	return completedValue;
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::WaitForFenceToComplete(uint64_t fenceValue)
+void VulkanRenderCommandQueue::WaitForFenceToComplete(uint64_t fenceValue)
 {
 	if (GetCompletedFenceValue() < fenceValue)
 	{
 		const VkSemaphoreWaitInfo waitInfo{
-		    .sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
-		    .flags = 0,
-		    .semaphoreCount = 1,
-		    .pSemaphores = &m_timelineSemaphore,
-		    .pValues = &fenceValue,
+			.sType = VK_STRUCTURE_TYPE_SEMAPHORE_WAIT_INFO,
+			.flags = 0,
+			.semaphoreCount = 1,
+			.pSemaphores = &m_timelineSemaphore,
+			.pValues = &fenceValue,
 		};
 		VkDevice logicalDevice = VulkanRenderDevice::Get().GetDevice();
 
@@ -98,7 +104,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::WaitForFenceToComplete(uin
 	ExecuteGPUCompletionEvents();
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::SubmitImmediate(const Ref<RenderCommandList>& renderCommandList)
+void VulkanRenderCommandQueue::SubmitImmediate(const Ref<RenderCommandList>& renderCommandList)
 {
 	auto* cmd = dynamic_cast<VulkanRenderCommandList*>(renderCommandList.Raw());
 	PE_ASSERT(cmd);
@@ -110,18 +116,18 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::SubmitImmediate(const Ref<
 	const VkCommandBuffer vkCmd = cmd->GetVkCommandBuffer();
 
 	const VkCommandBufferSubmitInfo commandBufferInfo{
-	    .sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
-	    .commandBuffer = vkCmd,
+		.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO,
+		.commandBuffer = vkCmd,
 	};
 
 	const VkSubmitInfo2 submitInfo{
-	    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
-	    .commandBufferInfoCount = 1,
-	    .pCommandBufferInfos = &commandBufferInfo,
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO_2,
+		.commandBufferInfoCount = 1,
+		.pCommandBufferInfos = &commandBufferInfo,
 	};
 
 	constexpr VkFenceCreateInfo fenceInfo{
-	    .sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
+		.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO,
 	};
 
 	VkFence fence = VK_NULL_HANDLE;
@@ -139,7 +145,7 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::SubmitImmediate(const Ref<
 	vkDestroyFence(device.GetDevice(), fence, nullptr);
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::Execute(RenderCommandList* cmdList)
+void VulkanRenderCommandQueue::Execute(RenderCommandList* cmdList)
 {
 	const auto* vkCmdList = dynamic_cast<VulkanRenderCommandList*>(cmdList);
 
@@ -168,27 +174,32 @@ void Prism::Render::Vulkan::VulkanRenderCommandQueue::Execute(RenderCommandList*
 	}
 
 	const VkSubmitInfo submitInfo{
-	    .sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-	    .waitSemaphoreCount = waitCount,
-	    .pWaitSemaphores = waitSemaphores,
-	    .pWaitDstStageMask = waitStages,
-	    .commandBufferCount = 1,
-	    .pCommandBuffers = &vkCommandBuffer,
-	    .signalSemaphoreCount = signalCount,
-	    .pSignalSemaphores = signalSemaphores,
+		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
+		.waitSemaphoreCount = waitCount,
+		.pWaitSemaphores = waitSemaphores,
+		.pWaitDstStageMask = waitStages,
+		.commandBufferCount = 1,
+		.pCommandBuffers = &vkCommandBuffer,
+		.signalSemaphoreCount = signalCount,
+		.pSignalSemaphores = signalSemaphores,
 	};
 
-	PE_ASSERT(vkQueueSubmit(m_queue, 1, &submitInfo, VK_NULL_HANDLE) == VK_SUCCESS);
+	{
+		std::scoped_lock lock(m_submitMutex);
+
+		PE_ASSERT(vkQueueSubmit(m_queue, 1, &submitInfo, VK_NULL_HANDLE) == VK_SUCCESS);
+	}
 
 	m_waitSemaphore = VK_NULL_HANDLE;
 	m_signalSemaphore = VK_NULL_HANDLE;
 }
 
-void Prism::Render::Vulkan::VulkanRenderCommandQueue::SetSubmitSynchronization(VkSemaphore waitSemaphore,
-                                                                               VkPipelineStageFlags waitStage,
-                                                                               VkSemaphore signalSemaphore)
+void VulkanRenderCommandQueue::SetSubmitSynchronization(VkSemaphore waitSemaphore,
+																			   VkPipelineStageFlags waitStage,
+																			   VkSemaphore signalSemaphore)
 {
 	m_waitSemaphore = waitSemaphore;
 	m_waitStage = waitStage;
 	m_signalSemaphore = signalSemaphore;
 }
+} // namespace Prism::Render::Vulkan

@@ -1,15 +1,15 @@
-#pragma once
-
 #include "VulkanShaderReflection.h"
 
 #include "Prism/Base/Assert.h"
 #include "Prism/Render/Shader.h"
-#include "VulkanTypeConversions.h"
 #include "Prism/Render/VertexBufferCache.h"
+#include "VulkanTypeConversions.h"
 
-Prism::Render::Vulkan::VulkanShaderReflection::~VulkanShaderReflection() { spvReflectDestroyShaderModule(&m_module); }
+namespace Prism::Render::Vulkan
+{
+VulkanShaderReflection::~VulkanShaderReflection() { spvReflectDestroyShaderModule(&m_module); }
 
-Prism::Render::Vulkan::VulkanShaderReflection::VulkanShaderReflection(VulkanShaderReflection&& other) noexcept
+VulkanShaderReflection::VulkanShaderReflection(VulkanShaderReflection&& other) noexcept
 {
 	m_module = other.m_module;
 	std::memset(&other.m_module, 0, sizeof(other.m_module));
@@ -19,8 +19,8 @@ Prism::Render::Vulkan::VulkanShaderReflection::VulkanShaderReflection(VulkanShad
 	m_vertexInputs = std::move(other.m_vertexInputs);
 }
 
-Prism::Render::Vulkan::VulkanShaderReflection&
-Prism::Render::Vulkan::VulkanShaderReflection::operator=(VulkanShaderReflection&& other) noexcept
+VulkanShaderReflection&
+VulkanShaderReflection::operator=(VulkanShaderReflection&& other) noexcept
 {
 	if (this != &other)
 	{
@@ -37,7 +37,7 @@ Prism::Render::Vulkan::VulkanShaderReflection::operator=(VulkanShaderReflection&
 	return *this;
 }
 
-SpvReflectResult Prism::Render::Vulkan::VulkanShaderReflection::Create(const size_t size, const void* data)
+SpvReflectResult VulkanShaderReflection::Create(const size_t size, const void* data)
 {
 	spvReflectDestroyShaderModule(&m_module);
 	std::memset(&m_module, 0, sizeof(m_module));
@@ -66,7 +66,7 @@ SpvReflectResult Prism::Render::Vulkan::VulkanShaderReflection::Create(const siz
 
 	m_outputVariables.resize(outputCount);
 	PE_ASSERT(spvReflectEnumerateOutputVariables(&m_module, &outputCount, m_outputVariables.data()) ==
-	          SPV_REFLECT_RESULT_SUCCESS);
+			  SPV_REFLECT_RESULT_SUCCESS);
 
 	std::ranges::sort(m_outputVariables, [](const auto* a, const auto* b) { return a->location < b->location; });
 
@@ -94,9 +94,9 @@ SpvReflectResult Prism::Render::Vulkan::VulkanShaderReflection::Create(const siz
 			const VertexAttribute attribute = GetVertexAttribute(*variable);
 
 			m_vertexInputs.push_back({
-			    .attribute = attribute,
-			    .location = variable->location,
-			    .format = GetVkFormat(variable->format),
+				.attribute = attribute,
+				.location = variable->location,
+				.format = GetVkFormat(variable->format),
 			});
 		}
 
@@ -107,7 +107,7 @@ SpvReflectResult Prism::Render::Vulkan::VulkanShaderReflection::Create(const siz
 	return result;
 }
 
-Prism::Render::ShaderType Prism::Render::Vulkan::VulkanShaderReflection::GetShaderType() const
+ShaderType VulkanShaderReflection::GetShaderType() const
 {
 	switch (m_module.shader_stage)
 	{
@@ -129,50 +129,50 @@ Prism::Render::ShaderType Prism::Render::Vulkan::VulkanShaderReflection::GetShad
 	}
 }
 
-uint32_t Prism::Render::Vulkan::VulkanShaderReflection::GetDescriptorSetCount() const { return m_module.descriptor_set_count; }
+uint32_t VulkanShaderReflection::GetDescriptorSetCount() const { return m_module.descriptor_set_count; }
 
-const SpvReflectDescriptorSet& Prism::Render::Vulkan::VulkanShaderReflection::GetDescriptorSet(const uint32_t index) const
+const SpvReflectDescriptorSet& VulkanShaderReflection::GetDescriptorSet(const uint32_t index) const
 {
 	PE_ASSERT(index < m_module.descriptor_set_count);
 
 	return m_module.descriptor_sets[index];
 }
 
-uint32_t Prism::Render::Vulkan::VulkanShaderReflection::GetPushConstantBlockCount() const
+uint32_t VulkanShaderReflection::GetPushConstantBlockCount() const
 {
 	return m_module.push_constant_block_count;
 }
 
-const SpvReflectBlockVariable& Prism::Render::Vulkan::VulkanShaderReflection::GetPushConstantBlock(const uint32_t index) const
+const SpvReflectBlockVariable& VulkanShaderReflection::GetPushConstantBlock(const uint32_t index) const
 {
 	PE_ASSERT(index < m_module.push_constant_block_count);
 
 	return m_module.push_constant_blocks[index];
 }
 
-uint32_t Prism::Render::Vulkan::VulkanShaderReflection::GetInputVariableCount() const
+uint32_t VulkanShaderReflection::GetInputVariableCount() const
 {
 	return static_cast<uint32_t>(m_inputVariables.size());
 }
 
-const SpvReflectInterfaceVariable& Prism::Render::Vulkan::VulkanShaderReflection::GetInputVariable(const uint32_t index) const
+const SpvReflectInterfaceVariable& VulkanShaderReflection::GetInputVariable(const uint32_t index) const
 {
 	PE_ASSERT(index < m_inputVariables.size());
 
 	return *m_inputVariables[index];
 }
 
-const std::vector<SpvReflectInterfaceVariable*>& Prism::Render::Vulkan::VulkanShaderReflection::GetInputVariables() const
+const std::vector<SpvReflectInterfaceVariable*>& VulkanShaderReflection::GetInputVariables() const
 {
 	return m_inputVariables;
 }
 
-const std::vector<SpvReflectInterfaceVariable*>& Prism::Render::Vulkan::VulkanShaderReflection::GetOutputVariables() const
+const std::vector<SpvReflectInterfaceVariable*>& VulkanShaderReflection::GetOutputVariables() const
 {
 	return m_outputVariables;
 }
 
-const SpvReflectDescriptorSet* Prism::Render::Vulkan::VulkanShaderReflection::FindDescriptorSet(const uint32_t set) const
+const SpvReflectDescriptorSet* VulkanShaderReflection::FindDescriptorSet(const uint32_t set) const
 {
 	for (uint32_t i = 0; i < m_module.descriptor_set_count; ++i)
 	{
@@ -185,14 +185,27 @@ const SpvReflectDescriptorSet* Prism::Render::Vulkan::VulkanShaderReflection::Fi
 	return nullptr;
 }
 
-const std::vector<Prism::Render::Vulkan::VulkanShaderVertexInput>&
-Prism::Render::Vulkan::VulkanShaderReflection::GetVertexInputs() const
+const std::vector<VulkanShaderVertexInput>&
+VulkanShaderReflection::GetVertexInputs() const
 {
 	return m_vertexInputs;
 }
 
-Prism::Render::VertexAttribute
-Prism::Render::Vulkan::VulkanShaderReflection::GetVertexAttribute(const SpvReflectInterfaceVariable& variable)
+std::vector<VertexAttribute> VulkanShaderReflection::GetVertexAttributeLayout() const
+{
+	std::vector<VertexAttribute> layout;
+	layout.reserve(m_vertexInputs.size());
+
+	for (const auto& input : m_vertexInputs)
+	{
+		layout.push_back(input.attribute);
+	}
+
+	return layout;
+}
+
+VertexAttribute
+VulkanShaderReflection::GetVertexAttribute(const SpvReflectInterfaceVariable& variable)
 {
 	PE_ASSERT(variable.semantic != nullptr);
 
@@ -231,3 +244,4 @@ Prism::Render::Vulkan::VulkanShaderReflection::GetVertexAttribute(const SpvRefle
 	PE_ASSERT_NO_ENTRY();
 	return VertexAttribute::Position;
 }
+} // namespace Prism::Render::Vulkan

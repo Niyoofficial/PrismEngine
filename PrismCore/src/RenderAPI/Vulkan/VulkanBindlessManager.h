@@ -4,6 +4,8 @@
 #include <vector>
 #include <vulkan/vulkan_core.h>
 
+#include "Prism/Render/RenderConstants.h"
+
 namespace Prism::Render::Vulkan
 {
 class VulkanBindlessManager
@@ -53,11 +55,11 @@ public:
 		uint32_t* data = nullptr;
 	};
 
-	ResourcesAllocation AllocateResources();
+	[[nodiscard]] ResourcesAllocation AllocateResources(uint32_t frameIndex);
 
 	[[nodiscard]] VkBuffer GetResourcesBuffer() const { return m_resourcesBuffer; }
 
-	void ResetResourcesAllocator();
+	void ResetResourcesAllocator(uint32_t frameIndex);
 
 private:
 	void CreateSamplers(VkDevice device, VkPhysicalDevice physicalDevice);
@@ -68,7 +70,7 @@ private:
 
 	void DestroyResourcesBuffer(VkDevice device);
 
-	VkDeviceSize AlignResourcesOffset(VkDeviceSize offset) const;
+	[[nodiscard]] VkDeviceSize AlignResourcesOffset(VkDeviceSize offset) const;
 
 	struct FreeList
 	{
@@ -93,7 +95,7 @@ private:
 	VkDeviceSize m_resourcesBufferSize = 0;
 	VkDeviceSize m_resourcesAlignment = 1;
 
-	std::atomic<uint32_t> m_resourcesCursor = 0;
+	std::array<std::atomic<uint32_t>, Constants::MAX_FRAMES_IN_FLIGHT> m_resourcesCursors{};
 };
 
 } // namespace Prism::Render::Vulkan

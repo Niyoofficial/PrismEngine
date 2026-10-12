@@ -55,6 +55,8 @@ struct VulkanShaderReflection
 
 	[[nodiscard]] const std::vector<VulkanShaderVertexInput>& GetVertexInputs() const;
 
+	[[nodiscard]] std::vector<VertexAttribute> GetVertexAttributeLayout() const;
+
 private:
 	static VertexAttribute GetVertexAttribute(const SpvReflectInterfaceVariable& variable);
 

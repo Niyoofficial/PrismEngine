@@ -5,22 +5,24 @@
 #include "VulkanShaderCompiler.h"
 #include "VulkanTypeConversions.h"
 
-Prism::Render::Vulkan::VulkanPipelineCache::VulkanPipelineCache()
+namespace Prism::Render::Vulkan
+{
+VulkanPipelineCache::VulkanPipelineCache()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
 	VkPipelineCacheCreateInfo pipelineCacheCreateInfo{
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
-	    .pNext = nullptr,
-	    .flags = 0,
-	    .initialDataSize = 0,
-	    .pInitialData = nullptr,
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.initialDataSize = 0,
+		.pInitialData = nullptr,
 	};
 
 	PE_ASSERT(vkCreatePipelineCache(device, &pipelineCacheCreateInfo, nullptr, &m_pipelineCache) == VK_SUCCESS);
 }
 
-Prism::Render::Vulkan::VulkanPipelineCache::~VulkanPipelineCache()
+VulkanPipelineCache::~VulkanPipelineCache()
 {
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
@@ -37,9 +39,9 @@ Prism::Render::Vulkan::VulkanPipelineCache::~VulkanPipelineCache()
 	vkDestroyPipelineCache(device, m_pipelineCache, nullptr);
 }
 
-VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateDesc& desc,
-                                                                           const std::vector<Ref<TextureView>>& rtvs,
-                                                                           TextureView* dsv)
+VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateDesc& desc,
+																		   const std::vector<Ref<TextureView>>& rtvs,
+																		   TextureView* dsv)
 {
 	auto* compiler = VulkanRenderDevice::Get().GetVulkanShaderCompiler();
 
@@ -56,9 +58,9 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
 	const VkShaderModuleCreateInfo vertexModuleCreateInfo{
-	    .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-	    .codeSize = vs.spirv.size() * sizeof(uint32_t),
-	    .pCode = vs.spirv.data(),
+		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+		.codeSize = vs.spirv.size() * sizeof(uint32_t),
+		.pCode = vs.spirv.data(),
 	};
 
 	VkShaderModule vertexShaderModule = VK_NULL_HANDLE;
@@ -66,9 +68,9 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 	PE_ASSERT(vkCreateShaderModule(device, &vertexModuleCreateInfo, nullptr, &vertexShaderModule) == VK_SUCCESS);
 
 	const VkShaderModuleCreateInfo fragmentModuleCreateInfo{
-	    .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-	    .codeSize = ps.spirv.size() * sizeof(uint32_t),
-	    .pCode = ps.spirv.data(),
+		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+		.codeSize = ps.spirv.size() * sizeof(uint32_t),
+		.pCode = ps.spirv.data(),
 	};
 
 	VkShaderModule fragmentShaderModule = VK_NULL_HANDLE;
@@ -78,19 +80,19 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 	const auto vsEntryName = WStringToString(desc.vs.entryName);
 
 	VkPipelineShaderStageCreateInfo vertexStageInfo{
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-	    .stage = VK_SHADER_STAGE_VERTEX_BIT,
-	    .module = vertexShaderModule,
-	    .pName = vsEntryName.c_str(),
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		.stage = VK_SHADER_STAGE_VERTEX_BIT,
+		.module = vertexShaderModule,
+		.pName = vsEntryName.c_str(),
 	};
 
 	const auto psEntryName = WStringToString(desc.ps.entryName);
 
 	VkPipelineShaderStageCreateInfo fragmentStageInfo{
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-	    .stage = VK_SHADER_STAGE_FRAGMENT_BIT,
-	    .module = fragmentShaderModule,
-	    .pName = psEntryName.c_str(),
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
+		.module = fragmentShaderModule,
+		.pName = psEntryName.c_str(),
 	};
 
 	VkPipelineShaderStageCreateInfo shaderStagesInfo[] = {vertexStageInfo, fragmentStageInfo};
@@ -101,12 +103,7 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 
 	PE_ASSERT(pipelineLayout != VK_NULL_HANDLE);
 
-	// TODO
-	// probably should be moved to GraphicsPipelineStateDesc?
-	const VertexAttributeList layout = {
-	    VertexAttribute::Position, VertexAttribute::Normal,    VertexAttribute::TexCoord,
-	    VertexAttribute::Tangent,  VertexAttribute::Bitangent,
-	};
+	const VertexAttributeList layout = vs.reflection.GetVertexAttributeLayout();
 
 	auto vertexInputState = BuildVertexInputState(layout, vs.reflection);
 	auto inputAssemblyState = BuildInputAssemblyState(desc);
@@ -119,23 +116,23 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 	auto renderingInfo = BuildRenderingInfo(rtvs, dsv);
 
 	VkGraphicsPipelineCreateInfo pipelineCreateInfo{
-	    .sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-	    .pNext = &renderingInfo.createInfo,
-	    .stageCount = 2,
-	    .pStages = shaderStagesInfo,
-	    .pVertexInputState = &vertexInputState.createInfo,
-	    .pInputAssemblyState = &inputAssemblyState,
-	    .pViewportState = &viewportState,
-	    .pRasterizationState = &rasterizerState,
-	    .pMultisampleState = &multisampleState,
-	    .pDepthStencilState = &depthState,
-	    .pColorBlendState = &blendState.createInfo,
-	    .pDynamicState = &dynamicState.createInfo,
-	    .layout = pipelineLayout,
-	    .renderPass = VK_NULL_HANDLE,
-	    .subpass = 0,
-	    .basePipelineHandle = VK_NULL_HANDLE,
-	    .basePipelineIndex = -1,
+		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
+		.pNext = &renderingInfo.createInfo,
+		.stageCount = 2,
+		.pStages = shaderStagesInfo,
+		.pVertexInputState = &vertexInputState.createInfo,
+		.pInputAssemblyState = &inputAssemblyState,
+		.pViewportState = &viewportState,
+		.pRasterizationState = &rasterizerState,
+		.pMultisampleState = &multisampleState,
+		.pDepthStencilState = &depthState,
+		.pColorBlendState = &blendState.createInfo,
+		.pDynamicState = &dynamicState.createInfo,
+		.layout = pipelineLayout,
+		.renderPass = VK_NULL_HANDLE,
+		.subpass = 0,
+		.basePipelineHandle = VK_NULL_HANDLE,
+		.basePipelineIndex = -1,
 	};
 
 	VkPipeline pipeline = VK_NULL_HANDLE;
@@ -150,25 +147,25 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 	return pipeline;
 }
 
-VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const ComputePipelineStateDesc& desc)
+VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const ComputePipelineStateDesc& desc)
 {
-	uint64_t hash = HashPipelineStateDesc(desc);
+	auto* compiler = VulkanRenderDevice::Get().GetVulkanShaderCompiler();
+
+	const auto& cs = compiler->GetOrCreateShader(desc.cs);
+
+	const uint64_t hash = HashPipelineStateDesc(desc);
 
 	if (m_computePipelines.contains(hash))
 	{
 		return m_computePipelines.at(hash).pipeline;
 	}
 
-	auto* compiler = VulkanRenderDevice::Get().GetVulkanShaderCompiler();
-
-	const auto& cs = compiler->GetOrCreateShader(desc.cs);
-
 	const auto device = VulkanRenderDevice::Get().GetDevice();
 
 	const VkShaderModuleCreateInfo shaderModuleInfo{
-	    .sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
-	    .codeSize = cs.spirv.size() * sizeof(uint32_t),
-	    .pCode = cs.spirv.data(),
+		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+		.codeSize = cs.spirv.size() * sizeof(uint32_t),
+		.pCode = cs.spirv.data(),
 	};
 
 	VkShaderModule shaderModule;
@@ -182,16 +179,16 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 	const auto csEntryName = WStringToString(desc.cs.entryName);
 
 	const VkPipelineShaderStageCreateInfo stage{
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
-	    .stage = VK_SHADER_STAGE_COMPUTE_BIT,
-	    .module = shaderModule,
-	    .pName = csEntryName.c_str(),
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		.stage = VK_SHADER_STAGE_COMPUTE_BIT,
+		.module = shaderModule,
+		.pName = csEntryName.c_str(),
 	};
 
 	const VkComputePipelineCreateInfo info{
-	    .sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-	    .stage = stage,
-	    .layout = layout,
+		.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+		.stage = stage,
+		.layout = layout,
 	};
 
 	VkPipeline pipeline;
@@ -205,9 +202,9 @@ VkPipeline Prism::Render::Vulkan::VulkanPipelineCache::GetOrCreatePipeline(const
 	return pipeline;
 }
 
-uint64_t Prism::Render::Vulkan::VulkanPipelineCache::HashPipelineStateDesc(const GraphicsPipelineStateDesc& desc,
-                                                                           const std::vector<Ref<TextureView>>& rtvs,
-                                                                           const TextureView* dsv) const
+uint64_t VulkanPipelineCache::HashPipelineStateDesc(const GraphicsPipelineStateDesc& desc,
+																		   const std::vector<Ref<TextureView>>& rtvs,
+																		   const TextureView* dsv) const
 {
 	uint64_t hash = std::hash<GraphicsPipelineStateDesc>{}(desc);
 
@@ -236,21 +233,21 @@ uint64_t Prism::Render::Vulkan::VulkanPipelineCache::HashPipelineStateDesc(const
 	return hash;
 }
 
-uint64_t Prism::Render::Vulkan::VulkanPipelineCache::HashPipelineStateDesc(const ComputePipelineStateDesc& desc) const
+uint64_t VulkanPipelineCache::HashPipelineStateDesc(const ComputePipelineStateDesc& desc) const
 {
 	return VulkanRenderDevice::Get().GetShaderCompiler()->GetShaderCodeHash(desc.cs);
 }
 
-Prism::Render::Vulkan::VertexInputState
-Prism::Render::Vulkan::VulkanPipelineCache::BuildVertexInputState(const VertexAttributeList& vertexAttributeList,
-                                                                  const VulkanShaderReflection& reflection)
+VertexInputState
+VulkanPipelineCache::BuildVertexInputState(const VertexAttributeList& vertexAttributeList,
+																  const VulkanShaderReflection& reflection)
 {
 	VertexInputState vertexInputState;
 
 	vertexInputState.binding = {
-	    .binding = 0,
-	    .stride = static_cast<uint32_t>(GetVertexSize(vertexAttributeList)),
-	    .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+		.binding = 0,
+		.stride = static_cast<uint32_t>(GetVertexSize(vertexAttributeList)),
+		.inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
 	};
 
 	uint32_t offset = 0;
@@ -259,7 +256,7 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildVertexInputState(const VertexAt
 	for (const auto vertexAttribute : vertexAttributeList)
 	{
 		const auto it = std::ranges::find_if(shaderInputs, [vertexAttribute](const VulkanShaderVertexInput& input)
-		                                     { return input.attribute == vertexAttribute; });
+											 { return input.attribute == vertexAttribute; });
 
 		if (it == shaderInputs.end())
 		{
@@ -268,121 +265,121 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildVertexInputState(const VertexAt
 		}
 
 		vertexInputState.attributes.push_back({
-		    .location = it->location,
-		    .binding = 0,
-		    .format = it->format,
-		    .offset = offset,
+			.location = it->location,
+			.binding = 0,
+			.format = it->format,
+			.offset = offset,
 		});
 
 		offset += GetVertexAttributeSize(vertexAttribute);
 	}
 
 	vertexInputState.createInfo = {
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
-	    .vertexBindingDescriptionCount = 1,
-	    .pVertexBindingDescriptions = &vertexInputState.binding,
-	    .vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputState.attributes.size()),
-	    .pVertexAttributeDescriptions = vertexInputState.attributes.data(),
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+		.vertexBindingDescriptionCount = 1,
+		.pVertexBindingDescriptions = &vertexInputState.binding,
+		.vertexAttributeDescriptionCount = static_cast<uint32_t>(vertexInputState.attributes.size()),
+		.pVertexAttributeDescriptions = vertexInputState.attributes.data(),
 	};
 
 	return vertexInputState;
 }
 
 VkPipelineInputAssemblyStateCreateInfo
-Prism::Render::Vulkan::VulkanPipelineCache::BuildInputAssemblyState(const GraphicsPipelineStateDesc& desc)
+VulkanPipelineCache::BuildInputAssemblyState(const GraphicsPipelineStateDesc& desc)
 {
 	return {
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
-	    .topology = GetVkPrimitiveTopology(desc.primitiveTopologyType),
-	    .primitiveRestartEnable = VK_FALSE,
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
+		.topology = GetVkPrimitiveTopology(desc.primitiveTopologyType),
+		.primitiveRestartEnable = VK_FALSE,
 	};
 }
 
-VkPipelineViewportStateCreateInfo Prism::Render::Vulkan::VulkanPipelineCache::BuildViewportState()
+VkPipelineViewportStateCreateInfo VulkanPipelineCache::BuildViewportState()
 {
 	return {
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
-	    .viewportCount = 1,
-	    .scissorCount = 1,
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO,
+		.viewportCount = 1,
+		.scissorCount = 1,
 	};
 }
 
 VkPipelineRasterizationStateCreateInfo
-Prism::Render::Vulkan::VulkanPipelineCache::BuildPipelineRasterizationState(const GraphicsPipelineStateDesc& desc)
+VulkanPipelineCache::BuildPipelineRasterizationState(const GraphicsPipelineStateDesc& desc)
 {
 	return {
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
-	    .depthClampEnable = VK_FALSE,
-	    .rasterizerDiscardEnable = VK_FALSE,
-	    .polygonMode = GetVkPolygonMode(desc.rasterizerState.fillMode),
-	    .cullMode = GetVkCullModeFlags(desc.rasterizerState.cullMode),
-	    .frontFace = desc.rasterizerState.frontCounterClockwise ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE,
-	    .depthBiasEnable = desc.rasterizerState.depthBias != 0,
-	    .depthBiasConstantFactor = static_cast<float>(desc.rasterizerState.depthBias),
-	    .depthBiasClamp = 0.0f,
-	    .depthBiasSlopeFactor = 0.0f,
-	    .lineWidth = 1.0f,
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
+		.depthClampEnable = VK_FALSE,
+		.rasterizerDiscardEnable = VK_FALSE,
+		.polygonMode = GetVkPolygonMode(desc.rasterizerState.fillMode),
+		.cullMode = GetVkCullModeFlags(desc.rasterizerState.cullMode),
+		.frontFace = desc.rasterizerState.frontCounterClockwise ? VK_FRONT_FACE_COUNTER_CLOCKWISE : VK_FRONT_FACE_CLOCKWISE,
+		.depthBiasEnable = desc.rasterizerState.depthBias != 0,
+		.depthBiasConstantFactor = static_cast<float>(desc.rasterizerState.depthBias),
+		.depthBiasClamp = 0.0f,
+		.depthBiasSlopeFactor = 0.0f,
+		.lineWidth = 1.0f,
 	};
 }
 
 VkPipelineMultisampleStateCreateInfo
-Prism::Render::Vulkan::VulkanPipelineCache::BuildMultisampleState(const GraphicsPipelineStateDesc& desc)
+VulkanPipelineCache::BuildMultisampleState(const GraphicsPipelineStateDesc& desc)
 {
 	return {
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
-	    .rasterizationSamples = GetVkSampleCountFlagBits(desc.sampleDesc.count),
-	    .sampleShadingEnable = VK_FALSE,
-	    .minSampleShading = 1.0f,
-	    .pSampleMask = &desc.sampleMask,
-	    .alphaToCoverageEnable = VK_FALSE,
-	    .alphaToOneEnable = VK_FALSE,
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
+		.rasterizationSamples = GetVkSampleCountFlagBits(desc.sampleDesc.count),
+		.sampleShadingEnable = VK_FALSE,
+		.minSampleShading = 1.0f,
+		.pSampleMask = &desc.sampleMask,
+		.alphaToCoverageEnable = VK_FALSE,
+		.alphaToOneEnable = VK_FALSE,
 	};
 }
 
-Prism::Render::Vulkan::DynamicState Prism::Render::Vulkan::VulkanPipelineCache::BuildDynamicState()
+DynamicState VulkanPipelineCache::BuildDynamicState()
 {
 	DynamicState state{};
 
 	state.states = {
-	    VK_DYNAMIC_STATE_VIEWPORT,
-	    VK_DYNAMIC_STATE_SCISSOR,
+		VK_DYNAMIC_STATE_VIEWPORT,
+		VK_DYNAMIC_STATE_SCISSOR,
 	};
 
 	state.createInfo = {
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
-	    .dynamicStateCount = static_cast<uint32_t>(state.states.size()),
-	    .pDynamicStates = state.states.data(),
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
+		.dynamicStateCount = static_cast<uint32_t>(state.states.size()),
+		.pDynamicStates = state.states.data(),
 	};
 
 	return state;
 }
 
 VkPipelineDepthStencilStateCreateInfo
-Prism::Render::Vulkan::VulkanPipelineCache::BuildDepthStencilState(const GraphicsPipelineStateDesc& desc)
+VulkanPipelineCache::BuildDepthStencilState(const GraphicsPipelineStateDesc& desc)
 {
 	const auto& depthStencilState = desc.depthStencilState;
 
 	return {
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
-	    .pNext = nullptr,
-	    .flags = 0,
-	    .depthTestEnable = depthStencilState.depthEnable,
-	    .depthWriteEnable = depthStencilState.depthWriteEnable,
-	    .depthCompareOp = GetVkCompareOp(depthStencilState.depthFunc),
-	    .depthBoundsTestEnable = VK_FALSE,
-	    .stencilTestEnable = depthStencilState.stencilEnable,
-	    .front = GetVkStencilOpState(depthStencilState.frontFace, depthStencilState.stencilReadMask,
-	                                 depthStencilState.stencilWriteMask),
-	    .back = GetVkStencilOpState(depthStencilState.backFace, depthStencilState.stencilReadMask,
-	                                depthStencilState.stencilWriteMask),
-	    .minDepthBounds = 0.0f,
-	    .maxDepthBounds = 1.0f,
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.depthTestEnable = depthStencilState.depthEnable,
+		.depthWriteEnable = depthStencilState.depthWriteEnable,
+		.depthCompareOp = GetVkCompareOp(depthStencilState.depthFunc),
+		.depthBoundsTestEnable = VK_FALSE,
+		.stencilTestEnable = depthStencilState.stencilEnable,
+		.front = GetVkStencilOpState(depthStencilState.frontFace, depthStencilState.stencilReadMask,
+									 depthStencilState.stencilWriteMask),
+		.back = GetVkStencilOpState(depthStencilState.backFace, depthStencilState.stencilReadMask,
+									depthStencilState.stencilWriteMask),
+		.minDepthBounds = 0.0f,
+		.maxDepthBounds = 1.0f,
 	};
 }
 
-Prism::Render::Vulkan::ColorBlendState
-Prism::Render::Vulkan::VulkanPipelineCache::BuildColorBlendState(const GraphicsPipelineStateDesc& desc,
-                                                                 const uint32_t colorAttachmentCount)
+ColorBlendState
+VulkanPipelineCache::BuildColorBlendState(const GraphicsPipelineStateDesc& desc,
+																 const uint32_t colorAttachmentCount)
 {
 	ColorBlendState state;
 
@@ -402,29 +399,29 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildColorBlendState(const GraphicsP
 		}
 
 		state.attachments.push_back({
-		    .blendEnable = blend->blendEnable,
-		    .srcColorBlendFactor = GetVkBlendFactor(blend->srcBlend),
-		    .dstColorBlendFactor = GetVkBlendFactor(blend->destBlend),
-		    .colorBlendOp = GetVkBlendOp(blend->blendOperation),
-		    .srcAlphaBlendFactor = GetVkBlendFactor(blend->srcBlendAlpha),
-		    .dstAlphaBlendFactor = GetVkBlendFactor(blend->destBlendAlpha),
-		    .alphaBlendOp = GetVkBlendOp(blend->blendOperationAlpha),
-		    .colorWriteMask = GetVkColorComponentFlags(blend->renderTargetWriteMask),
+			.blendEnable = blend->blendEnable,
+			.srcColorBlendFactor = GetVkBlendFactor(blend->srcBlend),
+			.dstColorBlendFactor = GetVkBlendFactor(blend->destBlend),
+			.colorBlendOp = GetVkBlendOp(blend->blendOperation),
+			.srcAlphaBlendFactor = GetVkBlendFactor(blend->srcBlendAlpha),
+			.dstAlphaBlendFactor = GetVkBlendFactor(blend->destBlendAlpha),
+			.alphaBlendOp = GetVkBlendOp(blend->blendOperationAlpha),
+			.colorWriteMask = GetVkColorComponentFlags(blend->renderTargetWriteMask),
 		});
 	}
 
 	state.createInfo = {
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
-	    .logicOpEnable = VK_FALSE,
-	    .attachmentCount = static_cast<uint32_t>(state.attachments.size()),
-	    .pAttachments = state.attachments.data(),
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+		.logicOpEnable = VK_FALSE,
+		.attachmentCount = static_cast<uint32_t>(state.attachments.size()),
+		.pAttachments = state.attachments.data(),
 	};
 
 	return state;
 }
 
-Prism::Render::Vulkan::RenderingInfo
-Prism::Render::Vulkan::VulkanPipelineCache::BuildRenderingInfo(const std::vector<Ref<TextureView>>& rtvs, TextureView* dsv)
+RenderingInfo
+VulkanPipelineCache::BuildRenderingInfo(const std::vector<Ref<TextureView>>& rtvs, TextureView* dsv)
 {
 	RenderingInfo info;
 
@@ -439,12 +436,13 @@ Prism::Render::Vulkan::VulkanPipelineCache::BuildRenderingInfo(const std::vector
 	}
 
 	info.createInfo = {
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
-	    .colorAttachmentCount = static_cast<uint32_t>(info.colorFormats.size()),
-	    .pColorAttachmentFormats = info.colorFormats.data(),
-	    .depthAttachmentFormat = dsv ? GetVkFormat(dsv->GetTexture()->GetTextureDesc().format) : VK_FORMAT_UNDEFINED,
-	    .stencilAttachmentFormat = dsv ? GetVkFormat(dsv->GetTexture()->GetTextureDesc().format) : VK_FORMAT_UNDEFINED,
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
+		.colorAttachmentCount = static_cast<uint32_t>(info.colorFormats.size()),
+		.pColorAttachmentFormats = info.colorFormats.data(),
+		.depthAttachmentFormat = dsv ? GetVkFormat(dsv->GetTexture()->GetTextureDesc().format) : VK_FORMAT_UNDEFINED,
+		.stencilAttachmentFormat = dsv ? GetVkFormat(dsv->GetTexture()->GetTextureDesc().format) : VK_FORMAT_UNDEFINED,
 	};
 
 	return info;
 }
+} // namespace Prism::Render::Vulkan

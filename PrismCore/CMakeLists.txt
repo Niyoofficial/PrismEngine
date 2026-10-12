@@ -9,9 +9,21 @@ file(GLOB_RECURSE SOURCES
 list(FILTER SOURCES EXCLUDE REGEX "src/RenderAPI/D3D12/.*")
 list(FILTER SOURCES EXCLUDE REGEX "src/RenderAPI/Vulkan/.*")
 
-option(PE_D3D12_BACKEND "Enable DirectX 12 render backend" OFF)
-option(PE_VULKAN_BACKEND "Enable Vulkan render backend" ON)
+option(PE_D3D12_BACKEND "Enable DirectX 12 render backend" ON)
+option(PE_VULKAN_BACKEND "Enable Vulkan render backend" OFF)
 option(ENABLE_ASAN "Enable AddressSanitizer" OFF)
+
+if (PE_D3D12_BACKEND AND PE_VULKAN_BACKEND)
+    message(FATAL_ERROR
+            "Only one Render Backend can be enabled. "
+            "PE_D3D12_BACKEND and PE_VULKAN_BACKEND cannot both be ON."
+    )
+elseif (NOT PE_D3D12_BACKEND AND NOT PE_VULKAN_BACKEND)
+    message(FATAL_ERROR
+            "No Render Backend is enabled. "
+            "Enable either PE_D3D12_BACKEND or PE_VULKAN_BACKEND."
+    )
+endif ()
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 add_library(${CMAKE_PROJECT_NAME}::Core ALIAS ${PROJECT_NAME})

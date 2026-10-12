@@ -3,7 +3,9 @@
 #include "VulkanShaderReflection.h"
 #include "VulkanTypeConversions.h"
 
-Prism::Render::Vulkan::VulkanPipelineLayoutCache::~VulkanPipelineLayoutCache()
+namespace Prism::Render::Vulkan
+{
+VulkanPipelineLayoutCache::~VulkanPipelineLayoutCache()
 {
 	const VkDevice device = VulkanRenderDevice::Get().GetDevice();
 
@@ -16,8 +18,8 @@ Prism::Render::Vulkan::VulkanPipelineLayoutCache::~VulkanPipelineLayoutCache()
 	}
 }
 
-VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePipelineLayout(
-    const std::span<const VulkanShaderReflection* const> shaderReflections)
+VkPipelineLayout VulkanPipelineLayoutCache::GetOrCreatePipelineLayout(
+	const std::span<const VulkanShaderReflection* const> shaderReflections)
 {
 	PE_ASSERT(!shaderReflections.empty());
 
@@ -89,9 +91,9 @@ VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePi
 			}
 
 			rawPushConstants.push_back({
-			    .offset = block.offset,
-			    .size = block.size,
-			    .stageFlags = stageFlags,
+				.offset = block.offset,
+				.size = block.size,
+				.stageFlags = stageFlags,
 			});
 		}
 	}
@@ -141,9 +143,9 @@ VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePi
 			}
 
 			pipelineKey.pushConstants.push_back({
-			    .offset = begin,
-			    .size = end - begin,
-			    .stageFlags = stageFlags,
+				.offset = begin,
+				.size = end - begin,
+				.stageFlags = stageFlags,
 			});
 		}
 	}
@@ -161,20 +163,20 @@ VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePi
 	for (const PushConstantKey& key : pipelineKey.pushConstants)
 	{
 		pushConstantRanges.push_back({
-		    .stageFlags = key.stageFlags,
-		    .offset = key.offset,
-		    .size = key.size,
+			.stageFlags = key.stageFlags,
+			.offset = key.offset,
+			.size = key.size,
 		});
 	}
 
 	VkPipelineLayoutCreateInfo createInfo{
-	    .sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
-	    .pNext = nullptr,
-	    .flags = 0,
-	    .setLayoutCount = static_cast<uint32_t>(setLayouts.size()),
-	    .pSetLayouts = setLayouts.data(),
-	    .pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
-	    .pPushConstantRanges = pushConstantRanges.data(),
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = 0,
+		.setLayoutCount = static_cast<uint32_t>(setLayouts.size()),
+		.pSetLayouts = setLayouts.data(),
+		.pushConstantRangeCount = static_cast<uint32_t>(pushConstantRanges.size()),
+		.pPushConstantRanges = pushConstantRanges.data(),
 	};
 
 	VkPipelineLayout pipelineLayout = VK_NULL_HANDLE;
@@ -185,3 +187,4 @@ VkPipelineLayout Prism::Render::Vulkan::VulkanPipelineLayoutCache::GetOrCreatePi
 
 	return pipelineLayout;
 }
+} // namespace Prism::Render::Vulkan
