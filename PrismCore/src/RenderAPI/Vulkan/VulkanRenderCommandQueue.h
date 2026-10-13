@@ -25,9 +25,9 @@ public:
 
 	void SubmitImmediate(const Ref<RenderCommandList>& renderCommandList);
 
-	void SetSubmitSynchronization(VkSemaphore waitSemaphore, VkPipelineStageFlags waitStage, VkSemaphore signalSemaphore);
-
 	[[nodiscard]] VkQueue GetQueue() const { return m_queue; }
+
+	[[nodiscard]] std::mutex& GetSubmitMutex() { return m_submitMutex; }
 
 private:
 	void Execute(RenderCommandList* cmdList) override;
@@ -37,9 +37,6 @@ private:
 
 	uint64_t m_fenceValue = 0;
 	VkSemaphore m_timelineSemaphore = VK_NULL_HANDLE;
-
-	VkSemaphore m_waitSemaphore = VK_NULL_HANDLE;
-	VkPipelineStageFlags m_waitStage = 0;
 
 	VkSemaphore m_signalSemaphore = VK_NULL_HANDLE;
 

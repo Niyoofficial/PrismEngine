@@ -14,41 +14,39 @@ public:
 	VulkanSwapchain(Core::Window* window, SwapchainDesc desc);
 	~VulkanSwapchain() override;
 
-	void PreparePresent() override;
-	void Present() override;
+	void Present(int32_t backBufferIndex) override;
 	void Resize() override;
+
+	void PrepareFrame();
 
 	[[nodiscard]] SwapchainDesc GetSwapchainDesc() const override { return m_desc; }
 
 	[[nodiscard]] TextureView* GetBackBufferRTV(int32_t index) const override;
 	[[nodiscard]] TextureView* GetCurrentBackBufferRTV() const override;
 
-	[[nodiscard]] VkResult AcquireNextImage();
-
-	[[nodiscard]] VkSemaphore GetImageAvailableSemaphore() const { return m_imageAvailableSemaphores[m_frameIndex]; }
-
-	[[nodiscard]] VkSemaphore GetRenderFinishedSemaphore() const { return m_renderFinishedSemaphores[m_currentBackBufferIndex]; }
-
 private:
 	void CreateSwapchain(VkSwapchainKHR oldSwapchain = VK_NULL_HANDLE);
 	void DestroySwapchain();
 
+	bool RecreateSwapchain();
+	void CreateSwapchainImages();
+
 	void CreateBackbuffers();
 	void DestroyBackbuffers();
 
-	void CreateImageAvailableSemaphores();
-	void DestroyImageAvailableSemaphores();
 	void CreateRenderFinishedSemaphores();
 	void DestroyRenderFinishedSemaphores();
 
-	void AdvanceFrame() { m_frameIndex = (m_frameIndex + 1) % Constants::MAX_FRAMES_IN_FLIGHT; }
+	void CreatePresentFrames();
+	void DestroyPresentFrames();
 
 	WeakRef<Core::Window> m_window;
 
 	VkSurfaceKHR m_surface = VK_NULL_HANDLE;
 	VkSwapchainKHR m_swapchain = VK_NULL_HANDLE;
 
-	VkExtent2D m_extent;
+	VkExtent2D m_extent{};
+	VkExtent2D m_backbufferExtent{};
 	VkSurfaceFormatKHR m_surfaceFormat{};
 	VkSurfaceCapabilitiesKHR m_surfaceCapabilities{};
 
@@ -57,12 +55,22 @@ private:
 	std::vector<Ref<VulkanTexture>> m_backbuffers;
 	std::vector<TextureView*> m_backbufferRTVs;
 
-	std::vector<bool> m_backbufferNeedsInitialTransition;
+	bool m_backbuffersNeedInitialTransition = true;
 
-	std::array<VkSemaphore, Constants::MAX_FRAMES_IN_FLIGHT> m_imageAvailableSemaphores{};
 	std::vector<VkSemaphore> m_renderFinishedSemaphores;
 
-	uint32_t m_frameIndex = 0;
+	struct PresentFrame
+	{
+		VkCommandPool pool = VK_NULL_HANDLE;
+		VkCommandBuffer cmd = VK_NULL_HANDLE;
+		VkFence fence = VK_NULL_HANDLE;
+		VkSemaphore acquire = VK_NULL_HANDLE;
+	};
+
+	std::array<PresentFrame, Constants::MAX_FRAMES_IN_FLIGHT> m_presentFrames{};
+	uint32_t m_presentFrameIndex = 0;
+
+	std::mutex m_presentMutex;
 
 	SwapchainDesc m_desc;
 };

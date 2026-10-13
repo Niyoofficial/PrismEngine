@@ -153,53 +153,14 @@ void VulkanRenderCommandQueue::Execute(RenderCommandList* cmdList)
 
 	VkCommandBuffer vkCommandBuffer = vkCmdList->GetVkCommandBuffer();
 
-	VkSemaphore waitSemaphores[1];
-	VkPipelineStageFlags waitStages[1];
-
-	uint32_t waitCount = 0;
-
-	if (m_waitSemaphore != VK_NULL_HANDLE)
-	{
-		waitSemaphores[0] = m_waitSemaphore;
-		waitStages[0] = m_waitStage;
-		waitCount = 1;
-	}
-
-	VkSemaphore signalSemaphores[1];
-	uint32_t signalCount = 0;
-
-	if (m_signalSemaphore != VK_NULL_HANDLE)
-	{
-		signalSemaphores[signalCount++] = m_signalSemaphore;
-	}
-
 	const VkSubmitInfo submitInfo{
 		.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO,
-		.waitSemaphoreCount = waitCount,
-		.pWaitSemaphores = waitSemaphores,
-		.pWaitDstStageMask = waitStages,
 		.commandBufferCount = 1,
 		.pCommandBuffers = &vkCommandBuffer,
-		.signalSemaphoreCount = signalCount,
-		.pSignalSemaphores = signalSemaphores,
 	};
 
-	{
-		std::scoped_lock lock(m_submitMutex);
+	std::scoped_lock lock(m_submitMutex);
 
-		PE_ASSERT(vkQueueSubmit(m_queue, 1, &submitInfo, VK_NULL_HANDLE) == VK_SUCCESS);
-	}
-
-	m_waitSemaphore = VK_NULL_HANDLE;
-	m_signalSemaphore = VK_NULL_HANDLE;
-}
-
-void VulkanRenderCommandQueue::SetSubmitSynchronization(VkSemaphore waitSemaphore,
-																			   VkPipelineStageFlags waitStage,
-																			   VkSemaphore signalSemaphore)
-{
-	m_waitSemaphore = waitSemaphore;
-	m_waitStage = waitStage;
-	m_signalSemaphore = signalSemaphore;
+	PE_ASSERT(vkQueueSubmit(m_queue, 1, &submitInfo, VK_NULL_HANDLE) == VK_SUCCESS);
 }
 } // namespace Prism::Render::Vulkan

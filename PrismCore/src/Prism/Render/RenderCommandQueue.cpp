@@ -58,7 +58,7 @@ RenderCommandQueue::RenderCommandQueue()
 						SCOPED_INSTRUMENTATION("Present", nullptr, MAKE_COLOR(200, 200, 50));
 
 						//PE_RENDER_LOG(Info, "Presenting \"{}\"", present.swapchain->GetCurrentBackBufferIndex());
-						present.swapchain->Present();
+						present.swapchain->Present(present.backBufferIndex);
 					}}, recordingInfo);
 			}
 		})
@@ -103,14 +103,12 @@ void RenderCommandQueue::EnqueuePresent(const Ref<Swapchain>& swapchain)
 {
 	RenderDevice::Get().AddResourceToReleaseQueueWhenFrameEnds(swapchain);
 
-	// Vulkan acquires image from vkAcquireNextImageKHR
-#ifdef PE_SUPPORT_D3D12
+	const int32_t backBufferIndex = swapchain->GetCurrentBackBufferIndex();
 	swapchain->AdvanceBackBufferIndex();
-#endif
 
 	{
 		std::unique_lock lock(m_recordingMutex);
-		m_recordingQueue.emplace(PresentRecordingInfo{swapchain});
+		m_recordingQueue.emplace(PresentRecordingInfo{swapchain, backBufferIndex});
 	}
 }
 

@@ -42,15 +42,9 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityF
 
 namespace Prism::Render::Vulkan
 {
-VulkanRenderDevice& VulkanRenderDevice::Get()
-{
-	return dynamic_cast<VulkanRenderDevice&>(RenderDevice::Get());
-}
+VulkanRenderDevice& VulkanRenderDevice::Get() { return dynamic_cast<VulkanRenderDevice&>(RenderDevice::Get()); }
 
-VulkanRenderDevice* VulkanRenderDevice::TryGet()
-{
-	return dynamic_cast<VulkanRenderDevice*>(RenderDevice::TryGet());
-}
+VulkanRenderDevice* VulkanRenderDevice::TryGet() { return dynamic_cast<VulkanRenderDevice*>(RenderDevice::TryGet()); }
 
 VulkanRenderDevice::VulkanRenderDevice(const RenderDeviceParams& params) : RenderDevice(params)
 {
@@ -119,34 +113,27 @@ VulkanRenderDevice::~VulkanRenderDevice()
 	}
 }
 
-Ref<Buffer> VulkanRenderDevice::CreateBuffer(const BufferDesc& desc)
-{
-	return Ref<VulkanBuffer>::Create(this, desc);
-}
+Ref<Buffer> VulkanRenderDevice::CreateBuffer(const BufferDesc& desc) { return Ref<VulkanBuffer>::Create(this, desc); }
 
-Ref<Texture> VulkanRenderDevice::CreateTexture(const TextureDesc& desc,
-																							BarrierLayout initLayout)
+Ref<Texture> VulkanRenderDevice::CreateTexture(const TextureDesc& desc, BarrierLayout initLayout)
 {
 	return Ref<VulkanTexture>::Create(this, desc, initLayout);
 }
 
-Ref<Texture>
-VulkanRenderDevice::CreateTexture(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish)
+Ref<Texture> VulkanRenderDevice::CreateTexture(std::wstring filepath, bool loadAsCubemap, bool waitForLoadFinish)
 {
 	return Ref<VulkanTexture>::Create(this, std::move(filepath), loadAsCubemap, waitForLoadFinish);
 }
 
-Ref<Texture> VulkanRenderDevice::CreateTexture(std::wstring name, void* imageData,
-																							int64_t dataSize, bool loadAsCubemap,
-																							bool waitForLoadFinish)
+Ref<Texture> VulkanRenderDevice::CreateTexture(std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap,
+											   bool waitForLoadFinish)
 {
 	return Ref<VulkanTexture>::Create(this, std::move(name), imageData, dataSize, loadAsCubemap, waitForLoadFinish);
 }
 
 int64_t VulkanRenderDevice::GetTotalSizeInBytes(const BufferDesc buffDesc) const { return buffDesc.size; }
 
-int64_t VulkanRenderDevice::GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource,
-																	   int32_t numSubresources) const
+int64_t VulkanRenderDevice::GetTotalSizeInBytes(TextureDesc texDesc, int32_t firstSubresource, int32_t numSubresources) const
 {
 	const uint32_t bytesPerPixel = GetBytesPerPixel(texDesc.format);
 
@@ -175,8 +162,7 @@ int64_t VulkanRenderDevice::GetTotalSizeInBytes(TextureDesc texDesc, int32_t fir
 	return totalSize;
 }
 
-SubresourceFootprint
-VulkanRenderDevice::GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex) const
+SubresourceFootprint VulkanRenderDevice::GetSubresourceFootprint(TextureDesc texDesc, int32_t subresourceIndex) const
 {
 	const uint32_t bytesPerPixel = GetBytesPerPixel(texDesc.format);
 
@@ -279,12 +265,7 @@ void VulkanRenderDevice::BeginRenderFrame()
 
 		GetBindlessManager()->ResetResourcesAllocator(m_frameIndex);
 
-		const VkResult result = swapchain->AcquireNextImage();
-
-		PE_ASSERT(result == VK_SUCCESS || result == VK_SUBOPTIMAL_KHR);
-
-		GetVulkanRenderCommandQueue()->SetSubmitSynchronization(swapchain->GetImageAvailableSemaphore(),
-																VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_NULL_HANDLE);
+		swapchain->PrepareFrame();
 	}
 
 	m_frameIndex = (m_frameIndex + 1) % Constants::MAX_FRAMES_IN_FLIGHT;
@@ -300,13 +281,9 @@ void VulkanRenderDevice::ImGuiNewFrame()
 	ImGui_ImplVulkan_NewFrame();
 }
 
-RenderCommandQueue* VulkanRenderDevice::GetRenderCommandQueue() const
-{
-	return m_commandQueue.get();
-}
+RenderCommandQueue* VulkanRenderDevice::GetRenderCommandQueue() const { return m_commandQueue.get(); }
 
-Ref<BufferView> VulkanRenderDevice::CreateBufferView_Impl(const BufferViewDesc& desc,
-																									   Buffer* buffer)
+Ref<BufferView> VulkanRenderDevice::CreateBufferView_Impl(const BufferViewDesc& desc, Buffer* buffer)
 {
 	auto bufferView = Ref<VulkanBufferView>::Create(desc, buffer);
 
@@ -315,8 +292,7 @@ Ref<BufferView> VulkanRenderDevice::CreateBufferView_Impl(const BufferViewDesc& 
 	return bufferView;
 }
 
-Ref<TextureView>
-VulkanRenderDevice::CreateTextureView_Impl(const TextureViewDesc& desc, Texture* texture)
+Ref<TextureView> VulkanRenderDevice::CreateTextureView_Impl(const TextureViewDesc& desc, Texture* texture)
 {
 	auto textureView = Ref<VulkanTextureView>::Create(desc, texture);
 
@@ -639,13 +615,7 @@ void VulkanRenderDevice::CreatePipelineLayoutCache()
 	m_pipelineLayoutCache = std::make_unique<VulkanPipelineLayoutCache>(*m_descriptorSetLayoutCache);
 }
 
-void VulkanRenderDevice::CreatePipelineCache()
-{
-	m_pipelineCache = std::make_unique<VulkanPipelineCache>();
-}
+void VulkanRenderDevice::CreatePipelineCache() { m_pipelineCache = std::make_unique<VulkanPipelineCache>(); }
 
-void VulkanRenderDevice::CreateBindlessManager()
-{
-	m_bindlessManager = std::make_unique<VulkanBindlessManager>();
-}
+void VulkanRenderDevice::CreateBindlessManager() { m_bindlessManager = std::make_unique<VulkanBindlessManager>(); }
 } // namespace Prism::Render::Vulkan

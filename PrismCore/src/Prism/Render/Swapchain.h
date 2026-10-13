@@ -27,7 +27,7 @@ public:
 	static Ref<Swapchain> Create(Core::Window* window, SwapchainDesc swapchainDesc);
 
 	virtual void PreparePresent();
-	virtual void Present() = 0;
+	virtual void Present(int32_t backBufferIndex) = 0;
 	virtual void Resize() = 0;
 
 	virtual SwapchainDesc GetSwapchainDesc() const = 0;
