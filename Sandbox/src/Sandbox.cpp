@@ -350,6 +350,12 @@ void EditorLayer::UpdateImGui(Duration delta)
 					auto& io = ImGui::GetIO();
 					ImGui::Text("FPS: %.1f", io.Framerate);
 					ImGui::Text("Frame time: %.2f ms", delta.GetMilliseconds());
+					ImGui::Separator();
+#if PE_SUPPORT_VULKAN
+					ImGui::Text("Vulkan Backend");
+#elif PE_SUPPORT_D3D12
+					ImGui::Text("D3D12 Backend");
+#endif
 				}
 				ImGui::EndChild();
 			}

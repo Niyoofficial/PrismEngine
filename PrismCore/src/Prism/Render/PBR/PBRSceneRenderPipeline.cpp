@@ -501,6 +501,20 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 		.layoutAfter = BarrierLayout::CopySource
 	});
 
+// TODO for @Niyoofficial
+// why this barrier is needed for Vulkan, and not needed for D3D12?
+#ifdef PE_SUPPORT_VULKAN
+	renderContext->Barrier(TextureBarrier{
+		.texture = m_prefilteredSkybox,
+		.syncBefore = BarrierSync::None,
+		.syncAfter = BarrierSync::Copy,
+		.accessBefore = BarrierAccess::Common,
+		.accessAfter = BarrierAccess::CopyDest,
+		.layoutBefore = BarrierLayout::Common,
+		.layoutAfter = BarrierLayout::CopyDest
+	});
+#endif
+
 	for (int32_t i = 0; i < 6; ++i)
 		renderContext->CopyTextureRegion(m_prefilteredSkybox, {},
 										 GetSubresourceIndex(0, m_prefilteredSkybox->GetTextureDesc().GetMipLevels(), i, 6),
@@ -520,9 +534,19 @@ void PBRSceneRenderPipeline::GenerateEnvSpecularIrradiance(RenderContext* render
 		.texture = m_prefilteredSkybox,
 		.syncBefore = BarrierSync::Copy,
 		.syncAfter = BarrierSync::ComputeShading,
+// TODO for @Niyoofficial
+// fix barriers incompatibility between Vulkan and D3D12
+#ifdef PE_SUPPORT_VULKAN
+		.accessBefore = BarrierAccess::CopyDest,
+#elifdef PE_SUPPORT_D3D12
 		.accessBefore = BarrierAccess::Common,
+#endif
 		.accessAfter = BarrierAccess::UnorderedAccess,
+#ifdef PE_SUPPORT_VULKAN
+		.layoutBefore = BarrierLayout::CopyDest,
+#elifdef PE_SUPPORT_D3D12
 		.layoutBefore = BarrierLayout::Common,
+#endif
 		.layoutAfter = BarrierLayout::UnorderedAccess
 	});
 

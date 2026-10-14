@@ -33,6 +33,9 @@ RenderCommandList* DeferredCommandRecorder::GetCommandListForBypass()
 
 void DeferredCommandRecorder::RecordCommands(RenderCommandList* commandList)
 {
+	if (m_commandListForBypass)
+		return;
+
 	PE_ASSERT(m_root);
 	PE_ASSERT(commandList);
 	PE_ASSERT(m_closed);

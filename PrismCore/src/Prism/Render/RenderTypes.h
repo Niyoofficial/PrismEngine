@@ -325,6 +325,20 @@ enum class ColorMask : uint8_t
 	All = (RGB | Alpha)
 };
 
+inline ColorMask operator&(ColorMask a, ColorMask b)
+{
+	return static_cast<ColorMask>(
+		static_cast<uint8_t>(a) &
+		static_cast<uint8_t>(b));
+}
+
+inline ColorMask operator|(ColorMask a, ColorMask b)
+{
+	return static_cast<ColorMask>(
+		static_cast<uint8_t>(a) |
+		static_cast<uint8_t>(b));
+}
+
 struct RenderTargetBlendDesc
 {
 	bool operator==(const RenderTargetBlendDesc& other) const;
@@ -390,7 +404,7 @@ enum class ComparisionFunction
 	// Unknown comparison function
 	Unknown = 0,
 
-	// Comparison never passes. 
+	// Comparison never passes.
 	// Direct3D counterpart: D3D11_COMPARISON_NEVER/D3D12_NEVER. OpenGL counterpart: GL_NEVER.
 	Never,
 
@@ -418,7 +432,7 @@ enum class ComparisionFunction
 	// Direct3D counterpart: D3D11_COMPARISON_GREATER_EQUAL/D3D12_GREATER_EQUAL. OpenGL counterpart: GL_GEQUAL.
 	GreaterEqual,
 
-	// Comparison always passes. 
+	// Comparison always passes.
 	// Direct3D counterpart: D3D11_COMPARISON_ALWAYS/D3D12_ALWAYS. OpenGL counterpart: GL_ALWAYS.
 	Always,
 
@@ -456,7 +470,7 @@ enum class StencilOperation
 	Invert,
 
 	// Increment the current stencil value, and wrap the value to zero when incrementing
-	// the maximum representable unsigned value. 
+	// the maximum representable unsigned value.
 	// Direct3D counterpart: D3D11_INCR/D3D12_INCR. OpenGL counterpart: GL_INCR_WRAP.
 	IncrWrap,
 
@@ -852,36 +866,36 @@ enum class BarrierLayout
 {
 	Undefined = -1,
 	Common = 0,
-	Present = 0,
-	GenericRead = 1,
-	RenderTarget = 2,
-	UnorderedAccess = 3,
-	DepthStencilWrite = 4,
-	DepthStencilRead = 5,
-	ShaderResource = 6,
-	CopySource = 7,
-	CopyDest = 8,
-	ResolveSource = 9,
-	ResolveDest = 10,
-	ShadingRateSource = 11,
-	VideoDecodeRead = 12,
-	VideoDecodeWrite = 13,
-	VideoProcessRead = 14,
-	VideoProcessWrite = 15,
-	VideoEncodeRead = 16,
-	VideoEncodeWrite = 17,
-	DirectQueueCommon = 18,
-	DirectQueueGenericRead = 19,
-	DirectQueueUnorderedAccess = 20,
-	DirectQueueShaderResource = 21,
-	DirectQueueCopySource = 22,
-	DirectQueueCopyDest = 23,
-	ComputeQueueCommon = 24,
-	ComputeQueueGenericRead = 25,
-	ComputeQueueUnorderedAccess = 26,
-	ComputeQueueShaderResource = 27,
-	ComputeQueueCopySource = 28,
-	ComputeQueueCopyDest = 29,
+	Present = 1,
+	GenericRead = 2,
+	RenderTarget = 3,
+	UnorderedAccess = 4,
+	DepthStencilWrite = 5,
+	DepthStencilRead = 6,
+	ShaderResource = 7,
+	CopySource = 8,
+	CopyDest = 9,
+	ResolveSource = 10,
+	ResolveDest = 11,
+	ShadingRateSource = 12,
+	VideoDecodeRead = 13,
+	VideoDecodeWrite = 14,
+	VideoProcessRead = 15,
+	VideoProcessWrite = 16,
+	VideoEncodeRead = 17,
+	VideoEncodeWrite = 18,
+	DirectQueueCommon = 19,
+	DirectQueueGenericRead = 20,
+	DirectQueueUnorderedAccess = 21,
+	DirectQueueShaderResource = 22,
+	DirectQueueCopySource = 23,
+	DirectQueueCopyDest = 24,
+	ComputeQueueCommon = 25,
+	ComputeQueueGenericRead = 26,
+	ComputeQueueUnorderedAccess = 27,
+	ComputeQueueShaderResource = 28,
+	ComputeQueueCopySource = 29,
+	ComputeQueueCopyDest = 30,
 };
 
 struct BufferBarrier

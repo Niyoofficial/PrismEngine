@@ -2,25 +2,53 @@
 	"version": 8,
 	"configurePresets": [
 		{
-			"name": "vcpkg-visual-2026",
-			"generator": "Visual Studio 17 2022",
-			"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+			"name": "vcpkg-visual-2026-dx12",
+			"generator": "Visual Studio 18 2026",
+			"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+			"cacheVariables": {
+				"PE_VULKAN_BACKEND": "OFF",
+				"PE_D3D12_BACKEND": "ON"
+			}
+		},
+		{
+			"name": "vcpkg-visual-2026-vulkan",
+			"generator": "Visual Studio 18 2026",
+			"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+			"cacheVariables": {
+				"PE_VULKAN_BACKEND": "ON",
+				"PE_D3D12_BACKEND": "OFF"
+			}
 		}
 	],
 	"buildPresets": [
 		{
-			"name": "Debug",
-			"configurePreset": "vcpkg-visual-2026",
+			"name": "Debug Directx12",
+			"configurePreset": "vcpkg-visual-2026-dx12",
 			"configuration": "Debug"
 		},
 		{
-			"name": "Profile",
-			"configurePreset": "vcpkg-visual-2026",
+			"name": "Profile Directx12",
+			"configurePreset": "vcpkg-visual-2026-dx12",
 			"configuration": "RelWithDebInfo"
 		},
 		{
-			"name": "Release",
-			"configurePreset": "vcpkg-visual-2026",
+			"name": "Release Directx12",
+			"configurePreset": "vcpkg-visual-2026-dx12",
+			"configuration": "Release"
+		},
+		{
+			"name": "Debug Vulkan",
+			"configurePreset": "vcpkg-visual-2026-vulkan",
+			"configuration": "Debug"
+		},
+		{
+			"name": "Profile Vulkan",
+			"configurePreset": "vcpkg-visual-2026-vulkan",
+			"configuration": "RelWithDebInfo"
+		},
+		{
+			"name": "Release Vulkan",
+			"configurePreset": "vcpkg-visual-2026-vulkan",
 			"configuration": "Release"
 		}
 	]

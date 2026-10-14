@@ -136,6 +136,22 @@ Ref<Texture> RenderDevice::CreateTexture(const TextureDesc& desc, BarrierLayout 
 	{
 		// TODO: Add copy context
 		auto context = AllocateContext(L"UpdateTextureWithInitData");
+		context->Barrier(TextureBarrier{
+			.texture = texture,
+			.syncBefore = BarrierSync::None,
+			.syncAfter = BarrierSync::Copy,
+			.accessBefore = BarrierAccess::NoAccess,
+			.accessAfter = BarrierAccess::CopyDest,
+			.layoutBefore = initLayout,
+			.layoutAfter = BarrierLayout::CopyDest,
+			.subresourceRange =
+				{
+					.firstMipLevel = 0,
+					.numMipLevels = desc.mipLevels,
+					.firstArraySlice = 0,
+					.numArraySlices = desc.Is3D() ? 1 : desc.GetArraySize(),
+				},
+		});
 		context->UpdateTexture(texture, initData, 0);
 
 		SubmitContext(context);

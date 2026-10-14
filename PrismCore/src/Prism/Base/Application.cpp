@@ -275,6 +275,8 @@ void Application::TransitionBackBuffersToPresent()
 			.layoutBefore = Render::BarrierLayout::RenderTarget,
 			.layoutAfter = Render::BarrierLayout::Present
 		});
+
+		window->GetSwapchain()->PreparePresent();
 	}
 
 	Render::RenderDevice::Get().SubmitContext(context);

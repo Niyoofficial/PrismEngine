@@ -920,8 +920,10 @@ D3D12_BARRIER_LAYOUT GetD3D12BarrierLayout(BarrierLayout barrierLayout)
 	{
 	case BarrierLayout::Undefined:
 		return D3D12_BARRIER_LAYOUT_UNDEFINED;
-	case BarrierLayout::Common: // same as BarrierLayout::Present
-		return D3D12_BARRIER_LAYOUT_COMMON; // same as D3D12_BARRIER_LAYOUT_PRESENT
+	case BarrierLayout::Common:
+		return D3D12_BARRIER_LAYOUT_COMMON;
+	case BarrierLayout::Present:
+		return D3D12_BARRIER_LAYOUT_PRESENT;
 	case BarrierLayout::GenericRead:
 		return D3D12_BARRIER_LAYOUT_GENERIC_READ;
 	case BarrierLayout::RenderTarget:

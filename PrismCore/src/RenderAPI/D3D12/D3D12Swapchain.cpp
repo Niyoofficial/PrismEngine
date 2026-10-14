@@ -58,7 +58,7 @@ D3D12Swapchain::D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc
 		});
 }
 
-void D3D12Swapchain::Present()
+void D3D12Swapchain::Present(int32_t /*backBufferIndex*/)
 {
 	PE_ASSERT_HR(m_swapchain->Present(0, 0));
 }
