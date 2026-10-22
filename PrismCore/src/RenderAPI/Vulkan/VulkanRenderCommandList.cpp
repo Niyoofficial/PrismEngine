@@ -298,6 +298,11 @@ void VulkanRenderCommandList::ClearUnorderedAccessView(const Ref<TextureView>& u
 
 void VulkanRenderCommandList::Barrier(const BufferBarrier barrier)
 {
+	if (m_renderingActive)
+	{
+		EndDynamicRendering();
+	}
+
 	const auto* buffer = dynamic_cast<VulkanBuffer*>(barrier.buffer);
 	PE_ASSERT(buffer);
 
@@ -332,6 +337,11 @@ void VulkanRenderCommandList::Barrier(const BufferBarrier barrier)
 
 void VulkanRenderCommandList::Barrier(const TextureBarrier barrier)
 {
+	if (m_renderingActive)
+	{
+		EndDynamicRendering();
+	}
+
 	const auto* texture = dynamic_cast<VulkanTexture*>(barrier.texture);
 	PE_ASSERT(texture);
 

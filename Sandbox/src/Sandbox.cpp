@@ -721,7 +721,27 @@ void EditorLayer::Update(Duration delta)
 
 	Ref renderContext = RenderDevice::Get().AllocateContext(L"RenderScene");
 
+	renderContext->Barrier(TextureBarrier{
+		.texture = m_editorViewport,
+		.syncBefore = BarrierSync::PixelShading,
+		.syncAfter = BarrierSync::RenderTarget,
+		.accessBefore = BarrierAccess::ShaderResource,
+		.accessAfter = BarrierAccess::RenderTarget,
+		.layoutBefore = BarrierLayout::ShaderResource,
+		.layoutAfter = BarrierLayout::RenderTarget,
+	});
+
 	m_scene->RenderScene(m_renderPipeline, renderContext, m_editorViewportRTV, m_camera);
+
+	renderContext->Barrier(TextureBarrier{
+		.texture = m_editorViewport,
+		.syncBefore = BarrierSync::RenderTarget,
+		.syncAfter = BarrierSync::PixelShading,
+		.accessBefore = BarrierAccess::RenderTarget,
+		.accessAfter = BarrierAccess::ShaderResource,
+		.layoutBefore = BarrierLayout::RenderTarget,
+		.layoutAfter = BarrierLayout::ShaderResource,
+	});
 
 	RenderDevice::Get().SubmitContext(renderContext);
 }
@@ -750,7 +770,7 @@ bool EditorLayer::CheckForViewportResize(glm::int2 viewportSize)
 												   .format = TextureFormat::R11G11B10_Float,
 												   .color = {0.f, 0.f, 0.f, 1.f}
 											   }
-										   }, BarrierLayout::RenderTarget);
+										   }, BarrierLayout::ShaderResource);
 		m_editorViewportRTV = m_editorViewport->CreateDefaultRTV();
 		m_editorViewportSRV = m_editorViewport->CreateDefaultSRV();
 
