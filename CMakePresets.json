@@ -3,7 +3,9 @@
 	"configurePresets": [
 		{
 			"name": "vcpkg-visual-2026-dx12",
+			"displayName": "Visual Studio 2026 - D3D12",
 			"generator": "Visual Studio 18 2026",
+			"binaryDir": "${sourceDir}/cmake-build/vcpkg-visual-2026-dx12",
 			"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
 			"cacheVariables": {
 				"PE_VULKAN_BACKEND": "OFF",
@@ -12,7 +14,9 @@
 		},
 		{
 			"name": "vcpkg-visual-2026-vulkan",
+			"displayName": "Visual Studio 2026 - Vulkan",
 			"generator": "Visual Studio 18 2026",
+			"binaryDir": "${sourceDir}/cmake-build/vcpkg-visual-2026-vulkan",
 			"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
 			"cacheVariables": {
 				"PE_VULKAN_BACKEND": "ON",
