@@ -28,8 +28,14 @@ D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, const TextureDesc& d
 	D3D12_CLEAR_VALUE d3d12ClearValue = m_originalDesc.optimizedClearValue.has_value()
 											? GetD3D12ClearValue(m_originalDesc.optimizedClearValue.value())
 											: D3D12_CLEAR_VALUE{};
+
+	D3D12_HEAP_FLAGS heapFlags = D3D12_HEAP_FLAG_NONE;
+	// This might not be entirely correct, D3D12_HEAP_FLAG_SHARED allows access across devices but, D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS allows access across queues
+	if (desc.bindFlags.HasAnyFlags(BindFlags::SimultaneousAccess))
+		heapFlags |= D3D12_HEAP_FLAG_SHARED;
+
 	PE_ASSERT_HR(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12Device()->CreateCommittedResource3(
-		&heapProps, D3D12_HEAP_FLAG_NONE,
+		&heapProps, heapFlags,
 		&d3d12Desc, GetD3D12BarrierLayout(initLayout),
 		m_originalDesc.optimizedClearValue.has_value() ? &d3d12ClearValue : nullptr,
 		nullptr, 0, nullptr,

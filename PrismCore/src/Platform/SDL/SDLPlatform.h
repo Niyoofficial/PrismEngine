@@ -27,6 +27,8 @@ public:
                                 const std::fs::path& defaultLocation, bool allowMany) override;
 
 	virtual void SetCurrentThreadDescription(std::wstring description) override;
+	virtual void* LoadLibrary(std::fs::path filepath) override;
+	virtual void* LoadFunction(void* libraryHandle, std::string funcName) override;
 
 
 	virtual void InitializeImGuiPlatform(Core::Window* window) override;

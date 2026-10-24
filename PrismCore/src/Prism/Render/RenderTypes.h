@@ -614,6 +614,9 @@ enum class BindFlags : uint16_t
 
 	// A buffer can be bound as the source buffer for indirect draw commands.
 	IndirectDrawArgs = 1u << 8u,
+
+	// A resource can be simultaneously accessed by multiple different queues, devices, or processes
+	SimultaneousAccess
 };
 
 enum class CPUAccess

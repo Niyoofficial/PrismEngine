@@ -39,4 +39,9 @@ std::fs::path Paths::GetLogsDir() const
 {
 	return GetProjectDir() / "logs";
 }
+
+std::fs::path Paths::GetPrismSharpBinaryDir() const
+{
+	return std::fs::path(PREPROCESSOR_TO_STRING(PE_PRISM_SHARP_BINARY_DIR)).lexically_normal();
+}
 }

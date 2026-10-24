@@ -432,11 +432,11 @@ void PBRSceneRenderPipeline::GenerateEnvDiffuseIrradiance(RenderContext* renderC
 
 	auto coeffGenerationBuffer = Buffer::Create({
 		.bufferName = L"SHCoefficientsGeneration",
-		.size = sizeof(glm::float4) * 9, // RGB channels + one for padding * numOfCoefficients
+		.size = sizeof(glm::float3) * 9, // RGB channels * numOfCoefficients
 		.bindFlags = BindFlags::UnorderedAccess,
 		.usage = ResourceUsage::Default
 	});
-	auto coeffBufferView = coeffGenerationBuffer->CreateDefaultUAV(sizeof(glm::float4)); // Single element
+	auto coeffBufferView = coeffGenerationBuffer->CreateDefaultUAV(sizeof(glm::float3)); // Single element
 
 	renderContext->SetPSO({
 		.cs = {

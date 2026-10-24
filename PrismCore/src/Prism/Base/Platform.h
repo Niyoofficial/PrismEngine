@@ -83,6 +83,8 @@ public:
                                 const std::vector<DialogFileFilter>& filters = {}, const std::fs::path& defaultLocation = {}, bool allowMany = false) = 0;
 
 	virtual void SetCurrentThreadDescription(std::wstring description) = 0;
+	virtual void* LoadLibrary(std::fs::path filepath) = 0;
+	virtual void* LoadFunction(void* libraryHandle, std::string funcName) = 0;
 
 
 	virtual void InitializeImGuiPlatform(Window* window) = 0;

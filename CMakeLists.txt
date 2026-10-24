@@ -8,4 +8,5 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 project(PrismEngine)
 
 add_subdirectory(PrismCore)
+add_subdirectory(PrismSharp)
 add_subdirectory(Sandbox)

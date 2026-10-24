@@ -15,5 +15,7 @@ public:
 
 	std::fs::path GetIntermediateDir() const;
 	std::fs::path GetLogsDir() const;
+
+	std::fs::path GetPrismSharpBinaryDir() const;
 };
 }

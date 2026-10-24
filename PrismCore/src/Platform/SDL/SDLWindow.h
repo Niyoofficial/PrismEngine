@@ -13,13 +13,13 @@ public:
 
 	virtual void DestroyWindow() override;
 
-	virtual std::any GetNativeWindow() const override;
-	virtual std::any GetPlatformNativeWindow() const override;
+	virtual void* GetNativeWindow() const override;
+	virtual void* GetPlatformNativeWindow() const override;
 
 	virtual Core::WindowDesc GetWindowParams() const override;
 	virtual glm::int2 GetSize() const override;
 	virtual bool GetIsFullscreen() const override;
-	virtual std::wstring GetTitle() const override;
+	virtual std::string GetTitle() const override;
 
 	virtual Render::Swapchain* GetSwapchain() override { return m_swapchain; }
 

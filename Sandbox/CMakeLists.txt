@@ -6,6 +6,7 @@ project(Sandbox)
 
 file(GLOB_RECURSE SOURCES
 	src/*
+	app.manifest
 )
 
 add_executable(${PROJECT_NAME} 

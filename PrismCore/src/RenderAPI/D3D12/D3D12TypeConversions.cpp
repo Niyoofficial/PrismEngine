@@ -760,6 +760,8 @@ D3D12_RESOURCE_FLAGS GetD3D12ResourceFlags(Flags<BindFlags> bindFlags)
 		d3d12Flags |= D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
 	if (!bindFlags.HasAnyFlags(BindFlags::ShaderResource))
 		d3d12Flags |= D3D12_RESOURCE_FLAG_DENY_SHADER_RESOURCE;
+	if (bindFlags.HasAnyFlags(BindFlags::SimultaneousAccess))
+		d3d12Flags |= D3D12_RESOURCE_FLAG_ALLOW_SIMULTANEOUS_ACCESS;
 
 	return d3d12Flags;
 }

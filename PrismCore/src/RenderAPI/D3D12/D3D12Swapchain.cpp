@@ -37,7 +37,7 @@ D3D12Swapchain::D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc
 		.Windowed = !m_owningWindow->GetIsFullscreen()
 	};
 
-	HWND hwnd = std::any_cast<HWND>(m_owningWindow->GetPlatformNativeWindow());
+	auto hwnd = (HWND)m_owningWindow->GetPlatformNativeWindow();
 
 	IDXGIFactory2* factory = D3D12RenderDevice::Get().GetDXGIFactory();
 	ID3D12CommandQueue* commandQueue = D3D12RenderDevice::Get().GetD3D12CommandQueue();
@@ -54,6 +54,7 @@ D3D12Swapchain::D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc
 	Core::Platform::Get().AddAppEventCallback<Core::AppEvents::WindowResized>(
 		[this](Core::AppEvent event)
 		{
+			// TODO: Check if this window is the one that was resized
 			Resize();
 		});
 }

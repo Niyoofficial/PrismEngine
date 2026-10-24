@@ -3,7 +3,6 @@
 #include "EditorTheme.h"
 #include "Prism/Base/Platform.h"
 #include "Prism/Render/RenderCommandQueue.h"
-#include "Prism/Render/PBR/PBRSceneRenderPipeline.h"
 #include "Prism/Scene/Components.h"
 #include "Prism/Scene/Entity.h"
 #include "Prism/Scene/LightRendererComponent.h"
@@ -21,13 +20,10 @@ namespace Prism
 	EditorApplication::EditorApplication(int32_t argc, char** argv)
 		: Application(argc, argv)
 	{
-		InitPlatform();
-		InitRenderer({ .enableDebugLayer = false, .initPixLibrary = false });
-
 		auto displayInfo = Core::Platform::Get().GetDisplayInfo(Core::Platform::Get().GetPrimaryDisplayID());
 
 		Core::WindowDesc windowParams = {
-			.windowTitle = L"Prism Editor",
+			.windowTitle = "Prism Editor",
 			.windowSize = {displayInfo.width / 1.25f, displayInfo.height / 1.25f},
 			.fullscreen = false
 		};

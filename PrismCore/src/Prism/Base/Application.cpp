@@ -8,11 +8,41 @@
 #include "Prism/Render/RenderConstants.h"
 #include "Prism/Render/RenderDevice.h"
 #include "Prism/UI/imgui_threaded_rendering.h"
+#include "Prism/Base/Paths.h"
+
+#include "nethost.h"
+#include "hostfxr.h"
+#include "coreclr_delegates.h"
 
 namespace Prism::Core
 {
+struct ExportsTable
+{
+	void*(CORECLR_DELEGATE_CALLTYPE* CreateWindow)(const char*, int32_t, int32_t, int32_t, void*);
+};
+
+std::vector<Ref<Window>> managedWindows;
+
+static void* NativeCreateWindow(const char* title, int32_t titleLen, int32_t width, int32_t height, void* parent)
+{
+	WindowDesc windowDesc = {
+		.windowTitle = std::string(title, titleLen),
+		.windowSize = {width, height},
+		.fullscreen = false
+	};
+	Render::SwapchainDesc swapchainDesc = {
+		.format = Render::TextureFormat::RGBA8_UNorm,
+	};
+	auto window = Window::Create(windowDesc, swapchainDesc);
+	managedWindows.push_back(window);
+
+	return window->GetPlatformNativeWindow();
+}
+
 Application::Application(int32_t argc, char** argv)
 {
+	bool enableRenderDebugLayer = false;
+	bool initPixLibrary = false;
 	for (int32_t i = 0; i < argc; ++i)
 	{
 		// TODO: Add some persistent storage for cmd line arguments so they can be queried from the entire engine
@@ -20,8 +50,14 @@ Application::Application(int32_t argc, char** argv)
 		if (strcmp(argv[i], "-bypassCmdRecord") == 0)
 			m_bypassCmdRecording = true;
 		else if (strcmp(argv[i], "-enableRenderDebugLayer") == 0)
-			m_enableRenderDebugLayer = true;
+			enableRenderDebugLayer = true;
+		else if (strcmp(argv[i], "-initPixLibrary") == 0)
+			initPixLibrary = true;
 	}
+
+	InitPlatform();
+	InitRenderer({.enableDebugLayer = enableRenderDebugLayer, .initPixLibrary = initPixLibrary});
+	InitDotNet();
 }
 
 Application::~Application()
@@ -168,7 +204,6 @@ void Application::InitRenderer(Render::RenderDeviceParams params)
 {
 	using namespace Render;
 
-	params.enableDebugLayer |= m_enableRenderDebugLayer;
 	RenderDevice::Create(params);
 	RenderDevice::Get().SetBypassCommandRecording(m_bypassCmdRecording);
 
@@ -195,6 +230,38 @@ void Application::InitRenderer(Render::RenderDeviceParams params)
 void Application::ShutdownRenderer()
 {
 	Render::RenderDevice::TryDestroy();
+}
+
+void Application::InitDotNet()
+{
+	std::array<char_t, 260> hostfxrPath;
+	size_t pathSize = hostfxrPath.size();
+	int32_t rc = get_hostfxr_path(hostfxrPath.data(), &pathSize, nullptr);
+	PE_ASSERT(rc == 0);
+
+	void* lib = Platform::Get().LoadLibrary(hostfxrPath.data());
+	auto hostfxrInitFunc = (hostfxr_initialize_for_runtime_config_fn)Platform::Get().LoadFunction(lib, "hostfxr_initialize_for_runtime_config");
+	auto getDelegateFunc = (hostfxr_get_runtime_delegate_fn)Platform::Get().LoadFunction(lib, "hostfxr_get_runtime_delegate");
+	auto hostfxrCloseFunc = (hostfxr_close_fn)Platform::Get().LoadFunction(lib, "hostfxr_close");
+	PE_ASSERT(hostfxrInitFunc && getDelegateFunc && hostfxrCloseFunc);
+
+	hostfxr_handle context;
+	rc = hostfxrInitFunc((Paths::Get().GetPrismSharpBinaryDir() / "PrismSharp.runtimeconfig.json").wstring().c_str(), nullptr, &context);
+	PE_ASSERT(rc == 0);
+
+	load_assembly_and_get_function_pointer_fn loadAssemblyAndGetFunctionPointer = nullptr;
+	rc = getDelegateFunc(context, hdt_load_assembly_and_get_function_pointer, (void**)&loadAssemblyAndGetFunctionPointer);
+	PE_ASSERT(rc == 0);
+
+	using BootstrapFn = int32_t(CORECLR_DELEGATE_CALLTYPE*)(ExportsTable*);
+	BootstrapFn bootstrap = nullptr;
+	rc = loadAssemblyAndGetFunctionPointer((Paths::Get().GetPrismSharpBinaryDir() / "PrismSharp.dll").wstring().c_str(), L"PrismSharp.Host, PrismSharp", L"Bootstrap", UNMANAGEDCALLERSONLY_METHOD, nullptr, (void**)&bootstrap);
+	PE_ASSERT(rc == 0);
+
+	ExportsTable bindings = {
+		.CreateWindow = &NativeCreateWindow
+	};
+	bootstrap(&bindings);
 }
 
 void Application::InitImGui(Window* window, Render::TextureFormat depthFormat)

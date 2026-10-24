@@ -3,14 +3,16 @@
 
 #include "Platform/SDL/SDLTypeConversions.h"
 #include "Prism/Utilities/Duration.h"
+#include "Platform/SDL/SDLWindow.h"
+#include "Prism/Base/Window.h"
+
+#define SDL_FUNCTION_POINTER_IS_VOID_POINTER
 #include "SDL3/SDL_events.h"
 #include "SDL3/SDL_init.h"
 #include "SDL3/SDL_timer.h"
-
-#include "imgui_impl_sdl3.h"
-#include "Platform/SDL/SDLWindow.h"
-#include "Prism/Base/Window.h"
 #include "SDL3/SDL_dialog.h"
+#include "SDL3/SDL_loadso.h"
+#include "imgui_impl_sdl3.h"
 
 
 namespace Prism::SDL
@@ -487,21 +489,19 @@ void SDLPlatform::ShowFileDialog(const std::function<void(std::vector<std::strin
 	SDL_DestroyProperties(props);
 }
 
-#if PE_PLATFORM_WINDOWS
-#define WIN32_LEAN_AND_MEAN
-#define NOMINMAX
-#include "Windows.h"
-#endif
-void SDLPlatform::SetCurrentThreadDescription(std::wstring description)
+void* SDLPlatform::LoadLibrary(std::fs::path filepath)
 {
-#if PE_PLATFORM_WINDOWS
-	SetThreadDescription(GetCurrentThread(), description.c_str());
-#endif
+	return SDL_LoadObject(filepath.string().c_str());
+}
+
+void* SDLPlatform::LoadFunction(void* libraryHandle, std::string funcName)
+{
+	return SDL_LoadFunction((SDL_SharedObject*)libraryHandle, funcName.c_str());
 }
 
 void SDLPlatform::InitializeImGuiPlatform(Core::Window* window)
 {
-	ImGui_ImplSDL3_InitForD3D(std::any_cast<SDL_Window*>(window->GetNativeWindow()));
+	ImGui_ImplSDL3_InitForD3D((SDL_Window*)window->GetNativeWindow());
 	initializedImGui = true;
 }
 
@@ -517,5 +517,17 @@ void SDLPlatform::ShutdownImGuiPlatform()
 void SDLPlatform::ImGuiNewFrame()
 {
 	ImGui_ImplSDL3_NewFrame();
+}
+
+#if PE_PLATFORM_WINDOWS
+#define WIN32_LEAN_AND_MEAN
+#define NOMINMAX
+#include "Windows.h"
+#endif
+void SDLPlatform::SetCurrentThreadDescription(std::wstring description)
+{
+#if PE_PLATFORM_WINDOWS
+	SetThreadDescription(GetCurrentThread(), description.c_str());
+#endif
 }
 }

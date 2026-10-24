@@ -8,7 +8,7 @@ endif()
 
 find_library(D3D12_LIB NAMES d3d12 HINTS "$ENV{ProgramFiles\(x86\)}/Windows Kits/10/Lib/${PE_WINDOWS_SDK_VERSION}/um/x64")
 
-project(PrismCore)
+project(PrismCore LANGUAGES CXX)
 
 file(GLOB_RECURSE SOURCES
 	src/*
@@ -16,6 +16,8 @@ file(GLOB_RECURSE SOURCES
 
 add_library(${PROJECT_NAME} STATIC ${SOURCES})
 add_library(${CMAKE_PROJECT_NAME}::Core ALIAS ${PROJECT_NAME})
+
+target_link_libraries(${PROJECT_NAME} PUBLIC PrismEngine::Sharp)
 
 target_include_directories(${PROJECT_NAME}
 	PUBLIC
@@ -30,6 +32,10 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC PE_ENGINE_DIR=${PROJECT_SOURCE_DIR})
 message(STATUS "Engine directory set to: ${PROJECT_SOURCE_DIR}")
+
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+	PE_PRISM_SHARP_BINARY_DIR=${CMAKE_BINARY_DIR}/PrismSharp/$<CONFIG>
+)
 
 if (WIN32)
 	target_compile_options(${PROJECT_NAME} PUBLIC "$<$<C_COMPILER_ID:MSVC>:/utf-8>")
@@ -81,7 +87,6 @@ endif()
 
 find_package(directx-dxc CONFIG REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE Microsoft::DirectXShaderCompiler)
-
 target_link_libraries(${PROJECT_NAME} PRIVATE dxgi.lib)
 target_link_libraries(${PROJECT_NAME} PRIVATE dxguid.lib)
 
@@ -105,3 +110,10 @@ find_package(SuperluminalAPI REQUIRED)
 target_link_libraries(${PROJECT_NAME} PRIVATE SuperluminalAPI)
 target_compile_definitions(${PROJECT_NAME} PUBLIC "ENABLE_SUPERLUMINAL_API=1")
 endif()
+
+find_package(unofficial-nethost CONFIG REQUIRED)
+target_link_libraries(${PROJECT_NAME} PRIVATE unofficial::nethost::nethost)
+
+list(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/../ThirdParty/DotNETHelpers")
+find_package(DotNETHelpers REQUIRED)
+target_include_directories(${PROJECT_NAME} PRIVATE ${DotNETHelpers_INCLUDE_DIRS})

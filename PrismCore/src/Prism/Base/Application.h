@@ -77,6 +77,8 @@ protected:
 	void InitRenderer(Render::RenderDeviceParams params);
 	void ShutdownRenderer();
 
+	void InitDotNet();
+
 	virtual void InitImGui(Window* window, Render::TextureFormat depthFormat);
 	virtual void ShutdownImGui();
 
@@ -103,6 +105,5 @@ protected:
 	bool m_imguiInitialized = false;
 
 	bool m_bypassCmdRecording = false;
-	bool m_enableRenderDebugLayer = false;
 };
 }
