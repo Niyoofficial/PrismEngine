@@ -20,8 +20,9 @@ constexpr uint32_t applicationVulkanApiVersion = VK_API_VERSION_1_3;
 constexpr std::array<const char*, 1> applicationValidationLayers{
 	"VK_LAYER_KHRONOS_validation",
 };
-constexpr std::array<const char*, 4> applicationDeviceExtensions{
+constexpr std::array<const char*, 5> applicationDeviceExtensions{
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
 	VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME,
 	VK_GOOGLE_USER_TYPE_EXTENSION_NAME,
 	VK_GOOGLE_HLSL_FUNCTIONALITY_1_EXTENSION_NAME,
@@ -443,9 +444,14 @@ bool VulkanRenderDevice::IsPhysicalDeviceSuitable(const VkPhysicalDevice physica
 		.pNext = &mutableDescriptorType,
 	};
 
+	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicState{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,
+		.pNext = &descriptorIndexing,
+	};
+
 	VkPhysicalDeviceVulkan13Features features13{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-		.pNext = &descriptorIndexing,
+		.pNext = &extendedDynamicState,
 	};
 
 	VkPhysicalDeviceFeatures2 features{
@@ -455,8 +461,8 @@ bool VulkanRenderDevice::IsPhysicalDeviceSuitable(const VkPhysicalDevice physica
 
 	vkGetPhysicalDeviceFeatures2(physicalDevice, &features);
 
-	return features13.dynamicRendering && features13.synchronization2 && mutableDescriptorType.mutableDescriptorType &&
-		descriptorIndexing.shaderUniformBufferArrayNonUniformIndexing &&
+	return features13.dynamicRendering && features13.synchronization2 && extendedDynamicState.extendedDynamicState &&
+		mutableDescriptorType.mutableDescriptorType && descriptorIndexing.shaderUniformBufferArrayNonUniformIndexing &&
 		descriptorIndexing.shaderSampledImageArrayNonUniformIndexing &&
 		descriptorIndexing.shaderStorageBufferArrayNonUniformIndexing &&
 		descriptorIndexing.shaderStorageImageArrayNonUniformIndexing &&
@@ -534,9 +540,15 @@ void VulkanRenderDevice::CreateLogicalDevice()
 		.runtimeDescriptorArray = VK_TRUE,
 	};
 
+	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicState{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,
+		.pNext = &featureDescriptorIndexing,
+		.extendedDynamicState = VK_TRUE,
+	};
+
 	VkPhysicalDeviceVulkan13Features features13{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-		.pNext = &featureDescriptorIndexing,
+		.pNext = &extendedDynamicState,
 		.synchronization2 = VK_TRUE,
 		.dynamicRendering = VK_TRUE,
 	};

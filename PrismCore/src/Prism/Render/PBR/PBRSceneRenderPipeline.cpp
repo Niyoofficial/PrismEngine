@@ -698,6 +698,7 @@ void PBRSceneRenderPipeline::RenderShadowPass(RenderContext* renderContext, cons
 			.depthBiasClamp = 0.f,
 			.slopeScaledDepthBias = 1.5f,
 		},
+		.vertexStrideMode = VertexStrideMode::Dynamic,
 	});
 
 	TextureDesc shadowMapDesc = {

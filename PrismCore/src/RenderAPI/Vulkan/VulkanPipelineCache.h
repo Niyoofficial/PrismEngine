@@ -29,7 +29,7 @@ struct VertexInputState
 
 struct DynamicState
 {
-	std::array<VkDynamicState, 2> states;
+	std::vector<VkDynamicState> states;
 	VkPipelineDynamicStateCreateInfo createInfo;
 };
 
@@ -71,7 +71,7 @@ private:
 
 	[[nodiscard]] VkPipelineMultisampleStateCreateInfo BuildMultisampleState(const GraphicsPipelineStateDesc& desc);
 
-	[[nodiscard]] DynamicState BuildDynamicState();
+	[[nodiscard]] DynamicState BuildDynamicState(const GraphicsPipelineStateDesc& desc);
 
 	[[nodiscard]] VkPipelineDepthStencilStateCreateInfo BuildDepthStencilState(const GraphicsPipelineStateDesc& desc);
 

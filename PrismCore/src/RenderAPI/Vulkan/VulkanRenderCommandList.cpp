@@ -172,7 +172,9 @@ void VulkanRenderCommandList::SetVertexBuffer(const Ref<Buffer>& buffer, int64_t
 
 	constexpr VkDeviceSize offset = 0;
 
-	vkCmdBindVertexBuffers(m_commandBuffer, 0, 1, &vkBuffer, &offset);
+	const VkDeviceSize stride = static_cast<VkDeviceSize>(vertexSizeInBytes);
+
+	vkCmdBindVertexBuffers2(m_commandBuffer, 0, 1, &vkBuffer, &offset, nullptr, &stride);
 }
 
 void VulkanRenderCommandList::SetIndexBuffer(const Ref<Buffer>& buffer, IndexBufferFormat format)

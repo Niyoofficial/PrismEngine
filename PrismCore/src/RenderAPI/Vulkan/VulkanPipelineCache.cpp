@@ -40,8 +40,7 @@ VulkanPipelineCache::~VulkanPipelineCache()
 }
 
 VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateDesc& desc,
-																		   const std::vector<Ref<TextureView>>& rtvs,
-																		   TextureView* dsv)
+													const std::vector<Ref<TextureView>>& rtvs, TextureView* dsv)
 {
 	auto* compiler = VulkanRenderDevice::Get().GetVulkanShaderCompiler();
 
@@ -112,7 +111,7 @@ VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateD
 	auto multisampleState = BuildMultisampleState(desc);
 	auto depthState = BuildDepthStencilState(desc);
 	auto blendState = BuildColorBlendState(desc, static_cast<uint32_t>(rtvs.size()));
-	auto dynamicState = BuildDynamicState();
+	auto dynamicState = BuildDynamicState(desc);
 	auto renderingInfo = BuildRenderingInfo(rtvs, dsv);
 
 	VkGraphicsPipelineCreateInfo pipelineCreateInfo{
@@ -203,8 +202,7 @@ VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const ComputePipelineStateDe
 }
 
 uint64_t VulkanPipelineCache::HashPipelineStateDesc(const GraphicsPipelineStateDesc& desc,
-																		   const std::vector<Ref<TextureView>>& rtvs,
-																		   const TextureView* dsv) const
+													const std::vector<Ref<TextureView>>& rtvs, const TextureView* dsv) const
 {
 	uint64_t hash = std::hash<GraphicsPipelineStateDesc>{}(desc);
 
@@ -238,9 +236,8 @@ uint64_t VulkanPipelineCache::HashPipelineStateDesc(const ComputePipelineStateDe
 	return VulkanRenderDevice::Get().GetShaderCompiler()->GetShaderCodeHash(desc.cs);
 }
 
-VertexInputState
-VulkanPipelineCache::BuildVertexInputState(const VertexAttributeList& vertexAttributeList,
-																  const VulkanShaderReflection& reflection)
+VertexInputState VulkanPipelineCache::BuildVertexInputState(const VertexAttributeList& vertexAttributeList,
+															const VulkanShaderReflection& reflection)
 {
 	VertexInputState vertexInputState;
 
@@ -285,8 +282,7 @@ VulkanPipelineCache::BuildVertexInputState(const VertexAttributeList& vertexAttr
 	return vertexInputState;
 }
 
-VkPipelineInputAssemblyStateCreateInfo
-VulkanPipelineCache::BuildInputAssemblyState(const GraphicsPipelineStateDesc& desc)
+VkPipelineInputAssemblyStateCreateInfo VulkanPipelineCache::BuildInputAssemblyState(const GraphicsPipelineStateDesc& desc)
 {
 	return {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO,
@@ -304,8 +300,7 @@ VkPipelineViewportStateCreateInfo VulkanPipelineCache::BuildViewportState()
 	};
 }
 
-VkPipelineRasterizationStateCreateInfo
-VulkanPipelineCache::BuildPipelineRasterizationState(const GraphicsPipelineStateDesc& desc)
+VkPipelineRasterizationStateCreateInfo VulkanPipelineCache::BuildPipelineRasterizationState(const GraphicsPipelineStateDesc& desc)
 {
 	return {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO,
@@ -322,8 +317,7 @@ VulkanPipelineCache::BuildPipelineRasterizationState(const GraphicsPipelineState
 	};
 }
 
-VkPipelineMultisampleStateCreateInfo
-VulkanPipelineCache::BuildMultisampleState(const GraphicsPipelineStateDesc& desc)
+VkPipelineMultisampleStateCreateInfo VulkanPipelineCache::BuildMultisampleState(const GraphicsPipelineStateDesc& desc)
 {
 	return {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO,
@@ -336,7 +330,7 @@ VulkanPipelineCache::BuildMultisampleState(const GraphicsPipelineStateDesc& desc
 	};
 }
 
-DynamicState VulkanPipelineCache::BuildDynamicState()
+DynamicState VulkanPipelineCache::BuildDynamicState(const GraphicsPipelineStateDesc& desc)
 {
 	DynamicState state{};
 
@@ -344,6 +338,11 @@ DynamicState VulkanPipelineCache::BuildDynamicState()
 		VK_DYNAMIC_STATE_VIEWPORT,
 		VK_DYNAMIC_STATE_SCISSOR,
 	};
+
+	if (desc.vertexStrideMode == VertexStrideMode::Dynamic)
+	{
+		state.states.push_back(VK_DYNAMIC_STATE_VERTEX_INPUT_BINDING_STRIDE);
+	}
 
 	state.createInfo = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO,
@@ -354,8 +353,7 @@ DynamicState VulkanPipelineCache::BuildDynamicState()
 	return state;
 }
 
-VkPipelineDepthStencilStateCreateInfo
-VulkanPipelineCache::BuildDepthStencilState(const GraphicsPipelineStateDesc& desc)
+VkPipelineDepthStencilStateCreateInfo VulkanPipelineCache::BuildDepthStencilState(const GraphicsPipelineStateDesc& desc)
 {
 	const auto& depthStencilState = desc.depthStencilState;
 
@@ -377,9 +375,8 @@ VulkanPipelineCache::BuildDepthStencilState(const GraphicsPipelineStateDesc& des
 	};
 }
 
-ColorBlendState
-VulkanPipelineCache::BuildColorBlendState(const GraphicsPipelineStateDesc& desc,
-																 const uint32_t colorAttachmentCount)
+ColorBlendState VulkanPipelineCache::BuildColorBlendState(const GraphicsPipelineStateDesc& desc,
+														  const uint32_t colorAttachmentCount)
 {
 	ColorBlendState state;
 
@@ -420,8 +417,7 @@ VulkanPipelineCache::BuildColorBlendState(const GraphicsPipelineStateDesc& desc,
 	return state;
 }
 
-RenderingInfo
-VulkanPipelineCache::BuildRenderingInfo(const std::vector<Ref<TextureView>>& rtvs, TextureView* dsv)
+RenderingInfo VulkanPipelineCache::BuildRenderingInfo(const std::vector<Ref<TextureView>>& rtvs, TextureView* dsv)
 {
 	RenderingInfo info;
 
