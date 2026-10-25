@@ -935,15 +935,33 @@ void VulkanRenderCommandList::BeginDynamicRendering()
 		const auto* dsv = dynamic_cast<VulkanTextureView*>(m_depthStencilView.Raw());
 		PE_ASSERT(dsv);
 
+		const auto* texture = dynamic_cast<VulkanTexture*>(dsv->GetTexture());
+		PE_ASSERT(texture);
+
+		const VkFormat format = GetVkFormat(dsv->GetViewDesc().format);
+
+		const bool hasStencil = format == VK_FORMAT_D24_UNORM_S8_UINT || format == VK_FORMAT_D32_SFLOAT_S8_UINT;
+
 		depthAttachment.imageView = dsv->GetVkImageView();
 		depthAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 		depthAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 		depthAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
 
-		stencilAttachment = depthAttachment;
-
 		renderingInfo.pDepthAttachment = &depthAttachment;
-		renderingInfo.pStencilAttachment = &stencilAttachment;
+
+		if (hasStencil)
+		{
+			stencilAttachment.imageView = dsv->GetVkImageView();
+			stencilAttachment.imageLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+			stencilAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+			stencilAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+			renderingInfo.pStencilAttachment = &stencilAttachment;
+		}
+		else
+		{
+			renderingInfo.pStencilAttachment = nullptr;
+		}
 	}
 
 	vkCmdBeginRendering(m_commandBuffer, &renderingInfo);

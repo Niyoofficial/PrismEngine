@@ -421,7 +421,7 @@ RenderingInfo VulkanPipelineCache::BuildRenderingInfo(const std::vector<Ref<Text
 {
 	RenderingInfo info;
 
-	for (auto& rtv : rtvs)
+	for (const auto& rtv : rtvs)
 	{
 		if (!rtv)
 		{
@@ -431,12 +431,31 @@ RenderingInfo VulkanPipelineCache::BuildRenderingInfo(const std::vector<Ref<Text
 		info.colorFormats.push_back(GetVkFormat(rtv->GetTexture()->GetTextureDesc().format));
 	}
 
+	VkFormat depthFormat = VK_FORMAT_UNDEFINED;
+
+	if (dsv)
+	{
+		depthFormat = GetVkFormat(dsv->GetViewDesc().format);
+	}
+
+	VkFormat stencilFormat = VK_FORMAT_UNDEFINED;
+
+	switch (depthFormat)
+	{
+	case VK_FORMAT_D24_UNORM_S8_UINT:
+	case VK_FORMAT_D32_SFLOAT_S8_UINT:
+		stencilFormat = depthFormat;
+		break;
+	default:
+		break;
+	}
+
 	info.createInfo = {
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO,
 		.colorAttachmentCount = static_cast<uint32_t>(info.colorFormats.size()),
 		.pColorAttachmentFormats = info.colorFormats.data(),
-		.depthAttachmentFormat = dsv ? GetVkFormat(dsv->GetTexture()->GetTextureDesc().format) : VK_FORMAT_UNDEFINED,
-		.stencilAttachmentFormat = dsv ? GetVkFormat(dsv->GetTexture()->GetTextureDesc().format) : VK_FORMAT_UNDEFINED,
+		.depthAttachmentFormat = depthFormat,
+		.stencilAttachmentFormat = stencilFormat,
 	};
 
 	return info;
