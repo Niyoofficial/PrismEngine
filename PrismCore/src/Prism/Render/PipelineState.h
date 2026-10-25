@@ -5,12 +5,6 @@
 
 namespace Prism::Render
 {
-enum class VertexStrideMode : uint8_t
-{
-	Static,
-	Dynamic
-};
-
 struct GraphicsPipelineStateDesc
 {
 	[[nodiscard]] bool IsValid() const;

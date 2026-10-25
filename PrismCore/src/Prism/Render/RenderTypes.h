@@ -595,6 +595,12 @@ struct SampleDesc
 	int32_t quality = 0;
 };
 
+enum class VertexStrideMode : uint8_t
+{
+	Static,
+	Dynamic
+};
+
 enum class BindFlags : uint16_t
 {
 	// Undefined binding.
