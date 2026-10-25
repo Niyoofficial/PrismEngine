@@ -449,9 +449,14 @@ bool VulkanRenderDevice::IsPhysicalDeviceSuitable(const VkPhysicalDevice physica
 		.pNext = &descriptorIndexing,
 	};
 
+	VkPhysicalDeviceVulkan12Features features12{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+		.pNext = &extendedDynamicState,
+	};
+
 	VkPhysicalDeviceVulkan13Features features13{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-		.pNext = &extendedDynamicState,
+		.pNext = &features12,
 	};
 
 	VkPhysicalDeviceFeatures2 features{
@@ -461,8 +466,9 @@ bool VulkanRenderDevice::IsPhysicalDeviceSuitable(const VkPhysicalDevice physica
 
 	vkGetPhysicalDeviceFeatures2(physicalDevice, &features);
 
-	return features13.dynamicRendering && features13.synchronization2 && extendedDynamicState.extendedDynamicState &&
-		mutableDescriptorType.mutableDescriptorType && descriptorIndexing.shaderUniformBufferArrayNonUniformIndexing &&
+	return features13.dynamicRendering && features13.synchronization2 && features12.shaderFloat16 &&
+		extendedDynamicState.extendedDynamicState && mutableDescriptorType.mutableDescriptorType &&
+		descriptorIndexing.shaderUniformBufferArrayNonUniformIndexing &&
 		descriptorIndexing.shaderSampledImageArrayNonUniformIndexing &&
 		descriptorIndexing.shaderStorageBufferArrayNonUniformIndexing &&
 		descriptorIndexing.shaderStorageImageArrayNonUniformIndexing &&
@@ -546,9 +552,15 @@ void VulkanRenderDevice::CreateLogicalDevice()
 		.extendedDynamicState = VK_TRUE,
 	};
 
+	VkPhysicalDeviceVulkan12Features features12{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+		.pNext = &extendedDynamicState,
+		.shaderFloat16 = VK_TRUE,
+	};
+
 	VkPhysicalDeviceVulkan13Features features13{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_3_FEATURES,
-		.pNext = &extendedDynamicState,
+		.pNext = &features12,
 		.synchronization2 = VK_TRUE,
 		.dynamicRendering = VK_TRUE,
 	};
