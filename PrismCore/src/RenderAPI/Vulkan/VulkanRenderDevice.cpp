@@ -439,14 +439,9 @@ bool VulkanRenderDevice::IsPhysicalDeviceSuitable(const VkPhysicalDevice physica
 		.pNext = nullptr,
 	};
 
-	VkPhysicalDeviceDescriptorIndexingFeatures descriptorIndexing{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
-		.pNext = &mutableDescriptorType,
-	};
-
 	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicState{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,
-		.pNext = &descriptorIndexing,
+		.pNext = &mutableDescriptorType,
 	};
 
 	VkPhysicalDeviceVulkan12Features features12{
@@ -466,17 +461,13 @@ bool VulkanRenderDevice::IsPhysicalDeviceSuitable(const VkPhysicalDevice physica
 
 	vkGetPhysicalDeviceFeatures2(physicalDevice, &features);
 
-	return features13.dynamicRendering && features13.synchronization2 && features12.shaderFloat16 &&
-		extendedDynamicState.extendedDynamicState && mutableDescriptorType.mutableDescriptorType &&
-		descriptorIndexing.shaderUniformBufferArrayNonUniformIndexing &&
-		descriptorIndexing.shaderSampledImageArrayNonUniformIndexing &&
-		descriptorIndexing.shaderStorageBufferArrayNonUniformIndexing &&
-		descriptorIndexing.shaderStorageImageArrayNonUniformIndexing &&
-		descriptorIndexing.descriptorBindingUniformBufferUpdateAfterBind &&
-		descriptorIndexing.descriptorBindingSampledImageUpdateAfterBind &&
-		descriptorIndexing.descriptorBindingStorageImageUpdateAfterBind &&
-		descriptorIndexing.descriptorBindingStorageBufferUpdateAfterBind && descriptorIndexing.descriptorBindingPartiallyBound &&
-		descriptorIndexing.runtimeDescriptorArray && [&]
+	return mutableDescriptorType.mutableDescriptorType && extendedDynamicState.extendedDynamicState &&
+		features13.dynamicRendering && features13.synchronization2 && features12.shaderFloat16 &&
+		features12.shaderUniformBufferArrayNonUniformIndexing && features12.shaderSampledImageArrayNonUniformIndexing &&
+		features12.shaderStorageBufferArrayNonUniformIndexing && features12.shaderStorageImageArrayNonUniformIndexing &&
+		features12.descriptorBindingUniformBufferUpdateAfterBind && features12.descriptorBindingSampledImageUpdateAfterBind &&
+		features12.descriptorBindingStorageImageUpdateAfterBind && features12.descriptorBindingStorageBufferUpdateAfterBind &&
+		features12.descriptorBindingPartiallyBound && features12.runtimeDescriptorArray && features12.timelineSemaphore && [&]
 	{
 		VkPhysicalDeviceFeatures coreFeatures{};
 		vkGetPhysicalDeviceFeatures(physicalDevice, &coreFeatures);
@@ -519,20 +510,21 @@ void VulkanRenderDevice::CreateLogicalDevice()
 		.pQueuePriorities = &queuePriority,
 	};
 
-	VkPhysicalDeviceTimelineSemaphoreFeatures timelineFeatures{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_TIMELINE_SEMAPHORE_FEATURES,
-		.timelineSemaphore = VK_TRUE,
-	};
-
 	VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT featureMutableDescriptorType{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,
-		.pNext = &timelineFeatures,
 		.mutableDescriptorType = VK_TRUE,
 	};
 
-	VkPhysicalDeviceDescriptorIndexingFeatures featureDescriptorIndexing{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES,
+	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicState{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,
 		.pNext = &featureMutableDescriptorType,
+		.extendedDynamicState = VK_TRUE,
+	};
+
+	VkPhysicalDeviceVulkan12Features features12{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
+		.pNext = &extendedDynamicState,
+		.shaderFloat16 = VK_TRUE,
 		.shaderUniformBufferArrayNonUniformIndexing = VK_TRUE,
 		.shaderSampledImageArrayNonUniformIndexing = VK_TRUE,
 		.shaderStorageBufferArrayNonUniformIndexing = VK_TRUE,
@@ -544,18 +536,7 @@ void VulkanRenderDevice::CreateLogicalDevice()
 		.descriptorBindingPartiallyBound = VK_TRUE,
 		.descriptorBindingVariableDescriptorCount = VK_TRUE,
 		.runtimeDescriptorArray = VK_TRUE,
-	};
-
-	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicState{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_EXTENDED_DYNAMIC_STATE_FEATURES_EXT,
-		.pNext = &featureDescriptorIndexing,
-		.extendedDynamicState = VK_TRUE,
-	};
-
-	VkPhysicalDeviceVulkan12Features features12{
-		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES,
-		.pNext = &extendedDynamicState,
-		.shaderFloat16 = VK_TRUE,
+		.timelineSemaphore = VK_TRUE,
 	};
 
 	VkPhysicalDeviceVulkan13Features features13{
