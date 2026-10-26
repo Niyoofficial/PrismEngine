@@ -23,7 +23,6 @@ struct VertexInput
 	float3 normalLocal : NORMAL;
 	float3 tangentlLocal : TANGENT;
 	float3 bitangentlLocal : BITANGENT;
-	float3 color : COLOR;
 	float2 texCoords : TEXCOORD;
 };
 
