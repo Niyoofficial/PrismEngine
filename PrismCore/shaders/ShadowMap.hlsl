@@ -21,9 +21,9 @@ struct VertexInput
 {
 	float3 positionLocal : POSITION;
 	float3 normalLocal : NORMAL;
+	float2 texCoords : TEXCOORD;
 	float3 tangentlLocal : TANGENT;
 	float3 bitangentlLocal : BITANGENT;
-	float2 texCoords : TEXCOORD;
 };
 
 struct PixelInput
