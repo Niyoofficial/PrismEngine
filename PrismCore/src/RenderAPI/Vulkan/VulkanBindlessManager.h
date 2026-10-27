@@ -61,7 +61,9 @@ public:
 
 	void ResetResourcesAllocator(uint32_t frameIndex);
 
+#ifdef PE_BUILD_DEBUG
 	void DebugRewriteHeapDescriptors(VkDevice device);
+#endif
 
 private:
 	void CreateSamplers(VkDevice device, VkPhysicalDevice physicalDevice);
@@ -99,6 +101,7 @@ private:
 
 	std::array<std::atomic<uint32_t>, Constants::MAX_FRAMES_IN_FLIGHT> m_resourcesCursors{};
 
+#ifdef PE_BUILD_DEBUG
 	struct HeapEntry
 	{
 		VkDescriptorType type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
@@ -113,6 +116,7 @@ private:
 
 	std::vector<HeapEntry> m_heapEntries = std::vector<HeapEntry>(MaxBindlessDescriptors);
 	std::mutex m_heapEntriesMutex;
+#endif
 };
 
 } // namespace Prism::Render::Vulkan

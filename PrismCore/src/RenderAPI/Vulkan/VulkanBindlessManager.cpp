@@ -567,7 +567,9 @@ void VulkanBindlessManager::FreeResource(uint32_t index)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
 
+#ifdef PE_BUILD_DEBUG
 	SetHeapEntry(index, HeapEntry{});
+#endif
 
 	auto& list = m_resourceFreeList;
 
@@ -596,7 +598,9 @@ void VulkanBindlessManager::WriteSampledImage(VkDevice device, uint32_t index, V
 		.pImageInfo = &imageInfo,
 	};
 
+#ifdef PE_BUILD_DEBUG
 	SetHeapEntry(index, {.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, .view = view, .layout = layout});
+#endif
 
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
@@ -621,7 +625,9 @@ void VulkanBindlessManager::WriteStorageImage(VkDevice device, uint32_t index, V
 		.pImageInfo = &imageInfo,
 	};
 
+#ifdef PE_BUILD_DEBUG
 	SetHeapEntry(index, {.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, .view = view, .layout = layout});
+#endif
 
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
@@ -652,7 +658,9 @@ void VulkanBindlessManager::WriteUniformBuffer(VkDevice device, uint32_t index, 
 			.pTexelBufferView = nullptr,
 		};
 
+#ifdef PE_BUILD_DEBUG
 		SetHeapEntry(index, {.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .buffer = buffer, .offset = offset, .range = range});
+#endif
 
 		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 	}
@@ -684,7 +692,9 @@ void VulkanBindlessManager::WriteStorageBuffer(VkDevice device, uint32_t index, 
 		.pBufferInfo = &bufferInfo,
 	};
 
+#ifdef PE_BUILD_DEBUG
 	SetHeapEntry(index, {.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .buffer = buffer, .offset = offset, .range = range});
+#endif
 
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
@@ -757,6 +767,7 @@ void VulkanBindlessManager::WriteLegacyBuffer(VkDevice device, uint32_t index, V
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
 
+#ifdef PE_BUILD_DEBUG
 void VulkanBindlessManager::SetHeapEntry(uint32_t index, const HeapEntry& entry)
 {
 	std::lock_guard lock(m_heapEntriesMutex);
@@ -765,8 +776,6 @@ void VulkanBindlessManager::SetHeapEntry(uint32_t index, const HeapEntry& entry)
 
 void VulkanBindlessManager::DebugRewriteHeapDescriptors(VkDevice device)
 {
-	vkDeviceWaitIdle(device);
-
 	std::lock_guard lock(m_heapEntriesMutex);
 
 	std::vector<VkDescriptorImageInfo> imageInfos;
@@ -813,4 +822,5 @@ void VulkanBindlessManager::DebugRewriteHeapDescriptors(VkDevice device)
 		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
 	}
 }
+#endif
 } // namespace Prism::Render::Vulkan

@@ -19,7 +19,6 @@ struct RenderDeviceParams
 {
 	bool enableDebugLayer = false;
 	bool initPixLibrary = false;
-	bool vulkanEveryFrameDescriptorRewrite = false;
 };
 
 struct SubresourceFootprint

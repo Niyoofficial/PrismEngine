@@ -104,7 +104,5 @@ protected:
 
 	bool m_bypassCmdRecording = false;
 	bool m_enableRenderDebugLayer = false;
-	// RenderDoc don't handle well mutable bindings for Vulkan. this flag rewrites descriptor every frame, so RenderDoc show bound resources properly
-	bool m_vulkanEveryFrameDescriptorRewrite = false;
 };
 }

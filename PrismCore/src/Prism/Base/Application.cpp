@@ -25,10 +25,6 @@ Application::Application(int32_t argc, char** argv)
 		{
 			m_enableRenderDebugLayer = true;
 		}
-		else if (strcmp(argv[i], "-vulkanEveryFrameDescriptorRewrite") == 0)
-		{
-			m_vulkanEveryFrameDescriptorRewrite = true;
-		}
 	}
 }
 
@@ -177,7 +173,6 @@ void Application::InitRenderer(Render::RenderDeviceParams params)
 	using namespace Render;
 
 	params.enableDebugLayer |= m_enableRenderDebugLayer;
-	params.vulkanEveryFrameDescriptorRewrite = m_vulkanEveryFrameDescriptorRewrite;
 
 	RenderDevice::Create(params);
 	RenderDevice::Get().SetBypassCommandRecording(m_bypassCmdRecording);
