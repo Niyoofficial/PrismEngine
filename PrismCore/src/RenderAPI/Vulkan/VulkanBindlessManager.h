@@ -61,6 +61,8 @@ public:
 
 	void ResetResourcesAllocator(uint32_t frameIndex);
 
+	void DebugRewriteHeapDescriptors(VkDevice device);
+
 private:
 	void CreateSamplers(VkDevice device, VkPhysicalDevice physicalDevice);
 
@@ -96,6 +98,21 @@ private:
 	VkDeviceSize m_resourcesAlignment = 1;
 
 	std::array<std::atomic<uint32_t>, Constants::MAX_FRAMES_IN_FLIGHT> m_resourcesCursors{};
+
+	struct HeapEntry
+	{
+		VkDescriptorType type = VK_DESCRIPTOR_TYPE_MAX_ENUM;
+		VkImageView view = VK_NULL_HANDLE;
+		VkImageLayout layout = VK_IMAGE_LAYOUT_UNDEFINED;
+		VkBuffer buffer = VK_NULL_HANDLE;
+		VkDeviceSize offset = 0;
+		VkDeviceSize range = 0;
+	};
+
+	void SetHeapEntry(uint32_t index, const HeapEntry& entry);
+
+	std::vector<HeapEntry> m_heapEntries = std::vector<HeapEntry>(MaxBindlessDescriptors);
+	std::mutex m_heapEntriesMutex;
 };
 
 } // namespace Prism::Render::Vulkan

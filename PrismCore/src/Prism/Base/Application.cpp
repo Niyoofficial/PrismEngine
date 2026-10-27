@@ -18,9 +18,17 @@ Application::Application(int32_t argc, char** argv)
 		// TODO: Add some persistent storage for cmd line arguments so they can be queried from the entire engine
 		// TODO: Case insensitive comparison
 		if (strcmp(argv[i], "-bypassCmdRecord") == 0)
+		{
 			m_bypassCmdRecording = true;
+		}
 		else if (strcmp(argv[i], "-enableRenderDebugLayer") == 0)
+		{
 			m_enableRenderDebugLayer = true;
+		}
+		else if (strcmp(argv[i], "-vulkanEveryFrameDescriptorRewrite") == 0)
+		{
+			m_vulkanEveryFrameDescriptorRewrite = true;
+		}
 	}
 }
 
@@ -169,6 +177,8 @@ void Application::InitRenderer(Render::RenderDeviceParams params)
 	using namespace Render;
 
 	params.enableDebugLayer |= m_enableRenderDebugLayer;
+	params.vulkanEveryFrameDescriptorRewrite = m_vulkanEveryFrameDescriptorRewrite;
+
 	RenderDevice::Create(params);
 	RenderDevice::Get().SetBypassCommandRecording(m_bypassCmdRecording);
 

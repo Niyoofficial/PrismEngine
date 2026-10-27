@@ -125,5 +125,8 @@ private:
 	bool m_initializedImGui = false;
 
 	uint32_t m_frameIndex = 0;
+
+	// RenderDoc don't handle well mutable bindings for Vulkan. this flag rewrites descriptor every frame, so RenderDoc show bound resources properly
+	bool m_vulkanEveryFrameDescriptorRewrite;
 };
 } // namespace Prism::Render::Vulkan

@@ -214,8 +214,7 @@ VulkanBindlessManager::VulkanBindlessManager()
 	CreateSamplers(device, physicalDevice);
 }
 
-VulkanBindlessManager::ResourcesAllocation
-VulkanBindlessManager::AllocateResources(uint32_t frameIndex)
+VulkanBindlessManager::ResourcesAllocation VulkanBindlessManager::AllocateResources(uint32_t frameIndex)
 {
 	PE_ASSERT(frameIndex < Constants::MAX_FRAMES_IN_FLIGHT);
 
@@ -568,6 +567,8 @@ void VulkanBindlessManager::FreeResource(uint32_t index)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
 
+	SetHeapEntry(index, HeapEntry{});
+
 	auto& list = m_resourceFreeList;
 
 	std::lock_guard lock(list.mutex);
@@ -575,8 +576,7 @@ void VulkanBindlessManager::FreeResource(uint32_t index)
 	list.freeIndices.push_back(index);
 }
 
-void VulkanBindlessManager::WriteSampledImage(VkDevice device, uint32_t index, VkImageView view,
-																	 VkImageLayout layout)
+void VulkanBindlessManager::WriteSampledImage(VkDevice device, uint32_t index, VkImageView view, VkImageLayout layout)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
 
@@ -596,11 +596,12 @@ void VulkanBindlessManager::WriteSampledImage(VkDevice device, uint32_t index, V
 		.pImageInfo = &imageInfo,
 	};
 
+	SetHeapEntry(index, {.type = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, .view = view, .layout = layout});
+
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
 
-void VulkanBindlessManager::WriteStorageImage(VkDevice device, uint32_t index, VkImageView view,
-																	 VkImageLayout layout)
+void VulkanBindlessManager::WriteStorageImage(VkDevice device, uint32_t index, VkImageView view, VkImageLayout layout)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
 
@@ -620,11 +621,13 @@ void VulkanBindlessManager::WriteStorageImage(VkDevice device, uint32_t index, V
 		.pImageInfo = &imageInfo,
 	};
 
+	SetHeapEntry(index, {.type = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, .view = view, .layout = layout});
+
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
 
-void VulkanBindlessManager::WriteUniformBuffer(VkDevice device, uint32_t index, VkBuffer buffer,
-																	  VkDeviceSize offset, VkDeviceSize range)
+void VulkanBindlessManager::WriteUniformBuffer(VkDevice device, uint32_t index, VkBuffer buffer, VkDeviceSize offset,
+											   VkDeviceSize range)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
 
@@ -649,6 +652,8 @@ void VulkanBindlessManager::WriteUniformBuffer(VkDevice device, uint32_t index, 
 			.pTexelBufferView = nullptr,
 		};
 
+		SetHeapEntry(index, {.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, .buffer = buffer, .offset = offset, .range = range});
+
 		vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 	}
 
@@ -658,8 +663,8 @@ void VulkanBindlessManager::WriteUniformBuffer(VkDevice device, uint32_t index, 
 	}
 }
 
-void VulkanBindlessManager::WriteStorageBuffer(VkDevice device, uint32_t index, VkBuffer buffer,
-																	  VkDeviceSize offset, VkDeviceSize range)
+void VulkanBindlessManager::WriteStorageBuffer(VkDevice device, uint32_t index, VkBuffer buffer, VkDeviceSize offset,
+											   VkDeviceSize range)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
 
@@ -679,11 +684,12 @@ void VulkanBindlessManager::WriteStorageBuffer(VkDevice device, uint32_t index, 
 		.pBufferInfo = &bufferInfo,
 	};
 
+	SetHeapEntry(index, {.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, .buffer = buffer, .offset = offset, .range = range});
+
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
 
-void VulkanBindlessManager::WriteResourcesBuffer(VkDevice device, VkBuffer buffer, VkDeviceSize offset,
-																		VkDeviceSize range)
+void VulkanBindlessManager::WriteResourcesBuffer(VkDevice device, VkBuffer buffer, VkDeviceSize offset, VkDeviceSize range)
 {
 	VkDescriptorBufferInfo bufferInfo{
 		.buffer = buffer,
@@ -727,8 +733,8 @@ void VulkanBindlessManager::WriteSampler(VkDevice device, uint32_t samplerIndex,
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
 }
 
-void VulkanBindlessManager::WriteLegacyBuffer(VkDevice device, uint32_t index, VkBuffer buffer,
-																	 VkDeviceSize offset, VkDeviceSize range)
+void VulkanBindlessManager::WriteLegacyBuffer(VkDevice device, uint32_t index, VkBuffer buffer, VkDeviceSize offset,
+											  VkDeviceSize range)
 {
 	PE_ASSERT(index < MaxBindlessDescriptors);
 
@@ -749,5 +755,62 @@ void VulkanBindlessManager::WriteLegacyBuffer(VkDevice device, uint32_t index, V
 	};
 
 	vkUpdateDescriptorSets(device, 1, &write, 0, nullptr);
+}
+
+void VulkanBindlessManager::SetHeapEntry(uint32_t index, const HeapEntry& entry)
+{
+	std::lock_guard lock(m_heapEntriesMutex);
+	m_heapEntries[index] = entry;
+}
+
+void VulkanBindlessManager::DebugRewriteHeapDescriptors(VkDevice device)
+{
+	vkDeviceWaitIdle(device);
+
+	std::lock_guard lock(m_heapEntriesMutex);
+
+	std::vector<VkDescriptorImageInfo> imageInfos;
+	std::vector<VkDescriptorBufferInfo> bufferInfos;
+	std::vector<VkWriteDescriptorSet> writes;
+	imageInfos.reserve(MaxBindlessDescriptors);
+	bufferInfos.reserve(MaxBindlessDescriptors);
+	writes.reserve(MaxBindlessDescriptors);
+
+	for (uint32_t i = 0; i < MaxBindlessDescriptors; ++i)
+	{
+		const auto& [type, view, layout, buffer, offset, range] = m_heapEntries[i];
+
+		if (type == VK_DESCRIPTOR_TYPE_MAX_ENUM)
+		{
+			continue;
+		}
+
+		VkWriteDescriptorSet write{
+			.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+			.dstSet = m_set,
+			.dstBinding = ResourceHeapBinding,
+			.dstArrayElement = i,
+			.descriptorCount = 1,
+			.descriptorType = type,
+		};
+
+		if (type == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE || type == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE)
+		{
+			imageInfos.push_back({.sampler = VK_NULL_HANDLE, .imageView = view, .imageLayout = layout});
+			write.pImageInfo = &imageInfos.back();
+		}
+		else
+		{
+			bufferInfos.push_back({.buffer = buffer, .offset = offset, .range = range});
+			write.pBufferInfo = &bufferInfos.back();
+		}
+
+		writes.push_back(write);
+	}
+
+	if (!writes.empty())
+	{
+		vkUpdateDescriptorSets(device, static_cast<uint32_t>(writes.size()), writes.data(), 0, nullptr);
+	}
 }
 } // namespace Prism::Render::Vulkan

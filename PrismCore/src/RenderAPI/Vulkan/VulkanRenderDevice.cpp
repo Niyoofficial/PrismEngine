@@ -71,6 +71,8 @@ VulkanRenderDevice::VulkanRenderDevice(const RenderDeviceParams& params) : Rende
 	CreatePipelineCache();
 
 	CreateBindlessManager();
+
+	m_vulkanEveryFrameDescriptorRewrite = params.vulkanEveryFrameDescriptorRewrite;
 }
 
 VulkanRenderDevice::~VulkanRenderDevice()
@@ -265,6 +267,11 @@ void VulkanRenderDevice::BeginRenderFrame()
 		GetVulkanRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
 
 		GetBindlessManager()->ResetResourcesAllocator(m_frameIndex);
+
+		if (m_vulkanEveryFrameDescriptorRewrite)
+		{
+			GetBindlessManager()->DebugRewriteHeapDescriptors(GetDevice());
+		}
 
 		swapchain->PrepareFrame();
 	}
