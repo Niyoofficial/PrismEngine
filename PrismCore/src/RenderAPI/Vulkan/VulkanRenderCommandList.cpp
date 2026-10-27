@@ -789,34 +789,40 @@ void VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
 						continue;
 					}
 
-					const std::wstring memberName = StringToWString(member.name);
-
-					auto it = m_boundResources.find(memberName);
-
-					if (it == m_boundResources.end() || it->second.empty())
-					{
-						continue;
-					}
-
-					RenderResourceView* resourceView = it->second[0].Raw();
-
-					uint32_t bindlessIndex = UINT32_MAX;
-
-					if (auto* textureView = dynamic_cast<VulkanTextureView*>(resourceView))
-					{
-						bindlessIndex = textureView->GetBindlessIndex();
-					}
-					else if (auto* bufferView = dynamic_cast<VulkanBufferView*>(resourceView))
-					{
-						bindlessIndex = bufferView->GetBindlessIndex();
-					}
-
-					PE_ASSERT(bindlessIndex != UINT32_MAX, "Failed to get bindless resource index");
-
-					PE_ASSERT(member.offset + sizeof(uint32_t) <= VulkanBindlessManager::ResourcesSize,
+					PE_ASSERT(member.offset + sizeof(int32_t) <= VulkanBindlessManager::ResourcesSize,
 							  "Resources cbuffer is too large");
 
-					std::memcpy(reinterpret_cast<uint8_t*>(resources.data) + member.offset, &bindlessIndex, sizeof(uint32_t));
+					const std::wstring memberName = StringToWString(member.name);
+
+					// absent resources are represented by -1
+					int32_t bindlessIndex = -1;
+
+					if (const auto it = m_boundResources.find(memberName); it != m_boundResources.end() && !it->second.empty())
+					{
+						RenderResourceView* resourceView = it->second[0].Raw();
+
+						uint32_t resourceIndex = UINT32_MAX;
+
+						if (const auto* textureView = dynamic_cast<VulkanTextureView*>(resourceView))
+						{
+							resourceIndex = textureView->GetBindlessIndex();
+						}
+						else if (const auto* bufferView = dynamic_cast<VulkanBufferView*>(resourceView))
+						{
+							resourceIndex = bufferView->GetBindlessIndex();
+						}
+
+						PE_ASSERT(resourceIndex != UINT32_MAX, "Failed to get bindless resource index");
+
+						PE_ASSERT(resourceIndex <= static_cast<uint32_t>(std::numeric_limits<int32_t>::max()),
+								  "Bindless resource index exceeds int32_t range");
+
+						bindlessIndex = static_cast<int32_t>(resourceIndex);
+					}
+
+					// always write the value, including -1 for missing resources
+					std::memcpy(reinterpret_cast<uint8_t*>(resources.data) + member.offset, &bindlessIndex,
+								sizeof(bindlessIndex));
 				}
 			}
 		}
