@@ -828,9 +828,12 @@ void VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
 		}
 	}
 
-	PE_ASSERT(foundResources, "Shader does not contain Resources cbuffer");
+	if (!foundResources)
+	{
+		PE_RENDER_LOG(Info, "Shader does not use the Resources Uniform Buffer; skipping resource index updates");
+	}
 
-	const uint32_t dynamicOffset = static_cast<uint32_t>(resources.offset);
+	const auto dynamicOffset = static_cast<uint32_t>(resources.offset);
 
 	vkCmdBindDescriptorSets(m_commandBuffer, bindPoint, pipelineLayout, 0, 1, &bindlessSet, 1, &dynamicOffset);
 }

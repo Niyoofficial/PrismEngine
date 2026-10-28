@@ -170,7 +170,7 @@ void VulkanShaderCompiler::CompileShader(const ShaderDesc& desc)
 		L"-fvk-use-dx-layout",
 		L"-fspv-reflect",
 		L"-Zi",
-#if PE_BUILD_DEBUG
+#ifdef PE_BUILD_DEBUG
 		L"-Od",
 #else
 		L"-O3",
