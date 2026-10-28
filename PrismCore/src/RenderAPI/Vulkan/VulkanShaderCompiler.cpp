@@ -55,19 +55,28 @@ VulkanShaderCompiler::VulkanShaderCompiler()
 
 		VulkanShaderCompilerOutput output;
 
-		std::ifstream shaderFile(file.path(), std::ios::binary | std::ios::ate);
-		if (!shaderFile)
 		{
-			continue;
+			std::ifstream shaderFile(file.path(), std::ios::binary | std::ios::ate);
+			if (!shaderFile)
+			{
+				continue;
+			}
+
+			auto size = shaderFile.tellg();
+
+			shaderFile.seekg(0);
+
+			output.spirv.resize(size / sizeof(uint32_t));
+
+			shaderFile.read(reinterpret_cast<char*>(output.spirv.data()), size);
+
+			if (!shaderFile)
+			{
+				PE_RENDER_LOG(Error, "Failed to read shader file {}", file.path().string());
+
+				continue;
+			}
 		}
-
-		auto size = shaderFile.tellg();
-
-		shaderFile.seekg(0);
-
-		output.spirv.resize(size / sizeof(uint32_t));
-
-		shaderFile.read(reinterpret_cast<char*>(output.spirv.data()), size);
 
 		if (SpvReflectResult result = output.reflection.Create(output.spirv.size() * sizeof(uint32_t), output.spirv.data());
 			result != SPV_REFLECT_RESULT_SUCCESS)
@@ -102,8 +111,7 @@ VulkanShaderCompiler::VulkanShaderCompiler()
 	}
 }
 
-const VulkanShaderCompilerOutput&
-VulkanShaderCompiler::GetOrCreateShader(const ShaderDesc& desc)
+const VulkanShaderCompilerOutput& VulkanShaderCompiler::GetOrCreateShader(const ShaderDesc& desc)
 {
 	if (!m_shaderCache.contains(desc))
 	{
@@ -372,8 +380,7 @@ std::wstring VulkanShaderCompiler::GetStringForShader(const ShaderType shaderTyp
 	}
 }
 
-std::wstring VulkanShaderCompiler::GetTargetStringForShader(const ShaderType shaderType, int32_t major,
-																				   int32_t minor) const
+std::wstring VulkanShaderCompiler::GetTargetStringForShader(const ShaderType shaderType, int32_t major, int32_t minor) const
 {
 	return std::format(L"{}_{}_{}", GetStringForShader(shaderType), major, minor);
 }
