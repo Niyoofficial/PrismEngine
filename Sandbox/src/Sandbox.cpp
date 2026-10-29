@@ -813,6 +813,9 @@ void EditorLayer::SelectEntityUnderCursor()
 		.layoutAfter = BarrierLayout::RenderTarget,
 	});
     auto entities = m_scene->RenderHitProxies(m_renderPipeline, renderContext, m_hitProxiesTexture->CreateDefaultRTV(), m_camera);
+	if (entities.empty())
+		return;
+
 	renderContext->SetPSO(ComputePipelineStateDesc{
 		.cs = {
 			.filepath = L"shaders/HitProxy.hlsl",
@@ -861,7 +864,7 @@ void EditorLayer::SelectEntityUnderCursor()
 			void* data = hitProxyOutput->Map(CPUAccess::Read);
 
 			auto ID = *(int32_t*)data;
-			if (ID >= 0)
+			if (ID >= 0 && !entities.empty())
 				m_scene->SetSelectedEntity(entities.at(ID));
 			else
 				m_scene->SetSelectedEntity({});
