@@ -168,6 +168,11 @@ void VulkanShaderCompiler::CompileShader(const ShaderDesc& desc)
 		L"-spirv",
 		L"-fspv-target-env=vulkan1.3",
 		L"-fvk-use-dx-layout",
+		L"-fvk-bind-resource-heap",
+		// see @VulkanBindlessManager.h
+		// use specific ResourceDescriptorHeap index
+		L"8",
+		L"0",
 		L"-fspv-reflect",
 		L"-Zi",
 #ifdef PE_BUILD_DEBUG
