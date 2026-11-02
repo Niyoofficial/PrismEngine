@@ -15,6 +15,8 @@ public:
 
 	static constexpr uint32_t SamplerBindingBegin = 0;
 	static constexpr uint32_t ResourcesBinding = 7;
+	// see @VulkanShaderCompiler
+	// use specific ResourceDescriptorHeap index
 	static constexpr uint32_t ResourceHeapBinding = 8;
 	static constexpr uint32_t LegacyBufferHeapBinding = 9;
 

@@ -722,20 +722,21 @@ void VulkanRenderCommandList::Close()
 void VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
 {
 	auto& device = VulkanRenderDevice::Get();
+	auto* compiler = device.GetVulkanShaderCompiler();
 
 	std::vector<const VulkanShaderReflection*> reflections;
-
-	auto* compiler = device.GetVulkanShaderCompiler();
 
 	if (type == PipelineStateType::Graphics)
 	{
 		const auto& vs = compiler->GetOrCreateShader(m_currentGraphicsPSO.vs);
 		const auto& ps = compiler->GetOrCreateShader(m_currentGraphicsPSO.ps);
+
 		reflections = {&vs.reflection, &ps.reflection};
 	}
 	else
 	{
 		const auto& cs = compiler->GetOrCreateShader(m_currentComputePSO.cs);
+
 		reflections = {&cs.reflection};
 	}
 
@@ -748,10 +749,8 @@ void VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
 
 	const VkDescriptorSet bindlessSet = bindlessManager->GetSet();
 
-	// allocate one Resources slot for this draw/dispatch.
-	const auto resources = bindlessManager->AllocateResources(device.GetFrameIndex());
-
-	bool foundResources = false;
+	VulkanBindlessManager::ResourcesAllocation resources{};
+	bool resourcesAllocated = false;
 
 	for (const auto* reflection : reflections)
 	{
@@ -778,7 +777,11 @@ void VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
 					continue;
 				}
 
-				foundResources = true;
+				if (!resourcesAllocated)
+				{
+					resources = bindlessManager->AllocateResources(device.GetFrameIndex());
+					resourcesAllocated = true;
+				}
 
 				for (uint32_t memberIndex = 0; memberIndex < binding->block.member_count; ++memberIndex)
 				{
@@ -794,7 +797,7 @@ void VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
 
 					const std::wstring memberName = StringToWString(member.name);
 
-					// absent resources are represented by -1
+					// missing resources are represented by -1
 					int32_t bindlessIndex = -1;
 
 					if (const auto it = m_boundResources.find(memberName); it != m_boundResources.end() && !it->second.empty())
@@ -828,12 +831,7 @@ void VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
 		}
 	}
 
-	if (!foundResources)
-	{
-		PE_RENDER_LOG(Info, "Shader does not use the Resources Uniform Buffer; skipping resource index updates");
-	}
-
-	const auto dynamicOffset = static_cast<uint32_t>(resources.offset);
+	const uint32_t dynamicOffset = resourcesAllocated ? static_cast<uint32_t>(resources.offset) : 0u;
 
 	vkCmdBindDescriptorSets(m_commandBuffer, bindPoint, pipelineLayout, 0, 1, &bindlessSet, 1, &dynamicOffset);
 }
