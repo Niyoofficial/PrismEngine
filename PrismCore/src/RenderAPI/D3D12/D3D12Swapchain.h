@@ -17,7 +17,7 @@ class D3D12Swapchain : public Swapchain
 public:
 	D3D12Swapchain(Core::Window* window, SwapchainDesc swapchainDesc);
 
-	virtual void Present() override;
+	virtual void Present(int32_t /*backBufferIndex*/) override;
 	virtual void Resize() override;
 
 	virtual SwapchainDesc GetSwapchainDesc() const override;

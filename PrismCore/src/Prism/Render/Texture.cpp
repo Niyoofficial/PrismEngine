@@ -410,11 +410,17 @@ void Texture::GenerateMipMaps(RenderContext* context)
 		.syncAfter = BarrierSync::Copy,
 		.accessBefore = BarrierAccess::ShaderResource,
 		.accessAfter = BarrierAccess::CopySource,
+// TODO for @Niyoofficial
+// fix barriers incompatibility between Vulkan and D3D12
+#ifdef PE_SUPPORT_VULKAN
+		.layoutBefore = BarrierLayout::UnorderedAccess,
+#elifdef PE_SUPPORT_D3D12
 		.layoutBefore = BarrierLayout::ShaderResource,
+#endif
 		.layoutAfter = BarrierLayout::CopySource,
-		});
+	});
 
-	context->BeginEvent(L"MipMapCopy", {});
+	renderContext->BeginEvent(L"MipMapCopy", {});
 	for (int32_t i = 0; i < GetTextureDesc().GetDepthOrArraySize(); ++i)
 	{
 		for (int32_t j = 0; j < numMipMaps; ++j)
@@ -424,8 +430,8 @@ void Texture::GenerateMipMaps(RenderContext* context)
 				tempTexture, GetSubresourceIndex(j, tempTexture->GetTextureDesc().GetMipLevels(), i, tempTexture->GetTextureDesc().GetDepthOrArraySize()));
 		}
 	}
-	context->EndEvent();
-	
+	renderContext->EndEvent();
+
 	// If the renderContext was passed from the outside, we don't want to submit and flush it but give the control back to the caller
 	if (!context)
 	{

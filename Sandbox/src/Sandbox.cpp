@@ -350,6 +350,12 @@ void EditorLayer::UpdateImGui(Duration delta)
 					auto& io = ImGui::GetIO();
 					ImGui::Text("FPS: %.1f", io.Framerate);
 					ImGui::Text("Frame time: %.2f ms", delta.GetMilliseconds());
+					ImGui::Separator();
+#if PE_SUPPORT_VULKAN
+					ImGui::Text("Vulkan Backend");
+#elif PE_SUPPORT_D3D12
+					ImGui::Text("D3D12 Backend");
+#endif
 				}
 				ImGui::EndChild();
 			}
@@ -715,7 +721,27 @@ void EditorLayer::Update(Duration delta)
 
 	Ref renderContext = RenderDevice::Get().AllocateContext(L"RenderScene");
 
+	renderContext->Barrier(TextureBarrier{
+		.texture = m_editorViewport,
+		.syncBefore = BarrierSync::PixelShading,
+		.syncAfter = BarrierSync::RenderTarget,
+		.accessBefore = BarrierAccess::ShaderResource,
+		.accessAfter = BarrierAccess::RenderTarget,
+		.layoutBefore = BarrierLayout::ShaderResource,
+		.layoutAfter = BarrierLayout::RenderTarget,
+	});
+
 	m_scene->RenderScene(m_renderPipeline, renderContext, m_editorViewportRTV, m_camera);
+
+	renderContext->Barrier(TextureBarrier{
+		.texture = m_editorViewport,
+		.syncBefore = BarrierSync::RenderTarget,
+		.syncAfter = BarrierSync::PixelShading,
+		.accessBefore = BarrierAccess::RenderTarget,
+		.accessAfter = BarrierAccess::ShaderResource,
+		.layoutBefore = BarrierLayout::RenderTarget,
+		.layoutAfter = BarrierLayout::ShaderResource,
+	});
 
 	RenderDevice::Get().SubmitContext(renderContext);
 }
@@ -744,7 +770,7 @@ bool EditorLayer::CheckForViewportResize(glm::int2 viewportSize)
 												   .format = TextureFormat::R11G11B10_Float,
 												   .color = {0.f, 0.f, 0.f, 1.f}
 											   }
-										   }, BarrierLayout::RenderTarget);
+										   }, BarrierLayout::ShaderResource);
 		m_editorViewportRTV = m_editorViewport->CreateDefaultRTV();
 		m_editorViewportSRV = m_editorViewport->CreateDefaultSRV();
 
@@ -787,6 +813,9 @@ void EditorLayer::SelectEntityUnderCursor()
 		.layoutAfter = BarrierLayout::RenderTarget,
 	});
     auto entities = m_scene->RenderHitProxies(m_renderPipeline, renderContext, m_hitProxiesTexture->CreateDefaultRTV(), m_camera);
+	if (entities.empty())
+		return;
+
 	renderContext->SetPSO(ComputePipelineStateDesc{
 		.cs = {
 			.filepath = L"shaders/HitProxy.hlsl",
@@ -835,7 +864,7 @@ void EditorLayer::SelectEntityUnderCursor()
 			void* data = hitProxyOutput->Map(CPUAccess::Read);
 
 			auto ID = *(int32_t*)data;
-			if (ID >= 0)
+			if (ID >= 0 && !entities.empty())
 				m_scene->SetSelectedEntity(entities.at(ID));
 			else
 				m_scene->SetSelectedEntity({});

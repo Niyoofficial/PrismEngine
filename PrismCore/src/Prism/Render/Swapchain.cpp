@@ -10,6 +10,8 @@ Ref<Swapchain> Swapchain::Create(Core::Window* window, SwapchainDesc swapchainDe
 	return Private::CreateSwapchain(window, swapchainDesc);
 }
 
+void Swapchain::PreparePresent() {}
+
 Swapchain::Swapchain(SwapchainDesc desc)
 	: m_desc(desc)
 {

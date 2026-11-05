@@ -23,6 +23,7 @@ Sandbox/RunSandbox-*.bat
 **.DotSettings.user
 **.user
 out/
+cmake-build/
 enc_temp_folder/
 
 # JetBrains IDE files

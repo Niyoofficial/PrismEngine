@@ -76,6 +76,7 @@ private:
 	struct PresentRecordingInfo
 	{
 		Swapchain* swapchain = nullptr;
+		int32_t backBufferIndex = 0;
 	};
 	using RecordingInfo = std::variant<ContextRecordingInfo, PresentRecordingInfo>;
 	std::queue<RecordingInfo> m_recordingQueue;

@@ -50,9 +50,7 @@ Application::Application(int32_t argc, char** argv)
 		if (strcmp(argv[i], "-bypassCmdRecord") == 0)
 			m_bypassCmdRecording = true;
 		else if (strcmp(argv[i], "-enableRenderDebugLayer") == 0)
-			enableRenderDebugLayer = true;
-		else if (strcmp(argv[i], "-initPixLibrary") == 0)
-			initPixLibrary = true;
+			m_enableRenderDebugLayer = true;
 	}
 
 	InitPlatform();
@@ -204,6 +202,8 @@ void Application::InitRenderer(Render::RenderDeviceParams params)
 {
 	using namespace Render;
 
+	params.enableDebugLayer |= m_enableRenderDebugLayer;
+
 	RenderDevice::Create(params);
 	RenderDevice::Get().SetBypassCommandRecording(m_bypassCmdRecording);
 
@@ -342,6 +342,8 @@ void Application::TransitionBackBuffersToPresent()
 			.layoutBefore = Render::BarrierLayout::RenderTarget,
 			.layoutAfter = Render::BarrierLayout::Present
 		});
+
+		window->GetSwapchain()->PreparePresent();
 	}
 
 	Render::RenderDevice::Get().SubmitContext(context);

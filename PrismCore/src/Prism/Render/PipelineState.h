@@ -7,7 +7,7 @@ namespace Prism::Render
 {
 struct GraphicsPipelineStateDesc
 {
-	bool IsValid() const;
+	[[nodiscard]] bool IsValid() const;
 	bool operator==(const GraphicsPipelineStateDesc& other) const;
 
 	ShaderDesc vs;
@@ -22,11 +22,12 @@ struct GraphicsPipelineStateDesc
 	/// depend on whether an application uses multisample render targets.
 	uint32_t sampleMask = 0xFFFFFFFF;
 	SampleDesc sampleDesc;
+	VertexStrideMode vertexStrideMode = VertexStrideMode::Static;
 };
 
 struct ComputePipelineStateDesc
 {
-	bool IsValid() const;
+	[[nodiscard]] bool IsValid() const;
 	bool operator==(const ComputePipelineStateDesc& other) const;
 
 	ShaderDesc cs;
@@ -51,7 +52,8 @@ struct std::hash<Prism::Render::GraphicsPipelineStateDesc>
 			std::hash<BlendStateDesc>()(desc.blendState) ^
 			std::hash<RasterizerStateDesc>()(desc.rasterizerState) ^
 			std::hash<DepthStencilStateDesc>()(desc.depthStencilState) ^
-			std::hash<uint32_t>()(desc.sampleMask);
+			std::hash<uint32_t>()(desc.sampleMask) ^
+			std::hash<VertexStrideMode>()(desc.vertexStrideMode);
 	}
 };
 
