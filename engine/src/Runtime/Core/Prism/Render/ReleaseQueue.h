@@ -31,7 +31,7 @@ public:
 	~ReleaseQueue() = default;
 
 	// Objects MUST be std::move'd into this function
-	void AddResource(T&& resource, uint64_t fenceValue) requires !std::is_lvalue_reference_v<T>
+	void AddResource(T&& resource, uint64_t fenceValue) requires (!std::is_lvalue_reference_v<T>)
 	{
 		m_releaseQueue.emplace(fenceValue, std::move(resource));
 	}

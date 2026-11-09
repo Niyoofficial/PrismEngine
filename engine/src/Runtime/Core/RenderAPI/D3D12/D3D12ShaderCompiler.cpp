@@ -67,8 +67,10 @@ D3D12ShaderCompiler::D3D12ShaderCompiler()
 					.shaderType = (ShaderType)metadata["ShaderDesc"]["shaderType"].as<int32_t>()
 				};
 
-				std::fs::path shaderEnginePath = Core::Paths::Get().GetEngineDir() / desc.filepath;
-				if ((std::fs::exists(desc.filepath.c_str()) && std::fs::is_regular_file(desc.filepath.c_str())) ||
+				const auto shaderEnginePath = Core::Paths::Get().GetEngineAssetsDir() / desc.filepath;
+				const auto shaderProjectPath = Core::Paths::Get().GetProjectAssetsDir() / desc.filepath;
+
+				if ((std::fs::exists(shaderProjectPath.c_str()) && std::fs::is_regular_file(shaderProjectPath.c_str())) ||
 					(std::fs::exists(shaderEnginePath) && std::fs::is_regular_file(shaderEnginePath)))
 				{
 					m_shaderCache[desc] = {hash, output};
@@ -104,10 +106,11 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 {
 	// dxc <shaderName>.hlsl -E <entryPoint> -T <shaderType>_6_8 -Zi -Od -Fo <outputName>.bin -Fd <outputName>.pdb -I -enable-16bit-types
 
-	std::wstring engineInputPath = Core::Paths::Get().GetEngineDir() / desc.filepath;
+	std::wstring engineInputPath = Core::Paths::Get().GetEngineAssetsDir() / desc.filepath;
+	std::wstring projectInputPath = Core::Paths::Get().GetProjectAssetsDir() / desc.filepath;
 
 	ComPtr<IDxcBlobEncoding> source = nullptr;
-	HRESULT result = m_dxcUtils->LoadFile(desc.filepath.c_str(), nullptr, &source);
+	HRESULT result = m_dxcUtils->LoadFile(projectInputPath.c_str(), nullptr, &source);
 	if (FAILED(result))
 	{
 		// If shader wasn't found in the project directory, try to load it from the engine directory

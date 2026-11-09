@@ -1,5 +1,7 @@
 #include "EditorTheme.h"
 
+#include "Prism/Base/Paths.h"
+
 namespace Prism
 {
 static ImVec4 Darken(ImVec4 c, float p) { return { glm::max(0.f, c.x - 1.0f * p), glm::max(0.f, c.y - 1.0f * p), glm::max(0.f, c.z - 1.0f * p), c.w }; }
@@ -115,8 +117,9 @@ void EditorTheme::Init()
 			iconsConfig.OversampleH = iconsConfig.OversampleV = 1;
 			iconsConfig.GlyphMinAdvanceX = 4.0f;
 			iconsConfig.SizePixels = 12.0f;
-			// TODO: Fix this path
-			io.Fonts->AddFontFromFileTTF("../PrismCore/assets/materialdesignicons-webfont.ttf", fontSize, &iconsConfig, iconRanges);
+			io.Fonts->AddFontFromFileTTF(
+				(Core::Paths::Get().GetEngineAssetsDir() / "materialdesignicons-webfont.ttf").string().c_str(),
+				fontSize, &iconsConfig, iconRanges);
 		};
 
 	ImFontConfig fontConfig;
@@ -125,12 +128,17 @@ void EditorTheme::Init()
 	fontConfig.OversampleH = fontConfig.OversampleV = 1;
 	fontConfig.GlyphMinAdvanceX = 4.0f;
 	fontConfig.SizePixels = 12.0f;
-	// TODO: Fix this path
-	s_defaultFont = io.Fonts->AddFontFromFileTTF("../PrismCore/assets/JetBrainsMono-Regular.ttf", 16.f, &fontConfig);
+	s_defaultFont = io.Fonts->AddFontFromFileTTF(
+		(Core::Paths::Get().GetEngineAssetsDir() / "JetBrainsMono-Regular.ttf").string().c_str(), 16.f,
+		&fontConfig);
 	loadIconFont(16.f);
-	s_smallFont = io.Fonts->AddFontFromFileTTF("../PrismCore/assets/JetBrainsMono-Regular.ttf", 12.f, &fontConfig);
+	s_smallFont = io.Fonts->AddFontFromFileTTF(
+		(Core::Paths::Get().GetEngineAssetsDir() / "JetBrainsMono-Regular.ttf").string().c_str(), 12.f,
+		&fontConfig);
 	loadIconFont(12.f);
-	s_boldFont = io.Fonts->AddFontFromFileTTF("../PrismCore/assets/JetBrainsMono-Bold.ttf", 16.f, &fontConfig);
+	s_boldFont = io.Fonts->AddFontFromFileTTF(
+		(Core::Paths::Get().GetEngineAssetsDir() / "JetBrainsMono-Bold.ttf").string().c_str(), 16.f,
+		&fontConfig);
 	loadIconFont(16.f);
 
 	io.Fonts->Build();

@@ -19,8 +19,7 @@ VulkanShaderCompiler::VulkanShaderCompiler()
 	PE_ASSERT(SUCCEEDED(includeHeaderResult), "CreateDefaultIncludeHandler failed: HRESULT = 0x{:08X}",
 			  static_cast<uint32_t>(includeHeaderResult));
 
-	for (std::error_code error;
-		 const auto& file : std::filesystem::directory_iterator(Core::Paths::Get().GetIntermediateDir(), error))
+	for (std::error_code error; const auto& file : std::fs::directory_iterator(Core::Paths::Get().GetIntermediateDir(), error))
 	{
 		if (!file.is_regular_file())
 		{
@@ -94,15 +93,17 @@ VulkanShaderCompiler::VulkanShaderCompiler()
 			.shaderType = static_cast<ShaderType>(metadata["ShaderDesc"]["shaderType"].as<int32_t>()),
 		};
 
-		std::filesystem::path enginePath = Core::Paths::Get().GetEngineDir() / desc.filepath;
+		std::fs::path shaderEnginePath = Core::Paths::Get().GetEngineAssetsDir() / desc.filepath;
+		std::fs::path shaderProjectPath = Core::Paths::Get().GetProjectAssetsDir() / desc.filepath;
 
-		if ((exists(desc.filepath) && is_regular_file(desc.filepath)) || (exists(enginePath) && is_regular_file(enginePath)))
+		if ((exists(shaderProjectPath) && is_regular_file(shaderProjectPath)) ||
+			(exists(shaderEnginePath) && is_regular_file(shaderEnginePath)))
 		{
 			m_shaderCache[desc] = {hash, std::move(output)};
 
 			PE_RENDER_LOG(Info, "Loaded cached shader {}", WStringToString(desc.filepath));
 
-			CompileShader(desc);
+			VulkanShaderCompiler::CompileShader(desc);
 		}
 		else
 		{
@@ -126,14 +127,15 @@ const VulkanShaderCompilerOutput& VulkanShaderCompiler::GetOrCreateShader(const 
 
 void VulkanShaderCompiler::CompileShader(const ShaderDesc& desc)
 {
-	const std::filesystem::path engineInputPath = Core::Paths::Get().GetEngineDir() / desc.filepath;
+	const auto engineInputPath = Core::Paths::Get().GetEngineAssetsDir() / desc.filepath;
+	const auto projectInputPath = Core::Paths::Get().GetProjectAssetsDir() / desc.filepath;
 
 	ComPtr<IDxcBlobEncoding> source;
-
-	HRESULT result = m_dxcUtils->LoadFile(desc.filepath.c_str(), nullptr, &source);
+	HRESULT result = m_dxcUtils->LoadFile(projectInputPath.c_str(), nullptr, &source);
 
 	if (FAILED(result))
 	{
+		// If shader wasn't found in the project directory, try to load it from the engine directory
 		result = m_dxcUtils->LoadFile(engineInputPath.c_str(), nullptr, &source);
 	}
 
@@ -241,7 +243,7 @@ void VulkanShaderCompiler::CompileShader(const ShaderDesc& desc)
 		}
 	}
 
-	std::filesystem::path outputFilepathNoExt = Core::Paths::Get().GetIntermediateDir() / std::to_string(shaderHash);
+	std::fs::path outputFilepathNoExt = Core::Paths::Get().GetIntermediateDir() / std::to_string(shaderHash);
 
 	VulkanShaderCompilerOutput output;
 
@@ -277,7 +279,7 @@ void VulkanShaderCompiler::CompileShader(const ShaderDesc& desc)
 		std::memcpy(output.spirv.data(), spirvBlob->GetBufferPointer(), spirvBlob->GetBufferSize());
 
 		{
-			std::filesystem::create_directories(Core::Paths::Get().GetIntermediateDir());
+			std::fs::create_directories(Core::Paths::Get().GetIntermediateDir());
 
 			auto outputFile = outputFilepathNoExt;
 			outputFile.replace_extension(".spv");
@@ -392,10 +394,10 @@ std::wstring VulkanShaderCompiler::GetTargetStringForShader(const ShaderType sha
 
 void VulkanShaderCompiler::RemoveShaderCache(const uint64_t shaderHash)
 {
-	std::filesystem::path cache = Core::Paths::Get().GetIntermediateDir() / std::to_string(shaderHash);
+	std::fs::path cache = Core::Paths::Get().GetIntermediateDir() / std::to_string(shaderHash);
 
-	std::filesystem::remove(cache.replace_extension(".spv"));
-	std::filesystem::remove(cache.replace_extension(".pdb"));
-	std::filesystem::remove(cache.replace_extension(".meta"));
+	std::fs::remove(cache.replace_extension(".spv"));
+	std::fs::remove(cache.replace_extension(".pdb"));
+	std::fs::remove(cache.replace_extension(".meta"));
 }
 } // namespace Prism::Render::Vulkan
