@@ -1,7 +1,3 @@
-cmake_minimum_required(VERSION 3.26)
-
-set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
 project(Sandbox)
 
 file(GLOB_RECURSE SOURCES
@@ -16,7 +12,7 @@ target_include_directories(${PROJECT_NAME}
 		${PROJECT_SOURCE_DIR}/src
 )
 
-target_link_libraries(${PROJECT_NAME} PUBLIC PrismEngine::Core)
+target_link_libraries(${PROJECT_NAME} PUBLIC PrismEngine::Runtime)
 
 set_property(TARGET Sandbox PROPERTY VS_DEBUGGER_WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}")
 
