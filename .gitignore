@@ -5,7 +5,7 @@
 *.obj
 *.recipe
 **/tmp/
-Sandbox/RunSandbox-*.bat
+samples/Sandbox/RunSandbox-*.bat
 
 # Intermediate
 **/int/

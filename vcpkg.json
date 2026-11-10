@@ -36,7 +36,7 @@
 		"crossguid",
 		"vulkan-memory-allocator",
 		"spirv-reflect",
-		"spirv-headers"
+		"spirv-headers",
 		"nethost"
 	],
 	"overrides": [

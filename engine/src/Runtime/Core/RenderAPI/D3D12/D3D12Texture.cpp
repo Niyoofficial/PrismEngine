@@ -1,0 +1,233 @@
+﻿#include "pcpch.h"
+#include "D3D12Texture.h"
+
+#include "ResourceUploadBatch.h"
+#include "RenderAPI/D3D12/D3D12RenderDevice.h"
+#include "RenderAPI/D3D12/D3D12TypeConversions.h"
+
+#include "WICTextureLoader.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+#include "Prism/AssetManagement/AssetRegistry.h"
+#include "Prism/Render/RenderCommandQueue.h"
+
+#if USE_PIX
+#include "pix3.h"
+#endif
+
+namespace Prism::Render::D3D12
+{
+D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, const TextureDesc& desc, BarrierLayout initLayout)
+	: Texture(renderDevice), m_originalDesc(desc)
+{
+	PE_ASSERT(desc.usage != ResourceUsage::Staging);
+	PE_ASSERT(desc.usage != ResourceUsage::Dynamic);
+
+	auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+	D3D12_RESOURCE_DESC1 d3d12Desc = GetD3D12ResourceDesc(m_originalDesc);
+	D3D12_CLEAR_VALUE d3d12ClearValue = m_originalDesc.optimizedClearValue.has_value()
+											? GetD3D12ClearValue(m_originalDesc.optimizedClearValue.value())
+											: D3D12_CLEAR_VALUE{};
+
+	PE_ASSERT_HR(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12Device()->CreateCommittedResource3(
+		&heapProps, D3D12_HEAP_FLAG_NONE,
+		&d3d12Desc, GetD3D12BarrierLayout(initLayout),
+		m_originalDesc.optimizedClearValue.has_value() ? &d3d12ClearValue : nullptr,
+		nullptr, 0, nullptr,
+		IID_PPV_ARGS(&m_resource)));
+
+	PE_ASSERT_HR(m_resource->SetName(m_originalDesc.textureName.c_str()));
+}
+
+D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, std::fs::path filepath, bool loadAsCubemap, bool waitForLoadFinish)
+	: Texture(renderDevice)
+{
+	auto ext = filepath.extension();
+	auto absPath = AssetRegistry::Get().GetAbsPath(filepath);
+	if (ext == ".hdr")
+	{
+		int32_t width = -1;
+		int32_t height = -1;
+		int32_t channels = -1;
+
+		float* loadedData = stbi_loadf(absPath.string().c_str(), &width, &height, &channels, 4);
+
+		if (!loadedData)
+		{
+			PE_RENDER_LOG(Error, "Could not load texture from filepath {}", filepath.string());
+			return;
+		}
+
+		m_originalDesc = {
+			.textureName = filepath,
+			.width = width,
+			.height = height,
+			.depthOrArraySize = 1,
+			.mipLevels = (int32_t)std::log2f(std::max(width, height)) + 1,
+			.dimension = ResourceDimension::Tex2D,
+			.format = TextureFormat::RGBA32_Float,
+			.bindFlags = BindFlags::ShaderResource,
+			.usage = ResourceUsage::Default
+		};
+
+		auto resDesc = GetD3D12ResourceDesc(m_originalDesc);
+		auto heapProps = CD3DX12_HEAP_PROPERTIES(D3D12_HEAP_TYPE_DEFAULT);
+
+		PE_ASSERT_HR(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12Device()->CreateCommittedResource3(
+			&heapProps, D3D12_HEAP_FLAG_NONE,
+			&resDesc, D3D12_BARRIER_LAYOUT_COMMON,
+			nullptr,
+			nullptr, 0, nullptr,
+			IID_PPV_ARGS(&m_resource)));
+
+		PE_ASSERT(m_resource);
+
+		PE_ASSERT_HR(m_resource->SetName(filepath.wstring().c_str()));
+
+		auto context = m_renderDevice->AllocateContext(std::format(L"LoadHDRImage_{}", filepath.wstring()));
+		context->UpdateTexture(this, {.data = loadedData, .sizeInBytes = (int64_t)(width * height * 4 * 4)}, 0);
+
+		GenerateMipMaps(context);
+
+		m_renderDevice->SubmitContext(context);
+		m_renderDevice->GetRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
+
+		stbi_image_free(loadedData);
+
+		PE_ASSERT(m_resource);
+
+		auto loadedResDesc = m_resource->GetDesc();
+		PE_ASSERT(!loadAsCubemap || resDesc.DepthOrArraySize == 6, "Cubemaps must have an array size of 6");
+
+		m_originalDesc = D3D12::GetTextureDesc(loadedResDesc, filepath.wstring(), ResourceUsage::Default, {}, loadAsCubemap);
+	}
+	else
+	{
+		m_originalDesc = {
+			.textureName = filepath,
+			.format = TextureFormat::RGBA32_Float,
+			.bindFlags = BindFlags::ShaderResource,
+			.usage = ResourceUsage::Default
+		};
+
+		auto* d3d12Device = static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12Device();
+
+		auto func =
+			[loadAsCubemap, d3d12Device, filepath, absPath, this]()
+			{
+#if USE_PIX
+				// This will show up in the PIX event viewer incorrectly because its called asynchronously,
+				// it'd work correctly if the event was called on the cmd list, but we cannot access is from ResourceUploadBatch
+				// and I want to keep this function async since CreateWICTextureFromFileEx can take a while
+				PIXBeginEvent(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12CommandQueue(), PIX_COLOR(0, 0, 0), std::format(L"LoadWICImageFromFile_{}", filepath.wstring()).c_str());
+#endif
+
+				DX::ResourceUploadBatch batch(d3d12Device);
+				batch.Begin();
+				auto hr = DX::CreateWICTextureFromFileEx(d3d12Device, batch, absPath.wstring().c_str(), 0,
+					D3D12_RESOURCE_FLAG_NONE, DX::WIC_LOADER_FORCE_RGBA32 | DX::WIC_LOADER_MIP_AUTOGEN, &m_resource);
+				batch.End(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12CommandQueue()).wait();
+
+#if USE_PIX
+				PIXEndEvent(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12CommandQueue());
+#endif
+
+				if (SUCCEEDED(hr))
+				{
+					PE_ASSERT(m_resource);
+
+					auto resDesc = m_resource->GetDesc();
+					PE_ASSERT(!loadAsCubemap || resDesc.DepthOrArraySize == 6, "Cubemaps must have an array size of 6");
+
+					m_originalDesc = D3D12::GetTextureDesc(resDesc, filepath.wstring(), ResourceUsage::Default, {}, loadAsCubemap);
+				}
+				else
+				{
+					PE_RENDER_LOG(Error, "Could not load texture from filepath {} Error: {} {}", filepath.string(), hr, WStringToString(GetHResultMessage(hr)));
+					return;
+				}
+			};
+
+		if (waitForLoadFinish)
+			func();
+		else
+			m_loadFuture = std::async(std::launch::async, func);
+	}
+}
+
+D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, std::wstring name, void* imageData, int64_t dataSize, bool loadAsCubemap, bool waitForLoadFinish)
+	: Texture(renderDevice)
+{
+	m_originalDesc = {
+		.textureName = name,
+		.format = TextureFormat::RGBA32_Float,
+		.bindFlags = BindFlags::ShaderResource,
+		.usage = ResourceUsage::Default
+	};
+
+	ID3D12Device10* d3d12Device = static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12Device();
+
+	auto func =
+		[loadAsCubemap, d3d12Device, name, imageData, dataSize, this]()
+		{
+#if USE_PIX
+			// This will show up in the PIX event viewer incorrectly because its called asynchronously,
+			// it'd work correctly if the event was called on the cmd list, but we cannot access is from ResourceUploadBatch
+			// and I want to keep this function async since CreateWICTextureFromFileEx can take a while
+			PIXBeginEvent(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12CommandQueue(), PIX_COLOR(0, 0, 0), std::format(L"LoadWICImageFromMemory_{}", name).c_str());
+#endif
+
+			DX::ResourceUploadBatch batch(d3d12Device);
+			batch.Begin();
+			PE_ASSERT_HR(DX::CreateWICTextureFromMemoryEx(d3d12Device, batch, (uint8_t*)imageData, dataSize, 0,
+				D3D12_RESOURCE_FLAG_NONE, DX::WIC_LOADER_FORCE_RGBA32 | DX::WIC_LOADER_MIP_AUTOGEN, &m_resource));
+			batch.End(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12CommandQueue()).wait_for(std::chrono::seconds(0));
+
+#if USE_PIX
+			PIXEndEvent(static_cast<D3D12RenderDevice*>(m_renderDevice)->GetD3D12CommandQueue());
+#endif
+
+			PE_ASSERT(m_resource);
+
+			auto resDesc = m_resource->GetDesc();
+			PE_ASSERT(!loadAsCubemap || resDesc.DepthOrArraySize == 6, "Cubemaps must have an array size of 6");
+
+			m_originalDesc = D3D12::GetTextureDesc(resDesc, name, ResourceUsage::Default, {}, loadAsCubemap);
+		};
+
+	if (waitForLoadFinish)
+		func();
+	else
+		m_loadFuture = std::async(std::launch::async, func);
+}
+
+D3D12Texture::D3D12Texture(D3D12RenderDevice* renderDevice, ID3D12Resource* resource, const std::wstring& name, ResourceUsage usage,
+						   ClearValue optimizedClearValue, bool isCubeTexture)
+	: Texture(renderDevice), m_originalDesc(D3D12::GetTextureDesc(resource->GetDesc(), name, usage, optimizedClearValue, isCubeTexture)),
+	  m_resource(resource)
+{
+	// Release here because assigning to a ComPtr will add another ref
+	resource->Release();
+	PE_ASSERT_HR(m_resource->SetName(m_originalDesc.textureName.c_str()));
+}
+
+void D3D12Texture::WaitForLoadFinish()
+{
+	if (m_loadFuture.valid())
+	{
+		m_loadFuture.wait_for(std::chrono::seconds(0));
+		m_loadFuture = {};
+	}
+}
+
+TextureDesc D3D12Texture::GetTextureDesc() const
+{
+	if (m_resource)
+	{
+		return D3D12::GetTextureDesc(m_resource->GetDesc(), m_originalDesc.textureName,
+									 m_originalDesc.usage, m_originalDesc.optimizedClearValue, m_originalDesc.IsCube());
+	}
+
+	return m_originalDesc;
+}
+}

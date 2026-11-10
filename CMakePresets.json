@@ -8,8 +8,8 @@
 			"binaryDir": "${sourceDir}/cmake-build/vcpkg-visual-2026-dx12",
 			"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
 			"cacheVariables": {
-				"PE_VULKAN_BACKEND": "OFF",
-				"PE_D3D12_BACKEND": "ON"
+				"PE_RENDER_BACKEND_VULKAN": "OFF",
+				"PE_RENDER_BACKEND_D3D12": "ON"
 			}
 		},
 		{
@@ -19,8 +19,8 @@
 			"binaryDir": "${sourceDir}/cmake-build/vcpkg-visual-2026-vulkan",
 			"toolchainFile": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
 			"cacheVariables": {
-				"PE_VULKAN_BACKEND": "ON",
-				"PE_D3D12_BACKEND": "OFF"
+				"PE_RENDER_BACKEND_VULKAN": "ON",
+				"PE_RENDER_BACKEND_D3D12": "OFF"
 			}
 		}
 	],
