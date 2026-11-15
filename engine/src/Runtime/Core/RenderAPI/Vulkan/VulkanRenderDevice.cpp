@@ -20,10 +20,11 @@ constexpr uint32_t applicationVulkanApiVersion = VK_API_VERSION_1_3;
 constexpr std::array<const char*, 1> applicationValidationLayers{
 	"VK_LAYER_KHRONOS_validation",
 };
-constexpr std::array<const char*, 5> applicationDeviceExtensions{
+constexpr std::array<const char*, 6> applicationDeviceExtensions{
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
 	VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME,
+	VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME,
 	VK_GOOGLE_USER_TYPE_EXTENSION_NAME,
 	VK_GOOGLE_HLSL_FUNCTIONALITY_1_EXTENSION_NAME,
 };
@@ -438,9 +439,14 @@ bool VulkanRenderDevice::IsPhysicalDeviceSuitable(const VkPhysicalDevice physica
 		return false;
 	}
 
+	VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeap{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT,
+		.pNext = nullptr,
+	};
+
 	VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableDescriptorType{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,
-		.pNext = nullptr,
+		.pNext = &descriptorHeap,
 	};
 
 	VkPhysicalDeviceExtendedDynamicStateFeaturesEXT extendedDynamicState{
@@ -514,8 +520,15 @@ void VulkanRenderDevice::CreateLogicalDevice()
 		.pQueuePriorities = &queuePriority,
 	};
 
+	VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeap{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT,
+		.descriptorHeap = VK_TRUE,
+		.descriptorHeapCaptureReplay = VK_TRUE,
+	};
+
 	VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT featureMutableDescriptorType{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT,
+		.pNext = &descriptorHeap,
 		.mutableDescriptorType = VK_TRUE,
 	};
 

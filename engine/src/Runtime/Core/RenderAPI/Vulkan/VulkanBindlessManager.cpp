@@ -8,10 +8,16 @@ namespace
 {
 void ValidateBindlessDescriptorLimits(VkPhysicalDevice physicalDevice)
 {
-	VkPhysicalDeviceProperties properties{};
-	vkGetPhysicalDeviceProperties(physicalDevice, &properties);
+	VkPhysicalDeviceDescriptorHeapPropertiesEXT descriptorHeapProperties{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_PROPERTIES_EXT,
+	};
+	VkPhysicalDeviceProperties2 properties2{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2,
+		.pNext = &descriptorHeapProperties,
+	};
+	vkGetPhysicalDeviceProperties2(physicalDevice, &properties2);
 
-	const auto& limits = properties.limits;
+	const auto& limits = properties2.properties.limits;
 
 	PE_ASSERT(limits.maxDescriptorSetStorageBuffers >= Prism::Render::Vulkan::VulkanBindlessManager::MaxBindlessDescriptors * 2u,
 			  "Bindless heap exceeds maxDescriptorSetStorageBuffers");
@@ -37,6 +43,20 @@ void ValidateBindlessDescriptorLimits(VkPhysicalDevice physicalDevice)
 
 	PE_ASSERT(limits.maxPerStageDescriptorStorageImages >= Prism::Render::Vulkan::VulkanBindlessManager::MaxBindlessDescriptors,
 			  "Bindless heap exceeds maxPerStageDescriptorStorageImages");
+
+	PE_ASSERT(descriptorHeapProperties.maxResourceHeapSize > 0, "Resource descriptor heap is not supported");
+
+	PE_ASSERT(descriptorHeapProperties.maxSamplerHeapSize > 0, "Sampler descriptor heap is not supported");
+
+	PE_ASSERT(descriptorHeapProperties.resourceHeapAlignment > 0, "Invalid resource heap alignment");
+
+	PE_ASSERT(descriptorHeapProperties.samplerHeapAlignment > 0, "Invalid sampler heap alignment");
+
+	PE_ASSERT(descriptorHeapProperties.imageDescriptorSize > 0, "Invalid image descriptor size");
+
+	PE_ASSERT(descriptorHeapProperties.bufferDescriptorSize > 0, "Invalid buffer descriptor size");
+
+	PE_ASSERT(descriptorHeapProperties.samplerDescriptorSize > 0, "Invalid sampler descriptor size");
 }
 
 uint32_t FindMemoryType(VkPhysicalDevice physicalDevice, uint32_t typeFilter, VkMemoryPropertyFlags properties)
