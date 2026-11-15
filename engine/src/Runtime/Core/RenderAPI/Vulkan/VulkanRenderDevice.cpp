@@ -20,8 +20,9 @@ constexpr uint32_t applicationVulkanApiVersion = VK_API_VERSION_1_3;
 constexpr std::array<const char*, 1> applicationValidationLayers{
 	"VK_LAYER_KHRONOS_validation",
 };
-constexpr std::array<const char*, 6> applicationDeviceExtensions{
+constexpr std::array<const char*, 7> applicationDeviceExtensions{
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+	VK_KHR_MAINTENANCE_5_EXTENSION_NAME,
 	VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
 	VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME,
 	VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME,
