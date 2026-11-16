@@ -3,6 +3,7 @@
 #include <array>
 #include "Prism/Base/Assert.h"
 #include "VulkanRenderDevice.h"
+#include "VulkanUtils.h"
 
 namespace
 {
@@ -228,6 +229,8 @@ VulkanBindlessManager::VulkanBindlessManager()
 	const auto physicalDevice = VulkanRenderDevice::Get().GetPhysicalDevice();
 
 	CreateResourcesBuffer(device, physicalDevice);
+
+	CreateDescriptorHeaps(device, physicalDevice);
 
 	WriteResourcesBuffer(device, m_resourcesBuffer, 0, ResourcesSize);
 
@@ -463,7 +466,7 @@ void VulkanBindlessManager::CreateResourcesBuffer(VkDevice device, VkPhysicalDev
 
 	m_resourcesAlignment = std::max<VkDeviceSize>(1, properties.limits.minUniformBufferOffsetAlignment);
 
-	m_resourcesStride = AlignResourcesOffset(ResourcesSize);
+	m_resourcesStride = AlignUp(ResourcesSize, m_resourcesAlignment);
 
 	m_resourcesBufferSize = m_resourcesStride * ResourcesRingCapacity * Constants::MAX_FRAMES_IN_FLIGHT;
 
@@ -509,6 +512,11 @@ void VulkanBindlessManager::CreateResourcesBuffer(VkDevice device, VkPhysicalDev
 	}
 }
 
+void VulkanBindlessManager::CreateDescriptorHeaps(VkDevice device, VkPhysicalDevice physicalDevice)
+{
+	// TODO
+}
+
 void VulkanBindlessManager::DestroyResourcesBuffer(VkDevice device)
 {
 	if (m_resourcesMapped)
@@ -531,15 +539,6 @@ void VulkanBindlessManager::DestroyResourcesBuffer(VkDevice device)
 
 		m_resourcesMemory = VK_NULL_HANDLE;
 	}
-}
-
-VkDeviceSize VulkanBindlessManager::AlignResourcesOffset(VkDeviceSize offset) const
-{
-	const VkDeviceSize alignment = m_resourcesAlignment;
-
-	PE_ASSERT(alignment != 0);
-
-	return offset + alignment - 1 & ~(alignment - 1);
 }
 
 VulkanBindlessManager::~VulkanBindlessManager()

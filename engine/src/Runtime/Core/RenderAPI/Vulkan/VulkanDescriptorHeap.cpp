@@ -1,134 +1,104 @@
 #include "VulkanDescriptorHeap.h"
 
 #include "VulkanRenderDevice.h"
+#include "VulkanUtils.h"
 
 namespace Prism::Render::Vulkan
 {
-static VkDeviceSize AlignUp(VkDeviceSize value, VkDeviceSize alignment)
+bool VulkanDescriptorHeap::Create(VkDeviceSize applicationCapacity, VkDeviceSize heapAddressAlignment,
+								  VkDeviceSize reservedOffsetAlignment, VkDeviceSize reservedSize)
 {
-	return (value + alignment - 1) / alignment * alignment;
-}
+	if (m_buffer != VK_NULL_HANDLE || m_allocation != VK_NULL_HANDLE)
+	{
+		return false;
+	}
 
-bool VulkanDescriptorHeap::Create(VkDeviceSize applicationSize, VkDeviceSize heapAlignment, VkDeviceSize reservedSize)
-{
+	if (applicationCapacity == 0 || heapAddressAlignment == 0 || reservedOffsetAlignment == 0 || reservedSize == 0)
+	{
+		return false;
+	}
+
 	const VkDevice device = VulkanRenderDevice::Get().GetDevice();
-	const VkPhysicalDevice physicalDevice = VulkanRenderDevice::Get().GetPhysicalDevice();
+	const VmaAllocator allocator = VulkanRenderDevice::Get().GetAllocator();
 
+	m_reservedOffset = AlignUp(applicationCapacity, reservedOffsetAlignment);
 	m_reservedSize = reservedSize;
-	m_applicationSize = AlignUp(applicationSize, heapAlignment);
-	m_totalSize = m_applicationSize + m_reservedSize;
 
-	VkBufferCreateInfo bufferInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
-								  .size = m_totalSize,
-								  .usage = VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
-								  .sharingMode = VK_SHARING_MODE_EXCLUSIVE};
-
-	if (vkCreateBuffer(device, &bufferInfo, nullptr, &m_buffer) != VK_SUCCESS)
+	if (m_reservedOffset > std::numeric_limits<VkDeviceSize>::max() - m_reservedSize)
 	{
+		Destroy();
 		return false;
 	}
 
-	VkMemoryRequirements requirements{};
-	vkGetBufferMemoryRequirements(device, m_buffer, &requirements);
+	m_totalSize = m_reservedOffset + m_reservedSize;
 
-	VkPhysicalDeviceMemoryProperties memoryProperties{};
-	vkGetPhysicalDeviceMemoryProperties(physicalDevice, &memoryProperties);
-
-	uint32_t memoryType = UINT32_MAX;
-
-	for (uint32_t i = 0; i < memoryProperties.memoryTypeCount; ++i)
-	{
-		if ((requirements.memoryTypeBits & (1u << i)) == 0)
-		{
-			continue;
-		}
-
-		const auto flags = memoryProperties.memoryTypes[i].propertyFlags;
-		const auto required = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-
-		if ((flags & required) == required)
-		{
-			memoryType = i;
-			break;
-		}
-	}
-
-	if (memoryType == UINT32_MAX)
-	{
-		return false;
-	}
-
-	VkMemoryAllocateFlagsInfo flagsInfo{
-		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO,
-		.flags = VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT,
+	const VkBufferCreateInfo bufferInfo{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO,
+		.size = m_totalSize,
+		.usage = VK_BUFFER_USAGE_DESCRIPTOR_HEAP_BIT_EXT | VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT,
+		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 	};
 
-	VkMemoryAllocateInfo allocationInfo{
-		.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO,
-		.pNext = &flagsInfo,
-		.allocationSize = requirements.size,
-		.memoryTypeIndex = memoryType,
+	VmaAllocationCreateInfo allocationInfo{
+		.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
+		.usage = VMA_MEMORY_USAGE_AUTO,
+		.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
 	};
 
-	if (vkAllocateMemory(device, &allocationInfo, nullptr, &m_memory) != VK_SUCCESS)
+	VmaAllocationInfo resultInfo{};
+
+	const VkResult result = vmaCreateBuffer(allocator, &bufferInfo, &allocationInfo, &m_buffer, &m_allocation, &resultInfo);
+
+	if (result != VK_SUCCESS)
 	{
+		Destroy();
 		return false;
 	}
 
-	if (vkBindBufferMemory(device, m_buffer, m_memory, 0) != VK_SUCCESS)
-	{
-		return false;
-	}
+	m_mapped = resultInfo.pMappedData;
 
-	if (vkMapMemory(device, m_memory, 0, requirements.size, 0, &m_mapped) != VK_SUCCESS)
-	{
-		return false;
-	}
-
-	VkBufferDeviceAddressInfo addressInfo{.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO, .buffer = m_buffer};
+	const VkBufferDeviceAddressInfo addressInfo{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+		.buffer = m_buffer,
+	};
 
 	m_deviceAddress = vkGetBufferDeviceAddress(device, &addressInfo);
 
-	if (m_deviceAddress == 0)
+	if (m_deviceAddress == 0 || m_deviceAddress % heapAddressAlignment != 0 || m_mapped == nullptr)
 	{
+		Destroy();
 		return false;
 	}
-
-	std::memset(m_mapped, 0, requirements.size);
 
 	return true;
 }
 
 void VulkanDescriptorHeap::Destroy()
 {
-	const VkDevice device = VulkanRenderDevice::Get().GetDevice();
+	const VmaAllocator allocator = VulkanRenderDevice::Get().GetAllocator();
 
-	if (m_mapped)
+	if (m_buffer != VK_NULL_HANDLE && m_allocation != VK_NULL_HANDLE)
 	{
-		vkUnmapMemory(device, m_memory);
-		m_mapped = nullptr;
+		vmaDestroyBuffer(allocator, m_buffer, m_allocation);
 	}
 
-	if (m_buffer != VK_NULL_HANDLE)
-	{
-		vkDestroyBuffer(device, m_buffer, nullptr);
-		m_buffer = VK_NULL_HANDLE;
-	}
+	m_buffer = VK_NULL_HANDLE;
+	m_allocation = VK_NULL_HANDLE;
 
-	if (m_memory != VK_NULL_HANDLE)
-	{
-		vkFreeMemory(device, m_memory, nullptr);
-		m_memory = VK_NULL_HANDLE;
-	}
-
+	m_mapped = nullptr;
 	m_deviceAddress = 0;
-	m_totalSize = 0;
-	m_applicationSize = 0;
+
+	m_reservedOffset = 0;
 	m_reservedSize = 0;
+	m_totalSize = 0;
 }
 
 VkBindHeapInfoEXT VulkanDescriptorHeap::GetBindHeapInfo() const
 {
+	PE_ASSERT(m_buffer != VK_NULL_HANDLE);
+	PE_ASSERT(m_deviceAddress != 0);
+	PE_ASSERT(m_totalSize != 0);
+
 	return VkBindHeapInfoEXT{
 		.sType = VK_STRUCTURE_TYPE_BIND_HEAP_INFO_EXT,
 		.heapRange =
@@ -136,7 +106,7 @@ VkBindHeapInfoEXT VulkanDescriptorHeap::GetBindHeapInfo() const
 				.address = m_deviceAddress,
 				.size = m_totalSize,
 			},
-		.reservedRangeOffset = m_applicationSize,
+		.reservedRangeOffset = m_reservedOffset,
 		.reservedRangeSize = m_reservedSize,
 	};
 }

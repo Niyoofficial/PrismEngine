@@ -593,6 +593,7 @@ void VulkanRenderDevice::CreateLogicalDevice()
 void VulkanRenderDevice::CreateAllocator()
 {
 	const VmaAllocatorCreateInfo allocatorInfo{
+		.flags = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT,
 		.physicalDevice = m_physicalDevice,
 		.device = m_device,
 		.instance = m_instance,

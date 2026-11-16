@@ -74,9 +74,9 @@ private:
 
 	void CreateResourcesBuffer(VkDevice device, VkPhysicalDevice physicalDevice);
 
-	void DestroyResourcesBuffer(VkDevice device);
+	void CreateDescriptorHeaps(VkDevice device, VkPhysicalDevice physicalDevice);
 
-	[[nodiscard]] VkDeviceSize AlignResourcesOffset(VkDeviceSize offset) const;
+	void DestroyResourcesBuffer(VkDevice device);
 
 	struct FreeList
 	{
