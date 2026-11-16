@@ -555,6 +555,7 @@ void VulkanRenderDevice::CreateLogicalDevice()
 		.descriptorBindingVariableDescriptorCount = VK_TRUE,
 		.runtimeDescriptorArray = VK_TRUE,
 		.timelineSemaphore = VK_TRUE,
+		.bufferDeviceAddress = VK_TRUE,
 	};
 
 	VkPhysicalDeviceVulkan13Features features13{
