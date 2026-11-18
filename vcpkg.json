@@ -12,7 +12,10 @@
 		"assimp",
 		"directx12-agility",
 		"directxtk12",
-		"directx-dxc",
+		{
+			"name": "directx-dxc",
+			"version>=": "2026-09-29"
+		},
 		{
 			"name": "spdlog",
 			"features": [
@@ -46,10 +49,6 @@
 		{
 			"name": "directx12-agility",
 			"version": "1.616.1"
-		},
-		{
-			"name": "directx-dxc",
-			"version-date": "2025-05-30"
 		},
 		{
 			"name": "imgui",
