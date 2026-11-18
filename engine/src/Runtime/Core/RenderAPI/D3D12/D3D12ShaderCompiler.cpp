@@ -178,6 +178,7 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 			PE_ASSERT_HR(results->GetOutput(DXC_OUT_HLSL, IID_PPV_ARGS(&preprocess), nullptr));
 			if (!preprocess)
 			{
+				PE_D3D12_LOG(Error, "Shader preprocess failed! Filename: {} Entryname: {}", desc.filepath, desc.entryName);
 				return;
 			}
 
