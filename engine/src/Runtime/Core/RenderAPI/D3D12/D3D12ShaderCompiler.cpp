@@ -176,6 +176,10 @@ void D3D12ShaderCompiler::CompileShader(const ShaderDesc& desc)
 		{
 			ComPtr<IDxcBlobUtf8> preprocess;
 			PE_ASSERT_HR(results->GetOutput(DXC_OUT_HLSL, IID_PPV_ARGS(&preprocess), nullptr));
+			if (!preprocess)
+			{
+				return;
+			}
 
 			auto* hashState = XXH3_createState();
 
