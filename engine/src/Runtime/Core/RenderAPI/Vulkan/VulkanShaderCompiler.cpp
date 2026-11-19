@@ -172,6 +172,10 @@ void VulkanShaderCompiler::CompileShader(const ShaderDesc& desc)
 		L"-fspv-use-descriptor-heap",
 		L"-fvk-use-dx-layout",
 		L"-fspv-reflect",
+		// TODO
+		// temporary remove validation while working on DescriptorHeaps
+		// vulkan validation layers will handle most of the errors
+		L"-Vd",
 		L"-Zi",
 #ifdef PE_BUILD_DEBUG
 		L"-Od",
@@ -199,12 +203,27 @@ void VulkanShaderCompiler::CompileShader(const ShaderDesc& desc)
 												   m_dxcIncludeHandler.Get(), IID_PPV_ARGS(&results))));
 
 		{
+			HRESULT status = S_FALSE;
+			HRESULT getStatusResult = results->GetStatus(&status);
+			PE_ASSERT(SUCCEEDED(getStatusResult), "Failed to get DXC compilation status");
+
 			ComPtr<IDxcBlobUtf8> errors;
 
 			PE_ASSERT(SUCCEEDED(results->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr)));
 
-			PE_ASSERT(!errors || errors->GetStringLength() == 0, "Shader preprocessing failed!\nFile: {}\nEntry: {}\n{}",
-					  WStringToString(desc.filepath), WStringToString(desc.entryName), errors ? errors->GetStringPointer() : "");
+			if (errors && errors->GetStringLength() > 0)
+			{
+				if (FAILED(status))
+				{
+					PE_ASSERT(false, "Shader preprocessing failed!\nFile: {}\nEntry: {}\n{}", WStringToString(desc.filepath),
+							  WStringToString(desc.entryName), errors->GetStringPointer());
+				}
+				else
+				{
+					PE_RENDER_LOG(Warn, "Shader preprocessing warnings:\nFile: {}\nEntry: {}\n{}", WStringToString(desc.filepath),
+								  WStringToString(desc.entryName), errors->GetStringPointer());
+				}
+			}
 		}
 
 		{
@@ -253,16 +272,26 @@ void VulkanShaderCompiler::CompileShader(const ShaderDesc& desc)
 												   m_dxcIncludeHandler.Get(), IID_PPV_ARGS(&results))));
 
 		{
+			HRESULT status = S_FALSE;
+			HRESULT getStatusResult = results->GetStatus(&status);
+			PE_ASSERT(SUCCEEDED(getStatusResult), "Failed to get DXC compilation status");
+
 			ComPtr<IDxcBlobUtf8> errors;
 
 			PE_ASSERT(SUCCEEDED(results->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&errors), nullptr)));
 
-			if (errors && errors->GetStringLength() != 0)
+			if (errors && errors->GetStringLength() > 0)
 			{
-				PE_RENDER_LOG(Error, "Shader compilation failed!\nFile: {}\nEntry: {}\n{}", WStringToString(desc.filepath),
-							  WStringToString(desc.entryName), errors->GetStringPointer());
+				if (FAILED(status))
+				{
+					PE_RENDER_LOG(Error, "Shader compilation failed!\nFile: {}\nEntry: {}\n{}", WStringToString(desc.filepath),
+								  WStringToString(desc.entryName), errors->GetStringPointer());
 
-				return;
+					return;
+				}
+
+				PE_RENDER_LOG(Warn, "Shader compilation warnings:\nFile: {}\nEntry: {}\n{}", WStringToString(desc.filepath),
+							  WStringToString(desc.entryName), errors->GetStringPointer());
 			}
 		}
 
