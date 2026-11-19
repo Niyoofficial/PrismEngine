@@ -20,7 +20,7 @@ constexpr uint32_t applicationVulkanApiVersion = VK_API_VERSION_1_3;
 constexpr std::array<const char*, 1> applicationValidationLayers{
 	"VK_LAYER_KHRONOS_validation",
 };
-constexpr std::array<const char*, 7> applicationDeviceExtensions{
+constexpr std::array<const char*, 8> applicationDeviceExtensions{
 	VK_KHR_SWAPCHAIN_EXTENSION_NAME,
 	VK_KHR_MAINTENANCE_5_EXTENSION_NAME,
 	VK_EXT_EXTENDED_DYNAMIC_STATE_EXTENSION_NAME,
@@ -28,6 +28,7 @@ constexpr std::array<const char*, 7> applicationDeviceExtensions{
 	VK_EXT_DESCRIPTOR_HEAP_EXTENSION_NAME,
 	VK_GOOGLE_USER_TYPE_EXTENSION_NAME,
 	VK_GOOGLE_HLSL_FUNCTIONALITY_1_EXTENSION_NAME,
+	VK_KHR_SHADER_UNTYPED_POINTERS_EXTENSION_NAME,
 };
 constexpr int64_t defaultVulkanMemoryAlignment = 256;
 constexpr uint32_t defaultImGuiDescriptorPoolSize = 1000;
@@ -66,8 +67,6 @@ VulkanRenderDevice::VulkanRenderDevice(const RenderDeviceParams& params) : Rende
 
 	InitDeviceSubsystems();
 
-	CreateDescriptorSetLayoutCache();
-
 	CreatePipelineLayoutCache();
 
 	CreatePipelineCache();
@@ -82,7 +81,6 @@ VulkanRenderDevice::~VulkanRenderDevice()
 	m_bindlessManager.reset();
 	m_pipelineCache.reset();
 	m_pipelineLayoutCache.reset();
-	m_descriptorSetLayoutCache.reset();
 
 	if (m_allocator)
 	{
@@ -266,12 +264,6 @@ void VulkanRenderDevice::BeginRenderFrame()
 		// implement proper swapchain image acquisition and synchronization
 		GetVulkanRenderCommandQueue()->Flush(CommandQueueFlushType::WaitForCompletion);
 
-		GetBindlessManager()->ResetResourcesAllocator(m_frameIndex);
-
-#ifdef PE_BUILD_DEBUG
-		GetBindlessManager()->DebugRewriteHeapDescriptors(GetDevice());
-#endif
-
 		swapchain->PrepareFrame();
 	}
 
@@ -440,9 +432,14 @@ bool VulkanRenderDevice::IsPhysicalDeviceSuitable(const VkPhysicalDevice physica
 		return false;
 	}
 
+	VkPhysicalDeviceShaderUntypedPointersFeaturesKHR shaderUntypedPointers{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_UNTYPED_POINTERS_FEATURES_KHR,
+		.pNext = nullptr,
+	};
+
 	VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeap{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT,
-		.pNext = nullptr,
+		.pNext = &shaderUntypedPointers,
 	};
 
 	VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableDescriptorType{
@@ -472,13 +469,14 @@ bool VulkanRenderDevice::IsPhysicalDeviceSuitable(const VkPhysicalDevice physica
 
 	vkGetPhysicalDeviceFeatures2(physicalDevice, &features);
 
-	return mutableDescriptorType.mutableDescriptorType && extendedDynamicState.extendedDynamicState &&
-		features13.dynamicRendering && features13.synchronization2 && features12.shaderFloat16 &&
-		features12.shaderUniformBufferArrayNonUniformIndexing && features12.shaderSampledImageArrayNonUniformIndexing &&
-		features12.shaderStorageBufferArrayNonUniformIndexing && features12.shaderStorageImageArrayNonUniformIndexing &&
-		features12.descriptorBindingUniformBufferUpdateAfterBind && features12.descriptorBindingSampledImageUpdateAfterBind &&
-		features12.descriptorBindingStorageImageUpdateAfterBind && features12.descriptorBindingStorageBufferUpdateAfterBind &&
-		features12.descriptorBindingPartiallyBound && features12.runtimeDescriptorArray && features12.timelineSemaphore && [&]
+	return shaderUntypedPointers.shaderUntypedPointers && descriptorHeap.descriptorHeap &&
+		mutableDescriptorType.mutableDescriptorType && extendedDynamicState.extendedDynamicState && features13.dynamicRendering &&
+		features13.synchronization2 && features12.shaderFloat16 && features12.shaderUniformBufferArrayNonUniformIndexing &&
+		features12.shaderSampledImageArrayNonUniformIndexing && features12.shaderStorageBufferArrayNonUniformIndexing &&
+		features12.shaderStorageImageArrayNonUniformIndexing && features12.descriptorBindingUniformBufferUpdateAfterBind &&
+		features12.descriptorBindingSampledImageUpdateAfterBind && features12.descriptorBindingStorageImageUpdateAfterBind &&
+		features12.descriptorBindingStorageBufferUpdateAfterBind && features12.descriptorBindingPartiallyBound &&
+		features12.runtimeDescriptorArray && features12.timelineSemaphore && [&]
 	{
 		VkPhysicalDeviceFeatures coreFeatures{};
 		vkGetPhysicalDeviceFeatures(physicalDevice, &coreFeatures);
@@ -521,8 +519,14 @@ void VulkanRenderDevice::CreateLogicalDevice()
 		.pQueuePriorities = &queuePriority,
 	};
 
+	VkPhysicalDeviceShaderUntypedPointersFeaturesKHR shaderUntypedPointers{
+		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_SHADER_UNTYPED_POINTERS_FEATURES_KHR,
+		.shaderUntypedPointers = VK_TRUE,
+	};
+
 	VkPhysicalDeviceDescriptorHeapFeaturesEXT descriptorHeap{
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT,
+		.pNext = &shaderUntypedPointers,
 		.descriptorHeap = VK_TRUE,
 		.descriptorHeapCaptureReplay = VK_TRUE,
 	};
@@ -630,15 +634,7 @@ uint32_t VulkanRenderDevice::FindGraphicsQueueFamilyIndex(const VkPhysicalDevice
 	return UINT32_MAX;
 }
 
-void VulkanRenderDevice::CreateDescriptorSetLayoutCache()
-{
-	m_descriptorSetLayoutCache = std::make_unique<VulkanDescriptorSetLayoutCache>();
-}
-
-void VulkanRenderDevice::CreatePipelineLayoutCache()
-{
-	m_pipelineLayoutCache = std::make_unique<VulkanPipelineLayoutCache>(*m_descriptorSetLayoutCache);
-}
+void VulkanRenderDevice::CreatePipelineLayoutCache() { m_pipelineLayoutCache = std::make_unique<VulkanPipelineLayoutCache>(); }
 
 void VulkanRenderDevice::CreatePipelineCache() { m_pipelineCache = std::make_unique<VulkanPipelineCache>(); }
 

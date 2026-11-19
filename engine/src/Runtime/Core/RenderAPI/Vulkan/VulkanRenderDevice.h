@@ -10,7 +10,6 @@
 
 namespace Prism::Render::Vulkan
 {
-class VulkanDescriptorSetLayoutCache;
 class VulkanPipelineLayoutCache;
 class VulkanRenderCommandQueue;
 
@@ -101,8 +100,6 @@ private:
 
 	uint32_t FindGraphicsQueueFamilyIndex(VkPhysicalDevice physicalDevice) const;
 
-	void CreateDescriptorSetLayoutCache();
-
 	void CreatePipelineLayoutCache();
 
 	void CreatePipelineCache();
@@ -117,7 +114,6 @@ private:
 	VkDebugUtilsMessengerEXT m_debugMessenger = VK_NULL_HANDLE;
 
 	std::unique_ptr<VulkanRenderCommandQueue> m_commandQueue;
-	std::unique_ptr<VulkanDescriptorSetLayoutCache> m_descriptorSetLayoutCache;
 	std::unique_ptr<VulkanPipelineLayoutCache> m_pipelineLayoutCache;
 	std::unique_ptr<VulkanPipelineCache> m_pipelineCache;
 	std::unique_ptr<VulkanBindlessManager> m_bindlessManager;
