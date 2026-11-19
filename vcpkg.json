@@ -42,8 +42,14 @@
 			"version>=": "1.4.341.0"
 		},
 		"vulkan-memory-allocator",
-		"spirv-reflect",
-		"spirv-headers"
+		{
+			"name": "spirv-reflect",
+			"version>=": "1.4.363.0"
+		},
+		{
+			"name": "spirv-headers",
+			"version>=": "1.4.363.0"
+		}
 	],
 	"overrides": [
 		{
