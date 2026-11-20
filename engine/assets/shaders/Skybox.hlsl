@@ -1,11 +1,10 @@
 #include "Common.hlsli"
 #include "BindlessResources.hlsli"
 
-cbuffer Resources
-{
+RESOURCE_INDICES(SkyboxResources,
 	int g_sceneBuffer;
 	int g_skybox;
-}
+)
 
 struct SceneBuffer
 {
@@ -33,7 +32,7 @@ struct PixelInputCube
 
 PixelInputCube vsmain(VertexInput vin)
 {
-    SceneBuffer sceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(SceneBuffer, g_sceneBuffer);
+    SceneBuffer sceneBuffer = ResourceDescriptorHeap[Resources.g_sceneBuffer];
 
 	PixelInputCube vout;
 	
@@ -46,7 +45,7 @@ PixelInputCube vsmain(VertexInput vin)
 
 float4 psmain(PixelInputCube pin) : SV_TARGET
 {
-	TextureCube skybox = ResourceDescriptorHeap[g_skybox];
+	TextureCube skybox = ResourceDescriptorHeap[Resources.g_skybox];
 
 	float3 color = skybox.SampleLevel(g_samLinearWrap, pin.positionLocal, 0).rgb;
 	

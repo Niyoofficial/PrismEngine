@@ -33,16 +33,14 @@ struct Info
     float2 texelSize;	// 1.0 / g_outMip1.Dimensions
 };
 
-cbuffer Resources
-{
+RESOURCE_INDICES(MipsResources,
     int g_infoBuffer;
-    
     int g_outMip1;
     int g_outMip2;
     int g_outMip3;
     int g_outMip4;
     int g_srcMip;
-}
+);
 
 // The reason for separating channels is to reduce bank conflicts in the
 // local data memory controller.  A large stride will cause more threads
@@ -86,13 +84,13 @@ float4 PackColor(float4 Linear)
 [numthreads( 8, 8, 1 )]
 void main( uint GI : SV_GroupIndex, uint3 DTid : SV_DispatchThreadID )
 {
-    Info info = GET_BINDLESS_UNIFORM_BUFFER(Info, g_infoBuffer);
+    ConstantBuffer<Info> info = ResourceDescriptorHeap[Resources.g_infoBuffer];
 
-    RWTexture2D<float4> outMip1 = ResourceDescriptorHeap[g_outMip1];
-    RWTexture2D<float4> outMip2 = ResourceDescriptorHeap[g_outMip2];
-    RWTexture2D<float4> outMip3 = ResourceDescriptorHeap[g_outMip3];
-    RWTexture2D<float4> outMip4 = ResourceDescriptorHeap[g_outMip4];
-    Texture2D<float4> srcMip = ResourceDescriptorHeap[g_srcMip];
+    RWTexture2D<float4> outMip1 = ResourceDescriptorHeap[Resources.g_outMip1];
+    RWTexture2D<float4> outMip2 = ResourceDescriptorHeap[Resources.g_outMip2];
+    RWTexture2D<float4> outMip3 = ResourceDescriptorHeap[Resources.g_outMip3];
+    RWTexture2D<float4> outMip4 = ResourceDescriptorHeap[Resources.g_outMip4];
+    Texture2D<float4> srcMip = ResourceDescriptorHeap[Resources.g_srcMip];
 
     // One bilinear sample is insufficient when scaling down by more than 2x.
     // You will slightly undersample in the case where the source dimension

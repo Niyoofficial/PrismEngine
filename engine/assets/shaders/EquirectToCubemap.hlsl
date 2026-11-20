@@ -1,3 +1,5 @@
+#include "BindlessResources.hlsli"
+
 #define CUBEMAP_RESOLUTION 2048
 
 SamplerState g_samPointWrap : register(s0);
@@ -8,11 +10,10 @@ SamplerState g_samAnisotropicWrap : register(s4);
 SamplerState g_samAnisotropicClamp : register(s5);
 SamplerComparisonState g_samShadow : register(s6);
 
-cbuffer Resources
-{
+RESOURCE_INDICES(EquirectResources,
 	int g_environment;
 	int g_skybox;
-};
+);
 
 static const float PI = 3.14159265359f;
 static const float TwoPI = 2 * PI;
@@ -21,8 +22,8 @@ static const float TwoPI = 2 * PI;
 void main(int3 groupThreadID : SV_GroupThreadID,
 		  int3 dispatchThreadID : SV_DispatchThreadID)
 {
-	Texture2D environment = ResourceDescriptorHeap[g_environment];
-	RWTexture2DArray<float4> skybox = ResourceDescriptorHeap[g_skybox];
+	Texture2D environment = ResourceDescriptorHeap[Resources.g_environment];
+	RWTexture2DArray<float4> skybox = ResourceDescriptorHeap[Resources.g_skybox];
 	
 	float x = ((float)dispatchThreadID.x / (CUBEMAP_RESOLUTION - 1.f)) * 2.f - 1.f;
 	float y = ((float)dispatchThreadID.y / (CUBEMAP_RESOLUTION - 1.f)) * 2.f - 1.f;

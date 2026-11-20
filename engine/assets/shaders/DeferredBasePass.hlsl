@@ -1,10 +1,8 @@
 #include "Common.hlsli"
 #include "BindlessResources.hlsli"
 
-cbuffer Resources
-{
+RESOURCE_INDICES(BasePassResources,
 	int g_sceneBuffer;
-
 	int g_primitiveBuffer;
 	int g_albedoTexture;
 	int g_metallicTexture;
@@ -12,7 +10,7 @@ cbuffer Resources
 	int g_aoTexture;
 	int g_normalTexture;
 	int g_emissiveTexture;
-}
+);
 
 struct SceneBuffer
 {
@@ -48,8 +46,8 @@ struct PixelInput
 
 PixelInput vsmain(VertexInput vin)
 {
-    SceneBuffer sceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(SceneBuffer, g_sceneBuffer);
-    PrimitiveBuffer primitiveBuffer = GET_BINDLESS_UNIFORM_BUFFER(PrimitiveBuffer, g_primitiveBuffer);
+    ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[Resources.g_sceneBuffer];
+    ConstantBuffer<PrimitiveBuffer> primitiveBuffer = ResourceDescriptorHeap[Resources.g_primitiveBuffer];
 
 	PixelInput vout;
 	
@@ -75,7 +73,7 @@ struct PixelOutput
 
 PixelOutput psmain(PixelInput pin)
 {
-	PrimitiveBuffer primitiveBuffer = GET_BINDLESS_UNIFORM_BUFFER(PrimitiveBuffer, g_primitiveBuffer);
+	ConstantBuffer<PrimitiveBuffer> primitiveBuffer = ResourceDescriptorHeap[Resources.g_primitiveBuffer];
 
 	float3 normal = normalize(pin.normalWorld);
 	float3 tangent = normalize(pin.tangentWorld);
@@ -86,38 +84,38 @@ PixelOutput psmain(PixelInput pin)
 	float roughness = primitiveBuffer.material.roughness;
 	float ao = primitiveBuffer.material.ao;
 	float alpha = 1.f;
-	if (g_albedoTexture != -1)
+	if (Resources.g_albedoTexture != -1)
 	{
-		Texture2D albedoTexture = ResourceDescriptorHeap[g_albedoTexture];
+		Texture2D albedoTexture = ResourceDescriptorHeap[Resources.g_albedoTexture];
 		albedo *= albedoTexture.Sample(g_samLinearWrap, pin.texCoords).rgb;
 		alpha = albedoTexture.Sample(g_samLinearWrap, pin.texCoords).a;
 	}
 	
 	//clip(alpha - 0.1f);
 	
-	if (g_metallicTexture != -1)
+	if (Resources.g_metallicTexture != -1)
 	{
-		Texture2D metallicTexture = ResourceDescriptorHeap[g_metallicTexture];
+		Texture2D metallicTexture = ResourceDescriptorHeap[Resources.g_metallicTexture];
 		metallic *= metallicTexture.Sample(g_samLinearWrap, pin.texCoords).b;
 	}
-	if (g_roughnessTexture != -1)
+	if (Resources.g_roughnessTexture != -1)
 	{
-		Texture2D roughnessTexture = ResourceDescriptorHeap[g_roughnessTexture];
+		Texture2D roughnessTexture = ResourceDescriptorHeap[Resources.g_roughnessTexture];
 		roughness *= roughnessTexture.Sample(g_samLinearWrap, pin.texCoords).g;
 	}
-	if (g_aoTexture != -1)
+	if (Resources.g_aoTexture != -1)
 	{
-		Texture2D aoTexture = ResourceDescriptorHeap[g_aoTexture];
+		Texture2D aoTexture = ResourceDescriptorHeap[Resources.g_aoTexture];
 		ao *= aoTexture.Sample(g_samLinearWrap, pin.texCoords).r;
 	}
-	if (g_normalTexture != -1)
+	if (Resources.g_normalTexture != -1)
 	{
-		Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
+		Texture2D normalTexture = ResourceDescriptorHeap[Resources.g_normalTexture];
 		normal = NormalSampleToWorldSpace(normalTexture.Sample(g_samLinearWrap, pin.texCoords).rgb, primitiveBuffer.normalMatrix, normal, tangent, bitangent);
 	}
-    if (g_emissiveTexture != -1)
+    if (Resources.g_emissiveTexture != -1)
     {
-        Texture2D emissiveTexture = ResourceDescriptorHeap[g_normalTexture];
+        Texture2D emissiveTexture = ResourceDescriptorHeap[Resources.g_normalTexture];
         //albedo = NormalSampleToWorldSpace(emissiveTexture.Sample(g_samLinearWrap, pin.texCoords).rgb, primitiveBuffer.normalMatrix, normal, tangent, bitangent);
     }
 

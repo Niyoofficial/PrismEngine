@@ -1,17 +1,15 @@
 #include "BRDF.hlsli"
 #include "BindlessResources.hlsli"
 
-cbuffer Resources
-{
+RESOURCE_INDICES(LightingResources,
 	int g_sceneBuffer;
 	int g_dirLightPassBuffer;
 	int g_shadowMap;
-
 	int g_colorTexture;
 	int g_normalTexture;
 	int g_roughnessMetalAOTexture;
 	int g_depthTexture;
-}
+);
 
 struct SceneBuffer
 {
@@ -67,14 +65,14 @@ float3 CalcLight(BRDFSurface surface, float3 lightColor, float3 toLight, float3 
 
 float4 psmain(VertexOut pin) : SV_Target
 {
-	SceneBuffer sceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(SceneBuffer, g_sceneBuffer);
-	DirectionalLightPassBuffer dirLightPassBuffer = GET_BINDLESS_UNIFORM_BUFFER(DirectionalLightPassBuffer, g_dirLightPassBuffer);
+	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[Resources.g_sceneBuffer];
+	ConstantBuffer<DirectionalLightPassBuffer> dirLightPassBuffer = ResourceDescriptorHeap[Resources.g_dirLightPassBuffer];
 	
-	Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
-	Texture2D roughnessMetalAOTexture = ResourceDescriptorHeap[g_roughnessMetalAOTexture];
-	Texture2D albedoTexture = ResourceDescriptorHeap[g_colorTexture];
-	Texture2D<float> depthTexture = ResourceDescriptorHeap[g_depthTexture];
-	Texture2D shadowMap = ResourceDescriptorHeap[g_shadowMap];
+	Texture2D normalTexture = ResourceDescriptorHeap[Resources.g_normalTexture];
+	Texture2D roughnessMetalAOTexture = ResourceDescriptorHeap[Resources.g_roughnessMetalAOTexture];
+	Texture2D albedoTexture = ResourceDescriptorHeap[Resources.g_colorTexture];
+	Texture2D<float> depthTexture = ResourceDescriptorHeap[Resources.g_depthTexture];
+	Texture2D shadowMap = ResourceDescriptorHeap[Resources.g_shadowMap];
 
 	BRDFSurface surface;
 	surface.albedo = albedoTexture.Sample(g_samLinearWrap, pin.texCoords).rgb;

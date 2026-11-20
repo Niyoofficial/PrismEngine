@@ -1,13 +1,12 @@
 #include "Common.hlsli"
 #include "BindlessResources.hlsli"
 
-cbuffer Resources
-{
+RESOURCE_INDICES(BloomResources,
 	int g_bloomSettings;
 	int g_inputTexture;
 	int g_outputTexture;
 	int g_accumulationTexture;
-}
+);
 
 struct BloomSettings
 {
@@ -83,9 +82,9 @@ float3 UpsampleTent9Tap(Texture2D tex, SamplerState sam, float2 uv, float lod, f
 [numthreads(4, 4, 1)]
 void Prefilter(int3 dispatchThreadID : SV_DispatchThreadID)
 {	
-	BloomSettings bloomSettings = GET_BINDLESS_UNIFORM_BUFFER(BloomSettings, g_bloomSettings);
-	Texture2D inputTexture = ResourceDescriptorHeap[g_inputTexture];
-	RWTexture2D<float4> outputTexture = ResourceDescriptorHeap[g_outputTexture];
+	ConstantBuffer<BloomSettings> bloomSettings = ResourceDescriptorHeap[Resources.g_bloomSettings];
+	Texture2D inputTexture = ResourceDescriptorHeap[Resources.g_inputTexture];
+	RWTexture2D<float4> outputTexture = ResourceDescriptorHeap[Resources.g_outputTexture];
 	
 	float2 texRes;
 	outputTexture.GetDimensions(texRes.x, texRes.y);
@@ -104,9 +103,9 @@ void Prefilter(int3 dispatchThreadID : SV_DispatchThreadID)
 [numthreads(4, 4, 1)]
 void Downsample(int3 dispatchThreadID : SV_DispatchThreadID)
 {
-	BloomSettings bloomSettings = GET_BINDLESS_UNIFORM_BUFFER(BloomSettings, g_bloomSettings);
-	Texture2D inputTexture = ResourceDescriptorHeap[g_inputTexture];
-	RWTexture2D<float4> outputTexture = ResourceDescriptorHeap[g_outputTexture];
+	ConstantBuffer<BloomSettings> bloomSettings = ResourceDescriptorHeap[Resources.g_bloomSettings];
+	Texture2D inputTexture = ResourceDescriptorHeap[Resources.g_inputTexture];
+	RWTexture2D<float4> outputTexture = ResourceDescriptorHeap[Resources.g_outputTexture];
 	
 	float2 texRes;
 	outputTexture.GetDimensions(texRes.x, texRes.y);
@@ -121,10 +120,10 @@ void Downsample(int3 dispatchThreadID : SV_DispatchThreadID)
 [numthreads(4, 4, 1)]
 void Upsample(int3 dispatchThreadID : SV_DispatchThreadID)
 {
-	BloomSettings bloomSettings = GET_BINDLESS_UNIFORM_BUFFER(BloomSettings, g_bloomSettings);
-	Texture2D inputTexture = ResourceDescriptorHeap[g_inputTexture];
-	Texture2D accumulationTexture = ResourceDescriptorHeap[g_accumulationTexture];
-	RWTexture2D<float4> outputTexture = ResourceDescriptorHeap[g_outputTexture];
+	ConstantBuffer<BloomSettings> bloomSettings = ResourceDescriptorHeap[Resources.g_bloomSettings];
+	Texture2D inputTexture = ResourceDescriptorHeap[Resources.g_inputTexture];
+	Texture2D accumulationTexture = ResourceDescriptorHeap[Resources.g_accumulationTexture];
+	RWTexture2D<float4> outputTexture = ResourceDescriptorHeap[Resources.g_outputTexture];
 	
 	float2 texRes;
 	outputTexture.GetDimensions(texRes.x, texRes.y);

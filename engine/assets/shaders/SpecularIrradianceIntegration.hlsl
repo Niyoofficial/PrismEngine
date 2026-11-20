@@ -1,12 +1,11 @@
 #include "BRDF.hlsli"
 #include "BindlessResources.hlsli"
 
-cbuffer Resources
-{
+RESOURCE_INDICES(SpecularResources,
 	int g_skybox;
 	int g_outputTexture;
 	int g_prefilterData;
-}
+);
 
 struct PrefilterData
 {
@@ -44,9 +43,9 @@ void main(int3 groupID : SV_GroupID,
 		  int3 dispatchThreadID : SV_DispatchThreadID,
 		  int groupIndex : SV_GroupIndex)
 {
-	TextureCube skybox = ResourceDescriptorHeap[g_skybox];
-	RWTexture2DArray<float4> outputTexture = ResourceDescriptorHeap[g_outputTexture];
-	PrefilterData prefilterData = GET_BINDLESS_UNIFORM_BUFFER(PrefilterData, g_prefilterData);
+	TextureCube skybox = ResourceDescriptorHeap[Resources.g_skybox];
+	RWTexture2DArray<float4> outputTexture = ResourceDescriptorHeap[Resources.g_outputTexture];
+	ConstantBuffer<PrefilterData> prefilterData = ResourceDescriptorHeap[Resources.g_prefilterData];
 	
 	float3 normal = GetSamplingVector(dispatchThreadID, prefilterData.mipResolution);
 	float3 toCamera = normal;

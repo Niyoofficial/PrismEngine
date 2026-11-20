@@ -1,15 +1,13 @@
 #include "Common.hlsli"
 #include "BindlessResources.hlsli"
 
-cbuffer Resources
-{
+RESOURCE_INDICES(HitProxyResources,
 	int g_sceneBuffer;
 	int g_primitiveBuffer;
-
 	int g_hitProxiesTexture;
 	int g_hitProxyOutputBuffer;
 	int g_hitProxyReadSettingsBuffer;
-}
+);
 
 struct SceneBuffer
 {
@@ -44,8 +42,8 @@ struct PixelInput
 
 PixelInput vsmain(VertexInput vin)
 {
-	SceneBuffer sceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(SceneBuffer, g_sceneBuffer);
-	PrimitiveBuffer primitiveBuffer = GET_BINDLESS_UNIFORM_BUFFER(PrimitiveBuffer, g_primitiveBuffer);
+	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[Resources.g_sceneBuffer];
+	ConstantBuffer<PrimitiveBuffer> primitiveBuffer = ResourceDescriptorHeap[Resources.g_primitiveBuffer];
 
 	PixelInput vout;
 	
@@ -64,9 +62,9 @@ int psmain(PixelInput pin) : SV_TARGET
 [numthreads(1, 1, 1)]
 void CsReadPixel()
 {
-	Texture2D<int> hitProxiesTexture = ResourceDescriptorHeap[g_hitProxiesTexture];
-	RWStructuredBuffer<int> hitProxyOutput = ResourceDescriptorHeap[g_hitProxyOutputBuffer];
-	ReadSettingsBuffer readSettings = GET_BINDLESS_UNIFORM_BUFFER(ReadSettingsBuffer, g_hitProxyReadSettingsBuffer);
+	Texture2D<int> hitProxiesTexture = ResourceDescriptorHeap[Resources.g_hitProxiesTexture];
+	RWStructuredBuffer<int> hitProxyOutput = ResourceDescriptorHeap[Resources.g_hitProxyOutputBuffer];
+	ConstantBuffer<ReadSettingsBuffer> readSettings = ResourceDescriptorHeap[Resources.g_hitProxyReadSettingsBuffer];
 
 	int ID = hitProxiesTexture.Load(int3(readSettings.relMousePos, 0));
 	hitProxyOutput[0] = ID;

@@ -2,18 +2,16 @@
 #include "FullscreenTriangleVertexShader.hlsli"
 #include "BindlessResources.hlsli"
 
-cbuffer Resources
-{
+RESOURCE_INDICES(LightingResources,
 	int g_sceneBuffer;
 	int g_irradiance;
 	int g_envMap;
 	int g_brdfLUT;
-
 	int g_colorTexture;
 	int g_normalTexture;
 	int g_roughnessMetalAOTexture;
 	int g_depthTexture;
-}
+);
 
 struct SceneBuffer
 {
@@ -27,15 +25,15 @@ struct SceneIrradiance
 
 float4 psmain(FullscreenVertexOut pin) : SV_Target
 {
-	 SceneBuffer sceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(SceneBuffer, g_sceneBuffer);
-     SceneIrradiance sceneIrradiance = GET_BINDLESS_UNIFORM_BUFFER(SceneIrradiance, g_irradiance);
+	ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[Resources.g_sceneBuffer];
+    ConstantBuffer<SceneIrradiance> sceneIrradiance = ResourceDescriptorHeap[Resources.g_irradiance];
 
-	Texture2D normalTexture = ResourceDescriptorHeap[g_normalTexture];
-	Texture2D roughnessMetalAOTexture = ResourceDescriptorHeap[g_roughnessMetalAOTexture];
-	Texture2D albedoTexture = ResourceDescriptorHeap[g_colorTexture];
-	Texture2D<float> depthTexture = ResourceDescriptorHeap[g_depthTexture];
-	TextureCube prefilteredEnvMap = ResourceDescriptorHeap[g_envMap];
-	Texture2D brdfLUT = ResourceDescriptorHeap[g_brdfLUT];
+	Texture2D normalTexture = ResourceDescriptorHeap[Resources.g_normalTexture];
+	Texture2D roughnessMetalAOTexture = ResourceDescriptorHeap[Resources.g_roughnessMetalAOTexture];
+	Texture2D albedoTexture = ResourceDescriptorHeap[Resources.g_colorTexture];
+	Texture2D<float> depthTexture = ResourceDescriptorHeap[Resources.g_depthTexture];
+	TextureCube prefilteredEnvMap = ResourceDescriptorHeap[Resources.g_envMap];
+	Texture2D brdfLUT = ResourceDescriptorHeap[Resources.g_brdfLUT];
 
 	BRDFSurface surface;
 	surface.albedo = albedoTexture.Sample(g_samLinearWrap, pin.texCoords).rgb;

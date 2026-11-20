@@ -1,18 +1,22 @@
 #include "BRDF.hlsli"
+#include "BindlessResources.hlsli"
 
-cbuffer Resources
-{
+RESOURCE_INDICES(DiffuseResources,
 	int g_skybox;
 	int g_coefficients;
-}
+);
 
 [numthreads(1, 1, 1)]
 void main(int3 groupID : SV_GroupID,
 		  int3 dispatchThreadID : SV_DispatchThreadID,
 		  int groupIndex : SV_GroupIndex)
 {
-	TextureCube skybox = ResourceDescriptorHeap[g_skybox];
+	TextureCube skybox = ResourceDescriptorHeap[Resources.g_skybox];
+    /*
+    Temporary disabled because of lack dxc-spirv support:
+    error: UAV support not implemented with non-emulated heaps.
 	RWStructuredBuffer<float4> coefficients = ResourceDescriptorHeap[g_coefficients];
+    */
 
 	SH::L2_RGB radianceSH = SH::L2_RGB::Zero();
 	
@@ -33,6 +37,10 @@ void main(int3 groupID : SV_GroupID,
 	
 	radianceSH = radianceSH * (1.f / (SAMPLE_COUNT * (1 / (4 * PI))));
 	
-	for (int i = 0; i < 9; ++i)
+    /*
+    Temporary disabled because of lack dxc-spirv support:
+    error: UAV support not implemented with non-emulated heaps.
+    for (int i = 0; i < 9; ++i)
 		coefficients[i] = float4(radianceSH.C[i], 0.f);
+    */
 }

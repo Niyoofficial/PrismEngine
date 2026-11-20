@@ -1,14 +1,13 @@
 #include "Common.hlsli"
 #include "BindlessResources.hlsli"
 
-cbuffer Resources
-{
+RESOURCE_INDICES(JumpFloodResources,
 	int g_sceneBuffer;
 	int g_primitiveBuffer;
 	int g_inputMask;
 	int g_outputMask;
 	int g_jumpFloodSettings;
-}
+);
 
 struct SceneBuffer
 {
@@ -44,8 +43,8 @@ struct PixelInput
 
 PixelInput vsmain(VertexInput vin)
 {
-    SceneBuffer sceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(SceneBuffer, g_sceneBuffer);
-    PrimitiveBuffer primitiveBuffer = GET_BINDLESS_UNIFORM_BUFFER(PrimitiveBuffer, g_primitiveBuffer);
+    ConstantBuffer<SceneBuffer> sceneBuffer = ResourceDescriptorHeap[Resources.g_sceneBuffer];
+    ConstantBuffer<PrimitiveBuffer> primitiveBuffer = ResourceDescriptorHeap[Resources.g_primitiveBuffer];
 
 	PixelInput vout;
 	
@@ -63,8 +62,8 @@ float PsMask(PixelInput pin) : SV_TARGET
 [numthreads(4, 4, 1)]
 void CsInitMask(int3 dispatchThreadID : SV_DispatchThreadID)
 {
-	Texture2D<float> inputMask = ResourceDescriptorHeap[g_inputMask];
-	RWTexture2D<float2> outputMask = ResourceDescriptorHeap[g_outputMask];
+	Texture2D<float> inputMask = ResourceDescriptorHeap[Resources.g_inputMask];
+	RWTexture2D<float2> outputMask = ResourceDescriptorHeap[Resources.g_outputMask];
 
 	uint2 texSize;
 	inputMask.GetDimensions(texSize.x, texSize.y);
@@ -104,9 +103,9 @@ void CsInitMask(int3 dispatchThreadID : SV_DispatchThreadID)
 [numthreads(4, 4, 1)]
 void CsJumpFlood(int3 dispatchThreadID : SV_DispatchThreadID)
 {
-	Texture2D<float2> inputMask = ResourceDescriptorHeap[g_inputMask];
-	RWTexture2D<float2> outputMask = ResourceDescriptorHeap[g_outputMask];
-    JumpFloodSettings jumpFloodSettings = GET_BINDLESS_UNIFORM_BUFFER(JumpFloodSettings, g_jumpFloodSettings);
+	Texture2D<float2> inputMask = ResourceDescriptorHeap[Resources.g_inputMask];
+	RWTexture2D<float2> outputMask = ResourceDescriptorHeap[Resources.g_outputMask];
+    ConstantBuffer<JumpFloodSettings> jumpFloodSettings = ResourceDescriptorHeap[Resources.g_jumpFloodSettings];
 
 	uint2 texSize;
 	inputMask.GetDimensions(texSize.x, texSize.y);

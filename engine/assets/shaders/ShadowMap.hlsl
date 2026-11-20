@@ -1,11 +1,10 @@
 #include "Common.hlsli"
 #include "BindlessResources.hlsli"
 
-cbuffer Resources
-{
+RESOURCE_INDICES(ShadowMapResources,
 	int g_shadowSceneBuffer;
 	int g_primitiveBuffer;
-}
+);
 
 struct ShadowSceneBuffer
 {
@@ -33,8 +32,8 @@ struct PixelInput
 
 PixelInput vsmain(VertexInput vin)
 {
-    ShadowSceneBuffer shadowSceneBuffer = GET_BINDLESS_UNIFORM_BUFFER(ShadowSceneBuffer, g_shadowSceneBuffer);
-    PrimitiveBuffer primitiveBuffer = GET_BINDLESS_UNIFORM_BUFFER(PrimitiveBuffer, g_primitiveBuffer);
+    ConstantBuffer<ShadowSceneBuffer> shadowSceneBuffer = ResourceDescriptorHeap[Resources.g_shadowSceneBuffer];
+    ConstantBuffer<PrimitiveBuffer> primitiveBuffer = ResourceDescriptorHeap[Resources.g_primitiveBuffer];
 
 	PixelInput vout;
 	

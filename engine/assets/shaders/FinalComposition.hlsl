@@ -2,13 +2,12 @@
 #include "FullscreenTriangleVertexShader.hlsli"
 #include "BindlessResources.hlsli"
 
-cbuffer Resources
-{
+RESOURCE_INDICES(FinalCompositionResources,
 	int g_sceneColorTexture;
 	int g_bloomTexture;
 	int g_outlineTexture;
 	int g_outlineSettings;
-}
+);
 
 struct OutlineSettings
 {
@@ -56,8 +55,8 @@ float3 ACESFilm(float3 x)
 
 float4 psmain(FullscreenVertexOut pin) : SV_Target
 {
-	Texture2D sceneColorTexture = ResourceDescriptorHeap[g_sceneColorTexture];
-	Texture2D bloomTexture = ResourceDescriptorHeap[g_bloomTexture];
+	Texture2D sceneColorTexture = ResourceDescriptorHeap[Resources.g_sceneColorTexture];
+	Texture2D bloomTexture = ResourceDescriptorHeap[Resources.g_bloomTexture];
 	
 	float3 bloom = bloomTexture.SampleLevel(g_samLinearClamp, pin.texCoords, 0).rgb;
 	
@@ -65,10 +64,10 @@ float4 psmain(FullscreenVertexOut pin) : SV_Target
 	color += bloom;
 
 	// Selection outline
-	if (g_outlineTexture != -1 && g_outlineSettings != -1)
+	if (Resources.g_outlineTexture != -1 && Resources.g_outlineSettings != -1)
 	{
-		Texture2D<float2> outlineTexture = ResourceDescriptorHeap[g_outlineTexture];
-		OutlineSettings outlineSettings = GET_BINDLESS_UNIFORM_BUFFER(OutlineSettings, g_outlineSettings);
+		Texture2D<float2> outlineTexture = ResourceDescriptorHeap[Resources.g_outlineTexture];
+		ConstantBuffer<OutlineSettings> outlineSettings = ResourceDescriptorHeap[Resources.g_outlineSettings];
 
 		uint2 texSize;
 		outlineTexture.GetDimensions(texSize.x, texSize.y);
