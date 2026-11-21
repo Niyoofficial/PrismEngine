@@ -18,8 +18,6 @@ public:
 
 	VkImageView GetVkImageView() const { return m_vkImageView; }
 
-	// TODO
-	// bad solution, just for first engine build. should be handled other way
 	[[nodiscard]] VkDescriptorSet GetImGuiDescriptorSet()
 	{
 		if (m_imguiDescriptorSet)
@@ -32,7 +30,7 @@ public:
 		const auto resource = texture->GetVulkanTextureResource();
 
 		m_imguiDescriptorSet =
-		    ImGui_ImplVulkan_AddTexture(resource.sampler, m_vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+			ImGui_ImplVulkan_AddTexture(resource.sampler, m_vkImageView, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 
 		return m_imguiDescriptorSet;
 	}
@@ -44,10 +42,10 @@ public:
 private:
 	TextureViewDesc m_viewDesc;
 
+	VkImageViewCreateInfo m_vkImageViewCreateInfo{};
+
 	VkImageView m_vkImageView{};
 
-	// TODO
-	// bad solution, just for first engine build. should be handled other way
 	VkDescriptorSet m_imguiDescriptorSet = VK_NULL_HANDLE;
 
 	uint32_t m_bindlessIndex = UINT32_MAX;

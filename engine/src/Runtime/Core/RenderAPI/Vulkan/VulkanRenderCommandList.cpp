@@ -4,17 +4,19 @@
 
 #include "VulkanBuffer.h"
 #include "VulkanBufferView.h"
-#include "VulkanPipelineLayoutCache.h"
 #include "VulkanRenderDevice.h"
 #include "VulkanTexture.h"
 #include "VulkanTextureView.h"
 #include "VulkanTypeConversions.h"
 
+// TODO
+// use volk library
 namespace
 {
 PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXTFunction = nullptr;
 PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXTFunction = nullptr;
 PFN_vkCmdInsertDebugUtilsLabelEXT vkCmdInsertDebugUtilsLabelEXTFunction = nullptr;
+PFN_vkCmdPushDataEXT vkCmdPushDataEXTFunction = nullptr;
 } // namespace
 
 namespace Prism::Render::Vulkan
@@ -31,6 +33,9 @@ VulkanRenderCommandList::VulkanRenderCommandList()
 
 	vkCmdInsertDebugUtilsLabelEXTFunction = reinterpret_cast<PFN_vkCmdInsertDebugUtilsLabelEXT>(
 		vkGetDeviceProcAddr(device.GetDevice(), "vkCmdInsertDebugUtilsLabelEXT"));
+
+	vkCmdPushDataEXTFunction =
+		reinterpret_cast<PFN_vkCmdPushDataEXT>(vkGetDeviceProcAddr(device.GetDevice(), "vkCmdPushDataEXT"));
 
 	uint32_t queueFamily = 0;
 
@@ -719,7 +724,7 @@ void VulkanRenderCommandList::Close()
 	PE_ASSERT(vkEndCommandBuffer(m_commandBuffer) == VK_SUCCESS);
 }
 
-void VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
+void VulkanRenderCommandList::BindDescriptorHeapsAndConstants(const PipelineStateType type)
 {
 	auto& device = VulkanRenderDevice::Get();
 	auto* compiler = device.GetVulkanShaderCompiler();
@@ -740,100 +745,68 @@ void VulkanRenderCommandList::BindDescriptorSets(PipelineStateType type)
 		reflections = {&cs.reflection};
 	}
 
-	const VkPipelineLayout pipelineLayout = device.GetPipelineLayoutCache()->GetOrCreatePipelineLayout(reflections);
-
-	const VkPipelineBindPoint bindPoint =
-		type == PipelineStateType::Graphics ? VK_PIPELINE_BIND_POINT_GRAPHICS : VK_PIPELINE_BIND_POINT_COMPUTE;
-
-	auto* bindlessManager = device.GetBindlessManager();
-
-	const VkDescriptorSet bindlessSet = bindlessManager->GetSet();
-
-	VulkanBindlessManager::ResourcesAllocation resources{};
-	bool resourcesAllocated = false;
+	device.GetBindlessManager()->BindHeaps(m_commandBuffer);
 
 	for (const auto* reflection : reflections)
 	{
-		for (uint32_t setIndex = 0; setIndex < reflection->GetDescriptorSetCount(); ++setIndex)
-		{
-			const auto& descriptorSet = reflection->GetDescriptorSet(setIndex);
+		const uint32_t pushConstantCount = reflection->GetPushConstantBlockCount();
 
-			if (descriptorSet.set != 0)
+		for (uint32_t i = 0; i < pushConstantCount; ++i)
+		{
+			const SpvReflectBlockVariable& block = reflection->GetPushConstantBlock(i);
+			const uint32_t blockSize = block.padded_size > 0 ? block.padded_size : block.size;
+			if (blockSize == 0)
 			{
 				continue;
 			}
 
-			for (uint32_t bindingIndex = 0; bindingIndex < descriptorSet.binding_count; ++bindingIndex)
+			std::vector<uint8_t> pushData(blockSize, 0xFF);
+
+			for (uint32_t memberIndex = 0; memberIndex < block.member_count; ++memberIndex)
 			{
-				const auto* binding = descriptorSet.bindings[bindingIndex];
-
-				if (!binding || !binding->name)
+				const SpvReflectBlockVariable& member = block.members[memberIndex];
+				if (!member.name)
 				{
 					continue;
 				}
 
-				if (std::strcmp(binding->name, "Resources") != 0)
-				{
-					continue;
-				}
+				const uint32_t memberSize = member.size > 0 ? member.size : sizeof(uint32_t);
+				PE_ASSERT(member.offset + memberSize <= blockSize, "Push constant member out of block bounds");
 
-				if (!resourcesAllocated)
-				{
-					resources = bindlessManager->AllocateResources(device.GetFrameIndex());
-					resourcesAllocated = true;
-				}
+				uint32_t bindlessIndex = UINT32_MAX;
+				const std::wstring memberName = StringToWString(member.name);
 
-				for (uint32_t memberIndex = 0; memberIndex < binding->block.member_count; ++memberIndex)
+				if (const auto it = m_boundResources.find(memberName); it != m_boundResources.end() && !it->second.empty())
 				{
-					const auto& member = binding->block.members[memberIndex];
+					RenderResourceView* resourceView = it->second[0].Raw();
 
-					if (!member.name)
+					if (const auto* textureView = dynamic_cast<VulkanTextureView*>(resourceView))
 					{
-						continue;
+						bindlessIndex = textureView->GetBindlessIndex();
 					}
-
-					PE_ASSERT(member.offset + sizeof(int32_t) <= VulkanBindlessManager::ResourcesSize,
-							  "Resources cbuffer is too large");
-
-					const std::wstring memberName = StringToWString(member.name);
-
-					// missing resources are represented by -1
-					int32_t bindlessIndex = -1;
-
-					if (const auto it = m_boundResources.find(memberName); it != m_boundResources.end() && !it->second.empty())
+					else if (const auto* bufferView = dynamic_cast<VulkanBufferView*>(resourceView))
 					{
-						RenderResourceView* resourceView = it->second[0].Raw();
-
-						uint32_t resourceIndex = UINT32_MAX;
-
-						if (const auto* textureView = dynamic_cast<VulkanTextureView*>(resourceView))
-						{
-							resourceIndex = textureView->GetBindlessIndex();
-						}
-						else if (const auto* bufferView = dynamic_cast<VulkanBufferView*>(resourceView))
-						{
-							resourceIndex = bufferView->GetBindlessIndex();
-						}
-
-						PE_ASSERT(resourceIndex != UINT32_MAX, "Failed to get bindless resource index");
-
-						PE_ASSERT(resourceIndex <= static_cast<uint32_t>(std::numeric_limits<int32_t>::max()),
-								  "Bindless resource index exceeds int32_t range");
-
-						bindlessIndex = static_cast<int32_t>(resourceIndex);
+						bindlessIndex = bufferView->GetBindlessIndex();
 					}
-
-					// always write the value, including -1 for missing resources
-					std::memcpy(reinterpret_cast<uint8_t*>(resources.data) + member.offset, &bindlessIndex,
-								sizeof(bindlessIndex));
 				}
+
+				std::memcpy(pushData.data() + member.offset, &bindlessIndex, sizeof(uint32_t));
 			}
+
+			const VkPushDataInfoEXT pushInfo{
+				.sType = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
+				.pNext = nullptr,
+				.offset = block.offset,
+				.data =
+					{
+						.address = pushData.data(),
+						.size = static_cast<size_t>(blockSize),
+					},
+			};
+
+			vkCmdPushDataEXTFunction(m_commandBuffer, &pushInfo);
 		}
 	}
-
-	const uint32_t dynamicOffset = resourcesAllocated ? static_cast<uint32_t>(resources.offset) : 0u;
-
-	vkCmdBindDescriptorSets(m_commandBuffer, bindPoint, pipelineLayout, 0, 1, &bindlessSet, 1, &dynamicOffset);
 }
 
 void VulkanRenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
@@ -859,7 +832,7 @@ void VulkanRenderCommandList::SetupDrawOrDispatch(PipelineStateType type)
 		vkCmdBindPipeline(m_commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, pipeline);
 	}
 
-	BindDescriptorSets(type);
+	BindDescriptorHeapsAndConstants(type);
 }
 
 void VulkanRenderCommandList::BeginDynamicRendering()

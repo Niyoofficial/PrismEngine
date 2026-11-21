@@ -328,6 +328,7 @@ VkBufferUsageFlags GetVkBufferUsageFlags(Flags<BindFlags> flags)
 
 	bufferUsageFlags |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 	bufferUsageFlags |= VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+	bufferUsageFlags |= VK_BUFFER_USAGE_SHADER_DEVICE_ADDRESS_BIT;
 
 	return bufferUsageFlags;
 }

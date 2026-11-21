@@ -58,7 +58,7 @@ VulkanTextureView::VulkanTextureView(TextureViewDesc desc, Texture* texture) : m
 
 	const VkImage image = vkTexture->GetVulkanTextureResource().image;
 
-	VkImageViewCreateInfo createInfo{
+	m_vkImageViewCreateInfo = VkImageViewCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
 		.image = image,
 		.viewType = GetVkImageViewType(m_viewDesc.dimension, texture->GetTextureDesc().GetArraySize()),
@@ -78,7 +78,8 @@ VulkanTextureView::VulkanTextureView(TextureViewDesc desc, Texture* texture) : m
 		},
 	};
 
-	PE_ASSERT(vkCreateImageView(VulkanRenderDevice::Get().GetDevice(), &createInfo, nullptr, &m_vkImageView) == VK_SUCCESS);
+	PE_ASSERT(vkCreateImageView(VulkanRenderDevice::Get().GetDevice(), &m_vkImageViewCreateInfo, nullptr, &m_vkImageView) ==
+			  VK_SUCCESS);
 }
 
 VulkanTextureView::~VulkanTextureView()
@@ -122,10 +123,10 @@ void VulkanTextureView::RegisterBindless()
 	switch (m_viewDesc.type)
 	{
 	case TextureViewType::SRV:
-		bindlessManager->WriteSampledImage(device.GetDevice(), m_bindlessIndex, m_vkImageView, VK_IMAGE_LAYOUT_GENERAL);
+		bindlessManager->WriteSampledImage(device.GetDevice(), m_bindlessIndex, m_vkImageViewCreateInfo, VK_IMAGE_LAYOUT_GENERAL);
 		break;
 	case TextureViewType::UAV:
-		bindlessManager->WriteStorageImage(device.GetDevice(), m_bindlessIndex, m_vkImageView, VK_IMAGE_LAYOUT_GENERAL);
+		bindlessManager->WriteStorageImage(device.GetDevice(), m_bindlessIndex, m_vkImageViewCreateInfo, VK_IMAGE_LAYOUT_GENERAL);
 		break;
 	default:
 		PE_ASSERT_NO_ENTRY("Unsupported Vulkan texture view type");

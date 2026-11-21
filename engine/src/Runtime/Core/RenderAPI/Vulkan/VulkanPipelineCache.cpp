@@ -5,6 +5,87 @@
 #include "VulkanShaderCompiler.h"
 #include "VulkanTypeConversions.h"
 
+namespace
+{
+struct StageDescriptorMappingData
+{
+	std::vector<VkDescriptorSetAndBindingMappingEXT> mappings;
+
+	VkShaderDescriptorSetAndBindingMappingInfoEXT info{
+		.sType = VK_STRUCTURE_TYPE_SHADER_DESCRIPTOR_SET_AND_BINDING_MAPPING_INFO_EXT,
+		.pNext = nullptr,
+		.mappingCount = 0,
+		.pMappings = nullptr,
+	};
+
+	const void* GetPNext() const { return mappings.empty() ? nullptr : &info; }
+};
+
+StageDescriptorMappingData BuildStageDescriptorMappings(const Prism::Render::Vulkan::VulkanShaderReflection& reflection,
+														const Prism::Render::Vulkan::VulkanBindlessManager& bindlessManager)
+{
+	StageDescriptorMappingData result{};
+
+	const uint32_t samplerStride = static_cast<uint32_t>(bindlessManager.GetSamplerDescriptorSize());
+	const uint32_t resourceStride = static_cast<uint32_t>(bindlessManager.GetResourceDescriptorSize());
+
+	const uint32_t setCount = reflection.GetDescriptorSetCount();
+	for (uint32_t s = 0; s < setCount; ++s)
+	{
+		const SpvReflectDescriptorSet& set = reflection.GetDescriptorSet(s);
+		for (uint32_t b = 0; b < set.binding_count; ++b)
+		{
+			const SpvReflectDescriptorBinding* binding = set.bindings[b];
+			if (!binding)
+			{
+				continue;
+			}
+
+			const uint32_t count = std::max(1u, binding->count);
+			const bool isSampler = binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_SAMPLER ||
+				binding->descriptor_type == SPV_REFLECT_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+
+			VkDescriptorSetAndBindingMappingEXT mapping{
+				.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_AND_BINDING_MAPPING_EXT,
+				.pNext = nullptr,
+				.descriptorSet = binding->set,
+				.firstBinding = binding->binding,
+				.bindingCount = count,
+				.resourceMask = VK_SPIRV_RESOURCE_TYPE_ALL_EXT,
+				.source = VK_DESCRIPTOR_MAPPING_SOURCE_HEAP_WITH_CONSTANT_OFFSET_EXT,
+				.sourceData = {},
+			};
+
+			if (isSampler)
+			{
+				mapping.sourceData.constantOffset = VkDescriptorMappingSourceConstantOffsetEXT{
+					.heapOffset = binding->binding * samplerStride,
+					.heapArrayStride = samplerStride,
+					.pEmbeddedSampler = nullptr,
+				};
+			}
+			else
+			{
+				mapping.sourceData.constantOffset = VkDescriptorMappingSourceConstantOffsetEXT{
+					.heapOffset = binding->binding * resourceStride,
+					.heapArrayStride = resourceStride,
+					.pEmbeddedSampler = nullptr,
+				};
+			}
+
+			result.mappings.push_back(mapping);
+		}
+	}
+
+	result.info.sType = VK_STRUCTURE_TYPE_SHADER_DESCRIPTOR_SET_AND_BINDING_MAPPING_INFO_EXT;
+	result.info.pNext = nullptr;
+	result.info.mappingCount = static_cast<uint32_t>(result.mappings.size());
+	result.info.pMappings = result.mappings.empty() ? nullptr : result.mappings.data();
+
+	return result;
+}
+} // namespace
+
 namespace Prism::Render::Vulkan
 {
 VulkanPipelineCache::VulkanPipelineCache()
@@ -42,7 +123,10 @@ VulkanPipelineCache::~VulkanPipelineCache()
 VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateDesc& desc,
 													const std::vector<Ref<TextureView>>& rtvs, TextureView* dsv)
 {
-	auto* compiler = VulkanRenderDevice::Get().GetVulkanShaderCompiler();
+	const auto& renderDevice = VulkanRenderDevice::Get();
+	const auto device = renderDevice.GetDevice();
+	const auto* bindlessManager = renderDevice.GetBindlessManager();
+	auto* compiler = renderDevice.GetVulkanShaderCompiler();
 
 	uint64_t hash = HashPipelineStateDesc(desc, rtvs, dsv);
 
@@ -53,8 +137,6 @@ VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateD
 
 	const auto& vs = compiler->GetOrCreateShader(desc.vs);
 	const auto& ps = compiler->GetOrCreateShader(desc.ps);
-
-	const auto device = VulkanRenderDevice::Get().GetDevice();
 
 	const VkShaderModuleCreateInfo vertexModuleCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -76,10 +158,14 @@ VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateD
 
 	PE_ASSERT(vkCreateShaderModule(device, &fragmentModuleCreateInfo, nullptr, &fragmentShaderModule) == VK_SUCCESS);
 
+	const auto vsMapping = BuildStageDescriptorMappings(vs.reflection, *bindlessManager);
+	const auto psMapping = BuildStageDescriptorMappings(ps.reflection, *bindlessManager);
+
 	const auto vsEntryName = WStringToString(desc.vs.entryName);
 
 	VkPipelineShaderStageCreateInfo vertexStageInfo{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		.pNext = vsMapping.GetPNext(),
 		.stage = VK_SHADER_STAGE_VERTEX_BIT,
 		.module = vertexShaderModule,
 		.pName = vsEntryName.c_str(),
@@ -89,18 +175,13 @@ VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateD
 
 	VkPipelineShaderStageCreateInfo fragmentStageInfo{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		.pNext = psMapping.GetPNext(),
 		.stage = VK_SHADER_STAGE_FRAGMENT_BIT,
 		.module = fragmentShaderModule,
 		.pName = psEntryName.c_str(),
 	};
 
 	VkPipelineShaderStageCreateInfo shaderStagesInfo[] = {vertexStageInfo, fragmentStageInfo};
-
-	std::array shaderReflections{&vs.reflection, &ps.reflection};
-
-	auto pipelineLayout = VulkanRenderDevice::Get().GetPipelineLayoutCache()->GetOrCreatePipelineLayout(shaderReflections);
-
-	PE_ASSERT(pipelineLayout != VK_NULL_HANDLE);
 
 	const VertexAttributeList layout = vs.reflection.GetVertexAttributeLayout();
 
@@ -114,9 +195,15 @@ VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateD
 	auto dynamicState = BuildDynamicState(desc);
 	auto renderingInfo = BuildRenderingInfo(rtvs, dsv);
 
+	VkPipelineCreateFlags2CreateInfo flags2CreateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
+		.pNext = &renderingInfo.createInfo,
+		.flags = VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT,
+	};
+
 	VkGraphicsPipelineCreateInfo pipelineCreateInfo{
 		.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO,
-		.pNext = &renderingInfo.createInfo,
+		.pNext = &flags2CreateInfo,
 		.stageCount = 2,
 		.pStages = shaderStagesInfo,
 		.pVertexInputState = &vertexInputState.createInfo,
@@ -127,7 +214,7 @@ VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateD
 		.pDepthStencilState = &depthState,
 		.pColorBlendState = &blendState.createInfo,
 		.pDynamicState = &dynamicState.createInfo,
-		.layout = pipelineLayout,
+		.layout = VK_NULL_HANDLE,
 		.renderPass = VK_NULL_HANDLE,
 		.subpass = 0,
 		.basePipelineHandle = VK_NULL_HANDLE,
@@ -148,7 +235,10 @@ VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const GraphicsPipelineStateD
 
 VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const ComputePipelineStateDesc& desc)
 {
-	auto* compiler = VulkanRenderDevice::Get().GetVulkanShaderCompiler();
+	const auto& renderDevice = VulkanRenderDevice::Get();
+	const auto device = renderDevice.GetDevice();
+	const auto* bindlessManager = renderDevice.GetBindlessManager();
+	auto* compiler = renderDevice.GetVulkanShaderCompiler();
 
 	const auto& cs = compiler->GetOrCreateShader(desc.cs);
 
@@ -158,8 +248,6 @@ VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const ComputePipelineStateDe
 	{
 		return m_computePipelines.at(hash).pipeline;
 	}
-
-	const auto device = VulkanRenderDevice::Get().GetDevice();
 
 	const VkShaderModuleCreateInfo shaderModuleInfo{
 		.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
@@ -173,21 +261,31 @@ VkPipeline VulkanPipelineCache::GetOrCreatePipeline(const ComputePipelineStateDe
 
 	std::array shaderReflection{&cs.reflection};
 
-	const auto layout = VulkanRenderDevice::Get().GetPipelineLayoutCache()->GetOrCreatePipelineLayout(shaderReflection);
+	const auto layout = renderDevice.GetPipelineLayoutCache()->GetOrCreatePipelineLayout(shaderReflection);
+
+	const auto csMapping = BuildStageDescriptorMappings(cs.reflection, *bindlessManager);
 
 	const auto csEntryName = WStringToString(desc.cs.entryName);
 
 	const VkPipelineShaderStageCreateInfo stage{
 		.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO,
+		.pNext = csMapping.GetPNext(),
 		.stage = VK_SHADER_STAGE_COMPUTE_BIT,
 		.module = shaderModule,
 		.pName = csEntryName.c_str(),
 	};
 
+	constexpr VkPipelineCreateFlags2CreateInfo flags2CreateInfo{
+		.sType = VK_STRUCTURE_TYPE_PIPELINE_CREATE_FLAGS_2_CREATE_INFO,
+		.pNext = nullptr,
+		.flags = VK_PIPELINE_CREATE_2_DESCRIPTOR_HEAP_BIT_EXT,
+	};
+
 	const VkComputePipelineCreateInfo info{
 		.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+		.pNext = &flags2CreateInfo,
 		.stage = stage,
-		.layout = layout,
+		.layout = VK_NULL_HANDLE,
 	};
 
 	VkPipeline pipeline;

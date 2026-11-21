@@ -13,8 +13,6 @@ public:
 
 	[[nodiscard]] BufferViewDesc GetViewDesc() const override { return m_viewDesc; }
 
-	[[nodiscard]] VkDescriptorBufferInfo GetDescriptorBufferInfo() const { return m_descriptorBufferInfo; }
-
 	[[nodiscard]] VkDescriptorType GetDescriptorType() const { return m_descriptorType; }
 
 	[[nodiscard]] uint32_t GetBindlessIndex() const;

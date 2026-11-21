@@ -57,16 +57,30 @@ void VulkanBufferView::RegisterBindless()
 	const auto& device = VulkanRenderDevice::Get();
 	auto* bindless = device.GetBindlessManager();
 
+	auto* vulkanBuffer = dynamic_cast<VulkanBuffer*>(m_owningBuffer.Raw());
+	PE_ASSERT(vulkanBuffer, "Invalid Vulkan Buffer");
+
+	const VkBuffer buffer = vulkanBuffer->GetVkBuffer();
+
+	const VkBufferDeviceAddressInfo addressInfo{
+		.sType = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO,
+		.buffer = buffer,
+	};
+
+	const VkDeviceAddress bufferAddress = vkGetBufferDeviceAddress(device.GetDevice(), &addressInfo);
+
+	PE_ASSERT(bufferAddress != 0, "Failed to get buffer device address");
+
+	const VkDeviceAddress descriptorAddress = bufferAddress + m_descriptorBufferInfo.offset;
+
 	m_bindlessIndex = bindless->AllocateResource();
 	switch (m_descriptorType)
 	{
 	case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-		bindless->WriteUniformBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer,
-									 m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
+		bindless->WriteUniformBuffer(device.GetDevice(), m_bindlessIndex, descriptorAddress, m_descriptorBufferInfo.range);
 		break;
 	case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
-		bindless->WriteStorageBuffer(device.GetDevice(), m_bindlessIndex, m_descriptorBufferInfo.buffer,
-									 m_descriptorBufferInfo.offset, m_descriptorBufferInfo.range);
+		bindless->WriteStorageBuffer(device.GetDevice(), m_bindlessIndex, descriptorAddress, m_descriptorBufferInfo.range);
 		break;
 	default:
 		PE_ASSERT_NO_ENTRY("Unsupported Vulkan texture view type");

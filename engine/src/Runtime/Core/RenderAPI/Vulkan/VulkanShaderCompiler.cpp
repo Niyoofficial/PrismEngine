@@ -170,12 +170,7 @@ void VulkanShaderCompiler::CompileShader(const ShaderDesc& desc)
 		L"-spirv",
 		L"-fspv-target-env=vulkan1.3",
 		L"-fspv-use-descriptor-heap",
-		L"-fvk-use-dx-layout",
 		L"-fspv-reflect",
-		// TODO
-		// temporary remove validation while working on DescriptorHeaps
-		// vulkan validation layers will handle most of the errors
-		L"-Vd",
 		L"-Zi",
 #ifdef PE_BUILD_DEBUG
 		L"-Od",
@@ -349,8 +344,13 @@ void VulkanShaderCompiler::CompileShader(const ShaderDesc& desc)
 			SpvReflectResult reflectResult =
 				output.reflection.Create(output.spirv.size() * sizeof(uint32_t), output.spirv.data());
 
-			PE_ASSERT(reflectResult == SPV_REFLECT_RESULT_SUCCESS, "Failed to create SPIR-V reflection for {}",
-					  WStringToString(desc.filepath));
+			if (reflectResult != SPV_REFLECT_RESULT_SUCCESS)
+			{
+				PE_RENDER_LOG(Critical, "SPIR-V reflection failed: file={}, result={}", WStringToString(desc.filepath),
+							  static_cast<int32_t>(reflectResult));
+
+				return;
+			}
 
 			for (uint32_t i = 0; i < output.reflection.GetDescriptorSetCount(); i++)
 			{

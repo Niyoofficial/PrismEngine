@@ -1,7 +1,7 @@
 #pragma once
 
 #include "VulkanWindowsCOM.h"
-#include <dxcapi.h>
+#include <dxc/dxcapi.h>
 #include "Prism/Render/ShaderCompiler.h"
 #include "VulkanShaderReflection.h"
 

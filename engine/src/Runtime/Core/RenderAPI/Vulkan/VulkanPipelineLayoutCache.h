@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vulkan/vulkan_core.h>
-#include "VulkanDescriptorSetLayoutCache.h"
 
 namespace Prism::Render::Vulkan
 {
@@ -19,7 +18,6 @@ struct PushConstantKey
 
 struct PipelineLayoutKey
 {
-	std::vector<DescriptorSetLayoutKey> descriptorSets;
 	std::vector<PushConstantKey> pushConstants;
 
 	auto operator<=>(const PipelineLayoutKey&) const = default;
@@ -28,10 +26,7 @@ struct PipelineLayoutKey
 class VulkanPipelineLayoutCache
 {
 public:
-	explicit VulkanPipelineLayoutCache(VulkanDescriptorSetLayoutCache& descriptorSetLayoutCache) :
-	    m_descriptorSetLayoutCache(descriptorSetLayoutCache)
-	{}
-
+	VulkanPipelineLayoutCache() = default;
 	~VulkanPipelineLayoutCache();
 
 	VulkanPipelineLayoutCache(const VulkanPipelineLayoutCache&) = delete;
@@ -43,8 +38,6 @@ public:
 	[[nodiscard]] VkPipelineLayout GetOrCreatePipelineLayout(std::span<const VulkanShaderReflection* const> shaderReflections);
 
 private:
-	VulkanDescriptorSetLayoutCache& m_descriptorSetLayoutCache;
-
 	// TODO
 	// implement hash for PipelineLayoutKey and use unordered_map instead of map
 	std::map<PipelineLayoutKey, VkPipelineLayout> m_cache;

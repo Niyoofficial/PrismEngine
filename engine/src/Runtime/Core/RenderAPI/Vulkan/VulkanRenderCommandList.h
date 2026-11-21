@@ -44,7 +44,7 @@ public:
 
 	void SetTextures(const std::vector<Ref<TextureView>>& textureViews, const std::wstring& paramName) override;
 	void SetBuffers(const std::vector<Ref<BufferView>>& bufferViews, const std::vector<std::any> dynamicAllocations,
-	                const std::wstring& paramName) override;
+					const std::wstring& paramName) override;
 
 	void ClearRenderTargetView(const Ref<TextureView>& rtv, glm::float4* clearColor) override;
 	void ClearDepthStencilView(const Ref<TextureView>& dsv, Flags<ClearFlags> flags, DepthStencilValue* clearValue) override;
@@ -59,13 +59,13 @@ public:
 	void UpdateTexture(const Ref<Texture>& texture, RawData data, int32_t subresourceIndex) override;
 
 	void CopyBufferRegion(const Ref<Buffer>& dest, int64_t destOffset, const Ref<Buffer>& src, int64_t srcOffset,
-	                      int64_t numBytes) override;
+						  int64_t numBytes) override;
 	void CopyBufferRegion(const Ref<Texture>& dest, glm::int3 destLoc, int32_t destSubresourceIndex, const Ref<Buffer>& src,
-	                      int64_t srcOffset) override;
+						  int64_t srcOffset) override;
 	void CopyTextureRegion(const Ref<Buffer>& dest, int64_t destOffset, const Ref<Texture>& src, int32_t srcSubresourceIndex,
-	                       Box3I srcBox) override;
+						   Box3I srcBox) override;
 	void CopyTextureRegion(const Ref<Texture>& dest, glm::int3 destLoc, int32_t destSubresourceIndex, const Ref<Texture>& src,
-	                       int32_t srcSubresourceIndex, Box3I srcBox) override;
+						   int32_t srcSubresourceIndex, Box3I srcBox) override;
 
 	void RenderImGui(Swapchain* swapchain, int32_t backbufferIndex, ImDrawData* drawData) override;
 
@@ -83,7 +83,7 @@ protected:
 	void Close() override;
 
 private:
-	void BindDescriptorSets(PipelineStateType type);
+	void BindDescriptorHeapsAndConstants(PipelineStateType type);
 
 	void SetupDrawOrDispatch(PipelineStateType type);
 
@@ -94,8 +94,8 @@ private:
 	VkCommandPool m_commandPool = VK_NULL_HANDLE;
 	VkCommandBuffer m_commandBuffer = VK_NULL_HANDLE;
 
-	GraphicsPipelineStateDesc m_currentGraphicsPSO;
-	ComputePipelineStateDesc m_currentComputePSO;
+	GraphicsPipelineStateDesc m_currentGraphicsPSO{};
+	ComputePipelineStateDesc m_currentComputePSO{};
 
 	std::vector<Ref<TextureView>> m_renderTargetViews;
 	Ref<TextureView> m_depthStencilView;

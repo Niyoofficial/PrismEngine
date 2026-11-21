@@ -476,7 +476,8 @@ bool VulkanRenderDevice::IsPhysicalDeviceSuitable(const VkPhysicalDevice physica
 		features12.shaderStorageImageArrayNonUniformIndexing && features12.descriptorBindingUniformBufferUpdateAfterBind &&
 		features12.descriptorBindingSampledImageUpdateAfterBind && features12.descriptorBindingStorageImageUpdateAfterBind &&
 		features12.descriptorBindingStorageBufferUpdateAfterBind && features12.descriptorBindingPartiallyBound &&
-		features12.runtimeDescriptorArray && features12.timelineSemaphore && [&]
+		features12.runtimeDescriptorArray && features12.timelineSemaphore &&
+		features12.descriptorBindingVariableDescriptorCount && features12.bufferDeviceAddress && [&]
 	{
 		VkPhysicalDeviceFeatures coreFeatures{};
 		vkGetPhysicalDeviceFeatures(physicalDevice, &coreFeatures);
@@ -528,7 +529,6 @@ void VulkanRenderDevice::CreateLogicalDevice()
 		.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_HEAP_FEATURES_EXT,
 		.pNext = &shaderUntypedPointers,
 		.descriptorHeap = VK_TRUE,
-		.descriptorHeapCaptureReplay = VK_TRUE,
 	};
 
 	VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT featureMutableDescriptorType{
