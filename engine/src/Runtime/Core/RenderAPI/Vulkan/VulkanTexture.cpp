@@ -11,8 +11,8 @@
 
 namespace Prism::Render::Vulkan
 {
-VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, const TextureDesc& desc,
-													const BarrierLayout initLayout) : Texture(renderDevice), m_originalDesc(desc)
+VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, const TextureDesc& desc, const BarrierLayout initLayout) :
+	Texture(renderDevice), m_originalDesc(desc)
 {
 	CreateImage(renderDevice, desc);
 	CreateSampler(renderDevice, desc);
@@ -49,7 +49,7 @@ VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, const TextureDesc
 }
 
 VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, std::wstring filepath, bool loadAsCubemap,
-													const bool waitForLoadFinish) : Texture(renderDevice)
+							 const bool waitForLoadFinish) : Texture(renderDevice)
 {
 	auto loadFunction = [this, renderDevice, filepath]
 	{
@@ -158,9 +158,8 @@ VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, std::wstring file
 	}
 }
 
-VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, std::wstring name, void* imageData,
-													int64_t dataSize, const bool loadAsCubemap, const bool waitForLoadFinish) :
-	Texture(renderDevice)
+VulkanTexture::VulkanTexture(VulkanRenderDevice* renderDevice, std::wstring name, void* imageData, int64_t dataSize,
+							 const bool loadAsCubemap, const bool waitForLoadFinish) : Texture(renderDevice)
 {
 	auto loadFunction = [this, renderDevice, name, imageData, dataSize]
 	{
@@ -343,26 +342,11 @@ void VulkanTexture::CreateImage(const VulkanRenderDevice* renderDevice, const Te
 	m_texture.arrayLayers = desc.Is3D() ? 1 : desc.GetArraySize();
 	m_texture.aspectMask = GetVkImageAspectFlags(desc.format);
 
-#ifdef VK_EXT_debug_utils
 	if (!desc.textureName.empty())
 	{
-		const std::string utf8Name = WStringToString(desc.textureName);
-
-		const VkDebugUtilsObjectNameInfoEXT nameInfo{
-			.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
-			.objectType = VK_OBJECT_TYPE_IMAGE,
-			.objectHandle = reinterpret_cast<uint64_t>(m_texture.image),
-			.pObjectName = utf8Name.c_str(),
-		};
-		const auto function = reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(
-			vkGetDeviceProcAddr(renderDevice->GetDevice(), "vkSetDebugUtilsObjectNameEXT"));
-
-		if (function)
-		{
-			function(renderDevice->GetDevice(), &nameInfo);
-		}
+		renderDevice->SetDebugName(VK_OBJECT_TYPE_IMAGE, reinterpret_cast<uint64_t>(m_texture.image),
+								   WStringToString(desc.textureName));
 	}
-#endif
 }
 
 void VulkanTexture::CreateSampler(VulkanRenderDevice* renderDevice, const TextureDesc& desc)

@@ -44,6 +44,13 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(VkDebugUtilsMessageSeverityF
 	return VK_FALSE;
 }
 
+// TODO
+// move it to some separated DebugLayer
+namespace
+{
+PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectNameEXTFunction = nullptr;
+}
+
 namespace Prism::Render::Vulkan
 {
 VulkanRenderDevice& VulkanRenderDevice::Get() { return dynamic_cast<VulkanRenderDevice&>(RenderDevice::Get()); }
@@ -54,14 +61,24 @@ VulkanRenderDevice::VulkanRenderDevice(const RenderDeviceParams& params) : Rende
 {
 	CreateVulkanInstance(params);
 
+#if PE_BUILD_DEBUG
 	if (params.enableDebugLayer)
 	{
 		CreateDebugMessenger();
 	}
+#endif
 
 	PickPhysicalDevice();
 
 	CreateLogicalDevice();
+
+#if PE_BUILD_DEBUG
+	if (params.enableDebugLayer)
+	{
+		vkSetDebugUtilsObjectNameEXTFunction =
+			reinterpret_cast<PFN_vkSetDebugUtilsObjectNameEXT>(vkGetDeviceProcAddr(m_device, "vkSetDebugUtilsObjectNameEXT"));
+	}
+#endif
 
 	CreateAllocator();
 
@@ -250,6 +267,27 @@ void VulkanRenderDevice::ShutdownImGui()
 	m_initializedImGui = false;
 }
 
+void VulkanRenderDevice::SetDebugName(VkObjectType objectType, const uint64_t objectHandle, const std::string& name) const
+{
+#if PE_BUILD_DEBUG
+	if (!vkSetDebugUtilsObjectNameEXTFunction || objectHandle == 0 || name.empty())
+	{
+		return;
+	}
+
+	const VkDebugUtilsObjectNameInfoEXT nameInfo{
+		.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_OBJECT_NAME_INFO_EXT,
+		.objectType = objectType,
+		.objectHandle = objectHandle,
+		.pObjectName = name.c_str(),
+	};
+
+	const VkResult result = vkSetDebugUtilsObjectNameEXTFunction(m_device, &nameInfo);
+
+	PE_ASSERT(result == VK_SUCCESS);
+#endif
+}
+
 void VulkanRenderDevice::BeginRenderFrame()
 {
 	RenderDevice::BeginRenderFrame();
@@ -322,12 +360,14 @@ void VulkanRenderDevice::CreateVulkanInstance(const RenderDeviceParams& params)
 
 	std::vector extensions(sdlExtensions, sdlExtensions + extensionCount);
 
+#if PE_BUILD_DEBUG
+	extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
 	if (params.enableDebugLayer)
 	{
-		extensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
-
 		PE_ASSERT(AreValidationLayerSupported());
 	}
+#endif
 
 	const VkInstanceCreateInfo createInfo{
 		.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,

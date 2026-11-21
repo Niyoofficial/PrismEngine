@@ -6,8 +6,7 @@
 
 namespace Prism::Render::Vulkan
 {
-VulkanBuffer::VulkanBuffer(VulkanRenderDevice* renderDevice, const BufferDesc& desc) :
-	Buffer(renderDevice), m_originalDesc(desc)
+VulkanBuffer::VulkanBuffer(VulkanRenderDevice* renderDevice, const BufferDesc& desc) : Buffer(renderDevice), m_originalDesc(desc)
 {
 	if (m_originalDesc.bindFlags.HasAllFlags(BindFlags::UniformBuffer))
 	{
@@ -26,6 +25,12 @@ VulkanBuffer::VulkanBuffer(VulkanRenderDevice* renderDevice, const BufferDesc& d
 
 	PE_ASSERT(vmaCreateBuffer(renderDevice->GetAllocator(), &bufferCreateInfo, &allocationCreateInfo, &m_buffer.buffer,
 							  &m_buffer.allocation, nullptr) == VK_SUCCESS);
+
+	if (!m_originalDesc.bufferName.empty())
+	{
+		renderDevice->SetDebugName(VK_OBJECT_TYPE_BUFFER, reinterpret_cast<uint64_t>(m_buffer.buffer),
+								   WStringToString(m_originalDesc.bufferName));
+	}
 }
 
 VulkanBuffer::~VulkanBuffer()

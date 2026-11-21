@@ -71,6 +71,10 @@ public:
 
 	[[nodiscard]] uint32_t GetFrameIndex() const { return m_frameIndex; }
 
+	// TODO
+	// move it to some separated DebugLayer
+	void SetDebugName(VkObjectType objectType, uint64_t objectHandle, const std::string& name) const;
+
 protected:
 	void BeginRenderFrame() override;
 
