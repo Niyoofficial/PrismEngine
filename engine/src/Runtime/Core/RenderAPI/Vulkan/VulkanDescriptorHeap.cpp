@@ -6,7 +6,7 @@
 namespace Prism::Render::Vulkan
 {
 bool VulkanDescriptorHeap::Create(VkDeviceSize applicationCapacity, VkDeviceSize heapAddressAlignment,
-								  VkDeviceSize reservedOffsetAlignment, VkDeviceSize reservedSize)
+								  VkDeviceSize reservedOffsetAlignment, VkDeviceSize reservedSize, const std::wstring& bufferName)
 {
 	if (m_buffer != VK_NULL_HANDLE || m_allocation != VK_NULL_HANDLE)
 	{
@@ -18,8 +18,9 @@ bool VulkanDescriptorHeap::Create(VkDeviceSize applicationCapacity, VkDeviceSize
 		return false;
 	}
 
-	const VkDevice device = VulkanRenderDevice::Get().GetDevice();
-	const VmaAllocator allocator = VulkanRenderDevice::Get().GetAllocator();
+	const auto& renderDevice = VulkanRenderDevice::Get();
+	const VkDevice device = renderDevice.GetDevice();
+	const VmaAllocator allocator = renderDevice.GetAllocator();
 
 	m_reservedOffset = AlignUp(applicationCapacity, reservedOffsetAlignment);
 	m_reservedSize = reservedSize;
@@ -39,7 +40,7 @@ bool VulkanDescriptorHeap::Create(VkDeviceSize applicationCapacity, VkDeviceSize
 		.sharingMode = VK_SHARING_MODE_EXCLUSIVE,
 	};
 
-	VmaAllocationCreateInfo allocationInfo{
+	const VmaAllocationCreateInfo allocationInfo{
 		.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT,
 		.usage = VMA_MEMORY_USAGE_AUTO,
 		.requiredFlags = VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
@@ -47,12 +48,16 @@ bool VulkanDescriptorHeap::Create(VkDeviceSize applicationCapacity, VkDeviceSize
 
 	VmaAllocationInfo resultInfo{};
 
-	const VkResult result = vmaCreateBuffer(allocator, &bufferInfo, &allocationInfo, &m_buffer, &m_allocation, &resultInfo);
-
-	if (result != VK_SUCCESS)
+	if (const VkResult result = vmaCreateBuffer(allocator, &bufferInfo, &allocationInfo, &m_buffer, &m_allocation, &resultInfo);
+		result != VK_SUCCESS)
 	{
 		Destroy();
 		return false;
+	}
+
+	if (!bufferName.empty())
+	{
+		renderDevice.SetDebugName(VK_OBJECT_TYPE_BUFFER, reinterpret_cast<uint64_t>(m_buffer), WStringToString(bufferName));
 	}
 
 	m_mapped = resultInfo.pMappedData;

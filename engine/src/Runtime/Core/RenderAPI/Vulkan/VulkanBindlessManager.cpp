@@ -99,13 +99,15 @@ VulkanBindlessManager::VulkanBindlessManager()
 
 	PE_ASSERT(samplerTotalSize <= heapProperties.maxSamplerHeapSize, "Sampler descriptor heap exceeds maxSamplerHeapSize");
 
-	const bool resourceHeapCreated = m_resourceHeap.Create(resourceApplicationCapacity, m_resourceHeapAlignment,
-														   m_resourceHeapAlignment, heapProperties.minResourceHeapReservedRange);
+	const bool resourceHeapCreated =
+		m_resourceHeap.Create(resourceApplicationCapacity, m_resourceHeapAlignment, m_resourceHeapAlignment,
+							  heapProperties.minResourceHeapReservedRange, L"ResourceDescriptorHeapBuffer");
 
 	PE_ASSERT(resourceHeapCreated, "Failed to create resource descriptor heap");
 
-	const bool samplerHeapCreated = m_samplerHeap.Create(samplerApplicationCapacity, m_samplerHeapAlignment,
-														 m_samplerHeapAlignment, heapProperties.minSamplerHeapReservedRange);
+	const bool samplerHeapCreated =
+		m_samplerHeap.Create(samplerApplicationCapacity, m_samplerHeapAlignment, m_samplerHeapAlignment,
+							 heapProperties.minSamplerHeapReservedRange, L"SamplerDescriptorHeapBuffer");
 
 	PE_ASSERT(samplerHeapCreated, "Failed to create sampler descriptor heap");
 

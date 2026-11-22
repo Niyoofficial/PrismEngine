@@ -16,7 +16,7 @@ public:
 	VulkanDescriptorHeap& operator=(const VulkanDescriptorHeap&) = delete;
 
 	[[nodiscard]] bool Create(VkDeviceSize applicationCapacity, VkDeviceSize heapAddressAlignment,
-							  VkDeviceSize reservedOffsetAlignment, VkDeviceSize reservedSize);
+							  VkDeviceSize reservedOffsetAlignment, VkDeviceSize reservedSize, const std::wstring& bufferName);
 
 	void Destroy();
 
