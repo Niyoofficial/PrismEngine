@@ -118,9 +118,31 @@ void VulkanRenderCommandList::Dispatch(const glm::int3 threadGroupCount)
 	vkCmdDispatch(m_commandBuffer, threadGroupCount.x, threadGroupCount.y, threadGroupCount.z);
 }
 
-void VulkanRenderCommandList::SetPSO(const GraphicsPipelineStateDesc& desc) { m_currentGraphicsPSO = desc; }
+void VulkanRenderCommandList::SetPSO(const GraphicsPipelineStateDesc& desc)
+{
+	m_currentGraphicsPSO = desc;
 
-void VulkanRenderCommandList::SetPSO(const ComputePipelineStateDesc& desc) { m_currentComputePSO = desc; }
+	auto* compiler = VulkanRenderDevice::Get().GetVulkanShaderCompiler();
+
+	const auto& vs = compiler->GetOrCreateShader(desc.vs);
+	const auto& ps = compiler->GetOrCreateShader(desc.ps);
+
+	const std::vector reflections = {&vs.reflection, &ps.reflection};
+
+	m_currentGraphicsPushConstantBlocks = VulkanShaderReflection::BuildPushConstantLayout(reflections);
+}
+
+void VulkanRenderCommandList::SetPSO(const ComputePipelineStateDesc& desc)
+{
+	m_currentComputePSO = desc;
+	auto* compiler = VulkanRenderDevice::Get().GetVulkanShaderCompiler();
+
+	const auto& cs = compiler->GetOrCreateShader(desc.cs);
+
+	const std::vector reflections = {&cs.reflection};
+
+	m_currentComputePushConstantBlocks = VulkanShaderReflection::BuildPushConstantLayout(reflections);
+}
 
 void VulkanRenderCommandList::SetStencilRef(const uint32_t ref)
 {
@@ -726,86 +748,53 @@ void VulkanRenderCommandList::Close()
 
 void VulkanRenderCommandList::BindDescriptorHeapsAndConstants(const PipelineStateType type)
 {
-	auto& device = VulkanRenderDevice::Get();
-	auto* compiler = device.GetVulkanShaderCompiler();
+	VulkanRenderDevice::Get().GetBindlessManager()->BindHeaps(m_commandBuffer);
 
-	std::vector<const VulkanShaderReflection*> reflections;
+	const auto& pushConstantBlocks =
+		type == PipelineStateType::Graphics ? m_currentGraphicsPushConstantBlocks : m_currentComputePushConstantBlocks;
 
-	if (type == PipelineStateType::Graphics)
+	for (const auto& block : pushConstantBlocks)
 	{
-		const auto& vs = compiler->GetOrCreateShader(m_currentGraphicsPSO.vs);
-		const auto& ps = compiler->GetOrCreateShader(m_currentGraphicsPSO.ps);
+		std::vector<uint8_t> pushData(block.size, 0xFF);
 
-		reflections = {&vs.reflection, &ps.reflection};
-	}
-	else
-	{
-		const auto& cs = compiler->GetOrCreateShader(m_currentComputePSO.cs);
-
-		reflections = {&cs.reflection};
-	}
-
-	device.GetBindlessManager()->BindHeaps(m_commandBuffer);
-
-	for (const auto* reflection : reflections)
-	{
-		const uint32_t pushConstantCount = reflection->GetPushConstantBlockCount();
-
-		for (uint32_t i = 0; i < pushConstantCount; ++i)
+		for (const auto& member : block.members)
 		{
-			const SpvReflectBlockVariable& block = reflection->GetPushConstantBlock(i);
-			const uint32_t blockSize = block.padded_size > 0 ? block.padded_size : block.size;
-			if (blockSize == 0)
+			uint32_t bindlessIndex = UINT_MAX;
+
+			if (const auto it = m_boundResources.find(member.name); it != m_boundResources.end() && !it->second.empty())
 			{
-				continue;
+				RenderResourceView* resourceView = it->second[0].Raw();
+
+				if (const auto* textureView = dynamic_cast<VulkanTextureView*>(resourceView))
+				{
+					bindlessIndex = textureView->GetBindlessIndex();
+				}
+				else if (const auto* bufferView = dynamic_cast<VulkanBufferView*>(resourceView))
+				{
+					bindlessIndex = bufferView->GetBindlessIndex();
+				}
 			}
 
-			std::vector<uint8_t> pushData(blockSize, 0xFF);
+			PE_ASSERT(member.size >= sizeof(bindlessIndex), "Push constant member is too small: {}",
+					  WStringToString(member.name));
 
-			for (uint32_t memberIndex = 0; memberIndex < block.member_count; ++memberIndex)
-			{
-				const SpvReflectBlockVariable& member = block.members[memberIndex];
-				if (!member.name)
-				{
-					continue;
-				}
+			PE_ASSERT(member.offset + sizeof(bindlessIndex) <= block.size, "Push constant member out of block bounds");
 
-				const uint32_t memberSize = member.size > 0 ? member.size : sizeof(uint32_t);
-				PE_ASSERT(member.offset + memberSize <= blockSize, "Push constant member out of block bounds");
-
-				uint32_t bindlessIndex = UINT32_MAX;
-				const std::wstring memberName = StringToWString(member.name);
-
-				if (const auto it = m_boundResources.find(memberName); it != m_boundResources.end() && !it->second.empty())
-				{
-					RenderResourceView* resourceView = it->second[0].Raw();
-
-					if (const auto* textureView = dynamic_cast<VulkanTextureView*>(resourceView))
-					{
-						bindlessIndex = textureView->GetBindlessIndex();
-					}
-					else if (const auto* bufferView = dynamic_cast<VulkanBufferView*>(resourceView))
-					{
-						bindlessIndex = bufferView->GetBindlessIndex();
-					}
-				}
-
-				std::memcpy(pushData.data() + member.offset, &bindlessIndex, sizeof(uint32_t));
-			}
-
-			const VkPushDataInfoEXT pushInfo{
-				.sType = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
-				.pNext = nullptr,
-				.offset = block.offset,
-				.data =
-					{
-						.address = pushData.data(),
-						.size = static_cast<size_t>(blockSize),
-					},
-			};
-
-			vkCmdPushDataEXTFunction(m_commandBuffer, &pushInfo);
+			std::memcpy(pushData.data() + member.offset, &bindlessIndex, sizeof(bindlessIndex));
 		}
+
+		const VkPushDataInfoEXT pushInfo{
+			.sType = VK_STRUCTURE_TYPE_PUSH_DATA_INFO_EXT,
+			.pNext = nullptr,
+			.offset = block.offset,
+			.data =
+				{
+					.address = pushData.data(),
+					.size = static_cast<size_t>(block.size),
+				},
+		};
+
+		vkCmdPushDataEXTFunction(m_commandBuffer, &pushInfo);
 	}
 }
 

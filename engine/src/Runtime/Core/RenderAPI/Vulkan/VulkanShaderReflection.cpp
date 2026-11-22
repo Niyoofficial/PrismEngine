@@ -19,8 +19,7 @@ VulkanShaderReflection::VulkanShaderReflection(VulkanShaderReflection&& other) n
 	m_vertexInputs = std::move(other.m_vertexInputs);
 }
 
-VulkanShaderReflection&
-VulkanShaderReflection::operator=(VulkanShaderReflection&& other) noexcept
+VulkanShaderReflection& VulkanShaderReflection::operator=(VulkanShaderReflection&& other) noexcept
 {
 	if (this != &other)
 	{
@@ -138,10 +137,7 @@ const SpvReflectDescriptorSet& VulkanShaderReflection::GetDescriptorSet(const ui
 	return m_module.descriptor_sets[index];
 }
 
-uint32_t VulkanShaderReflection::GetPushConstantBlockCount() const
-{
-	return m_module.push_constant_block_count;
-}
+uint32_t VulkanShaderReflection::GetPushConstantBlockCount() const { return m_module.push_constant_block_count; }
 
 const SpvReflectBlockVariable& VulkanShaderReflection::GetPushConstantBlock(const uint32_t index) const
 {
@@ -150,10 +146,7 @@ const SpvReflectBlockVariable& VulkanShaderReflection::GetPushConstantBlock(cons
 	return m_module.push_constant_blocks[index];
 }
 
-uint32_t VulkanShaderReflection::GetInputVariableCount() const
-{
-	return static_cast<uint32_t>(m_inputVariables.size());
-}
+uint32_t VulkanShaderReflection::GetInputVariableCount() const { return static_cast<uint32_t>(m_inputVariables.size()); }
 
 const SpvReflectInterfaceVariable& VulkanShaderReflection::GetInputVariable(const uint32_t index) const
 {
@@ -162,15 +155,9 @@ const SpvReflectInterfaceVariable& VulkanShaderReflection::GetInputVariable(cons
 	return *m_inputVariables[index];
 }
 
-const std::vector<SpvReflectInterfaceVariable*>& VulkanShaderReflection::GetInputVariables() const
-{
-	return m_inputVariables;
-}
+const std::vector<SpvReflectInterfaceVariable*>& VulkanShaderReflection::GetInputVariables() const { return m_inputVariables; }
 
-const std::vector<SpvReflectInterfaceVariable*>& VulkanShaderReflection::GetOutputVariables() const
-{
-	return m_outputVariables;
-}
+const std::vector<SpvReflectInterfaceVariable*>& VulkanShaderReflection::GetOutputVariables() const { return m_outputVariables; }
 
 const SpvReflectDescriptorSet* VulkanShaderReflection::FindDescriptorSet(const uint32_t set) const
 {
@@ -185,11 +172,7 @@ const SpvReflectDescriptorSet* VulkanShaderReflection::FindDescriptorSet(const u
 	return nullptr;
 }
 
-const std::vector<VulkanShaderVertexInput>&
-VulkanShaderReflection::GetVertexInputs() const
-{
-	return m_vertexInputs;
-}
+const std::vector<VulkanShaderVertexInput>& VulkanShaderReflection::GetVertexInputs() const { return m_vertexInputs; }
 
 std::vector<VertexAttribute> VulkanShaderReflection::GetVertexAttributeLayout() const
 {
@@ -204,8 +187,76 @@ std::vector<VertexAttribute> VulkanShaderReflection::GetVertexAttributeLayout() 
 	return layout;
 }
 
-VertexAttribute
-VulkanShaderReflection::GetVertexAttribute(const SpvReflectInterfaceVariable& variable)
+std::vector<VulkanPushConstantBlock>
+VulkanShaderReflection::BuildPushConstantLayout(const std::vector<const VulkanShaderReflection*>& reflections)
+{
+	std::vector<VulkanPushConstantBlock> result;
+
+	for (const auto* reflection : reflections)
+	{
+		PE_ASSERT(reflection != nullptr, "Shader reflection is null");
+
+		for (uint32_t i = 0; i < reflection->GetPushConstantBlockCount(); ++i)
+		{
+			const auto& block = reflection->GetPushConstantBlock(i);
+
+			const uint32_t blockSize = block.padded_size > 0 ? block.padded_size : block.size;
+
+			if (blockSize == 0)
+			{
+				continue;
+			}
+
+			auto it = std::ranges::find_if(result, [&block, blockSize](const VulkanPushConstantBlock& existing)
+										   { return existing.offset == block.offset && existing.size == blockSize; });
+
+			if (it == result.end())
+			{
+				result.push_back({
+					.offset = block.offset,
+					.size = blockSize,
+				});
+
+				it = std::prev(result.end());
+			}
+
+			for (uint32_t j = 0; j < block.member_count; ++j)
+			{
+				const auto& member = block.members[j];
+
+				if (!member.name)
+				{
+					continue;
+				}
+
+				const uint32_t memberSize = member.size > 0 ? member.size : sizeof(uint32_t);
+
+				PE_ASSERT(member.offset + memberSize <= blockSize, "Push constant member out of block bounds: {}", member.name);
+
+				const auto memberIt = std::ranges::find_if(it->members, [&member](const VulkanPushConstantMember& existing)
+														   { return existing.offset == member.offset; });
+
+				if (memberIt != it->members.end())
+				{
+					PE_ASSERT(memberIt->name == StringToWString(member.name) && memberIt->size == memberSize,
+							  "Incompatible push constant layout at offset {}", member.offset);
+
+					continue;
+				}
+
+				it->members.push_back({
+					.name = StringToWString(member.name),
+					.offset = member.offset,
+					.size = memberSize,
+				});
+			}
+		}
+	}
+
+	return result;
+}
+
+VertexAttribute VulkanShaderReflection::GetVertexAttribute(const SpvReflectInterfaceVariable& variable)
 {
 	PE_ASSERT(variable.semantic != nullptr);
 

@@ -19,6 +19,21 @@ struct VulkanShaderVertexInput
 	VkFormat format = VK_FORMAT_UNDEFINED;
 };
 
+struct VulkanPushConstantMember
+{
+	std::wstring name;
+	uint32_t offset = 0;
+	uint32_t size = 0;
+};
+
+struct VulkanPushConstantBlock
+{
+	uint32_t offset = 0;
+	uint32_t size = 0;
+
+	std::vector<VulkanPushConstantMember> members;
+};
+
 struct VulkanShaderReflection
 {
 	VulkanShaderReflection() = default;
@@ -56,6 +71,9 @@ struct VulkanShaderReflection
 	[[nodiscard]] const std::vector<VulkanShaderVertexInput>& GetVertexInputs() const;
 
 	[[nodiscard]] std::vector<VertexAttribute> GetVertexAttributeLayout() const;
+
+	[[nodiscard]] static std::vector<VulkanPushConstantBlock>
+	BuildPushConstantLayout(const std::vector<const VulkanShaderReflection*>& reflections);
 
 private:
 	static VertexAttribute GetVertexAttribute(const SpvReflectInterfaceVariable& variable);

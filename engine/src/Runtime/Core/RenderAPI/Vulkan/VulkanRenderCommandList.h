@@ -6,6 +6,8 @@
 
 namespace Prism::Render::Vulkan
 {
+struct VulkanPushConstantBlock;
+
 struct PendingColorClear
 {
 	Ref<TextureView> view;
@@ -95,7 +97,10 @@ private:
 	VkCommandBuffer m_commandBuffer = VK_NULL_HANDLE;
 
 	GraphicsPipelineStateDesc m_currentGraphicsPSO{};
+	std::vector<VulkanPushConstantBlock> m_currentGraphicsPushConstantBlocks;
+
 	ComputePipelineStateDesc m_currentComputePSO{};
+	std::vector<VulkanPushConstantBlock> m_currentComputePushConstantBlocks;
 
 	std::vector<Ref<TextureView>> m_renderTargetViews;
 	Ref<TextureView> m_depthStencilView;
