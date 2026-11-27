@@ -44,10 +44,40 @@ VulkanBuffer::~VulkanBuffer()
 void* VulkanBuffer::Map(Flags<CPUAccess> access)
 {
 	PE_ASSERT(m_originalDesc.usage != ResourceUsage::Default);
+	PE_ASSERT(!m_isMapped, "Buffer is already mapped");
 
-	void* mappedData{};
+	if (m_originalDesc.usage == ResourceUsage::Dynamic)
+	{
+		PE_ASSERT(m_originalDesc.cpuAccess.HasAllFlags(CPUAccess::Write), "Dynamic buffers must support CPU write access");
 
-	PE_ASSERT(vmaMapMemory(VulkanRenderDevice::Get().GetAllocator(), m_buffer.allocation, &mappedData) == VK_SUCCESS);
+		auto& device = VulkanRenderDevice::Get();
+
+		m_dynamicAllocation = device.AllocateDynamicBufferMemory(m_originalDesc.size);
+
+		if (!m_dynamicAllocation.IsValid())
+		{
+			PE_ASSERT(false, "Failed to allocate dynamic buffer memory");
+			return nullptr;
+		}
+
+		m_isMapped = true;
+
+		return m_dynamicAllocation.gpuRingAllocation.cpuAddress;
+	}
+
+	void* mappedData = nullptr;
+
+	const VkResult result = vmaMapMemory(VulkanRenderDevice::Get().GetAllocator(), m_buffer.allocation, &mappedData);
+
+	PE_ASSERT(result == VK_SUCCESS, "Failed to map Vulkan buffer");
+
+	if (result != VK_SUCCESS)
+	{
+		return nullptr;
+	}
+
+	m_isMapped = true;
+	m_isVmaMapped = true;
 
 	return mappedData;
 }
@@ -55,14 +85,29 @@ void* VulkanBuffer::Map(Flags<CPUAccess> access)
 void VulkanBuffer::Unmap()
 {
 	PE_ASSERT(m_originalDesc.usage != ResourceUsage::Default);
+	PE_ASSERT(m_isMapped, "Buffer is not mapped");
 
-	vmaUnmapMemory(VulkanRenderDevice::Get().GetAllocator(), m_buffer.allocation);
+	auto& device = VulkanRenderDevice::Get();
+
+	if (m_originalDesc.usage == ResourceUsage::Dynamic)
+	{
+		device.FlushDynamicBufferMemory(m_dynamicAllocation);
+
+		m_isMapped = false;
+		return;
+	}
+
+	if (m_isVmaMapped)
+	{
+		vmaFlushAllocation(device.GetAllocator(), m_buffer.allocation, 0, VK_WHOLE_SIZE);
+
+		vmaUnmapMemory(device.GetAllocator(), m_buffer.allocation);
+
+		m_isVmaMapped = false;
+	}
+
+	m_isMapped = false;
 }
 
-std::any VulkanBuffer::GetDynamicAllocation() const
-{
-	// TODO
-	// implement proper ring buffer allocation for dynamic buffers
-	return {};
-}
+std::any VulkanBuffer::GetDynamicAllocation() const { return m_dynamicAllocation; }
 } // namespace Prism::Render::Vulkan

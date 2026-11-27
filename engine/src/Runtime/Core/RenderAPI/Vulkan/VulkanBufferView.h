@@ -1,7 +1,9 @@
 #pragma once
 
 #include <vulkan/vulkan_core.h>
+
 #include "Prism/Render/BufferView.h"
+#include "VulkanDynamicBufferAllocator.h"
 
 namespace Prism::Render::Vulkan
 {
@@ -18,6 +20,8 @@ public:
 	[[nodiscard]] uint32_t GetBindlessIndex() const;
 
 	void RegisterBindless();
+
+	[[nodiscard]] uint32_t BuildDynamicDescriptor(const DynamicBufferAllocator::Allocation& allocation) const;
 
 private:
 	BufferViewDesc m_viewDesc;

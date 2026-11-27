@@ -2,7 +2,9 @@
 
 #include <vk_mem_alloc.h>
 #include <vulkan/vulkan_core.h>
+
 #include "Prism/Render/Buffer.h"
+#include "VulkanDynamicBufferAllocator.h"
 
 namespace Prism::Render::Vulkan
 {
@@ -34,5 +36,9 @@ private:
 	VulkanBufferResources m_buffer;
 
 	BufferDesc m_originalDesc;
+
+	DynamicBufferAllocator::Allocation m_dynamicAllocation{};
+	bool m_isMapped = false;
+	bool m_isVmaMapped = false;
 };
 } // namespace Prism::Render::Vulkan

@@ -5,6 +5,7 @@
 
 #include "Prism/Render/RenderDevice.h"
 #include "VulkanBindlessManager.h"
+#include "VulkanDynamicBufferAllocator.h"
 #include "VulkanPipelineCache.h"
 #include "VulkanShaderCompiler.h"
 
@@ -71,6 +72,18 @@ public:
 
 	[[nodiscard]] uint32_t GetFrameIndex() const { return m_frameIndex; }
 
+	[[nodiscard]] DynamicBufferAllocator* GetDynamicBufferAllocator() const { return m_dynamicBufferAllocator.get(); }
+
+	[[nodiscard]] DynamicBufferAllocator::Allocation AllocateDynamicBufferMemory(int64_t size) const;
+
+	[[nodiscard]] VkBuffer GetVkBufferForDynamicAllocation(int64_t ringBufferID) const;
+
+	[[nodiscard]] VkDeviceAddress GetDynamicBufferDeviceAddress(int64_t ringBufferID) const;
+
+	void FlushDynamicBufferMemory(const DynamicBufferAllocator::Allocation& allocation);
+
+	void ReleaseStaleResources() override;
+
 	// TODO
 	// move it to some separated DebugLayer
 	void SetDebugName(VkObjectType objectType, uint64_t objectHandle, const std::string& name) const;
@@ -110,6 +123,8 @@ private:
 
 	void CreateBindlessManager();
 
+	void CreateDynamicBufferAllocator();
+
 	VkInstance m_instance = VK_NULL_HANDLE;
 	VkPhysicalDevice m_physicalDevice = VK_NULL_HANDLE;
 	VkDevice m_device = VK_NULL_HANDLE;
@@ -121,6 +136,7 @@ private:
 	std::unique_ptr<VulkanPipelineLayoutCache> m_pipelineLayoutCache;
 	std::unique_ptr<VulkanPipelineCache> m_pipelineCache;
 	std::unique_ptr<VulkanBindlessManager> m_bindlessManager;
+	std::unique_ptr<DynamicBufferAllocator> m_dynamicBufferAllocator;
 
 	bool m_initializedImGui = false;
 

@@ -6,6 +6,7 @@
 #include "Prism/Base/Application.h"
 #include "VulkanBuffer.h"
 #include "VulkanBufferView.h"
+#include "VulkanDynamicBufferAllocator.h"
 #include "VulkanPipelineLayoutCache.h"
 #include "VulkanRenderCommandQueue.h"
 #include "VulkanSwapchain.h"
@@ -89,6 +90,8 @@ VulkanRenderDevice::VulkanRenderDevice(const RenderDeviceParams& params) : Rende
 	CreatePipelineCache();
 
 	CreateBindlessManager();
+
+	CreateDynamicBufferAllocator();
 }
 
 VulkanRenderDevice::~VulkanRenderDevice()
@@ -265,6 +268,36 @@ void VulkanRenderDevice::ShutdownImGui()
 	ImGui_ImplVulkan_Shutdown();
 
 	m_initializedImGui = false;
+}
+
+DynamicBufferAllocator::Allocation VulkanRenderDevice::AllocateDynamicBufferMemory(const int64_t size) const
+{
+	return m_dynamicBufferAllocator->Allocate(size);
+}
+
+VkBuffer VulkanRenderDevice::GetVkBufferForDynamicAllocation(const int64_t ringBufferID) const
+{
+	return m_dynamicBufferAllocator->GetVkBuffer(ringBufferID);
+}
+
+VkDeviceAddress VulkanRenderDevice::GetDynamicBufferDeviceAddress(const int64_t ringBufferID) const
+{
+	return m_dynamicBufferAllocator->GetDeviceAddress(ringBufferID);
+}
+
+void VulkanRenderDevice::FlushDynamicBufferMemory(const DynamicBufferAllocator::Allocation& allocation)
+{
+	PE_ASSERT(allocation.IsValid(), "Invalid dynamic buffer allocation");
+
+	PE_ASSERT(m_dynamicBufferAllocator->Flush(allocation) == VK_SUCCESS, "Failed to flush dynamic buffer memory");
+}
+
+void VulkanRenderDevice::ReleaseStaleResources()
+{
+	RenderDevice::ReleaseStaleResources();
+
+	m_dynamicBufferAllocator->CloseCmdListAllocations(GetRenderCommandQueue()->GetLastSubmittedCmdListFenceValue());
+	m_dynamicBufferAllocator->ReleaseStaleAllocations(GetRenderCommandQueue()->GetCompletedFenceValue());
 }
 
 void VulkanRenderDevice::SetDebugName(VkObjectType objectType, const uint64_t objectHandle, const std::string& name) const
@@ -679,4 +712,10 @@ void VulkanRenderDevice::CreatePipelineLayoutCache() { m_pipelineLayoutCache = s
 void VulkanRenderDevice::CreatePipelineCache() { m_pipelineCache = std::make_unique<VulkanPipelineCache>(); }
 
 void VulkanRenderDevice::CreateBindlessManager() { m_bindlessManager = std::make_unique<VulkanBindlessManager>(); }
+
+void VulkanRenderDevice::CreateDynamicBufferAllocator()
+{
+	m_dynamicBufferAllocator =
+		std::make_unique<DynamicBufferAllocator>(m_device, m_allocator, 16 * 1024 * 1024, defaultVulkanMemoryAlignment);
+}
 } // namespace Prism::Render::Vulkan

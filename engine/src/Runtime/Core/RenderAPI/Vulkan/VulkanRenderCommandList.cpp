@@ -2,6 +2,7 @@
 
 #include <vulkan/vulkan_core.h>
 
+#include "VulkanBindlessManager.h"
 #include "VulkanBuffer.h"
 #include "VulkanBufferView.h"
 #include "VulkanRenderDevice.h"
@@ -83,6 +84,11 @@ VulkanRenderCommandList::VulkanRenderCommandList()
 VulkanRenderCommandList::~VulkanRenderCommandList()
 {
 	const auto& device = VulkanRenderDevice::Get();
+
+	for (const auto& descriptor : m_dynamicBufferDescriptors)
+	{
+		device.GetBindlessManager()->FreeResource(descriptor.bindlessIndex);
+	}
 
 	if (m_commandBuffer)
 	{
@@ -225,6 +231,7 @@ void VulkanRenderCommandList::SetTextures(const std::vector<Ref<TextureView>>& t
 	}
 
 	m_boundResources[paramName] = std::move(resources);
+	m_boundDynamicBuffers.erase(paramName);
 }
 
 void VulkanRenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& bufferViews,
@@ -240,6 +247,60 @@ void VulkanRenderCommandList::SetBuffers(const std::vector<Ref<BufferView>>& buf
 	}
 
 	m_boundResources[paramName] = std::move(resources);
+
+	std::vector<DynamicBufferBinding> dynamicBuffers(bufferViews.size());
+	for (size_t i = 0; i < bufferViews.size(); ++i)
+	{
+		if (!bufferViews[i] || !bufferViews[i]->IsViewOfDynamicResource())
+		{
+			continue;
+		}
+
+		PE_ASSERT(i < dynamicAllocations.size(), "Missing dynamic buffer allocation for {}", WStringToString(paramName));
+		PE_ASSERT(dynamicAllocations[i].type() == typeid(DynamicBufferAllocator::Allocation),
+				  "Invalid dynamic buffer allocation type for {}", WStringToString(paramName));
+
+
+		auto allocation = std::any_cast<DynamicBufferAllocator::Allocation>(dynamicAllocations[i]);
+		PE_ASSERT(allocation.IsValid(), "Invalid dynamic buffer allocation for {}", WStringToString(paramName));
+
+		auto* vulkanBufferView = dynamic_cast<VulkanBufferView*>(bufferViews[i].Raw());
+		PE_ASSERT(vulkanBufferView, "Invalid Vulkan buffer view for {}", WStringToString(paramName));
+		if (!vulkanBufferView)
+		{
+			continue;
+		}
+
+		const auto cacheKey = std::make_tuple(vulkanBufferView, allocation.ringBufferID, allocation.gpuRingAllocation.offset,
+											  allocation.gpuRingAllocation.size);
+		auto cacheIt = m_dynamicDescriptorCache.find(cacheKey);
+		uint32_t bindlessIndex = UINT32_MAX;
+
+		if (cacheIt != m_dynamicDescriptorCache.end())
+		{
+			bindlessIndex = cacheIt->second;
+		}
+		else
+		{
+			bindlessIndex = vulkanBufferView->BuildDynamicDescriptor(allocation);
+			PE_ASSERT(bindlessIndex < VulkanBindlessManager::MaxBindlessDescriptors,
+					  "Invalid dynamic buffer bindless index for {}", WStringToString(paramName));
+			m_dynamicDescriptorCache.emplace(cacheKey, bindlessIndex);
+		}
+
+		dynamicBuffers[i] = {
+			.allocation = allocation,
+			.bindlessIndex = bindlessIndex,
+		};
+
+		m_dynamicBufferDescriptors.push_back({
+			.view = bufferViews[i],
+			.allocation = allocation,
+			.bindlessIndex = bindlessIndex,
+		});
+	}
+
+	m_boundDynamicBuffers[paramName] = std::move(dynamicBuffers);
 }
 
 void VulkanRenderCommandList::ClearRenderTargetView(const Ref<TextureView>& rtv, glm::float4* clearColor)
@@ -771,7 +832,20 @@ void VulkanRenderCommandList::BindDescriptorHeapsAndConstants(const PipelineStat
 				}
 				else if (const auto* bufferView = dynamic_cast<VulkanBufferView*>(resourceView))
 				{
-					bindlessIndex = bufferView->GetBindlessIndex();
+					if (bufferView->IsViewOfDynamicResource())
+					{
+						const auto bindingsIt = m_boundDynamicBuffers.find(member.name);
+						if (bindingsIt == m_boundDynamicBuffers.end() || bindingsIt->second.empty())
+						{
+							PE_ASSERT_NO_ENTRY("Missing dynamic buffer binding for {}", WStringToString(member.name));
+							continue;
+						}
+						bindlessIndex = bindingsIt->second[0].bindlessIndex;
+					}
+					else
+					{
+						bindlessIndex = bufferView->GetBindlessIndex();
+					}
 				}
 			}
 

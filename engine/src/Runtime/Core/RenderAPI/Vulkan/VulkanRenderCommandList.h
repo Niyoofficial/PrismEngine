@@ -1,12 +1,16 @@
 #pragma once
 
+#include <map>
+#include <tuple>
 #include <vulkan/vulkan_core.h>
 #include "Prism/Render/RenderCommandList.h"
 #include "Prism/Render/RenderResourceView.h"
+#include "VulkanDynamicBufferAllocator.h"
 
 namespace Prism::Render::Vulkan
 {
 struct VulkanPushConstantBlock;
+class VulkanBufferView;
 
 struct PendingColorClear
 {
@@ -85,6 +89,19 @@ protected:
 	void Close() override;
 
 private:
+	struct DynamicBufferDescriptor
+	{
+		Ref<RenderResourceView> view;
+		DynamicBufferAllocator::Allocation allocation;
+		uint32_t bindlessIndex = UINT32_MAX;
+	};
+
+	struct DynamicBufferBinding
+	{
+		DynamicBufferAllocator::Allocation allocation;
+		uint32_t bindlessIndex = UINT32_MAX;
+	};
+
 	void BindDescriptorHeapsAndConstants(PipelineStateType type);
 
 	void SetupDrawOrDispatch(PipelineStateType type);
@@ -112,5 +129,8 @@ private:
 	bool m_renderingActive = false;
 
 	std::unordered_map<std::wstring, std::vector<Ref<RenderResourceView>>> m_boundResources;
+	std::unordered_map<std::wstring, std::vector<DynamicBufferBinding>> m_boundDynamicBuffers;
+	std::vector<DynamicBufferDescriptor> m_dynamicBufferDescriptors;
+	std::map<std::tuple<VulkanBufferView*, int64_t, int64_t, int64_t>, uint32_t> m_dynamicDescriptorCache;
 };
 } // namespace Prism::Render::Vulkan
